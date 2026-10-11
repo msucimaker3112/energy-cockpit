@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+# interne Arbeitsdateien (nicht veröffentlichen)
+src/*.original.js
+tools/derive-*.py
+tools/strip-english.py
+FORTSCHRITT.md

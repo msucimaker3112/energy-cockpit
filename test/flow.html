@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Flow Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}.bar{padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap}button{padding:6px 12px;border-radius:8px;border:1px solid #333;background:#16203a;color:#e8eefc;cursor:pointer}#host{max-width:1100px;margin:0 auto;padding:8px}</style></head>
+<body><div class="bar"><button onclick="setLang('de')">DE</button><button onclick="scen('sun')">Überschuss</button><button onclick="scen('night')">Nacht/Netzbezug</button><button onclick="scen('nobat')">Ohne Batterie</button><span id="info"></span></div>
+<div id="host"></div>
+<script>if(location.search.indexOf("shot")>=0){var st=document.createElement("style");st.textContent=".bar{display:none}";document.head.appendChild(st)}</script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(state,attrs)=>({state:String(state),attributes:Object.assign({unit_of_measurement:'W'},attrs||{}),last_updated:'x'});
+const scenes={
+ sun:{'sensor.pv':S(6200),'sensor.grid':S(-3400),'sensor.bat':S(1800),'sensor.soc':S(78,{unit_of_measurement:'%'}),'sensor.home':S(1000),'sensor.pv_day':S(14.2,{unit_of_measurement:'kWh'}),'sensor.imp_day':S(2.1,{unit_of_measurement:'kWh'}),'sensor.exp_day':S(6.3,{unit_of_measurement:'kWh'}),'sensor.wp':S(450),'input_number.price':S(0.34,{unit_of_measurement:'€/kWh'}),'input_number.feed':S(0.08,{unit_of_measurement:'€/kWh'})},
+ night:{'sensor.pv':S(0),'sensor.grid':S(2600),'sensor.bat':S(-300),'sensor.soc':S(8,{unit_of_measurement:'%'}),'sensor.home':S(2900),'sensor.pv_day':S(14.2,{unit_of_measurement:'kWh'}),'sensor.imp_day':S(4.1,{unit_of_measurement:'kWh'}),'sensor.exp_day':S(6.3,{unit_of_measurement:'kWh'}),'sensor.wp':S(2200),'input_number.price':S(0.34),'input_number.feed':S(0.08)},
+ nobat:{'sensor.pv':S(3100),'sensor.grid':S(-900),'sensor.home':S(2200),'sensor.pv_day':S(8.2,{unit_of_measurement:'kWh'}),'sensor.imp_day':S(1.1,{unit_of_measurement:'kWh'}),'sensor.exp_day':S(2.3,{unit_of_measurement:'kWh'}),'sensor.wp':S(300)}
+};
+let hass={states:scenes.sun,language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[]};
+const cfg={title:'',pv:{entity:'sensor.pv',daily:'sensor.pv_day'},grid:{entity:'sensor.grid',invert:false,daily_import:'sensor.imp_day',daily_export:'sensor.exp_day'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:7.5,reserve_soc:10},home:{entity:'sensor.home'},consumers:[{entity:'sensor.wp',name:'Wärmepumpe',icon:'mdi:heat-pump'}],grid_price:'input_number.price',feed_in:'input_number.feed',show_clock:true,surplus:{threshold:1500,delay:0},keep_awake:false};
+let card;
+function mount(c){const h=document.getElementById('host');h.innerHTML='';card=document.createElement('energy-cockpit-flow-card');card.setConfig(c);h.appendChild(card);card.hass=hass;}
+function setLang(l){hass=Object.assign({},hass,{language:l,locale:{language:l}});mount(cfg);}
+function scen(n){hass=Object.assign({},hass,{states:scenes[n]});const c=JSON.parse(JSON.stringify(cfg));if(n==='nobat'){delete c.battery;delete c.grid_price;delete c.feed_in;}mount(c);}
+mount(cfg);
+// Surplus banner needs a delay; fast-forward for the test
+window.addEventListener('load',()=>{setTimeout(()=>{if(card){card._surT=Date.now()-120000;card._update();}},300)});
+</script></body></html>

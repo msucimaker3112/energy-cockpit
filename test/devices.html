@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Devices Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}.bar{padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap}button{padding:6px 12px;border-radius:8px;border:1px solid #333;background:#16203a;color:#e8eefc;cursor:pointer}#host{max-width:1100px;margin:0 auto;padding:8px}</style></head>
+<body><div class="bar"><button onclick="setLang('de')">DE</button><button onclick="noPrice()">Ohne Preis</button></div>
+<div id="host"></div>
+<script>if(location.search.indexOf("shot")>=0){var st=document.createElement("style");st.textContent=".bar{display:none}";document.head.appendChild(st)}</script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(state,attrs)=>({state:String(state),attributes:Object.assign({},attrs||{}),last_changed:new Date(Date.now()-3600e3).toISOString(),last_updated:'x'});
+const states={
+ 'sensor.house':S(1400,{unit_of_measurement:'W'}),'input_number.price':S(0.34),'input_number.feed':S(0.08),
+ 'switch.fridge':S('on'),'sensor.fridge_p':S(48,{unit_of_measurement:'W'}),'sensor.fridge_e':S(1.2,{unit_of_measurement:'kWh'}),
+ 'light.living':S('on'),'sensor.living_p':S(42,{unit_of_measurement:'W'}),
+ 'switch.tv':S('on'),'sensor.tv_p':S(9,{unit_of_measurement:'W'}),
+ 'switch.dryer':S('off'),'sensor.dryer_p':S(0,{unit_of_measurement:'W'})
+};
+let hass={states,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({'sensor.fridge_e':[{start:Date.now()-3600e3,change:0.4}]}),callService:async()=>{}};
+let cfg={rooms:[{name:'Küche',icon:'mdi:silverware-fork-knife',devices:[{name:'Kühlschrank',type:'fridge',entity:'switch.fridge',power:'sensor.fridge_p',energy:'sensor.fridge_e',lock:true}]},{name:'Wohnzimmer',devices:[{name:'Licht',type:'light',entity:'light.living',power:'sensor.living_p'},{name:'Fernseher',type:'tv',entity:'switch.tv',power:'sensor.tv_p'},{name:'Trockner',type:'dryer',entity:'switch.dryer',power:'sensor.dryer_p'}]}],home:'sensor.house',grid_price:'input_number.price',feed_in:'input_number.feed',standby_w:15};
+let card;
+function mount(c){const h=document.getElementById('host');h.innerHTML='';card=document.createElement('energy-cockpit-devices-card');card.setConfig(c);h.appendChild(card);card.hass=hass;}
+function setLang(l){hass=Object.assign({},hass,{language:l,locale:{language:l}});mount(cfg);}
+function noPrice(){const c=JSON.parse(JSON.stringify(cfg));delete c.grid_price;delete c.feed_in;mount(c);}
+mount(cfg);
+</script></body></html>

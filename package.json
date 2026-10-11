@@ -1,0 +1,11 @@
+{
+  "name": "energy-cockpit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "energy-cockpit: Energiefluss-, Geräte- und Statistik-Karten für Home Assistant",
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node --check dist/energy-cockpit.js"
+  }
+}

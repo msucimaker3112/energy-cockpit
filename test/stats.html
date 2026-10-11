@@ -1,0 +1,24 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}.bar{padding:8px 12px;display:flex;gap:8px}button{padding:6px 12px;border-radius:8px;border:1px solid #333;background:#16203a;color:#e8eefc;cursor:pointer}#host{max-width:1100px;margin:0 auto;padding:8px}</style></head>
+<body><div class="bar"><button onclick="noPrice()">Ohne Preis</button></div>
+<div id="host"></div>
+<script>if(location.search.indexOf("shot")>=0){var st=document.createElement("style");st.textContent=".bar{display:none}";document.head.appendChild(st)}</script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(state,u)=>({state:String(state),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const states={'sensor.pv_total':S(15400),'sensor.imp_total':S(7800),'sensor.exp_total':S(9100),'sensor.chg_total':S(3300),'sensor.dis_total':S(3000),'sensor.pv_today':S(12.4),'sensor.imp_today':S(3.1),'sensor.exp_today':S(5.2),'sensor.chg_today':S(4.0),'sensor.dis_today':S(2.5),'sensor.bat_temp':S(22.5,'°C'),'input_number.price':S(0.34,'€/kWh'),'input_number.feed':S(0.08,'€/kWh'),'input_number.invest':S(18000,'€')};
+const y=new Date().getFullYear();
+function months(base){const out=[];for(const yy of [y-1,y]){for(let m=0;m<12;m++){if(yy===y&&m>new Date().getMonth())break;out.push({start:new Date(yy,m,1).getTime(),change:base*(0.3+0.7*Math.sin(Math.PI*(m+0.5)/12))*(yy===y?1.1:1)})}}return out}
+const hass={states,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async(m)=>{
+  const r={};const ids=m.statistic_ids||[];
+  ids.forEach(id=>{if(m.period==='month')r[id]=months(id.includes('pv')?420:id.includes('imp')?140:id.includes('exp')?200:90);
+    else if(m.period==='day')r[id]=Array.from({length:60},(_,i)=>({start:Date.now()-(60-i)*864e5,change:3+((i*7)%11)}));
+    else r[id]=Array.from({length:7*24},(_,i)=>({start:Date.now()-(7*24-i)*36e5,mean:220+((i*13)%90)}));});
+  return r;}};
+const cfg={pv_total:'sensor.pv_total',grid_import_total:'sensor.imp_total',grid_export_total:'sensor.exp_total',battery_charge_total:'sensor.chg_total',battery_discharge_total:'sensor.dis_total',battery_capacity_kwh:7.5,battery_temp:'sensor.bat_temp',pv_today:'sensor.pv_today',import_today:'sensor.imp_today',export_today:'sensor.exp_today',charge_today:'sensor.chg_today',discharge_today:'sensor.dis_today',home_power:'sensor.pv_total',grid_price:'input_number.price',feed_in:'input_number.feed',investment:'input_number.invest'};
+let card;
+function mount(c){const h=document.getElementById('host');h.innerHTML='';card=document.createElement('energy-cockpit-stats-card');card.setConfig(c);h.appendChild(card);card.hass=hass;}
+function noPrice(){const c=JSON.parse(JSON.stringify(cfg));delete c.grid_price;delete c.feed_in;mount(c);}
+mount(cfg);
+</script></body></html>

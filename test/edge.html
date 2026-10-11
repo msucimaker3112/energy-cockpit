@@ -1,0 +1,59 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Energy-Cockpit Randfälle</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui;padding:12px}pre{white-space:pre-wrap}</style></head>
+<body><pre id="out">läuft …</pre><div id="host" style="max-width:1000px"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S = (state, attrs) => ({ state: String(state), attributes: Object.assign({}, attrs || {}), last_changed: new Date(Date.now() - 3600e3).toISOString(), last_updated: 'x' });
+const W = (v, u) => S(v, { unit_of_measurement: u || 'W' });
+const errors = [];
+window.addEventListener('error', (e) => errors.push(String(e.message)));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const results = [];
+async function run(name, tag, config, states, opts) {
+  const before = errors.length;
+  let card, thrown = null;
+  try {
+    const hass = { states, language: 'de', locale: { language: 'de' }, config: { currency: 'EUR' }, callService: async () => {}, ...(opts || {}) };
+    if (!(opts && 'callWS' in opts)) hass.callWS = async () => ({});
+    card = document.createElement(tag);
+    card.setConfig(JSON.parse(JSON.stringify(config)));
+    document.getElementById('host').appendChild(card);
+    card.hass = hass;
+    await sleep(700);
+    card.hass = Object.assign({}, hass);
+    await sleep(300);
+  } catch (e) { thrown = String(e && e.message || e); }
+  const text = card && card.shadowRoot ? card.shadowRoot.textContent.replace(/\s+/g, ' ').slice(0, 140) : '';
+  results.push({ name, ok: !thrown && errors.length === before, thrown, errors: errors.slice(before), text });
+  if (card) card.remove();
+}
+(async () => {
+  const F = 'energy-cockpit-flow-card', D = 'energy-cockpit-devices-card', T = 'energy-cockpit-stats-card';
+  // Energiefluss
+  await run('flow: nur Netz', F, { grid: { entity: 'sensor.g' } }, { 'sensor.g': W(1200) });
+  await run('flow: nur PV', F, { pv: { entity: 'sensor.p' } }, { 'sensor.p': W(3.5, 'kW') });
+  await run('flow: Sensoren fehlen im System', F, { pv: { entity: 'sensor.x' }, grid: { entity: 'sensor.y' }, battery: { power: 'sensor.b', soc: 'sensor.s' } }, {});
+  await run('flow: Sensoren nicht verfügbar', F, { pv: { entity: 'sensor.p' }, grid: { entity: 'sensor.g' }, battery: { power: 'sensor.b', soc: 'sensor.s' } },
+    { 'sensor.p': S('unavailable'), 'sensor.g': S('unknown'), 'sensor.b': S('unavailable'), 'sensor.s': S('unavailable') });
+  await run('flow: nichtnumerische Werte', F, { pv: { entity: 'sensor.p' }, grid: { entity: 'sensor.g' } }, { 'sensor.p': S('abc'), 'sensor.g': S('') });
+  await run('flow: Gruppen mit fehlenden Entitäten', F, { pv: { entity: 'sensor.p' }, consumer_groups: [{ name: 'A', items: [{ entity: 'sensor.nix', name: 'Nix' }, { name: 'Nur Text', secondary: 'sensor.t' }] }, { name: 'B', items: [] }] }, { 'sensor.p': W(500), 'sensor.t': S(21.5, { unit_of_measurement: '°C' }) });
+  await run('flow: Verbraucher nur Zusatzwert', F, { grid: { entity: 'sensor.g' }, consumers: [{ name: 'Temp', secondary: 'sensor.t' }, { name: 'Leer' }] }, { 'sensor.g': W(300), 'sensor.t': S(19, { unit_of_measurement: '°C' }) });
+  await run('flow: ohne Preise, Überschuss', F, { pv: { entity: 'sensor.p' }, grid: { entity: 'sensor.g' }, surplus: { threshold: 100, delay: 0 } }, { 'sensor.p': W(5000), 'sensor.g': W(-4000) });
+  await run('flow: Fehlkonfiguration (leer)', F, {}, {});
+  // Geräte
+  await run('geräte: Raum ohne Geräte', D, { rooms: [{ name: 'Leer', devices: [] }] }, {});
+  await run('geräte: Gerät nicht verfügbar', D, { rooms: [{ name: 'R', devices: [{ name: 'X', entity: 'switch.x', power: 'sensor.px' }] }] }, { 'switch.x': S('unavailable') });
+  await run('geräte: ohne Haus-Sensor, ohne Energie, ohne callWS', D, { rooms: [{ name: 'R', devices: [{ name: 'X', entity: 'switch.x', power: 'sensor.px', energy: 'sensor.ex' }] }] },
+    { 'switch.x': S('on'), 'sensor.px': W(40) }, { callWS: undefined });
+  await run('geräte: Kanäle und Medien ohne Zusatzfelder', D, { rooms: [{ name: 'R', devices: [{ name: 'TV', type: 'media', entity: 'switch.tv', power: 'sensor.p' }, { name: 'Leiste', type: 'strip', channels: [{ name: 'A', entity: 'switch.a' }] }] }] },
+    { 'switch.tv': S('on'), 'sensor.p': W(80), 'switch.a': S('off') });
+  await run('geräte: Fehlkonfiguration (keine Räume)', D, {}, {});
+  // Statistik
+  await run('statistik: nur Pflichtfelder', T, { pv_total: 'sensor.a', grid_import_total: 'sensor.b', grid_export_total: 'sensor.c' }, { 'sensor.a': S(1000, { unit_of_measurement: 'kWh' }), 'sensor.b': S(500), 'sensor.c': S(300) });
+  await run('statistik: Sensoren nicht verfügbar, kein callWS', T, { pv_total: 'sensor.a', grid_import_total: 'sensor.b', grid_export_total: 'sensor.c', investment: 'sensor.i', grid_price: 'sensor.p' },
+    { 'sensor.a': S('unavailable'), 'sensor.b': S('unknown'), 'sensor.c': S('') }, { callWS: undefined });
+  await run('statistik: Fehlkonfiguration', T, { pv_total: 'sensor.a' }, {});
+  document.getElementById('out').textContent = JSON.stringify(results, null, 1);
+  document.title = 'FERTIG';
+})();
+</script></body></html>

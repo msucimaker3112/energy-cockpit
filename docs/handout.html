@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Energy-Cockpit Handout</title>
+<style>
+@page{size:A4;margin:14mm 14mm}
+*{box-sizing:border-box}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;color:#1b2333;font-size:10.3pt;line-height:1.42;margin:0}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0ea5c9;padding-bottom:8px;margin-bottom:12px}
+h1{font-size:21pt;margin:0}
+h1 small{display:block;font-size:10pt;font-weight:500;color:#5b6577;margin-top:2px}
+.badge{background:#0ea5c9;color:#fff;border-radius:999px;padding:4px 12px;font-weight:600;font-size:9.5pt}
+h2{font-size:12pt;margin:12px 0 5px;color:#0b7a96}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{border:1px solid #d5dbe6;border-radius:10px;padding:8px 11px;margin-bottom:8px;background:#f7f9fc}
+.card b{color:#0b7a96}
+ol{margin:4px 0 0 18px;padding:0}
+li{margin:2px 0}
+code,pre{font-family:Consolas,"Courier New",monospace;font-size:9pt}
+code{background:#e8edf5;border-radius:4px;padding:0 4px}
+pre{background:#101827;color:#e8eefc;border-radius:8px;padding:8px 10px;margin:4px 0;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;font-size:9.4pt}
+th,td{border:1px solid #d5dbe6;padding:3px 7px;text-align:left;vertical-align:top}
+th{background:#eaf1f8}
+.box{border-left:4px solid #f59e0b;background:#fff8e6;padding:6px 10px;border-radius:0 8px 8px 0;margin-top:8px}
+footer{margin-top:10px;border-top:1px solid #d5dbe6;padding-top:6px;color:#5b6577;font-size:9pt;display:flex;justify-content:space-between}
+</style></head>
+<body>
+<header>
+  <h1>Energy-Cockpit<small>Energiefluss, Geräte &amp; Verbrauch und Statistik für Home Assistant</small></h1>
+  <span class="badge">Version 0.1.0</span>
+</header>
+
+<div class="cols">
+  <div>
+    <h2>1. Installation mit HACS</h2>
+    <div class="card"><ol>
+      <li>HACS öffnen → <b>⋮</b> → <b>Benutzerdefinierte Repositories</b></li>
+      <li>Repository eintragen:<br><code>https://github.com/msucimaker3112/energy-cockpit</code></li>
+      <li>Kategorie <b>Dashboard</b> wählen → <b>Hinzufügen</b></li>
+      <li>"Energy-Cockpit" suchen → <b>Herunterladen</b></li>
+      <li>Browser-Cache leeren: <b>Strg + F5</b></li>
+    </ol></div>
+
+    <h2>2. Ohne HACS</h2>
+    <div class="card"><ol>
+      <li><code>energy-cockpit.js</code> aus dem Release in <code>config/www/</code> kopieren</li>
+      <li><i>Einstellungen → Dashboards → ⋮ → Ressourcen</i>:<br>URL <code>/local/energy-cockpit.js</code>, Typ <b>JavaScript-Modul</b></li>
+      <li>Strg + F5</li>
+    </ol></div>
+
+    <h2>3. Karte hinzufügen</h2>
+    <div class="card"><ol>
+      <li>Dashboard → <b>Bearbeiten</b> → <b>Karte hinzufügen</b></li>
+      <li>Nach <b>Energy-Cockpit</b> suchen, Karte wählen</li>
+      <li>Sensoren im Editor auswählen → <b>Speichern</b></li>
+    </ol>
+    Für Wandtablets: Ansicht vom Typ <b>Panel</b> verwenden.</div>
+  </div>
+
+  <div>
+    <h2>Die drei Karten</h2>
+    <table>
+      <tr><th>Karte</th><th>Zeigt</th></tr>
+      <tr><td><code>energy-cockpit-flow-card</code></td><td>Energiefluss: Solar, Netz, Batterie, Haus, Verbraucher, Überschuss</td></tr>
+      <tr><td><code>energy-cockpit-devices-card</code></td><td>Räume und Geräte mit Live-Leistung, Kosten, Standby</td></tr>
+      <tr><td><code>energy-cockpit-stats-card</code></td><td>Ersparnis, Autarkie, Amortisation, Grundlast, Monatsvergleich</td></tr>
+    </table>
+
+    <h2>Minimalkonfiguration (Energiefluss)</h2>
+<pre>type: custom:energy-cockpit-flow-card
+pv:
+  entity: sensor.pv_leistung
+grid:
+  entity: sensor.netz_leistung
+battery:
+  power: sensor.batterie_leistung
+  soc: sensor.batterie_ladestand
+grid_price: input_number.strompreis</pre>
+
+    <h2>Häufige Probleme</h2>
+    <table>
+      <tr><th>Problem</th><th>Lösung</th></tr>
+      <tr><td>Karte nicht in der Liste</td><td>Ressource prüfen (Typ Modul), Strg + F5</td></tr>
+      <tr><td>Netz: Bezug als Einspeisung</td><td><b>Vorzeichen umkehren</b> beim Netz</td></tr>
+      <tr><td>Keine Kosten sichtbar</td><td><code>grid_price</code> konfigurieren</td></tr>
+      <tr><td>Werte zeigen "—"</td><td>Sensor nicht verfügbar oder keine W/kW-Einheit</td></tr>
+      <tr><td>Statistik leer</td><td>Zähler brauchen <code>state_class</code> und Langzeitstatistik</td></tr>
+    </table>
+    <div class="box"><b>Tipp:</b> Gruppen, Abfallkalender und Überschussvorschläge gibt es nur im YAML-Editor der Karte. Der grafische Editor behält sie beim Speichern bei.</div>
+  </div>
+</div>
+
+<footer>
+  <span>Alle Optionen: docs/KONFIGURATION.md · Anleitung: docs/INSTALLATION.md</span>
+  <span>github.com/msucimaker3112/energy-cockpit · MIT-Lizenz</span>
+</footer>
+</body></html>
