@@ -80,6 +80,7 @@ HACS: Eintrag öffnen → ⋮ → **Entfernen**. Manuell: Ressource löschen und
 | Statistik-Balken leer | Zähler brauchen Langzeitstatistik (`state_class`), mindestens einen vollen Tag |
 | Fehlermeldung "Mindestens pv oder grid konfigurieren" | Beim Energiefluss muss PV oder Netz gesetzt sein |
 | Fehlermeldung "rooms fehlt" | Bei der Geräte-Karte mindestens einen Raum anlegen |
+| Karte füllt nur eine halbe oder Drittel-Breite | Die Ansicht ist vom Typ *Abschnitte* (Kacheln). Ansicht auf **Panel** stellen (Ansicht bearbeiten → Ansichtstyp), oder den Abschnitt über mehrere Spalten spannen (`column_span`) und der Karte `grid_options: {columns: full}` geben |
 | Karte ist zu klein oder zu groß | `fit_screen: false` setzen und die Kartenhöhe im Dashboard anpassen |
 | Echo Show schaltet den Bildschirm aus | `keep_awake: true` setzen, einmal tippen (nur Silk-Browser) |
 

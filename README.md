@@ -44,7 +44,7 @@ Die meisten Einstellungen erledigt der grafische Editor, auch Einzelverbraucher 
 
 ## Voraussetzungen
 
-- Home Assistant mit Lovelace-Dashboards (Karten-Modus *Panel* oder *Abschnitte* für volle Breite empfohlen).
+- Home Assistant mit Lovelace-Dashboards. Die Karten brauchen Platz: Ansichtstyp **Panel** (eine Karte, volle Breite) ist empfohlen. In *Abschnitte*-Ansichten füllt die Karte nur die Breite des Abschnitts.
 - Leistungssensoren in W oder kW, Energiesensoren in kWh.
 - Für Verlauf und Kosten pro Gerät: Energiezähler mit Langzeitstatistik (`state_class: total_increasing`).
 
