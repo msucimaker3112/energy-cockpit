@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.1.1 - MIT License */
+/*! energy-cockpit v0.1.2 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -368,8 +368,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
   setConfig(config) {
     if (!config || (!config.pv && !config.grid)) throw new Error(T('flow.error'));
     this._c = JSON.parse(JSON.stringify(config));
-    this._c.consumers = this._c.consumers || [];
-    this._c.consumer_groups = this._c.consumer_groups || [];
+    // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
+    const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
+    const used = (x) => x && (x.entity || x.secondary);
+    this._c.consumers = arr(this._c.consumers).filter(used);
+    this._c.consumer_groups = arr(this._c.consumer_groups)
+      .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
+      .filter((g) => g.name || g.items.length);
     this._build();
     if (this._hass) this._update();
   }
@@ -953,7 +958,17 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
+    secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)',
   };
+
+  // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
+  const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
+  const consumerFields = () => [ent('entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'), ent('secondary', ['sensor'])];
+  const itemFields = () => [ent('entity', ['sensor']), txt('name'), ent('secondary', ['sensor'])];
+  const groupFields = () => [
+    txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'),
+    sec('items', 'Verbraucher der Gruppe', slots(8, (n) => `Verbraucher ${n}`, itemFields)),
+  ];
 
   WD.flowForm = () => ({
     schema: [
@@ -966,6 +981,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name')]),
+      sec('consumers', 'Einzelverbraucher (bis zu 8)', slots(8, (n) => `Verbraucher ${n}`, consumerFields)),
+      sec('consumer_groups', 'Gruppen (bis zu 6)', slots(6, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
       ent('feed_in', ['sensor', 'input_number']),
       bool('show_clock', true),
@@ -974,7 +991,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('nav_label'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'title' ? 'Gruppen, Verbraucher, Abfallkalender und Überschussvorschläge stellst du im YAML-Editor ein.' : undefined),
+    computeHelper: (s) => (s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : undefined),
   });
 })();
 

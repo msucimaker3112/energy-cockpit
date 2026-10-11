@@ -208,8 +208,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
   setConfig(config) {
     if (!config || (!config.pv && !config.grid)) throw new Error(T('flow.error'));
     this._c = JSON.parse(JSON.stringify(config));
-    this._c.consumers = this._c.consumers || [];
-    this._c.consumer_groups = this._c.consumer_groups || [];
+    // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
+    const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
+    const used = (x) => x && (x.entity || x.secondary);
+    this._c.consumers = arr(this._c.consumers).filter(used);
+    this._c.consumer_groups = arr(this._c.consumer_groups)
+      .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
+      .filter((g) => g.name || g.items.length);
     this._build();
     if (this._hass) this._update();
   }

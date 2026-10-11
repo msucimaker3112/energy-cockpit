@@ -17,7 +17,17 @@
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
+    secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)',
   };
+
+  // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
+  const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
+  const consumerFields = () => [ent('entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'), ent('secondary', ['sensor'])];
+  const itemFields = () => [ent('entity', ['sensor']), txt('name'), ent('secondary', ['sensor'])];
+  const groupFields = () => [
+    txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'),
+    sec('items', 'Verbraucher der Gruppe', slots(8, (n) => `Verbraucher ${n}`, itemFields)),
+  ];
 
   WD.flowForm = () => ({
     schema: [
@@ -30,6 +40,8 @@
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name')]),
+      sec('consumers', 'Einzelverbraucher (bis zu 8)', slots(8, (n) => `Verbraucher ${n}`, consumerFields)),
+      sec('consumer_groups', 'Gruppen (bis zu 6)', slots(6, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
       ent('feed_in', ['sensor', 'input_number']),
       bool('show_clock', true),
@@ -38,6 +50,6 @@
       txt('nav_label'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'title' ? 'Gruppen, Verbraucher, Abfallkalender und Überschussvorschläge stellst du im YAML-Editor ein.' : undefined),
+    computeHelper: (s) => (s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : undefined),
   });
 })();

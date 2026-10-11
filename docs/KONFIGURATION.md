@@ -34,6 +34,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 
 ### Verbraucher
 
+Im grafischen Editor findest du die Abschnitte **Einzelverbraucher** (bis zu 8) und **Gruppen** (bis zu 6 mit je bis zu 8 Verbrauchern). Gespeichert werden sie als Liste oder als nummerierte Einträge, beides funktioniert. Mehr Einträge sind im YAML-Editor möglich.
+
 ```yaml
 consumers:
   - entity: sensor.waermepumpe_leistung

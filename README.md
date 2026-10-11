@@ -40,7 +40,7 @@ battery:
   soc: sensor.batterie_ladestand
 ```
 
-Die meisten Einstellungen erledigt der grafische Editor. Gruppen, Abfallkalender und Überschussvorschläge stellst du im YAML-Editor ein.
+Die meisten Einstellungen erledigt der grafische Editor, auch Einzelverbraucher und Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.
 
 ## Voraussetzungen
 
