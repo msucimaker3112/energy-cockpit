@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.1.2 - MIT License */
+/*! energy-cockpit v0.2.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -153,6 +153,315 @@ const WD = (() => {
     if (hrs > 48) return WD.T('dur.2days');
     const m = Math.round(hrs * 60), hh = Math.floor(m / 60), mm = m % 60;
     return hh ? `${hh} h ${String(mm).padStart(2, '0')} min` : `${mm} min`;
+  };
+})();
+
+
+/* ---- wizard.js ---- */
+/* Einrichtungsassistent: Schritt für Schritt Sensoren auswählen, mit Vorschlägen aus den vorhandenen Entitäten.
+   Verwendet nur Standard-HTML (select, input), damit er auch dann funktioniert, wenn Home Assistant seine Formular-Bausteine nicht geladen hat. */
+(() => {
+  const POWER_UNITS = ['W', 'kW', 'MW'];
+  const ENERGY_UNITS = ['Wh', 'kWh', 'MWh'];
+
+  // Liste aller passenden Entitäten (Leistung, Energie, Prozent, Preis, Schalter ...)
+  const list = (hass, kind) => {
+    const out = [];
+    if (!hass || !hass.states) return out;
+    Object.keys(hass.states).forEach((id) => {
+      const s = hass.states[id], a = s.attributes || {}, u = a.unit_of_measurement || '', dc = a.device_class || '';
+      const dom = id.split('.')[0];
+      let ok = false;
+      if (kind === 'power') ok = dom === 'sensor' && (POWER_UNITS.indexOf(u) >= 0 || dc === 'power');
+      else if (kind === 'energy') ok = dom === 'sensor' && (ENERGY_UNITS.indexOf(u) >= 0 || dc === 'energy');
+      else if (kind === 'percent') ok = (dom === 'sensor' || dom === 'number') && (u === '%' || dc === 'battery');
+      else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
+      else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
+      else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));
+      else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
+      if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
+    });
+    return out.sort((x, y) => x.name.localeCompare(y.name, 'de'));
+  };
+
+  // Treffer nach Stichwörtern sortieren: Vorschläge zuerst
+  const score = (e, hints) => {
+    const t = (e.id + ' ' + e.name).toLowerCase();
+    let s = 0;
+    (hints || []).forEach((re, i) => { if (re.test(t)) s += 10 - i; });
+    return s;
+  };
+
+  const getPath = (o, p) => p.split('.').reduce((a, k) => (a === undefined || a === null ? undefined : a[k]), o);
+  const setPath = (o, p, v) => {
+    const ks = p.split('.');
+    let c = o;
+    ks.slice(0, -1).forEach((k) => { if (typeof c[k] !== 'object' || c[k] === null) c[k] = {}; c = c[k]; });
+    const last = ks[ks.length - 1];
+    if (v === '' || v === undefined || v === null || v === false) delete c[last]; else c[last] = v;
+  };
+  const prune = (o) => {
+    Object.keys(o).forEach((k) => {
+      if (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k])) { prune(o[k]); if (!Object.keys(o[k]).length) delete o[k]; }
+    });
+    return o;
+  };
+
+  const fmtState = (e) => (e ? `${e.state}${e.unit ? ' ' + e.unit : ''}` : '');
+
+  // Baut den Assistenten. opts: { steps, hass, config, onChange(config), done }
+  WD.createWizard = (opts) => {
+    const root = document.createElement('div');
+    root.style.cssText = 'font:inherit;color:var(--primary-text-color,inherit)';
+    let cfg = JSON.parse(JSON.stringify(opts.config || {}));
+    let hass = opts.hass;
+    let step = 0;
+    const steps = opts.steps;
+
+    const emit = () => { prune(cfg); opts.onChange(JSON.parse(JSON.stringify(cfg))); };
+    const css = {
+      box: 'padding:10px 12px;margin:8px 0;border:1px solid var(--divider-color,#444);border-radius:10px',
+      btn: 'cursor:pointer;margin:4px 6px 4px 0;padding:8px 14px;border-radius:8px;border:1px solid var(--divider-color,#555);background:var(--secondary-background-color,#222);color:var(--primary-text-color,#fff);font:inherit',
+      primary: 'cursor:pointer;margin:4px 6px 4px 0;padding:8px 14px;border-radius:8px;border:0;background:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff);font:inherit;font-weight:600',
+      input: 'width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--divider-color,#555);background:var(--card-background-color,#111);color:var(--primary-text-color,#fff);font:inherit',
+      label: 'display:block;font-weight:600;margin:12px 0 4px',
+      help: 'font-size:.85em;opacity:.7;margin:2px 0 4px',
+    };
+    const el = (tag, style, text) => { const e = document.createElement(tag); if (style) e.style.cssText = style; if (text !== undefined) e.textContent = text; return e; };
+
+    const fieldSelect = (f) => {
+      const wrap = el('div');
+      wrap.appendChild(el('label', css.label, f.label + (f.optional ? ' (optional)' : '')));
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      const sel = el('select', css.input);
+      const all = list(hass, f.kind || 'power');
+      const cur = getPath(cfg, f.path) || '';
+      const sug = all.filter((e) => score(e, f.hints) > 0).sort((a, b) => score(b, f.hints) - score(a, f.hints));
+      const rest = all.filter((e) => sug.indexOf(e) < 0);
+      const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+      sel.appendChild(opt('', '— nicht verwenden —'));
+      if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
+      if (sug.length) {
+        const g = document.createElement('optgroup'); g.label = 'Vorschläge';
+        sug.slice(0, 12).forEach((e) => g.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
+        sel.appendChild(g);
+      }
+      const g2 = document.createElement('optgroup'); g2.label = 'Alle passenden Sensoren';
+      rest.forEach((e) => g2.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
+      sel.appendChild(g2);
+      sel.value = cur;
+      const live = el('div', css.help, '');
+      const upd = () => { const e = all.find((x) => x.id === sel.value); live.textContent = e ? `Aktueller Wert: ${fmtState(e)}  ·  ${e.id}` : ''; };
+      sel.addEventListener('change', () => { setPath(cfg, f.path, sel.value); upd(); emit(); });
+      upd();
+      wrap.appendChild(sel);
+      wrap.appendChild(live);
+      if (!cur && sug.length && f.auto !== false && !f.optional) {
+        const b = el('button', css.btn, `Vorschlag übernehmen: ${sug[0].name}`);
+        b.type = 'button';
+        b.addEventListener('click', () => { setPath(cfg, f.path, sug[0].id); emit(); render(); });
+        wrap.appendChild(b);
+      }
+      return wrap;
+    };
+
+    const fieldBool = (f) => {
+      const wrap = el('div');
+      const l = el('label', css.label + ';display:flex;align-items:center;gap:8px;font-weight:500');
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!getPath(cfg, f.path);
+      c.addEventListener('change', () => { setPath(cfg, f.path, c.checked ? true : ''); emit(); });
+      l.appendChild(c); l.appendChild(document.createTextNode(f.label));
+      wrap.appendChild(l);
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      return wrap;
+    };
+
+    const fieldInput = (f, type) => {
+      const wrap = el('div');
+      wrap.appendChild(el('label', css.label, f.label + (f.optional ? ' (optional)' : '')));
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      const i = el('input', css.input);
+      i.type = type;
+      if (type === 'number') { i.step = f.step || '0.1'; i.min = f.min !== undefined ? f.min : '0'; }
+      const cur = getPath(cfg, f.path);
+      i.value = cur === undefined ? '' : cur;
+      i.addEventListener('change', () => { const v = type === 'number' ? (i.value === '' ? '' : parseFloat(i.value)) : i.value; setPath(cfg, f.path, v); emit(); });
+      wrap.appendChild(i);
+      return wrap;
+    };
+
+    // Dynamische Liste (z. B. Einzelverbraucher): Sensor + Name je Zeile
+    const fieldList = (f) => {
+      const wrap = el('div');
+      wrap.appendChild(el('label', css.label, f.label));
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      const all = list(hass, 'power');
+      const items = Array.isArray(cfg[f.path]) ? cfg[f.path] : [];
+      const used = items.map((x) => x.entity);
+      const sugs = all.filter((e) => used.indexOf(e.id) < 0 && getPath(cfg, 'pv.entity') !== e.id && getPath(cfg, 'grid.entity') !== e.id && getPath(cfg, 'battery.power') !== e.id && getPath(cfg, 'home.entity') !== e.id);
+      const write = (arr) => { cfg[f.path] = arr.filter((x) => x.entity); emit(); };
+      items.forEach((it, i) => {
+        const row = el('div', css.box);
+        const sel = el('select', css.input);
+        const o0 = document.createElement('option'); o0.value = it.entity || ''; o0.textContent = (all.find((e) => e.id === it.entity) || { name: it.entity || '—' }).name;
+        sel.appendChild(o0);
+        all.forEach((e) => { if (e.id !== it.entity) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); } });
+        sel.value = it.entity || '';
+        sel.addEventListener('change', () => { it.entity = sel.value; if (!it.name) { const e = all.find((x) => x.id === sel.value); if (e) it.name = e.name.replace(/\s*(leistung|power|energy power)\s*$/i, ''); } write(items); render(); });
+        const nm = el('input', css.input + ';margin-top:6px');
+        nm.placeholder = 'Anzeigename';
+        nm.value = it.name || '';
+        nm.addEventListener('change', () => { it.name = nm.value; write(items); });
+        const rm = el('button', css.btn, 'Entfernen'); rm.type = 'button';
+        rm.addEventListener('click', () => { items.splice(i, 1); write(items); render(); });
+        row.appendChild(sel); row.appendChild(nm); row.appendChild(rm);
+        wrap.appendChild(row);
+      });
+      if (items.length < (f.max || 8)) {
+        const add = el('div', css.box);
+        add.appendChild(el('div', css.help, 'Verbraucher hinzufügen:'));
+        const sel = el('select', css.input);
+        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— Sensor wählen —'; sel.appendChild(o0);
+        sugs.forEach((e) => { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); });
+        sel.addEventListener('change', () => {
+          if (!sel.value) return;
+          const e = all.find((x) => x.id === sel.value);
+          items.push({ entity: sel.value, name: e ? e.name.replace(/\s*(leistung|power|energy power)\s*$/i, '') : '' });
+          write(items); render();
+        });
+        add.appendChild(sel);
+        wrap.appendChild(add);
+      }
+      return wrap;
+    };
+
+    function render() {
+      root.innerHTML = '';
+      const st = steps[step];
+      // Fortschritt
+      const prog = el('div', 'display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap');
+      steps.forEach((s, i) => {
+        const b = el('button', 'cursor:pointer;padding:4px 10px;border-radius:999px;border:1px solid var(--divider-color,#555);background:' + (i === step ? 'var(--primary-color,#03a9f4)' : 'transparent') + ';color:' + (i === step ? 'var(--text-primary-color,#fff)' : 'inherit') + ';font:inherit;font-size:.85em', `${i + 1}. ${s.short || s.title}`);
+        b.type = 'button';
+        b.addEventListener('click', () => { step = i; render(); });
+        prog.appendChild(b);
+      });
+      root.appendChild(prog);
+      root.appendChild(el('div', 'font-size:1.15em;font-weight:700;margin:6px 0', st.title));
+      if (st.text) root.appendChild(el('div', css.help + ';font-size:.95em', st.text));
+      (st.fields || []).forEach((f) => {
+        if (f.kind === 'bool') root.appendChild(fieldBool(f));
+        else if (f.kind === 'number') root.appendChild(fieldInput(f, 'number'));
+        else if (f.kind === 'text') root.appendChild(fieldInput(f, 'text'));
+        else if (f.kind === 'list') root.appendChild(fieldList(f));
+        else root.appendChild(fieldSelect(f));
+      });
+      if (st.summary) {
+        const rows = st.summary(cfg, hass);
+        const b = el('div', css.box);
+        rows.forEach((r) => b.appendChild(el('div', 'margin:2px 0', r)));
+        root.appendChild(b);
+      }
+      const nav = el('div', 'margin-top:14px');
+      if (step > 0) { const b = el('button', css.btn, '← Zurück'); b.type = 'button'; b.addEventListener('click', () => { step--; render(); }); nav.appendChild(b); }
+      if (step < steps.length - 1) { const b = el('button', css.primary, 'Weiter →'); b.type = 'button'; b.addEventListener('click', () => { step++; render(); }); nav.appendChild(b); }
+      else if (opts.done) { const b = el('button', css.primary, 'Fertig: alle Felder anzeigen'); b.type = 'button'; b.addEventListener('click', () => opts.done()); nav.appendChild(b); }
+      root.appendChild(nav);
+    }
+    render();
+    return {
+      el: root,
+      setHass(h) { hass = h; },
+      setConfig(c) { cfg = JSON.parse(JSON.stringify(c || {})); render(); },
+    };
+  };
+
+  WD.wizardList = list;
+  WD.wizardScore = score;
+})();
+
+
+/* ---- editor-kit.js ---- */
+/* Gemeinsamer Editor-Baukasten: Reiter "Assistent" (Schritt für Schritt) und "Alle Felder" (Formular von Home Assistant). */
+(() => {
+  // ha-form ist in Home Assistant nicht immer geladen: über die Karten-Helfer nachladen
+  WD.ensureForm = async () => {
+    if (customElements.get('ha-form')) return true;
+    try {
+      const h = await window.loadCardHelpers();
+      const c = await h.createCardElement({ type: 'entities', entities: [] });
+      if (c && c.constructor && c.constructor.getConfigElement) await c.constructor.getConfigElement();
+    } catch (e) { /* weiter mit Wartezeit */ }
+    await Promise.race([customElements.whenDefined('ha-form'), new Promise((r) => setTimeout(r, 4000))]);
+    return !!customElements.get('ha-form');
+  };
+
+  // def: { needsSetup(config), steps(), form(), extra?(root, api) }
+  WD.defineEditor = (tag, def) => {
+    class Editor extends HTMLElement {
+      setConfig(c) {
+        const s = JSON.stringify(c || {});
+        if (this._last === s) return; // eigene Änderung: nicht neu aufbauen (Eingabefokus bleibt erhalten)
+        this._c = JSON.parse(s);
+        if (!this._tab) this._tab = def.needsSetup(this._c) ? 'wiz' : 'form';
+        this._wiz = null;
+        this._render();
+      }
+      set hass(h) {
+        this._hass = h;
+        if (this._wiz) this._wiz.setHass(h);
+        if (this._form) this._form.hass = h;
+      }
+      _emit(cfg) {
+        this._c = cfg;
+        this._last = JSON.stringify(cfg);
+        this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: JSON.parse(this._last) }, bubbles: true, composed: true }));
+      }
+      _render() {
+        if (!this._root) { this._root = document.createElement('div'); this.appendChild(this._root); }
+        const root = this._root;
+        root.innerHTML = '';
+        const bar = document.createElement('div');
+        bar.style.cssText = 'display:flex;gap:6px;margin-bottom:10px';
+        [['wiz', 'Assistent'], ['form', 'Alle Felder']].forEach(([k, t]) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = t;
+          b.style.cssText = 'cursor:pointer;padding:8px 14px;border-radius:8px;font:inherit;border:1px solid var(--divider-color,#555);background:' + (this._tab === k ? 'var(--primary-color,#03a9f4)' : 'var(--secondary-background-color,#222)') + ';color:' + (this._tab === k ? 'var(--text-primary-color,#fff)' : 'var(--primary-text-color,#fff)');
+          b.addEventListener('click', () => { this._tab = k; this._wiz = null; this._form = null; this._render(); });
+          bar.appendChild(b);
+        });
+        root.appendChild(bar);
+        if (this._tab === 'wiz') {
+          this._wiz = WD.createWizard({
+            steps: def.steps(), hass: this._hass, config: this._c,
+            onChange: (cfg) => this._emit(Object.assign({}, cfg, { type: this._c.type })),
+            done: () => { this._tab = 'form'; this._wiz = null; this._render(); },
+          });
+          root.appendChild(this._wiz.el);
+          return;
+        }
+        if (def.extra) def.extra(root, { config: () => this._c, hass: () => this._hass, emit: (c) => { this._emit(c); this._render(); } });
+        const holder = document.createElement('div');
+        root.appendChild(holder);
+        holder.textContent = 'Formular wird geladen …';
+        WD.ensureForm().then((ok) => {
+          holder.textContent = '';
+          if (!ok) { holder.textContent = 'Das Formular konnte nicht geladen werden. Bitte den Assistenten oder den YAML-Editor verwenden.'; return; }
+          const f = def.form();
+          const form = document.createElement('ha-form');
+          form.schema = f.schema;
+          form.computeLabel = f.computeLabel;
+          if (f.computeHelper) form.computeHelper = f.computeHelper;
+          form.data = this._c;
+          if (this._hass) form.hass = this._hass;
+          form.addEventListener('value-changed', (ev) => { ev.stopPropagation(); this._emit(ev.detail.value); });
+          this._form = form;
+          holder.appendChild(form);
+        });
+      }
+    }
+    if (!customElements.get(tag)) customElements.define(tag, Editor);
   };
 })();
 
@@ -364,9 +673,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
       battery: { power: find(/^sensor\..*batter.*(power|leistung)/i), soc: find(/^sensor\..*batter.*(soc|ladung|level)/i) },
     };
   }
-  static getConfigForm() { return WD.flowForm(); }
+  static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
   setConfig(config) {
-    if (!config || (!config.pv && !config.grid)) throw new Error(T('flow.error'));
+    if (!config || ((!config.pv || !config.pv.entity) && (!config.grid || !config.grid.entity))) {
+      // Noch nicht eingerichtet: Hinweisfläche statt Fehlermeldung, der Assistent im Editor hilft weiter
+      this._c = null;
+      this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Energiefluss</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
+      return;
+    }
     this._c = JSON.parse(JSON.stringify(config));
     // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
     const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
@@ -939,8 +1253,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
 
 /* ---- flow-editor.js ---- */
-/* Editor der Energiefluss-Karte: Formular-Beschreibung für Home Assistant (getConfigForm).
-   Home Assistant baut das Formular selbst. Gruppen, Verbraucher, Abfall und Überschussvorschläge stellt man im YAML-Editor ein. */
+/* Editor der Energiefluss-Karte: Assistent (Schritt für Schritt) und Formular (alle Felder). */
 (() => {
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -967,7 +1280,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const itemFields = () => [ent('entity', ['sensor']), txt('name'), ent('secondary', ['sensor'])];
   const groupFields = () => [
     txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'),
-    sec('items', 'Verbraucher der Gruppe', slots(8, (n) => `Verbraucher ${n}`, itemFields)),
+    sec('items', 'Verbraucher der Gruppe', slots(10, (n) => `Verbraucher ${n}`, itemFields)),
   ];
 
   WD.flowForm = () => ({
@@ -981,8 +1294,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name')]),
-      sec('consumers', 'Einzelverbraucher (bis zu 8)', slots(8, (n) => `Verbraucher ${n}`, consumerFields)),
-      sec('consumer_groups', 'Gruppen (bis zu 6)', slots(6, (n) => `Gruppe ${n}`, groupFields)),
+      sec('consumers', 'Einzelverbraucher (bis zu 12)', slots(12, (n) => `Verbraucher ${n}`, consumerFields)),
+      sec('consumer_groups', 'Gruppen (bis zu 10)', slots(10, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
       ent('feed_in', ['sensor', 'input_number']),
       bool('show_clock', true),
@@ -992,6 +1305,52 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
     computeHelper: (s) => (s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : undefined),
+  });
+
+  // Assistent: Schritte mit Sensor-Vorschlägen
+  const H = (...re) => re;
+  const steps = () => [
+    { short: 'Solar', title: 'Solaranlage', text: 'Wähle den Sensor, der die aktuelle Erzeugung der PV-Anlage in Watt anzeigt.', fields: [
+      { path: 'pv.entity', label: 'PV-Leistung', kind: 'power', hints: H(/pv|solar|photovolt|inverter|wechselrichter|erzeugung/i, /input|eingang|power|leistung/i) },
+      { path: 'pv.daily', label: 'Tagesertrag (kWh)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute|yield|ertrag/i, /pv|solar|inverter/i) },
+      { path: 'pv.forecast', label: 'Prognose der Leistung (z. B. Solcast)', kind: 'power', optional: true, hints: H(/forecast|prognose|solcast/i) },
+    ] },
+    { short: 'Netz', title: 'Stromnetz', text: 'Der Netzsensor zeigt Bezug und Einspeisung. Wenn später Bezug als Einspeisung angezeigt wird, setze "Vorzeichen umkehren".', fields: [
+      { path: 'grid.entity', label: 'Netzleistung', kind: 'power', hints: H(/grid|netz|meter|zähler|zaehler|wirkleistung|smart.?meter/i, /power|leistung/i) },
+      { path: 'grid.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn der Sensor bei Einspeisung positive Werte liefert.' },
+      { path: 'grid.daily_import', label: 'Netzbezug heute (kWh)', kind: 'energy', optional: true, hints: H(/import|bezug|verbrauch|consumption/i, /tag|daily|today|heute/i) },
+      { path: 'grid.daily_export', label: 'Einspeisung heute (kWh)', kind: 'energy', optional: true, hints: H(/export|einspeis|feed/i, /tag|daily|today|heute/i) },
+    ] },
+    { short: 'Batterie', title: 'Batteriespeicher', text: 'Überspringen, wenn du keine Batterie hast.', fields: [
+      { path: 'battery.power', label: 'Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i) },
+      { path: 'battery.soc', label: 'Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level|batterieladung/i, /batter|akku/i) },
+      { path: 'battery.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn Laden negativ und Entladen positiv gemeldet wird.' },
+      { path: 'battery.capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true, help: 'Für die Prognose "voll um / reicht bis".' },
+    ] },
+    { short: 'Haus', title: 'Hausverbrauch', text: 'Optional. Ohne Angabe wird der Verbrauch aus Solar, Netz und Batterie berechnet.', fields: [
+      { path: 'home.entity', label: 'Hausverbrauch', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
+    ] },
+    { short: 'Verbraucher', title: 'Einzelverbraucher', text: 'Wähle Geräte mit eigenem Leistungssensor, zum Beispiel Wärmepumpe, Wallbox oder Trockner. Gruppen (z. B. je Raum) findest du unter "Alle Felder".', fields: [
+      { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 12 },
+    ] },
+    { short: 'Preise', title: 'Strompreise (optional)', text: 'Mit Preisen zeigt die Karte Kosten und Ersparnis. Wähle Sensoren oder input_number-Helfer in Euro pro kWh.', fields: [
+      { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
+      { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
+    ] },
+    { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
+      `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,
+      `Netz: ${(c.grid && c.grid.entity) || 'nicht gewählt'}${c.grid && c.grid.invert ? ' (umgekehrt)' : ''}`,
+      `Batterie: ${(c.battery && c.battery.power) || 'keine'}`,
+      `Haus: ${(c.home && c.home.entity) || 'berechnet'}`,
+      `Einzelverbraucher: ${(Array.isArray(c.consumers) ? c.consumers : []).filter((x) => x && x.entity).length}`,
+      `Preise: ${c.grid_price ? 'Bezug gesetzt' : 'keine'}`,
+    ] },
+  ];
+
+  WD.defineEditor('energy-cockpit-flow-card-editor', {
+    needsSetup: (c) => !(c.pv && c.pv.entity) && !(c.grid && c.grid.entity),
+    steps,
+    form: () => WD.flowForm(),
   });
 })();
 
@@ -1189,13 +1548,18 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     static getStubConfig() { return { rooms: [{ name: T('dev.room'), devices: [] }] }; }
     static getConfigElement() { return document.createElement('energy-cockpit-devices-card-editor'); }
     setConfig(c) {
-      if (!c.rooms || !c.rooms.length) throw new Error(T('dev.err'));
+      if (!c.rooms || !c.rooms.length) {
+        this._c = null;
+        this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Geräte &amp; Verbrauch</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
+        return;
+      }
       this._c = Object.assign({ standby_w: 15 }, c);
       this._sig = null;
       if (this._hass) this._update();
     }
     set hass(h) {
       setLocale(h);
+      if (!this._c) { this._hass = h; return; }
       // Sprache erst jetzt bekannt: statische Texte neu aufbauen
       if (this._bl !== WD.state.lang) { this._bl = WD.state.lang; this._sig = null; }
       this._hass = h;
@@ -1338,6 +1702,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const h = this._hass;
       if (d.type === 'media') { if (d.toggle) return !!(h.states[d.toggle] && h.states[d.toggle].state === 'on'); return this._tvOn(d); }
       if (d.chans.length) return d.chans.some((x) => h.states[x.entity].state === 'on');
+      if (d.entity && d.entity.indexOf('sensor.') === 0) {
+        const pw = num(h, d.power || d.entity);
+        return pw !== null && pw > (d.run_w === undefined ? 3 : d.run_w);
+      }
       const s = h.states[d.entity];
       return !!s && s.state === 'on';
     }
@@ -1645,6 +2013,61 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     return !!customElements.get('ha-form');
   };
 
+
+  // Räume und Geräte aus den Bereichen von Home Assistant vorschlagen
+  const typeOf = (n) => {
+    if (/k.hl|fridge|gefrier/i.test(n)) return 'fridge';
+    if (/licht|light|lampe/i.test(n)) return 'light';
+    if (/trockner|dryer|waschmaschine/i.test(n)) return 'dryer';
+    if (/klima|air.?cond/i.test(n)) return 'ac';
+    if (/pumpe|pump/i.test(n)) return 'pump';
+    if (/\btv\b|fernseh/i.test(n)) return 'tv';
+    if (/heiz|heat/i.test(n)) return 'heat';
+    if (/kaffee|coffee/i.test(n)) return 'coffee';
+    if (/konsole|playstation|xbox/i.test(n)) return 'console';
+    if (/leiste|strip/i.test(n)) return 'strip';
+    return 'plug';
+  };
+  const suggestRooms = (hass) => {
+    const reg = hass.entities || {}, devs = hass.devices || {}, areas = hass.areas || {};
+    const power = WD.wizardList(hass, 'power'), energy = WD.wizardList(hass, 'energy'), sw = WD.wizardList(hass, 'switch');
+    const devOf = (id) => (reg[id] && reg[id].device_id) || '';
+    const areaOf = (id) => {
+      const r = reg[id];
+      if (!r) return '';
+      return r.area_id || (r.device_id && devs[r.device_id] && devs[r.device_id].area_id) || '';
+    };
+    const groups = {};
+    power.forEach((e) => {
+      const dk = devOf(e.id) || e.id;
+      if (!groups[dk]) groups[dk] = { power: e, area: areaOf(e.id), dev: devOf(e.id) };
+    });
+    const rooms = {};
+    Object.keys(groups).slice(0, 80).forEach((k) => {
+      const g = groups[k], d = g.dev && devs[g.dev];
+      const name = String((d && (d.name_by_user || d.name)) || g.power.name).replace(/\s*(leistung|power|energy power)\s*$/i, '');
+      const dev = { name, power: g.power.id };
+      const t = typeOf(name);
+      if (t !== 'plug') dev.type = t;
+      let sws = null;
+      if (g.dev) {
+        const en = energy.find((e) => devOf(e.id) === g.dev);
+        if (en) dev.energy = en.id;
+        sws = sw.find((e) => devOf(e.id) === g.dev && /^(switch|light)\./.test(e.id));
+      }
+      if (sws) dev.entity = sws.id; else { dev.entity = g.power.id; dev.lock = true; }
+      const ar = areas[g.area];
+      const rn = ar ? ar.name : 'Sonstiges';
+      if (!rooms[rn]) rooms[rn] = { name: rn, devices: [] };
+      if (ar && ar.icon && !rooms[rn].icon) rooms[rn].icon = ar.icon;
+      rooms[rn].devices.push(dev);
+    });
+    return Object.keys(rooms).sort((a, b) => (a === 'Sonstiges') - (b === 'Sonstiges') || a.localeCompare(b, 'de')).map((k) => {
+      rooms[k].devices.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      return rooms[k];
+    });
+  };
+
   const TYPES = ['plug', 'light', 'pump', 'fridge', 'dryer', 'ac', 'strip', 'tv', 'media', 'console', 'coffee', 'heat'];
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -1691,6 +2114,33 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       b.addEventListener('click', onClick);
       return b;
     }
+    _assist(w) {
+      const c = this._c;
+      // Assistent: Räume und Geräte aus den Bereichen vorschlagen
+      const ab = document.createElement('div');
+      ab.style.cssText = 'margin:0 0 14px;padding:12px;border:1px solid var(--primary-color,#03a9f4);border-radius:12px';
+      const at = document.createElement('div');
+      at.style.cssText = 'font-weight:700;margin-bottom:4px';
+      at.textContent = 'Assistent';
+      const ax = document.createElement('div');
+      ax.style.cssText = 'font-size:.9em;opacity:.8;margin-bottom:8px';
+      ax.textContent = 'Legt Räume anhand der Bereiche in Home Assistant an und ordnet alle Geräte mit Leistungssensor zu (Schalter und Energiezähler desselben Geräts werden mit übernommen). Danach kannst du alles anpassen.';
+      ab.appendChild(at);
+      ab.appendChild(ax);
+      ab.appendChild(this._btn('Räume und Geräte aus Bereichen vorschlagen', () => {
+        if (!this._hass) return;
+        const sug = suggestRooms(this._hass);
+        if (!sug.length) { window.alert('Es wurden keine Geräte mit Leistungssensor gefunden.'); return; }
+        const n = sug.reduce((a, r) => a + r.devices.length, 0);
+        if (c.rooms.length) {
+          if (window.confirm(`${n} Geräte in ${sug.length} Räumen gefunden. Bestehende Räume ersetzen?\nOK = ersetzen, Abbrechen = anhängen`)) c.rooms = sug;
+          else c.rooms = c.rooms.concat(sug);
+        } else c.rooms = sug;
+        this._emit();
+        this._render();
+      }));
+      w.appendChild(ab);
+    }
     _render() {
       if (!this._wrap) {
         this._wrap = document.createElement('div');
@@ -1700,7 +2150,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const w = this._wrap;
       w.innerHTML = '';
       if (!customElements.get('ha-form')) {
-        w.textContent = 'Das Formular konnte nicht geladen werden. Bitte die Seite neu laden (Strg + F5) oder die Karte im YAML-Editor bearbeiten.';
+        this._assist(w);
+        const m = document.createElement('div');
+        m.textContent = 'Das Formular konnte nicht geladen werden. Bitte die Seite neu laden (Strg + F5) oder die Karte im YAML-Editor bearbeiten.';
+        w.appendChild(m);
         return;
       }
       const c = this._c;
@@ -1724,6 +2177,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         if (v.fit_screen === false) c.fit_screen = false; else delete c.fit_screen;
         this._emit();
       }, label);
+      this._assist(w);
       w.appendChild(top);
 
       // Räume und Geräte
@@ -1921,15 +2375,20 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
       };
     }
-    static getConfigForm() { return WD.statsForm(); }
+    static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
     setConfig(c) {
-      if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) throw new Error(T('st.err'));
+      if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) {
+        this._c = null;
+        this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Statistik</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
+        return;
+      }
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
       this._build();
       this._loaded = 0;
       if (this._hass) this._load();
     }
     set hass(h) {
+      if (!this._c) { this._hass = h; return; }
       const first = !this._hass;
       setLocale(h);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
@@ -2218,7 +2677,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 
 
 /* ---- stats-editor.js ---- */
-/* Editor der Statistik-Karte: Formular-Beschreibung für Home Assistant (getConfigForm). */
+/* Editor der Statistik-Karte: Assistent (Schritt für Schritt) und Formular (alle Felder). */
 (() => {
   const LABELS = {
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
@@ -2241,6 +2700,48 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
     ],
     computeLabel: (s) => LABELS[s.name] || s.name,
+  });
+
+  const H = (...re) => re;
+  const TOTAL = /gesamt|total|lifetime|energie|energy/i;
+  const steps = () => [
+    { short: 'Zähler', title: 'Gesamtzähler', text: 'Diese drei Zähler sind Pflicht. Sie zählen dauerhaft hoch (kWh seit Inbetriebnahme).', fields: [
+      { path: 'pv_total', label: 'PV Gesamtertrag', kind: 'energy', hints: H(/pv|solar|inverter|wechselrichter|ertrag|yield/i, TOTAL) },
+      { path: 'grid_import_total', label: 'Netzbezug gesamt', kind: 'energy', hints: H(/import|bezug|verbrauch|consumption|grid/i, TOTAL) },
+      { path: 'grid_export_total', label: 'Einspeisung gesamt', kind: 'energy', hints: H(/export|einspeis|feed/i, TOTAL) },
+    ] },
+    { short: 'Batterie', title: 'Batterie (optional)', text: 'Für Wirkungsgrad, Vollzyklen und genauere Autarkie.', fields: [
+      { path: 'battery_charge_total', label: 'Batterie geladen gesamt', kind: 'energy', optional: true, hints: H(/ladung|charge|geladen/i, /batter|akku/i, TOTAL) },
+      { path: 'battery_discharge_total', label: 'Batterie entladen gesamt', kind: 'energy', optional: true, hints: H(/entlad|discharge/i, /batter|akku/i, TOTAL) },
+      { path: 'battery_capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true },
+      { path: 'battery_temp', label: 'Batterietemperatur', kind: 'temp', optional: true, hints: H(/batter|akku/i, /temp/i) },
+    ] },
+    { short: 'Heute', title: 'Tageswerte (optional)', text: 'Für die Ansicht "Heute".', fields: [
+      { path: 'pv_today', label: 'PV heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /pv|solar|inverter|ertrag|yield/i) },
+      { path: 'import_today', label: 'Netzbezug heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /import|bezug|verbrauch/i) },
+      { path: 'export_today', label: 'Einspeisung heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /export|einspeis/i) },
+      { path: 'charge_today', label: 'Batterie geladen heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /lad|charge/i) },
+      { path: 'discharge_today', label: 'Batterie entladen heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /entlad|discharge/i) },
+    ] },
+    { short: 'Preise', title: 'Preise, Haus und Anlage (optional)', text: 'Mit Preisen zeigt die Karte Geldwerte. Die Anschaffungskosten ergeben die Amortisation, der Hausverbrauch die nächtliche Grundlast.', fields: [
+      { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
+      { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
+      { path: 'investment', label: 'Anschaffungskosten der PV-Anlage', kind: 'money', optional: true, hints: H(/anschaff|invest|kosten|cost/i) },
+      { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
+    ] },
+    { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder.', summary: (c) => [
+      `PV gesamt: ${c.pv_total || 'nicht gewählt'}`,
+      `Netzbezug gesamt: ${c.grid_import_total || 'nicht gewählt'}`,
+      `Einspeisung gesamt: ${c.grid_export_total || 'nicht gewählt'}`,
+      `Batterie: ${c.battery_charge_total ? 'ja' : 'nein'}`,
+      `Preise: ${c.grid_price ? 'gesetzt' : 'keine'}`,
+    ] },
+  ];
+
+  WD.defineEditor('energy-cockpit-stats-card-editor', {
+    needsSetup: (c) => !c.pv_total || !c.grid_import_total || !c.grid_export_total,
+    steps,
+    form: () => WD.statsForm(),
   });
 })();
 

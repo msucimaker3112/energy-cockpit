@@ -119,15 +119,20 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
       };
     }
-    static getConfigForm() { return WD.statsForm(); }
+    static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
     setConfig(c) {
-      if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) throw new Error(T('st.err'));
+      if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) {
+        this._c = null;
+        this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Statistik</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
+        return;
+      }
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
       this._build();
       this._loaded = 0;
       if (this._hass) this._load();
     }
     set hass(h) {
+      if (!this._c) { this._hass = h; return; }
       const first = !this._hass;
       setLocale(h);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen

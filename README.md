@@ -10,6 +10,8 @@ Drei Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das H
 
 Alle Sensoren sind frei wählbar. Es gibt keinen festen Gerätenamen im Code. Die Texte sind komplett deutsch, die Währung kommt aus Home Assistant.
 
+**Einrichtungsassistent:** Nach dem Hinzufügen einer Karte öffnet sich der Editor im Reiter *Assistent*. Er führt Schritt für Schritt durch Solar, Netz, Batterie, Verbraucher und Preise, macht Sensor-Vorschläge aus deinen vorhandenen Entitäten und zeigt jeweils den aktuellen Wert. Bei *Geräte & Verbrauch* legt er Räume und Geräte auf Wunsch aus den Bereichen von Home Assistant an.
+
 ![Energiefluss](docs/img/flow.png)
 
 ![Geräte und Verbrauch](docs/img/devices.png)

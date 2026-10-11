@@ -173,13 +173,18 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     static getStubConfig() { return { rooms: [{ name: T('dev.room'), devices: [] }] }; }
     static getConfigElement() { return document.createElement('energy-cockpit-devices-card-editor'); }
     setConfig(c) {
-      if (!c.rooms || !c.rooms.length) throw new Error(T('dev.err'));
+      if (!c.rooms || !c.rooms.length) {
+        this._c = null;
+        this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Geräte &amp; Verbrauch</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
+        return;
+      }
       this._c = Object.assign({ standby_w: 15 }, c);
       this._sig = null;
       if (this._hass) this._update();
     }
     set hass(h) {
       setLocale(h);
+      if (!this._c) { this._hass = h; return; }
       // Sprache erst jetzt bekannt: statische Texte neu aufbauen
       if (this._bl !== WD.state.lang) { this._bl = WD.state.lang; this._sig = null; }
       this._hass = h;
@@ -322,6 +327,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const h = this._hass;
       if (d.type === 'media') { if (d.toggle) return !!(h.states[d.toggle] && h.states[d.toggle].state === 'on'); return this._tvOn(d); }
       if (d.chans.length) return d.chans.some((x) => h.states[x.entity].state === 'on');
+      if (d.entity && d.entity.indexOf('sensor.') === 0) {
+        const pw = num(h, d.power || d.entity);
+        return pw !== null && pw > (d.run_w === undefined ? 3 : d.run_w);
+      }
       const s = h.states[d.entity];
       return !!s && s.state === 'on';
     }

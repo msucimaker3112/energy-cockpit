@@ -44,7 +44,19 @@ Falls der Menüpunkt "Ressourcen" fehlt: In deinem Profil den **erweiterten Modu
 
 **Tipp:** Für Wandtablets die Ansicht auf den Typ **Panel** (eine Karte, volle Breite) stellen. Die Karten füllen dann die ganze Bildschirmhöhe.
 
-## 5. Erste Konfiguration (Energiefluss)
+## 5. Einrichtungsassistent
+
+Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch leeren Karte) öffnet sich der Editor im Reiter **Assistent**:
+
+1. **Schritt für Schritt:** Solar, Netz, Batterie, Haus, Einzelverbraucher, Preise. Jeder Schritt zeigt Vorschläge aus deinen Sensoren und den aktuellen Wert, damit du die Auswahl gleich prüfen kannst.
+2. **Vorschlag übernehmen:** Ein Klick wählt den wahrscheinlichsten Sensor.
+3. **Alles wird sofort gespeichert**, du kannst jederzeit zum Reiter **Alle Felder** wechseln (Gruppen, Feinheiten).
+4. **Geräte & Verbrauch:** Die Schaltfläche *Räume und Geräte aus Bereichen vorschlagen* legt Räume anhand der Bereiche in Home Assistant an und ordnet alle Geräte mit Leistungssensor zu.
+5. **Statistik:** Die Gesamtzähler (PV, Bezug, Einspeisung) sind Pflicht, alles andere optional.
+
+Solange eine Karte nicht eingerichtet ist, zeigt sie einen Hinweis statt einer Fehlermeldung.
+
+## 6. Konfiguration im Detail (Energiefluss)
 
 Mindestens einen der Sensoren **PV** oder **Netz** auswählen:
 
@@ -58,12 +70,12 @@ Mindestens einen der Sensoren **PV** oder **Netz** auswählen:
 
 Der **Strompreis** (`grid_price`) schaltet Kostenangaben frei, die **Einspeisevergütung** (`feed_in`) die Ersparnisrechnung.
 
-## 6. Aktualisieren
+## 7. Aktualisieren
 
 - **HACS:** Bei einer neuen Version erscheint unter *HACS* ein Hinweis, **Aktualisieren** klicken, danach Strg + F5.
 - **Manuell:** Datei in `www` ersetzen, Strg + F5. Falls der Browser die alte Datei zeigt, an die Ressourcen-URL `?v=2` anhängen.
 
-## 7. Deinstallation
+## 8. Deinstallation
 
 HACS: Eintrag öffnen → ⋮ → **Entfernen**. Manuell: Ressource löschen und Datei aus `www` entfernen. Danach die Karten aus den Dashboards entfernen.
 
