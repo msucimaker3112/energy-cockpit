@@ -364,7 +364,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       battery: { power: find(/^sensor\..*batter.*(power|leistung)/i), soc: find(/^sensor\..*batter.*(soc|ladung|level)/i) },
     };
   }
-  static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
+  static getConfigForm() { return WD.flowForm(); }
   setConfig(config) {
     if (!config || (!config.pv && !config.grid)) throw new Error(T('flow.error'));
     this._c = JSON.parse(JSON.stringify(config));
@@ -934,152 +934,48 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
 
 /* ---- flow-editor.js ---- */
-/* energy-cockpit-flow-card-editor: grafischer Editor (ha-form). Erweiterte Optionen (Gruppen, Abfall, Vorschläge) bleiben im YAML. */
+/* Editor der Energiefluss-Karte: Formular-Beschreibung für Home Assistant (getConfigForm).
+   Home Assistant baut das Formular selbst. Gruppen, Verbraucher, Abfall und Überschussvorschläge stellt man im YAML-Editor ein. */
 (() => {
-  const { T, setLocale } = WD;
-  const MAXC = 6; // Anzahl Einzelverbraucher im Editor
-
-  WD.addStrings({
-    'ed.title': 'Titel', 'ed.name': 'Anzeigename', 'ed.entity': 'Sensor (Leistung)', 'ed.icon': 'Symbol', 'ed.color': 'Farbe (z. B. #a78bfa)',
-    'ed.sec.pv': 'Solar', 'ed.sec.grid': 'Netz', 'ed.sec.battery': 'Batterie', 'ed.sec.home': 'Haus', 'ed.sec.price': 'Preise', 'ed.sec.consumers': 'Verbraucher', 'ed.sec.display': 'Darstellung',
-    'ed.pv.daily': 'Tagesertrag (kWh)', 'ed.pv.forecast': 'Prognose (Leistung)',
-    'ed.grid.invert': 'Vorzeichen umkehren (Einspeisung positiv)', 'ed.grid.daily_import': 'Bezug heute (kWh)', 'ed.grid.daily_export': 'Einspeisung heute (kWh)',
-    'ed.bat.power': 'Sensor Lade-/Entladeleistung', 'ed.bat.soc': 'Sensor Ladestand (%)', 'ed.bat.invert': 'Vorzeichen umkehren (Laden negativ)',
-    'ed.bat.capacity': 'Kapazität (kWh)', 'ed.bat.reserve': 'Reserve-Ladestand (%)', 'ed.bat.max': 'Maximaler Ladestand (%)',
-    'ed.bat.daily_charge': 'Geladen heute (kWh)', 'ed.bat.daily_discharge': 'Entladen heute (kWh)',
-    'ed.home.entity': 'Hausverbrauch (Leistung, optional)',
-    'ed.price.grid': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.price.feed': 'Einspeisevergütung (Sensor, pro kWh)',
-    'ed.secondary': 'Zusatzwert (Sensor)',
-    'ed.show_clock': 'Uhr anzeigen', 'ed.fit_screen': 'Auf Bildschirmhöhe skalieren', 'ed.nav_path': 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', 'ed.nav_label': 'Weiter-Schaltfläche: Text',
-    'ed.hint': 'Gruppen, Abfallkalender und Überschussvorschläge stellst du im YAML-Editor ein.',
-  });
-
-  const ent = (name, labelKey, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
+  const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
-  const bool = (name) => ({ name, selector: { boolean: {} } });
+  const bool = (name, def) => ({ name, default: def, selector: { boolean: {} } });
   const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
-  const clean = (o) => {
-    Object.keys(o).forEach((k) => {
-      const v = o[k];
-      if (v === '' || v === undefined || v === null || v === false && k !== 'show_clock' && k !== 'fit_screen') delete o[k];
-      else if (v && typeof v === 'object' && !Array.isArray(v)) { clean(v); if (!Object.keys(v).length) delete o[k]; }
-    });
-    return o;
+  const LABELS = {
+    title: 'Titel', name: 'Anzeigename', icon: 'Symbol',
+    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung)',
+    invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
+    power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
+    reserve_soc: 'Reserve-Ladestand (%)', max_soc: 'Maximaler Ladestand (%)',
+    daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
+    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)',
+    show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
   };
 
-  class EnergyCockpitFlowEditor extends HTMLElement {
-    setConfig(c) {
-      this._c = JSON.parse(JSON.stringify(c || {}));
-      this._render();
-    }
-    set hass(h) {
-      this._hass = h;
-      setLocale(h);
-      if (this._form) { this._form.hass = h; this._schema(); }
-    }
-    _schema() {
-      const L = (k) => T(k);
-      const consumers = [];
-      for (let i = 0; i < MAXC; i++) {
-        consumers.push(sec('c' + i, `${L('ed.sec.consumers')} ${i + 1}`, [
-          ent('entity', 'ed.entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'), ent('secondary', 'ed.secondary', ['sensor']),
-        ]));
-      }
-      this._schemaDef = [
-        txt('title'),
-        sec('pv', L('ed.sec.pv'), [ent('entity', '', ['sensor']), txt('name'), ent('daily', '', ['sensor']), ent('forecast', '', ['sensor'])]),
-        sec('grid', L('ed.sec.grid'), [ent('entity', '', ['sensor']), txt('name'), bool('invert'), ent('daily_import', '', ['sensor']), ent('daily_export', '', ['sensor'])]),
-        sec('battery', L('ed.sec.battery'), [
-          ent('power', '', ['sensor']), ent('soc', '', ['sensor']), txt('name'), bool('invert'),
-          numb('capacity_kwh', 0, 200, 0.1), numb('reserve_soc', 0, 100, 1), numb('max_soc', 0, 100, 1),
-          ent('daily_charge', '', ['sensor']), ent('daily_discharge', '', ['sensor']),
-        ]),
-        sec('home', L('ed.sec.home'), [ent('entity', '', ['sensor']), txt('name')]),
-        sec('price', L('ed.sec.price'), [ent('grid_price', '', ['sensor', 'input_number']), ent('feed_in', '', ['sensor', 'input_number'])]),
-        ...consumers,
-        sec('display', L('ed.sec.display'), [bool('show_clock'), bool('fit_screen'), txt('nav_path'), txt('nav_label')]),
-      ];
-      this._form.schema = this._schemaDef;
-    }
-    _label(s) {
-      const parent = s.name;
-      const map = {
-        title: 'ed.title', name: 'ed.name', icon: 'ed.icon', color: 'ed.color', secondary: 'ed.secondary',
-        daily: 'ed.pv.daily', forecast: 'ed.pv.forecast', invert: 'ed.grid.invert', daily_import: 'ed.grid.daily_import', daily_export: 'ed.grid.daily_export',
-        power: 'ed.bat.power', soc: 'ed.bat.soc', capacity_kwh: 'ed.bat.capacity', reserve_soc: 'ed.bat.reserve', max_soc: 'ed.bat.max',
-        daily_charge: 'ed.bat.daily_charge', daily_discharge: 'ed.bat.daily_discharge', grid_price: 'ed.price.grid', feed_in: 'ed.price.feed',
-        show_clock: 'ed.show_clock', fit_screen: 'ed.fit_screen', nav_path: 'ed.nav_path', nav_label: 'ed.nav_label', entity: 'ed.entity',
-      };
-      return map[parent] ? T(map[parent]) : (s.title || parent);
-    }
-    // Konfiguration -> Formulardaten
-    _toData() {
-      const c = this._c, d = { title: c.title || '' };
-      d.pv = Object.assign({}, c.pv);
-      d.grid = Object.assign({}, c.grid);
-      d.battery = Object.assign({}, c.battery);
-      d.home = Object.assign({}, c.home);
-      d.price = { grid_price: typeof c.grid_price === 'string' ? c.grid_price : '', feed_in: typeof c.feed_in === 'string' ? c.feed_in : '' };
-      for (let i = 0; i < MAXC; i++) d['c' + i] = Object.assign({}, (c.consumers || [])[i]);
-      d.display = { show_clock: c.show_clock !== false, fit_screen: c.fit_screen !== false, nav_path: c.nav_path || '', nav_label: c.nav_label || '' };
-      return d;
-    }
-    // Formulardaten -> Konfiguration (unbekannte Schlüssel wie consumer_groups, waste, surplus bleiben erhalten)
-    _fromData(d) {
-      const c = Object.assign({}, this._c);
-      const part = (key, src) => {
-        const merged = Object.assign({}, c[key], src);
-        Object.keys(merged).forEach((k) => { if (merged[k] === '' || merged[k] === undefined || merged[k] === null || merged[k] === false) delete merged[k]; });
-        if (Object.keys(merged).length) c[key] = merged; else delete c[key];
-      };
-      if (d.title) c.title = d.title; else delete c.title;
-      part('pv', d.pv); part('grid', d.grid); part('battery', d.battery); part('home', d.home);
-      if (d.price) {
-        ['grid_price', 'feed_in'].forEach((k) => { if (d.price[k]) c[k] = d.price[k]; else if (typeof c[k] === 'string') delete c[k]; });
-      }
-      const list = [];
-      for (let i = 0; i < MAXC; i++) {
-        const x = clean(Object.assign({}, d['c' + i]));
-        if (x.entity || x.secondary) list.push(x);
-      }
-      const keep = (this._c.consumers || []).slice(MAXC);
-      if (list.length || keep.length) c.consumers = list.concat(keep); else delete c.consumers;
-      const dp = d.display || {};
-      if (dp.show_clock === false) c.show_clock = false; else delete c.show_clock;
-      if (dp.fit_screen === false) c.fit_screen = false; else delete c.fit_screen;
-      if (dp.nav_path) c.nav_path = dp.nav_path; else delete c.nav_path;
-      if (dp.nav_label) c.nav_label = dp.nav_label; else delete c.nav_label;
-      return c;
-    }
-    _render() {
-      if (!this._form) {
-        this._wrap = document.createElement('div');
-        this._form = document.createElement('ha-form');
-        this._form.computeLabel = (s) => this._label(s);
-        this._form.addEventListener('value-changed', (ev) => {
-          ev.stopPropagation();
-          const cfg = this._fromData(ev.detail.value);
-          this._c = cfg;
-          this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: cfg }, bubbles: true, composed: true }));
-        });
-        const hint = document.createElement('p');
-        hint.style.cssText = 'margin:12px 4px 0;font-size:.85rem;opacity:.7';
-        this._hint = hint;
-        this._wrap.appendChild(this._form);
-        this._wrap.appendChild(hint);
-        this.appendChild(this._wrap);
-        if (this._hass) this._form.hass = this._hass;
-      }
-      if (this._hass) setLocale(this._hass);
-      this._schema();
-      this._hint.textContent = T('ed.hint');
-      this._form.data = this._toData();
-    }
-  }
-
-  if (!customElements.get('energy-cockpit-flow-card-editor')) customElements.define('energy-cockpit-flow-card-editor', EnergyCockpitFlowEditor);
+  WD.flowForm = () => ({
+    schema: [
+      txt('title'),
+      sec('pv', 'Solar', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), ent('forecast', ['sensor'])]),
+      sec('grid', 'Netz', [ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
+      sec('battery', 'Batterie', [
+        ent('power', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
+        numb('capacity_kwh', 0, 200, 0.1), numb('reserve_soc', 0, 100, 1), numb('max_soc', 0, 100, 1),
+        ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
+      ]),
+      sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name')]),
+      ent('grid_price', ['sensor', 'input_number']),
+      ent('feed_in', ['sensor', 'input_number']),
+      bool('show_clock', true),
+      bool('fit_screen', true),
+      txt('nav_path'),
+      txt('nav_label'),
+    ],
+    computeLabel: (s) => LABELS[s.name] || s.title || s.name,
+    computeHelper: (s) => (s.name === 'title' ? 'Gruppen, Verbraucher, Abfallkalender und Überschussvorschläge stellst du im YAML-Editor ein.' : undefined),
+  });
 })();
 
 
@@ -1720,6 +1616,18 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     'ed.d.t.tv': 'Fernseher', 'ed.d.t.media': 'Mediencenter', 'ed.d.t.console': 'Spielkonsole', 'ed.d.t.coffee': 'Kaffeemaschine', 'ed.d.t.heat': 'Heizung', 'ed.d.t.plug': 'Steckdose',
   });
 
+  // ha-form ist in Home Assistant nicht immer geladen: über die Karten-Helfer nachladen
+  const ensureForm = async () => {
+    if (customElements.get('ha-form')) return true;
+    try {
+      const h = await window.loadCardHelpers();
+      const c = await h.createCardElement({ type: 'entities', entities: [] });
+      if (c && c.constructor && c.constructor.getConfigElement) await c.constructor.getConfigElement();
+    } catch (e) { /* weiter mit Wartezeit */ }
+    await Promise.race([customElements.whenDefined('ha-form'), new Promise((r) => setTimeout(r, 4000))]);
+    return !!customElements.get('ha-form');
+  };
+
   const TYPES = ['plug', 'light', 'pump', 'fridge', 'dryer', 'ac', 'strip', 'tv', 'media', 'console', 'coffee', 'heat'];
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -1737,7 +1645,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       if (this._last === s) return; // eigene Änderung, nicht neu aufbauen (Eingabefokus bleibt erhalten)
       this._c = clone(c || {});
       this._c.rooms = this._c.rooms || [];
-      this._render();
+      ensureForm().then(() => this._render());
     }
     set hass(h) {
       this._hass = h;
@@ -1774,6 +1682,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       this._forms = [];
       const w = this._wrap;
       w.innerHTML = '';
+      if (!customElements.get('ha-form')) {
+        w.textContent = 'Das Formular konnte nicht geladen werden. Bitte die Seite neu laden (Strg + F5) oder die Karte im YAML-Editor bearbeiten.';
+        return;
+      }
       const c = this._c;
       const lbl = {
         title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
@@ -1992,7 +1904,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
       };
     }
-    static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
+    static getConfigForm() { return WD.statsForm(); }
     setConfig(c) {
       if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) throw new Error(T('st.err'));
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
@@ -2289,9 +2201,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 
 
 /* ---- stats-editor.js ---- */
-/* energy-cockpit-stats-card-editor: grafischer Editor (ha-form, flache Felder). */
+/* Editor der Statistik-Karte: Formular-Beschreibung für Home Assistant (getConfigForm). */
 (() => {
-  const { setLocale } = WD;
   const LABELS = {
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
@@ -2302,49 +2213,17 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const KEYS = ['pv_total', 'grid_import_total', 'grid_export_total', 'battery_charge_total', 'battery_discharge_total', 'battery_temp', 'pv_today', 'import_today', 'export_today',
     'charge_today', 'discharge_today', 'home_power'];
-  const SCHEMA = [
-    { name: 'title', selector: { text: {} } },
-    ...KEYS.map((k) => ent(k, ['sensor'])),
-    { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
-    ent('grid_price', ['sensor', 'input_number']), ent('feed_in', ['sensor', 'input_number']), ent('investment', ['sensor', 'input_number']),
-    { name: 'fit_screen', selector: { boolean: {} } },
-    { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
-  ];
 
-  class EnergyCockpitStatsEditor extends HTMLElement {
-    setConfig(c) {
-      const s = JSON.stringify(c || {});
-      if (this._last === s) return; // eigene Änderung, nicht neu aufbauen (Eingabefokus bleibt erhalten)
-      this._c = JSON.parse(s);
-      this._render();
-    }
-    set hass(h) { this._hass = h; setLocale(h); if (this._form) this._form.hass = h; }
-    _render() {
-      if (!this._form) {
-        this._form = document.createElement('ha-form');
-        this._form.schema = SCHEMA;
-        this._form.computeLabel = (s) => LABELS[s.name] || s.name;
-        this._form.addEventListener('value-changed', (ev) => {
-          ev.stopPropagation();
-          const v = ev.detail.value, c = Object.assign({}, this._c);
-          SCHEMA.forEach((f) => {
-            const x = v[f.name];
-            if (f.name === 'fit_screen') { if (x === false) c.fit_screen = false; else delete c.fit_screen; }
-            else if (x === '' || x === undefined || x === null || (x === 0 && f.name === 'battery_capacity_kwh')) delete c[f.name];
-            else c[f.name] = x;
-          });
-          this._c = c;
-          this._last = JSON.stringify(c);
-          this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: c }, bubbles: true, composed: true }));
-        });
-        this.appendChild(this._form);
-        if (this._hass) this._form.hass = this._hass;
-      }
-      const d = {};
-      SCHEMA.forEach((f) => { d[f.name] = this._c[f.name] === undefined ? (f.name === 'fit_screen' ? true : '') : this._c[f.name]; });
-      this._form.data = d;
-    }
-  }
-  if (!customElements.get('energy-cockpit-stats-card-editor')) customElements.define('energy-cockpit-stats-card-editor', EnergyCockpitStatsEditor);
+  WD.statsForm = () => ({
+    schema: [
+      { name: 'title', selector: { text: {} } },
+      ...KEYS.map((k) => ent(k, ['sensor'])),
+      { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      ent('grid_price', ['sensor', 'input_number']), ent('feed_in', ['sensor', 'input_number']), ent('investment', ['sensor', 'input_number']),
+      { name: 'fit_screen', default: true, selector: { boolean: {} } },
+      { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
+    ],
+    computeLabel: (s) => LABELS[s.name] || s.name,
+  });
 })();
 

@@ -16,6 +16,18 @@
     'ed.d.t.tv': 'Fernseher', 'ed.d.t.media': 'Mediencenter', 'ed.d.t.console': 'Spielkonsole', 'ed.d.t.coffee': 'Kaffeemaschine', 'ed.d.t.heat': 'Heizung', 'ed.d.t.plug': 'Steckdose',
   });
 
+  // ha-form ist in Home Assistant nicht immer geladen: über die Karten-Helfer nachladen
+  const ensureForm = async () => {
+    if (customElements.get('ha-form')) return true;
+    try {
+      const h = await window.loadCardHelpers();
+      const c = await h.createCardElement({ type: 'entities', entities: [] });
+      if (c && c.constructor && c.constructor.getConfigElement) await c.constructor.getConfigElement();
+    } catch (e) { /* weiter mit Wartezeit */ }
+    await Promise.race([customElements.whenDefined('ha-form'), new Promise((r) => setTimeout(r, 4000))]);
+    return !!customElements.get('ha-form');
+  };
+
   const TYPES = ['plug', 'light', 'pump', 'fridge', 'dryer', 'ac', 'strip', 'tv', 'media', 'console', 'coffee', 'heat'];
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -33,7 +45,7 @@
       if (this._last === s) return; // eigene Änderung, nicht neu aufbauen (Eingabefokus bleibt erhalten)
       this._c = clone(c || {});
       this._c.rooms = this._c.rooms || [];
-      this._render();
+      ensureForm().then(() => this._render());
     }
     set hass(h) {
       this._hass = h;
@@ -70,6 +82,10 @@
       this._forms = [];
       const w = this._wrap;
       w.innerHTML = '';
+      if (!customElements.get('ha-form')) {
+        w.textContent = 'Das Formular konnte nicht geladen werden. Bitte die Seite neu laden (Strg + F5) oder die Karte im YAML-Editor bearbeiten.';
+        return;
+      }
       const c = this._c;
       const lbl = {
         title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',

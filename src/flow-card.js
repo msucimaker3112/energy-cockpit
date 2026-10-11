@@ -204,7 +204,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       battery: { power: find(/^sensor\..*batter.*(power|leistung)/i), soc: find(/^sensor\..*batter.*(soc|ladung|level)/i) },
     };
   }
-  static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
+  static getConfigForm() { return WD.flowForm(); }
   setConfig(config) {
     if (!config || (!config.pv && !config.grid)) throw new Error(T('flow.error'));
     this._c = JSON.parse(JSON.stringify(config));

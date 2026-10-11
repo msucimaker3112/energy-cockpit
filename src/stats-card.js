@@ -119,7 +119,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
       };
     }
-    static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
+    static getConfigForm() { return WD.statsForm(); }
     setConfig(c) {
       if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) throw new Error(T('st.err'));
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
