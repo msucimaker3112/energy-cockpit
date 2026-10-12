@@ -191,3 +191,33 @@ investment: input_number.anschaffung_pv    # für die Amortisation
 ```
 
 Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment` keine Amortisation.
+
+---
+
+## Raum-Abrechnung: `custom:energy-cockpit-room-card`
+
+Zeigt Verbrauch und Kosten eines Raums für **Woche, Monat, Jahr und Vorjahr**, getrennt nach Geräten, mit Tagesbalken, Tabelle und CSV-Export. Gedacht für die Abrechnung der Strommiete eines vermieteten oder getrennt zu bewertenden Raums.
+
+```yaml
+type: custom:energy-cockpit-room-card
+title: Büro Keller
+subtitle: Strommiete
+image: /local/logo.png          # optional, Bild-URL oder Data-URI
+price: input_number.strompreis  # Sensor oder input_number in € pro kWh
+# price_ct: 34                  # alternativ fester Preis in Cent pro kWh
+base_fee: 0                     # optional: Grundgebühr je Monat in €
+devices:
+  - name: Arbeitsplätze
+    energy: sensor.buero_1_energie
+  - name: Chillecke
+    energy: sensor.buero_2_energie
+```
+
+| Schlüssel | Beschreibung |
+|---|---|
+| `devices` | Liste der Energiezähler (kWh, mit Langzeitstatistik). `name` und `color` sind optional. |
+| `price` / `price_ct` | Preis je kWh als Sensor/Helfer oder fester Wert in Cent. Ohne Preis werden nur kWh angezeigt. |
+| `base_fee` | Grundgebühr je Monat; wird für alle Monate ab dem ersten Messwert addiert. |
+| `title`, `subtitle`, `image` | Kopf der Karte. |
+
+**Hinweise:** Die Kosten werden mit dem **aktuellen** Preis berechnet. Ändert sich der Preis, ändern sich auch die Werte vergangener Zeiträume. Für eine rechtssichere Abrechnung die Monatswerte (Tabelle oder CSV) am Monatsende festhalten.

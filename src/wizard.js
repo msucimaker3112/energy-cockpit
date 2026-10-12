@@ -135,19 +135,20 @@
       const wrap = el('div');
       wrap.appendChild(el('label', css.label, f.label));
       if (f.help) wrap.appendChild(el('div', css.help, f.help));
-      const all = list(hass, 'power');
+      const KEY = f.itemKey || 'entity';
+      const all = list(hass, f.listKind || 'power');
       const items = Array.isArray(cfg[f.path]) ? cfg[f.path] : [];
-      const used = items.map((x) => x.entity);
+      const used = items.map((x) => x[KEY]);
       const sugs = all.filter((e) => used.indexOf(e.id) < 0 && getPath(cfg, 'pv.entity') !== e.id && getPath(cfg, 'grid.entity') !== e.id && getPath(cfg, 'battery.power') !== e.id && getPath(cfg, 'home.entity') !== e.id);
-      const write = (arr) => { cfg[f.path] = arr.filter((x) => x.entity); emit(); };
+      const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY]); emit(); };
       items.forEach((it, i) => {
         const row = el('div', css.box);
         const sel = el('select', css.input);
-        const o0 = document.createElement('option'); o0.value = it.entity || ''; o0.textContent = (all.find((e) => e.id === it.entity) || { name: it.entity || '—' }).name;
+        const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || { name: it[KEY] || '—' }).name;
         sel.appendChild(o0);
-        all.forEach((e) => { if (e.id !== it.entity) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); } });
-        sel.value = it.entity || '';
-        sel.addEventListener('change', () => { it.entity = sel.value; if (!it.name) { const e = all.find((x) => x.id === sel.value); if (e) it.name = e.name.replace(/\s*(leistung|power|energy power)\s*$/i, ''); } write(items); render(); });
+        all.forEach((e) => { if (e.id !== it[KEY]) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); } });
+        sel.value = it[KEY] || '';
+        sel.addEventListener('change', () => { it[KEY] = sel.value; if (!it.name) { const e = all.find((x) => x.id === sel.value); if (e) it.name = e.name.replace(/\s*(leistung|power|energy power)\s*$/i, ''); } write(items); render(); });
         const nm = el('input', css.input + ';margin-top:6px');
         nm.placeholder = 'Anzeigename';
         nm.value = it.name || '';
@@ -166,7 +167,7 @@
         sel.addEventListener('change', () => {
           if (!sel.value) return;
           const e = all.find((x) => x.id === sel.value);
-          items.push({ entity: sel.value, name: e ? e.name.replace(/\s*(leistung|power|energy power)\s*$/i, '') : '' });
+          items.push({ [KEY]: sel.value, name: e ? e.name.replace(/\s*(leistung|power|energy power)\s*$/i, '') : '' });
           write(items); render();
         });
         add.appendChild(sel);

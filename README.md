@@ -1,12 +1,13 @@
 # Energy-Cockpit
 
-Drei Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das Haus ergeben:
+Vier Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das Haus ergeben:
 
 | Karte | Zeigt |
 |---|---|
 | `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar, Netz, Batterie, Haus, Verbraucher, Überschuss-Hinweis, Akku-Prognose |
 | `energy-cockpit-devices-card` | **Geräte & Verbrauch**: Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät, Standby-Detektiv |
 | `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation, Grundlast, Monatsvergleich, Akku |
+| `energy-cockpit-room-card` | **Raum-Abrechnung**: Verbrauch und Kosten eines Raums je Woche, Monat, Jahr und Vorjahr, getrennt nach Geräten (z. B. für die Strommiete), mit CSV-Export |
 
 Alle Sensoren sind frei wählbar. Es gibt keinen festen Gerätenamen im Code. Die Texte sind komplett deutsch, die Währung kommt aus Home Assistant.
 

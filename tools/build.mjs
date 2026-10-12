@@ -18,6 +18,8 @@ const ORDER = [
   'devices-i18n.js',
   'devices-card.js',
   'devices-editor.js',
+  'room-card.js',
+  'room-editor.js',
   'stats-i18n.js',
   'stats-card.js',
   'stats-editor.js',

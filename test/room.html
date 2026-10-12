@@ -1,0 +1,17 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Energy-Cockpit Raum-Abrechnung Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}</style></head>
+<body><div id="host"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(state,a)=>({state:String(state),attributes:a||{},last_changed:new Date().toISOString(),last_updated:'x'});
+const states={'input_number.price':S(0.34,{unit_of_measurement:'€/kWh'}),'sensor.e1':S(120,{unit_of_measurement:'kWh'}),'sensor.e2':S(40,{unit_of_measurement:'kWh'})};
+// Beispieldaten: seit Anfang des Vorjahres täglich Werte (Arbeitsplätze ~1,2 kWh, Chillecke ~0,3 kWh)
+const hass={states,language:'de',config:{currency:'EUR'},callWS:async(m)=>{
+  const r={};const y=new Date().getFullYear();
+  m.statistic_ids.forEach((id,i)=>{const rows=[];for(let d=new Date(y-1,2,1);d<=new Date();d.setDate(d.getDate()+1)){const wk=[0,6].includes(d.getDay());rows.push({start:d.getTime(),change:(i===0?(wk?0.2:1.2):(wk?0.1:0.3))+((d.getDate()*7)%5)/20});}r[id]=rows;});
+  return r;}};
+const cfg={title:'Büro Keller',subtitle:'Strommiete',image:'horizon-logo.jpg',price:'input_number.price',base_fee:0,devices:[{energy:'sensor.e1',name:'Arbeitsplätze'},{energy:'sensor.e2',name:'Chillecke'}]};
+const c=document.createElement('energy-cockpit-room-card');c.setConfig(cfg);document.getElementById('host').appendChild(c);c.hass=hass;
+window.card=c;
+</script></body></html>
