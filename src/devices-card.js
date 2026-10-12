@@ -165,6 +165,8 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .np b{color:var(--txt)}
 .chs.lt .ch.on{background:rgba(var(--amb,129,140,248),.2);border-color:rgba(var(--amb,129,140,248),.6);color:#e0e7ff}
 .chs.sc .ch.on{background:rgba(250,204,21,.18);border-color:rgba(250,204,21,.55);color:#fef08a}
+.rlogo{height:22px;max-width:76px;object-fit:contain;border-radius:5px;margin-right:8px;flex:none}
+.dlogo{width:78%;height:78%;object-fit:contain;border-radius:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.room{opacity:1;transform:none}}
 `;
 
@@ -277,7 +279,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         <div class="rooms">${rooms.length ? rooms.map((x, i) => {
           const col = TYPES[(x.d[0] && x.d[0].type) || 'plug'] || TYPES.plug;
           return `<div class="room" data-r="${x.ri}" style="--rc:${x.r.color || col.c};animation-delay:${i * 70}ms">
-            <div class="rh"><ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon><b>${esc(x.r.name)}</b><span class="rw"></span></div>
+            <div class="rh">${x.r.image ? `<img class="rlogo" src="${esc(x.r.image)}" alt="">` : `<ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon>`}<b>${esc(x.r.name)}</b><span class="rw"></span></div>
             ${x.d.map((d) => this._devHtml(d)).join('')}
           </div>`;
         }).join('') : `<div class="empty">${T('dev.none')}</div>`}</div>
@@ -304,7 +306,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
       return `<div class="dv t-${d.type || 'plug'}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${d.color || t.c}">
-        <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon></div>
+        <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
         ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
         ${d.power ? '<div class="pbar"><i></i></div>' : ''}

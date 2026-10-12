@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.2.0 - MIT License */
+/*! energy-cockpit v0.2.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -653,6 +653,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .narrow .core .num{font-size:1.8rem}
 .narrow .groups{margin-top:26px;grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .narrow .consumers{margin-top:26px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));justify-content:stretch}
+.ico.logo,.grp .ico.logo{width:auto;height:auto;min-width:0;background:none;box-shadow:none;border-radius:6px}
+.ico.logo img{display:block;height:28px;max-width:96px;object-fit:contain;border-radius:5px}
+.cons .ico.logo img{height:30px;max-width:80px}
 @media (prefers-reduced-motion:reduce){.flow,.orbit,.core,.node.on,.live,.cons.on .ico{animation-duration:0s!important}}
 `;
 
@@ -805,7 +808,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const cons = c.consumers.map((x, i) => {
       if (x.entity) links.push('c' + i);
       return `<div class="cons" data-k="c${i}" data-e="${x.entity || x.secondary || ''}" style="--c:${rgb(x.color || '#a78bfa')}">
-        <span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>
+        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${x.name || x.entity}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
@@ -815,7 +818,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       grps = G.map((g, i) => {
         links.push('g' + i);
         return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color || '#a78bfa')}">
-          <div class="g-hd"><span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span><span class="lbl">${g.name || ''}</span></div>
+          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span>`}<span class="lbl">${g.name || ''}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
           <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${x.entity || x.secondary || ''}"><i></i><span class="in">${x.name || x.entity}</span><b></b></div>`).join('')}</div>
         </div>`;
@@ -1271,15 +1274,15 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
-    secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)',
+    secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
   };
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
-  const consumerFields = () => [ent('entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'), ent('secondary', ['sensor'])];
+  const consumerFields = () => [ent('entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor'])];
   const itemFields = () => [ent('entity', ['sensor']), txt('name'), ent('secondary', ['sensor'])];
   const groupFields = () => [
-    txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color'),
+    txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'),
     sec('items', 'Verbraucher der Gruppe', slots(10, (n) => `Verbraucher ${n}`, itemFields)),
   ];
 
@@ -1540,6 +1543,8 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .np b{color:var(--txt)}
 .chs.lt .ch.on{background:rgba(var(--amb,129,140,248),.2);border-color:rgba(var(--amb,129,140,248),.6);color:#e0e7ff}
 .chs.sc .ch.on{background:rgba(250,204,21,.18);border-color:rgba(250,204,21,.55);color:#fef08a}
+.rlogo{height:22px;max-width:76px;object-fit:contain;border-radius:5px;margin-right:8px;flex:none}
+.dlogo{width:78%;height:78%;object-fit:contain;border-radius:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.room{opacity:1;transform:none}}
 `;
 
@@ -1652,7 +1657,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         <div class="rooms">${rooms.length ? rooms.map((x, i) => {
           const col = TYPES[(x.d[0] && x.d[0].type) || 'plug'] || TYPES.plug;
           return `<div class="room" data-r="${x.ri}" style="--rc:${x.r.color || col.c};animation-delay:${i * 70}ms">
-            <div class="rh"><ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon><b>${esc(x.r.name)}</b><span class="rw"></span></div>
+            <div class="rh">${x.r.image ? `<img class="rlogo" src="${esc(x.r.image)}" alt="">` : `<ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon>`}<b>${esc(x.r.name)}</b><span class="rw"></span></div>
             ${x.d.map((d) => this._devHtml(d)).join('')}
           </div>`;
         }).join('') : `<div class="empty">${T('dev.none')}</div>`}</div>
@@ -1679,7 +1684,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
       return `<div class="dv t-${d.type || 'plug'}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${d.color || t.c}">
-        <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon></div>
+        <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
         ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
         ${d.power ? '<div class="pbar"><i></i></div>' : ''}
@@ -1992,7 +1997,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)',
     'ed.d.surplus': 'PV-Überschuss (Leistung)', 'ed.d.standby': 'Standby-Schwelle (W)', 'ed.d.fit': 'Auf Bildschirmhöhe skalieren',
     'ed.d.nav_path': 'Weiter-Schaltfläche: Pfad', 'ed.d.nav_label': 'Weiter-Schaltfläche: Text',
-    'ed.d.room': 'Raum', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Symbol', 'ed.d.color': 'Farbe (z. B. 248,113,113)',
+    'ed.d.room': 'Raum', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Symbol', 'ed.d.color': 'Farbe (z. B. 248,113,113)', 'ed.d.image': 'Logo (Bild-URL, ersetzt das Symbol)',
     'ed.d.dev': 'Gerät', 'ed.d.dev_name': 'Name', 'ed.d.type': 'Typ', 'ed.d.entity': 'Schalter (zum Ein- und Ausschalten)', 'ed.d.power': 'Leistung (Sensor)',
     'ed.d.energy': 'Energie (Zähler in kWh)', 'ed.d.max_w': 'Maximale Leistung für Balken (W)', 'ed.d.run_w': 'Läuft ab Leistung (W)', 'ed.d.lock': 'Gesperrt (nur Anzeige)',
     'ed.d.add_room': '+ Raum hinzufügen', 'ed.d.add_dev': '+ Gerät hinzufügen', 'ed.d.del': 'Entfernen', 'ed.d.up': '▲', 'ed.d.down': '▼',
@@ -2159,7 +2164,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const c = this._c;
       const lbl = {
         title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
-        fit_screen: 'ed.d.fit', nav_path: 'ed.d.nav_path', nav_label: 'ed.d.nav_label', icon: 'ed.d.icon', color: 'ed.d.color', type: 'ed.d.type',
+        fit_screen: 'ed.d.fit', nav_path: 'ed.d.nav_path', nav_label: 'ed.d.nav_label', icon: 'ed.d.icon', color: 'ed.d.color', image: 'ed.d.image', type: 'ed.d.type',
         entity: 'ed.d.entity', power: 'ed.d.power', energy: 'ed.d.energy', max_w: 'ed.d.max_w', run_w: 'ed.d.run_w', lock: 'ed.d.lock',
       };
       const label = (s) => (s.name === 'name' ? T('ed.d.room_name') : lbl[s.name] ? T(lbl[s.name]) : s.name);
@@ -2188,9 +2193,9 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         head.style.cssText = 'font-weight:600;margin-bottom:6px';
         head.textContent = `${T('ed.d.room')} ${ri + 1}`;
         box.appendChild(head);
-        box.appendChild(this._form([txt('name'), { name: 'icon', selector: { icon: {} } }, txt('color')],
-          { name: room.name || '', icon: room.icon || '', color: room.color || '' },
-          (v) => { Object.assign(room, prune({ name: v.name, icon: v.icon, color: v.color })); ['name', 'icon', 'color'].forEach((k) => { if (!v[k]) delete room[k]; }); this._emit(); }, label));
+        box.appendChild(this._form([txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color')],
+          { name: room.name || '', icon: room.icon || '', image: room.image || '', color: room.color || '' },
+          (v) => { Object.assign(room, prune({ name: v.name, icon: v.icon, image: v.image, color: v.color })); ['name', 'icon', 'image', 'color'].forEach((k) => { if (!v[k]) delete room[k]; }); this._emit(); }, label));
         (room.devices = room.devices || []).forEach((dev, di) => {
           const dbox = document.createElement('div');
           dbox.style.cssText = 'margin:10px 0 0 8px;padding:8px 10px;border-left:3px solid var(--primary-color,#03a9f4)';

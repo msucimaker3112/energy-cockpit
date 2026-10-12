@@ -6,3 +6,4 @@ src/*.original.js
 tools/derive-*.py
 tools/strip-english.py
 FORTSCHRITT.md
+test/horizon-logo.jpg

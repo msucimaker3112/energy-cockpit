@@ -184,6 +184,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .narrow .core .num{font-size:1.8rem}
 .narrow .groups{margin-top:26px;grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .narrow .consumers{margin-top:26px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));justify-content:stretch}
+.ico.logo,.grp .ico.logo{width:auto;height:auto;min-width:0;background:none;box-shadow:none;border-radius:6px}
+.ico.logo img{display:block;height:28px;max-width:96px;object-fit:contain;border-radius:5px}
+.cons .ico.logo img{height:30px;max-width:80px}
 @media (prefers-reduced-motion:reduce){.flow,.orbit,.core,.node.on,.live,.cons.on .ico{animation-duration:0s!important}}
 `;
 
@@ -336,7 +339,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const cons = c.consumers.map((x, i) => {
       if (x.entity) links.push('c' + i);
       return `<div class="cons" data-k="c${i}" data-e="${x.entity || x.secondary || ''}" style="--c:${rgb(x.color || '#a78bfa')}">
-        <span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>
+        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${x.name || x.entity}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
@@ -346,7 +349,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       grps = G.map((g, i) => {
         links.push('g' + i);
         return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color || '#a78bfa')}">
-          <div class="g-hd"><span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span><span class="lbl">${g.name || ''}</span></div>
+          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span>`}<span class="lbl">${g.name || ''}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
           <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${x.entity || x.secondary || ''}"><i></i><span class="in">${x.name || x.entity}</span><b></b></div>`).join('')}</div>
         </div>`;
