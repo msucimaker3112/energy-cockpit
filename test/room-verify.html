@@ -1,0 +1,34 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Raum-Abrechnung Rechenprobe</title></head>
+<body><pre id="out">läuft …</pre>
+<script src="../dist/energy-cockpit.js"></script>
+<script>
+// Drei Stunden heute, Geräte: d1 = 0,3 kWh, d2 = 0,1 kWh je Stunde
+//  A: Bezug 1,0                                   -> 100 % Netz
+//  B: PV 3,0  Einspeisung 1,0  Batterie laden 0,5 -> 100 % PV (Überschussstunde)
+//  C: PV 0,5  Bezug 0,5  Batterie entladen 0,5    -> je 1/3 Netz, Batterie, PV (Haus hätte den PV-Strom gebraucht)
+const now = new Date(); const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 1).getTime();
+const H = [d0, d0 + 3600e3, d0 + 7200e3];
+const S = {
+  d1: [0.3, 0.3, 0.3], d2: [0.1, 0.1, 0.1],
+  pv: [0, 3, 0.5], imp: [1, 0, 0.5], exp: [0, 1, 0], chg: [0, 0.5, 0], dis: [0, 0, 0.5],
+};
+const ID = { 'sensor.d1': 'd1', 'sensor.d2': 'd2', 'sensor.pv': 'pv', 'sensor.imp': 'imp', 'sensor.exp': 'exp', 'sensor.chg': 'chg', 'sensor.dis': 'dis' };
+const st = (v) => ({ state: String(v), attributes: {}, last_changed: '', last_updated: '' });
+const hass = { states: { 'input_number.p': st(0.30), 'input_number.f': st(0.08) }, language: 'de', config: { currency: 'EUR' },
+  callWS: async (m) => { const r = {}; m.statistic_ids.forEach((id) => { r[id] = H.map((t, i) => ({ start: t, change: S[ID[id]][i] })); }); return r; } };
+const base = { title: 'T', price: 'input_number.p', feed_in: 'input_number.f', price_pv: 0.08, price_battery: 0.08,
+  devices: [{ energy: 'sensor.d1', name: 'A' }, { energy: 'sensor.d2', name: 'B' }],
+  home_energy: { pv: 'sensor.pv', import: 'sensor.imp', export: 'sensor.exp', charge: 'sensor.chg', discharge: 'sensor.dis' } };
+const out = {};
+(async () => {
+  for (const mode of ['opportunity', 'mix', 'grid']) {
+    const c = document.createElement('energy-cockpit-room-card');
+    c.setConfig(Object.assign({}, base, { valuation: mode }));
+    document.body.appendChild(c); c.hass = hass;
+    await new Promise((r) => setTimeout(r, 400));
+    const r = c._calc(new Date(now.getFullYear(), now.getMonth(), now.getDate()), new Date(now.getFullYear(), now.getMonth(), now.getDate()), false);
+    out[mode] = { kwh: +r.kwh.toFixed(4), netz: +r.src[0].toFixed(4), batt: +r.src[1].toFixed(4), pv: +r.src[2].toFixed(4), pvUeberschuss: +r.surplus.toFixed(4), cost: +r.cost.toFixed(4), dev: r.devCost.map((v) => +v.toFixed(4)) };
+  }
+  document.getElementById('out').textContent = JSON.stringify(out); document.title = 'FERTIG';
+})();
+</script></body></html>

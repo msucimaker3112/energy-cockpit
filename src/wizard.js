@@ -116,6 +116,18 @@
       return wrap;
     };
 
+    const fieldChoice = (f) => {
+      const wrap = el('div');
+      wrap.appendChild(el('label', css.label, f.label));
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      const sel = el('select', css.input);
+      f.options.forEach((o) => { const x = document.createElement('option'); x.value = o.value; x.textContent = o.label; sel.appendChild(x); });
+      sel.value = getPath(cfg, f.path) || f.options[0].value;
+      sel.addEventListener('change', () => { setPath(cfg, f.path, sel.value); emit(); });
+      wrap.appendChild(sel);
+      return wrap;
+    };
+
     const fieldInput = (f, type) => {
       const wrap = el('div');
       wrap.appendChild(el('label', css.label, f.label + (f.optional ? ' (optional)' : '')));
@@ -195,6 +207,7 @@
         else if (f.kind === 'number') root.appendChild(fieldInput(f, 'number'));
         else if (f.kind === 'text') root.appendChild(fieldInput(f, 'text'));
         else if (f.kind === 'list') root.appendChild(fieldList(f));
+        else if (f.kind === 'choice') root.appendChild(fieldChoice(f));
         else root.appendChild(fieldSelect(f));
       });
       if (st.summary) {

@@ -1,14 +1,16 @@
 /* energy-cockpit-room-card: Raum-Abrechnung. Verbrauch und Kosten eines Raums (z. B. vermietetes Büro) je Woche, Monat, Jahr und Vorjahr,
-   getrennt nach Geräten, mit Tabelle und CSV-Export für die Strommiete. */
+   getrennt nach Geräten UND nach Herkunft der Energie (Netz, Batterie, PV). Der Herkunfts-Mix wird stundenweise aus dem Haus-Mix bestimmt:
+   in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
   const { nf, esc, T, setLocale, cur } = WD;
   const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
   const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const COLORS = ['96,165,250', '52,211,153', '251,191,36', '244,114,182', '167,139,250', '34,211,238'];
+  const SRC = [['Netz', '255,92,122'], ['Batterie', '96,165,250'], ['PV', '255,197,61']];
   const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const fk = (v) => nf(v, v < 10 ? 2 : v < 100 ? 1 : 0);
   const fe = (v) => nf(v, 2);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const CSS = `
 :host{display:block;--txt:#e8eefc;--mut:139,151,179;--acc:245,158,11;--stroke:rgba(255,255,255,.08)}
@@ -28,7 +30,9 @@ header{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .kpi .k{font-size:1.7rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
 .kpi .k small{font-size:.8rem;opacity:.7;margin-left:3px}
 .kpi .e{font-size:1rem;font-weight:700;color:rgb(var(--acc));margin-top:2px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:.7rem;color:rgb(var(--mut));margin-top:3px}
+.kpi .s{font-size:.68rem;color:rgb(var(--mut));margin-top:3px;line-height:1.5}
+.mixbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin-top:8px}
+.mixbar i{display:block;height:100%;background:rgb(var(--c))}
 .panel{margin-top:16px;padding:16px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),#0c1322;border:1px solid var(--stroke)}
 .ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut))}
@@ -43,14 +47,16 @@ header{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .xl{display:flex;margin-top:6px;gap:4px}
 .xl span{flex:1;text-align:center;font-size:.64rem;color:rgb(var(--mut));font-weight:600;min-width:0;overflow:hidden}
 .xl span.cur{color:rgb(var(--acc))}
-.tw{max-height:320px;overflow:auto;margin-top:14px}
+.tw{max-height:320px;overflow:auto;margin-top:12px}
 table{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
-th{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));text-align:right;padding:6px 8px;position:sticky;top:0;background:#0c1322}
+th{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));text-align:right;padding:6px 8px;position:sticky;top:0;background:#0c1322}
 td{padding:7px 8px;text-align:right;border-top:1px solid rgba(255,255,255,.05)}
 th:first-child,td:first-child{text-align:left}
 tr.cur td{color:rgb(var(--acc));font-weight:700}
 tr.sum td{border-top:2px solid rgba(255,255,255,.2);font-weight:800}
 td.z{opacity:.35}
+.note{margin-top:12px;font-size:.72rem;color:rgb(var(--mut));line-height:1.55}
+.note b{color:var(--txt)}
 .foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;font-size:.72rem;color:rgb(var(--mut))}
 .btn{cursor:pointer;padding:7px 14px;border-radius:999px;font-size:.78rem;font-weight:650;color:var(--txt);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);-webkit-tap-highlight-color:transparent}
 .empty{padding:26px;text-align:center;color:rgb(var(--mut))}
@@ -61,10 +67,9 @@ td.z{opacity:.35}
   WD.addStrings({
     'room.title': 'Raum-Abrechnung', 'room.week': 'Diese Woche', 'room.month': 'Dieser Monat', 'room.year': 'Dieses Jahr', 'room.prev': 'Vorjahr',
     'room.tab.week': 'Woche', 'room.tab.month': 'Monat', 'room.tab.year': 'Jahr', 'room.tab.prev': 'Vorjahr',
-    'room.sum': 'Summe', 'room.total': 'Gesamt', 'room.cost': 'Kosten', 'room.loading': 'Daten werden geladen …',
+    'room.sum': 'Summe', 'room.loading': 'Daten werden geladen …',
     'room.noprice': 'Kein Preis eingestellt: Es werden nur kWh angezeigt.', 'room.csv': 'Als CSV kopieren', 'room.copied': 'Kopiert',
-    'room.since': 'Daten seit', 'room.empty': 'Noch keine Verbrauchsdaten. Die Statistik füllt sich ab dem Einbau der Zähler.',
-    'room.unconf': 'Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.',
+    'room.since': 'Daten seit', 'room.unconf': 'Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.',
   });
 
   class EnergyCockpitRoomCard extends HTMLElement {
@@ -99,7 +104,7 @@ td.z{opacity:.35}
       if (!this._c) return;
       if (!this._loading && Date.now() - this._loadedAt > 15 * 60 * 1000) this._load();
     }
-    getCardSize() { return 8; }
+    getCardSize() { return 9; }
     getGridOptions() { return { columns: 'full', min_columns: 6 }; }
     connectedCallback() {
       if (!this._ro && window.ResizeObserver) this._ro = new ResizeObserver(() => this._narrow());
@@ -110,13 +115,21 @@ td.z{opacity:.35}
       const w = this.getBoundingClientRect().width, el = this.shadowRoot.querySelector('.wrap');
       if (el && w) el.classList.toggle('narrow', w < 640);
     }
-    _price() {
-      const c = this._c, h = this._hass;
-      if (typeof c.price === 'number') return c.price;
-      if (!c.price && typeof c.price_ct === 'number') return c.price_ct / 100;
-      const s = typeof c.price === 'string' && h && h.states[c.price];
-      const v = s ? parseFloat(s.state) : NaN;
-      return isNaN(v) ? 0 : v;
+    // Zahl, Sensor-/Helferwert (€ pro kWh) oder 0
+    _rate(v, fallback) {
+      const h = this._hass;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string' && h && h.states[v]) { const x = parseFloat(h.states[v].state); if (!isNaN(x)) return x; }
+      return fallback;
+    }
+    _prices() {
+      const c = this._c;
+      let grid = this._rate(c.price, null);
+      if (grid === null) grid = typeof c.price_ct === 'number' ? c.price_ct / 100 : 0;
+      const feed = this._rate(c.feed_in, 0);
+      const pv = this._rate(c.price_pv, feed);
+      const batt = this._rate(c.price_battery, pv);
+      return { grid, pv, batt, feed };
     }
     async _load() {
       const h = this._hass, c = this._c;
@@ -124,21 +137,55 @@ td.z{opacity:.35}
       this._loading = true;
       try {
         const ids = c.devices.map((d) => d.energy);
+        const nd = ids.length;
         const y = new Date().getFullYear();
-        const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(y - 1, 0, 1).toISOString(), period: 'day', statistic_ids: ids, types: ['change'] });
+        const start = new Date(y - 1, 0, 1);
+        const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
+        // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids, types: ['change'] });
+        let firstTs = null;
+        ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
-        let first = null;
-        ids.forEach((id, di) => {
-          (r[id] || []).forEach((x) => {
-            const t = typeof x.start === 'number' ? x.start : Date.parse(x.start);
-            const k = key(new Date(t));
-            const v = x.change > 0 ? x.change : 0;
-            (days[k] = days[k] || ids.map(() => 0))[di] += v;
-            if (v >= 0 && (!first || k < first)) first = k;
+        const he = c.home_energy || {};
+        const srcIds = ['pv', 'import', 'export', 'charge', 'discharge'].map((k) => he[k]).filter(Boolean);
+        this._hasMix = !!(he.import && (he.pv || he.discharge));
+        if (firstTs === null) {
+          this._first = null;
+        } else if (!this._hasMix) {
+          ids.forEach((id, di) => (dr[id] || []).forEach((x) => {
+            const k = key(new Date(ts(x)));
+            (days[k] = days[k] || ids.map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
+          }));
+          this._first = key(new Date(firstTs));
+        } else {
+          // 2) Stundenwerte: Geräte und Haus-Mix (PV, Bezug, Einspeisung, Batterie laden/entladen)
+          const from = new Date(firstTs);
+          from.setHours(0, 0, 0, 0);
+          const all = ids.concat(srcIds);
+          const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'] });
+          const at = {};
+          all.forEach((id, i) => (hr[id] || []).forEach((x) => {
+            const t = ts(x);
+            (at[t] = at[t] || {})[id] = x.change > 0 ? x.change : 0;
+          }));
+          Object.keys(at).forEach((t) => {
+            const row = at[t];
+            const dev = ids.map((id) => row[id] || 0);
+            if (!dev.some((v) => v > 0)) return;
+            const pv = row[he.pv] || 0, imp = row[he.import] || 0, exp = row[he.export] || 0, chg = row[he.charge] || 0, dis = row[he.discharge] || 0;
+            const home = pv + imp - exp - chg + dis;
+            let g = 1, b = 0;
+            if (home > 0.0001) { g = clamp(imp / home, 0, 1); b = clamp(dis / home, 0, 1 - g); }
+            const p = 1 - g - b;
+            const k = key(new Date(+t));
+            const a = (days[k] = days[k] || ids.map(() => [0, 0, 0, 0]));
+            const sur = exp > 0.0001; // in dieser Stunde wurde eingespeist: PV-Anteil hätte sonst Einspeisevergütung gebracht
+            dev.forEach((v, di) => { a[di][0] += v * g; a[di][1] += v * b; a[di][sur ? 3 : 2] += v * p; });
           });
-        });
+          this._first = key(new Date(firstTs));
+        }
         this._days = days;
-        this._first = first;
+        this._nd = nd;
         this._loadedAt = Date.now();
       } catch (e) {
         console.warn('energy-cockpit-room-card: load failed', e);
@@ -148,11 +195,14 @@ td.z{opacity:.35}
       this._loading = false;
       this._render();
     }
-    // Summe je Gerät über einen Zeitraum [from, to] (inklusive, lokale Tage)
+    // Summe über [from, to]: je Gerät [Netz, Batterie, PV]
     _sum(from, to) {
-      const n = this._c.devices.length, out = new Array(n).fill(0);
+      const nd = this._c.devices.length;
+      const out = Array.from({ length: nd }, () => [0, 0, 0, 0]);
       const f = key(from), t = key(to);
-      Object.keys(this._days).forEach((k) => { if (k >= f && k <= t) this._days[k].forEach((v, i) => { out[i] += v; }); });
+      Object.keys(this._days).forEach((k) => {
+        if (k >= f && k <= t) this._days[k].forEach((v, i) => { out[i][0] += v[0]; out[i][1] += v[1]; out[i][2] += v[2]; out[i][3] += v[3]; });
+      });
       return out;
     }
     _buckets(tab) {
@@ -162,36 +212,60 @@ td.z{opacity:.35}
         const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
         for (let i = 0; i < 7; i++) {
           const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-          out.push({ label: DAYS[d.getDay()] + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: 0 });
+          out.push({ label: DAYS[d.getDay()] + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: false });
         }
       } else if (tab === 'month') {
         const dim = new Date(y, m + 1, 0).getDate();
         for (let i = 1; i <= dim; i++) {
           const d = new Date(y, m, i);
-          out.push({ label: String(i), from: d, to: d, cur: i === now.getDate(), fee: 0 });
+          out.push({ label: String(i), from: d, to: d, cur: i === now.getDate(), fee: false });
         }
       } else {
         const yy = tab === 'year' ? y : y - 1;
         for (let i = 0; i < 12; i++) {
-          out.push({ label: MONTHS[i], from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: 1 });
+          out.push({ label: MONTHS[i], from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: true });
         }
       }
       return out;
     }
-    // Grundgebühr je Monat nur für Monate ab dem ersten Messwert
+    // Grundgebühr je Monat nur für Monate ab dem ersten Messwert (und nicht in der Zukunft)
     _fee(from, to) {
       const base = parseFloat(this._c.base_fee) || 0;
       if (!base || !this._first) return 0;
       let n = 0;
       const d = new Date(from.getFullYear(), from.getMonth(), 1);
-      const fm = this._first.slice(0, 7);
-      const now = new Date();
+      const fm = this._first.slice(0, 7), now = new Date();
       while (d <= to) {
         const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         if (k >= fm && d <= now) n++;
         d.setMonth(d.getMonth() + 1);
       }
       return base * n;
+    }
+    // Aufbereitung eines Zeitraums: Mengen je Quelle, je Gerät, Kosten
+    // valuation: 'opportunity' (Standard), 'mix' oder 'grid'
+    //  opportunity: Was die Energie das Haus gekostet hat bzw. entgangen ist. Netz, Batterie und PV, die das Haus selbst gebraucht hätte,
+    //               zum Bezugspreis (sonst hätte das Haus Strom kaufen müssen). PV aus Überschussstunden zur Einspeisevergütung.
+    //  mix:         Netz zum Bezugspreis, Batterie zum Batteriepreis, PV zum PV-Preis (feste Preise je Quelle).
+    //  grid:        alles zum Bezugspreis.
+    _calc(from, to, withFee) {
+      const P = this._prices(), mode = this._c.valuation || 'opportunity';
+      const raw = this._sum(from, to);
+      const price = (d) => {
+        if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * P.grid;
+        if (mode === 'mix') return d[0] * P.grid + d[1] * P.batt + (d[2] + d[3]) * P.pv;
+        return (d[0] + d[1] + d[2]) * P.grid + d[3] * P.feed;
+      };
+      const dev = raw.map((d) => [d[0], d[1], d[2] + d[3]]);
+      const src = [0, 0, 0];
+      dev.forEach((d) => d.forEach((v, i) => { src[i] += v; }));
+      const surplus = raw.reduce((a, d) => a + d[3], 0);
+      const kwh = src[0] + src[1] + src[2];
+      const fee = withFee ? this._fee(from, to) : 0;
+      const devCost = raw.map(price);
+      const cost = devCost.reduce((a, v) => a + v, 0) + fee;
+      const costFull = kwh * P.grid + fee;
+      return { dev, src, kwh, fee, cost, costFull, devCost, surplus };
     }
     _period(tab) {
       const now = new Date(), y = now.getFullYear();
@@ -200,69 +274,85 @@ td.z{opacity:.35}
       else if (tab === 'month') { from = new Date(y, now.getMonth(), 1); to = new Date(y, now.getMonth() + 1, 0); }
       else if (tab === 'year') { from = new Date(y, 0, 1); to = new Date(y, 11, 31); }
       else { from = new Date(y - 1, 0, 1); to = new Date(y - 1, 11, 31); }
-      const per = this._sum(from, to);
-      const kwh = per.reduce((a, v) => a + v, 0);
-      const fee = tab === 'week' ? 0 : this._fee(from, to);
-      return { per, kwh, cost: kwh * this._price() + fee, fee };
+      return Object.assign({ from, to }, this._calc(from, to, tab !== 'week'));
     }
     _csv() {
-      const c = this._c, tab = this._tab, b = this._buckets(tab), n = c.devices.length;
-      const price = this._price();
-      const head = ['Zeitraum'].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), ['Summe kWh', 'Kosten ' + cur()]);
+      const c = this._c, tab = this._tab, b = this._buckets(tab);
+      const num = (v) => v.toFixed(3).replace('.', ',');
+      const head = ['Zeitraum', 'Summe kWh', 'Netz kWh', 'Batterie kWh', 'PV kWh', 'Kosten ' + cur(), 'bei Bezugspreis ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'));
       const rows = b.map((x) => {
-        const s = this._sum(x.from, x.to), t = s.reduce((a, v) => a + v, 0);
-        const cost = t * price + (x.fee ? this._fee(x.from, x.to) : 0);
-        return [x.label].concat(s.map((v) => v.toFixed(3).replace('.', ',')), [t.toFixed(3).replace('.', ','), cost.toFixed(2).replace('.', ',')]);
+        const r = this._calc(x.from, x.to, x.fee);
+        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
+          .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])));
       });
-      void n;
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
     }
     _render() {
       const c = this._c;
       if (!c) return;
-      const tab = this._tab, price = this._price(), CUR = cur();
-      const nf0 = c.devices.length;
-      const color = (i) => (c.devices[i].color || COLORS[i % COLORS.length]);
+      const tab = this._tab, CUR = cur(), P = this._prices();
+      const nd = c.devices.length;
+      const mix = this._hasMix;
       let body = '';
       if (!this._days) body = '<div class="panel"><div class="empty">' + T('room.loading') + '</div></div>';
       else {
-        const per = { week: this._period('week'), month: this._period('month'), year: this._period('year'), prev: this._period('prev') };
+        const per = {};
+        ['week', 'month', 'year', 'prev'].forEach((k) => { per[k] = this._period(k); });
         const kp = ['week', 'month', 'year', 'prev'].map((k) => {
           const p = per[k];
+          const tot = p.kwh || 1;
+          const mb = mix && p.kwh > 0 ? `<div class="mixbar">${p.src.map((v, i) => `<i style="--c:${SRC[i][1]};width:${v / tot * 100}%"></i>`).join('')}</div>` : '';
+          const sline = mix && p.kwh > 0 ? `Netz ${fk(p.src[0])} · Batt. ${fk(p.src[1])} · PV ${fk(p.src[2])} kWh` : '';
           return `<div class="kpi${tab === k ? ' on' : ''}" data-t="${k}"><div class="l">${T('room.' + k)}</div><div class="k">${fk(p.kwh)}<small>kWh</small></div>`
-            + `<div class="e">${price > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>`
-            + `<div class="s">${p.fee ? 'inkl. ' + fe(p.fee) + ' ' + CUR + ' Grundgebühr' : (price > 0 ? nf(price * 100, 1) + ' ct/kWh' : '')}</div></div>`;
+            + `<div class="e">${P.grid > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>${mb}<div class="s">${sline}${p.fee ? `<br>inkl. ${fe(p.fee)} ${CUR} Grundgebühr` : ''}</div></div>`;
         }).join('');
         const b = this._buckets(tab);
-        const rows = b.map((x) => {
-          const s = this._sum(x.from, x.to), t = s.reduce((a, v) => a + v, 0);
-          const fee = x.fee ? this._fee(x.from, x.to) : 0;
-          return { x, s, t, cost: t * price + fee };
-        });
-        const mx = Math.max(0.001, ...rows.map((r) => r.t));
-        const bars = rows.map((r) => `<div class="col${r.x.cur ? ' cur' : ''}"><div class="st" style="height:${Math.max(0, r.t / mx * 100)}%">${r.s.map((v, i) => `<i style="--c:${color(i)};height:${r.t ? v / r.t * 100 : 0}%"></i>`).join('')}</div></div>`).join('');
+        const rows = b.map((x) => Object.assign({ x }, this._calc(x.from, x.to, x.fee)));
+        const mx = Math.max(0.001, ...rows.map((r) => r.kwh));
+        const bars = rows.map((r) => `<div class="col${r.x.cur ? ' cur' : ''}"><div class="st" style="height:${Math.max(0, r.kwh / mx * 100)}%">${r.src.map((v, i) => `<i style="--c:${SRC[i][1]};height:${r.kwh ? v / r.kwh * 100 : 0}%"></i>`).join('')}</div></div>`).join('');
         const xl = rows.map((r) => `<span class="${r.x.cur ? 'cur' : ''}">${esc(tab === 'month' && r.x.label % 5 && r.x.label !== String(b.length) ? '' : r.x.label)}</span>`).join('');
-        const sumS = new Array(nf0).fill(0);
-        rows.forEach((r) => r.s.forEach((v, i) => { sumS[i] += v; }));
-        const sumT = sumS.reduce((a, v) => a + v, 0);
-        const sumC = rows.reduce((a, r) => a + r.cost, 0);
+        const sum = rows.reduce((a, r) => { a.kwh += r.kwh; a.cost += r.cost; a.full += r.costFull; r.src.forEach((v, i) => { a.src[i] += v; }); return a; }, { kwh: 0, cost: 0, full: 0, src: [0, 0, 0] });
         const cell = (v) => `<td class="${v ? '' : 'z'}">${v ? fk(v) : '–'}</td>`;
-        const trs = rows.map((r) => `<tr class="${r.x.cur ? 'cur' : ''}"><td>${esc(r.x.label)}</td>${r.s.map(cell).join('')}<td>${r.t ? fk(r.t) : '–'}</td><td>${r.cost ? fe(r.cost) : '–'}</td></tr>`).join('');
-        const th = `<tr><th>${tab === 'week' ? 'Tag' : tab === 'month' ? 'Tag' : 'Monat'}</th>${c.devices.map((d) => `<th>${esc(d.name || d.energy)}</th>`).join('')}<th>kWh</th><th>${CUR}</th></tr>`;
-        const leg = c.devices.map((d, i) => `<span style="--c:${color(i)}"><i></i>${esc(d.name || d.energy)}</span>`).join('');
+        const trs = rows.map((r) => `<tr class="${r.x.cur ? 'cur' : ''}"><td>${esc(r.x.label)}</td><td>${r.kwh ? fk(r.kwh) : '–'}</td>${mix ? r.src.map(cell).join('') : ''}<td>${r.cost ? fe(r.cost) : '–'}</td></tr>`).join('');
+        const th = `<tr><th>${tab === 'year' || tab === 'prev' ? 'Monat' : 'Tag'}</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr>`;
+        const sumRow = `<tr class="sum"><td>${T('room.sum')}</td><td>${fk(sum.kwh)}</td>${mix ? sum.src.map((v) => `<td>${fk(v)}</td>`).join('') : ''}<td>${fe(sum.cost)}</td></tr>`;
+        // Je Gerät (im gewählten Zeitraum)
+        const cur_ = per[tab];
+        const devRows = c.devices.map((d, i) => {
+          const dv = cur_.dev[i], t = dv[0] + dv[1] + dv[2];
+          return `<tr><td>${esc(d.name || d.energy)}</td><td>${fk(t)}</td>${mix ? dv.map(cell).join('') : ''}<td>${fe(cur_.devCost[i])}</td></tr>`;
+        }).join('');
         const title = { week: 'Diese Woche', month: MONTHS_LONG[new Date().getMonth()] + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
+        const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${s[0]}</span>`).join('') : '';
+        const mode = c.valuation || 'opportunity';
+        const fee = c.base_fee ? ` · Grundgebühr <b>${fe(parseFloat(c.base_fee))} ${CUR}</b>/Monat` : '';
+        let priceTxt, explain;
+        if (!(P.grid > 0)) { priceTxt = T('room.noprice'); explain = ''; }
+        else if (!mix || mode === 'grid') {
+          priceTxt = `Alles zum Bezugspreis <b>${nf(P.grid * 100, 2)} ct/kWh</b>${fee}`;
+          explain = mix ? 'Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.' : 'Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.';
+        } else if (mode === 'mix') {
+          priceTxt = `Netz <b>${nf(P.grid * 100, 2)} ct</b> · Batterie <b>${nf(P.batt * 100, 2)} ct</b> · PV <b>${nf(P.pv * 100, 2)} ct/kWh</b>${fee}`;
+          explain = 'Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).';
+        } else {
+          priceTxt = `Netz, Batterie und PV, die das Haus gebraucht hätte: <b>${nf(P.grid * 100, 2)} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>${nf(P.feed * 100, 2)} ct/kWh</b>${fee}`;
+          explain = 'Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.';
+        }
+        const full = P.grid > 0 ? `<br>Zum Vergleich, <b>alles zum Netzpreis</b> (${nf(P.grid * 100, 2)} ct/kWh): <b>${fe(sum.full)} ${CUR}</b>.` : '';
         body = `<div class="kpis">${kp}</div>
           <div class="panel"><div class="ph"><span class="lbl">${esc(title)}</span><span class="leg">${leg}</span></div>
             <div class="bars">${bars}</div><div class="xl">${xl}</div></div>
-          <div class="panel"><div class="tw"><table><thead>${th}</thead><tbody>${trs}<tr class="sum"><td>${T('room.sum')}</td>${sumS.map((v) => `<td>${fk(v)}</td>`).join('')}<td>${fk(sumT)}</td><td>${fe(sumC)}</td></tr></tbody></table></div>
-            <div class="foot"><span>${price > 0 ? `Preis ${nf(price * 100, 2)} ct/kWh${c.base_fee ? ` + ${fe(parseFloat(c.base_fee))} ${CUR} Grundgebühr je Monat` : ''}` : T('room.noprice')}${this._first ? ` · ${T('room.since')} ${this._first.split('-').reverse().join('.')}` : ''}</span>
-            <span class="btn" data-csv="1">${T('room.csv')}</span></div></div>`;
+          <div class="panel"><span class="lbl">Verlauf und Kosten</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
+          <div class="panel"><span class="lbl">Je Gerät</span><div class="tw"><table><thead><tr><th>Gerät</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
+            <div class="note">${priceTxt}${full}<br>${explain}</div>
+            <div class="foot"><span>${this._first ? `${T('room.since')} ${this._first.split('-').reverse().join('.')}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>`;
       }
       const sub = c.subtitle !== undefined ? c.subtitle : 'Stromverbrauch und Kosten';
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card><div class="wrap">
         <header><div class="title">${c.image ? `<img src="${esc(c.image)}" alt="">` : ''}<div>${esc(c.title || T('room.title'))}<small>${esc(sub)}</small></div></div>
           <div class="tabs">${['week', 'month', 'year', 'prev'].map((k) => `<div class="tab${tab === k ? ' on' : ''}" data-t="${k}">${T('room.tab.' + k)}</div>`).join('')}</div></header>
         ${body}</div></ha-card>`;
+      void nd;
       this.shadowRoot.querySelectorAll('[data-t]').forEach((el) => el.addEventListener('click', () => { this._tab = el.dataset.t; this._render(); }));
       const csv = this.shadowRoot.querySelector('[data-csv]');
       if (csv) csv.addEventListener('click', () => {
@@ -278,6 +368,6 @@ td.z{opacity:.35}
   if (!customElements.get('energy-cockpit-room-card')) {
     customElements.define('energy-cockpit-room-card', EnergyCockpitRoomCard);
     window.customCards = window.customCards || [];
-    window.customCards.push({ type: 'energy-cockpit-room-card', name: 'Energy-Cockpit Raum-Abrechnung', description: 'Verbrauch und Kosten eines Raums je Woche, Monat, Jahr und Vorjahr (z. B. Strommiete)', preview: false });
+    window.customCards.push({ type: 'energy-cockpit-room-card', name: 'Energy-Cockpit Raum-Abrechnung', description: 'Verbrauch und Kosten eines Raums je Woche, Monat, Jahr und Vorjahr, mit Herkunft Netz, Batterie und PV (z. B. Strommiete)', preview: false });
   }
 })();

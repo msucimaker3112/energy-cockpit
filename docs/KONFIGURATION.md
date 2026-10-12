@@ -196,28 +196,57 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 ## Raum-Abrechnung: `custom:energy-cockpit-room-card`
 
-Zeigt Verbrauch und Kosten eines Raums für **Woche, Monat, Jahr und Vorjahr**, getrennt nach Geräten, mit Tagesbalken, Tabelle und CSV-Export. Gedacht für die Abrechnung der Strommiete eines vermieteten oder getrennt zu bewertenden Raums.
+Zeigt Verbrauch und Kosten eines Raums für **Woche, Monat, Jahr und Vorjahr**, getrennt nach Geräten und nach **Herkunft der Energie (Netz, Batterie, PV)**, mit Tagesbalken, Tabellen und CSV-Export. Gedacht für die Abrechnung der Strommiete eines vermieteten oder getrennt zu bewertenden Raums.
 
 ```yaml
 type: custom:energy-cockpit-room-card
 title: Büro Keller
 subtitle: Strommiete
-image: /local/logo.png          # optional, Bild-URL oder Data-URI
-price: input_number.strompreis  # Sensor oder input_number in € pro kWh
-# price_ct: 34                  # alternativ fester Preis in Cent pro kWh
-base_fee: 0                     # optional: Grundgebühr je Monat in €
+image: /local/logo.png                 # optional, Bild-URL oder Data-URI
 devices:
   - name: Arbeitsplätze
     energy: sensor.buero_1_energie
   - name: Chillecke
     energy: sensor.buero_2_energie
+home_energy:                           # Zähler des ganzen Hauses (für die Herkunft)
+  pv: sensor.pv_gesamt_kwh
+  import: sensor.netzbezug_gesamt_kwh
+  export: sensor.einspeisung_gesamt_kwh
+  charge: sensor.batterie_geladen_kwh
+  discharge: sensor.batterie_entladen_kwh
+price: input_number.strompreis         # Bezugspreis in € pro kWh (Sensor/Helfer) ...
+# price_ct: 34                         # ... oder fest in Cent pro kWh
+feed_in: input_number.einspeiseverguetung
+valuation: opportunity                 # opportunity | mix | grid
+base_fee: 0                            # optional: Grundgebühr je Monat in €
 ```
+
+### Wie die Herkunft ermittelt wird
+
+Für jede Stunde wird aus den Haus-Zählern der **Mix** bestimmt:
+
+- Hausverbrauch = PV + Netzbezug − Einspeisung − Batterie laden + Batterie entladen
+- Netzanteil = Netzbezug ÷ Hausverbrauch, Batterieanteil = Batterie entladen ÷ Hausverbrauch, PV-Anteil = Rest
+
+**Jeder Verbraucher bekommt in jeder Stunde denselben Mix wie das Haus.** Der Verbrauch des Raums wird entsprechend aufgeteilt. Die Werte werden pro Tag, Woche, Monat und Jahr aufsummiert.
+
+### Bewertung (`valuation`)
+
+| Wert | Bedeutung |
+|---|---|
+| `opportunity` (Standard) | **Entgangener Nutzen.** Netz, Batterie und PV-Strom, den das Haus selbst hätte verbrauchen können (Stunde ohne Einspeisung), kosten den **Bezugspreis**. Nur PV-Strom aus Stunden mit Einspeisung wird zur **Einspeisevergütung** bewertet, denn sonst wäre er eingespeist worden. |
+| `mix` | Feste Preise je Quelle: Netz zum Bezugspreis, PV zu `price_pv` (Standard: Einspeisevergütung), Batterie zu `price_battery` (Standard: PV-Preis). |
+| `grid` | Alles zum Bezugspreis. |
+
+Unterhalb der Tabelle zeigt die Karte zum Vergleich immer auch den Betrag für "alles zum Netzpreis".
 
 | Schlüssel | Beschreibung |
 |---|---|
 | `devices` | Liste der Energiezähler (kWh, mit Langzeitstatistik). `name` und `color` sind optional. |
-| `price` / `price_ct` | Preis je kWh als Sensor/Helfer oder fester Wert in Cent. Ohne Preis werden nur kWh angezeigt. |
+| `home_energy` | Haus-Zähler für Netz, Batterie und PV. Ohne `import` wird alles zum Bezugspreis bewertet. |
+| `price` / `price_ct` | Bezugspreis je kWh als Sensor/Helfer oder fester Wert in Cent. |
+| `feed_in` | Einspeisevergütung je kWh. |
+| `price_pv`, `price_battery` | Nur für `valuation: mix`. |
 | `base_fee` | Grundgebühr je Monat; wird für alle Monate ab dem ersten Messwert addiert. |
-| `title`, `subtitle`, `image` | Kopf der Karte. |
 
-**Hinweise:** Die Kosten werden mit dem **aktuellen** Preis berechnet. Ändert sich der Preis, ändern sich auch die Werte vergangener Zeiträume. Für eine rechtssichere Abrechnung die Monatswerte (Tabelle oder CSV) am Monatsende festhalten.
+**Hinweise:** Die Kosten werden mit den **aktuellen** Preisen berechnet. Ändert sich ein Preis, ändern sich auch die Werte vergangener Zeiträume. Für eine rechtssichere Abrechnung die Monatswerte (Tabelle oder CSV) am Monatsende festhalten und die Bewertungsregel mit dem Mieter schriftlich vereinbaren.
