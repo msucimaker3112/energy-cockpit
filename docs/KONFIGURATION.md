@@ -196,7 +196,7 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 ## Raum-Abrechnung: `custom:energy-cockpit-room-card`
 
-Zeigt Verbrauch und Kosten eines Raums für **Woche, Monat, Jahr und Vorjahr**, getrennt nach Geräten und nach **Herkunft der Energie (Netz, Batterie, PV)**, mit Tagesbalken, Tabellen und CSV-Export. Gedacht für die Abrechnung der Strommiete eines vermieteten oder getrennt zu bewertenden Raums.
+Zeigt Verbrauch und Kosten eines Raums für **Woche, Monat, Jahr und Vorjahr**, getrennt nach **Bereichen** (jeder Zähler kann beliebig viele Geräte versorgen) und nach **Herkunft der Energie (Netz, Batterie, PV)**, mit Tagesbalken, Tabellen und CSV-Export. Gedacht für die Abrechnung der Strommiete eines vermieteten oder getrennt zu bewertenden Raums.
 
 ```yaml
 type: custom:energy-cockpit-room-card
@@ -242,7 +242,7 @@ Unterhalb der Tabelle zeigt die Karte zum Vergleich immer auch den Betrag für "
 
 | Schlüssel | Beschreibung |
 |---|---|
-| `devices` | Liste der Energiezähler (kWh, mit Langzeitstatistik). `name` und `color` sind optional. |
+| `devices` | Liste der Bereiche mit je einem Energiezähler (kWh, mit Langzeitstatistik), zum Beispiel `Arbeitsplätze` oder `Chillecke`. `name` und `color` sind optional. |
 | `home_energy` | Haus-Zähler für Netz, Batterie und PV. Ohne `import` wird alles zum Bezugspreis bewertet. |
 | `price` / `price_ct` | Bezugspreis je kWh als Sensor/Helfer oder fester Wert in Cent. |
 | `feed_in` | Einspeisevergütung je kWh. |

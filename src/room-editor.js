@@ -23,7 +23,7 @@
   WD.roomForm = () => ({
     schema: [
       txt('title'), txt('subtitle'), txt('image'),
-      sec('devices', 'Geräte / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Gerät ${i + 1}`, [ent('energy', ['sensor']), txt('name'), txt('color')]))),
+      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), txt('name'), txt('color')]))),
       sec('home_energy', 'Haus-Energiequellen (für Netz / Batterie / PV)', [ent('pv', ['sensor']), ent('import', ['sensor']), ent('export', ['sensor']), ent('charge', ['sensor']), ent('discharge', ['sensor'])]),
       { name: 'valuation', selector: { select: { mode: 'dropdown', options: VAL } } },
       ent('price', ['sensor', 'input_number']),
@@ -44,7 +44,7 @@
       { path: 'subtitle', label: 'Untertitel', kind: 'text', optional: true },
       { path: 'image', label: 'Logo (Bild-URL oder Data-URI)', kind: 'text', optional: true },
     ] },
-    { short: 'Zähler', title: 'Energiezähler', text: 'Wähle die Zähler (kWh) der Geräte oder Stromkreise dieses Raums. Der Verbrauch wird je Gerät und als Summe ausgewiesen.', fields: [
+    { short: 'Zähler', title: 'Energiezähler', text: 'Wähle die Zähler (kWh) der Bereiche oder Stromkreise dieses Raums, zum Beispiel Arbeitsplätze oder Chillecke. Hinter einem Zähler dürfen beliebig viele Geräte hängen. Der Verbrauch wird je Bereich und als Summe ausgewiesen.', fields: [
       { path: 'devices', label: 'Zähler', kind: 'list', listKind: 'energy', itemKey: 'energy', max: 8 },
     ] },
     { short: 'Herkunft', title: 'Woher kommt der Strom?', text: 'Mit den Zählern des ganzen Hauses ermittelt die Karte stündlich, welcher Anteil aus Netz, Batterie und PV stammt. Jeder Verbraucher bekommt in jeder Stunde den gleichen Mix wie das Haus.', fields: [

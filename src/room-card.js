@@ -1,5 +1,5 @@
 /* energy-cockpit-room-card: Raum-Abrechnung. Verbrauch und Kosten eines Raums (z. B. vermietetes Büro) je Woche, Monat, Jahr und Vorjahr,
-   getrennt nach Geräten UND nach Herkunft der Energie (Netz, Batterie, PV). Der Herkunfts-Mix wird stundenweise aus dem Haus-Mix bestimmt:
+   getrennt nach Bereichen (Zählern) UND nach Herkunft der Energie (Netz, Batterie, PV). Der Herkunfts-Mix wird stundenweise aus dem Haus-Mix bestimmt:
    in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
   const { nf, esc, T, setLocale, cur } = WD;
@@ -343,7 +343,7 @@ td.z{opacity:.35}
           <div class="panel"><div class="ph"><span class="lbl">${esc(title)}</span><span class="leg">${leg}</span></div>
             <div class="bars">${bars}</div><div class="xl">${xl}</div></div>
           <div class="panel"><span class="lbl">Verlauf und Kosten</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
-          <div class="panel"><span class="lbl">Je Gerät</span><div class="tw"><table><thead><tr><th>Gerät</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
+          <div class="panel"><span class="lbl">Je Bereich</span><div class="tw"><table><thead><tr><th>Bereich</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
             <div class="note">${priceTxt}${full}<br>${explain}</div>
             <div class="foot"><span>${this._first ? `${T('room.since')} ${this._first.split('-').reverse().join('.')}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>`;
       }
@@ -368,6 +368,6 @@ td.z{opacity:.35}
   if (!customElements.get('energy-cockpit-room-card')) {
     customElements.define('energy-cockpit-room-card', EnergyCockpitRoomCard);
     window.customCards = window.customCards || [];
-    window.customCards.push({ type: 'energy-cockpit-room-card', name: 'Energy-Cockpit Raum-Abrechnung', description: 'Verbrauch und Kosten eines Raums je Woche, Monat, Jahr und Vorjahr, mit Herkunft Netz, Batterie und PV (z. B. Strommiete)', preview: false });
+    window.customCards.push({ type: 'energy-cockpit-room-card', name: 'Energy-Cockpit Raum-Abrechnung', description: 'Verbrauch und Kosten eines Raums je Woche, Monat, Jahr und Vorjahr, je Bereich und mit Herkunft Netz, Batterie und PV (z. B. Strommiete)', preview: false });
   }
 })();
