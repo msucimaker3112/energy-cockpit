@@ -18,12 +18,15 @@
     base_fee: 'Grundgebühr je Monat (€)', valuation: 'Bewertung (entgangener Nutzen, feste Preise oder alles zum Bezugspreis)',
     pv: 'PV Gesamtertrag (Zähler, kWh)', import: 'Netzbezug gesamt (Zähler, kWh)', export: 'Einspeisung gesamt (Zähler, kWh)',
     charge: 'Batterie geladen gesamt (kWh)', discharge: 'Batterie entladen gesamt (kWh)',
+    power: 'Leistungssensor (W, für die Live-Anzeige)', advance: 'Abschlag je Monat (Zahl in € oder input_number)', archive: 'Monatsarchiv (Sensor, optional)',
+    standby_w: 'Standby-Schwelle nachts (W, Zahl oder input_number)', active_w: 'Ab wie viel Watt gilt ein Bereich als aktiv (W)',
+    watt_warn: 'Live-Anzeige: erhöht ab (W)', watt_high: 'Live-Anzeige: hoch ab (W)',
   };
 
   WD.roomForm = () => ({
     schema: [
       txt('title'), txt('subtitle'), txt('image'),
-      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), txt('name'), txt('color')]))),
+      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), ent('power', ['sensor']), txt('name'), txt('color')]))),
       sec('home_energy', 'Haus-Energiequellen (für Netz / Batterie / PV)', [ent('pv', ['sensor']), ent('import', ['sensor']), ent('export', ['sensor']), ent('charge', ['sensor']), ent('discharge', ['sensor'])]),
       { name: 'valuation', selector: { select: { mode: 'dropdown', options: VAL } } },
       ent('price', ['sensor', 'input_number']),
@@ -32,6 +35,12 @@
       ent('price_pv', ['sensor', 'input_number']),
       ent('price_battery', ['sensor', 'input_number']),
       numb('base_fee', 0, 1000, 0.5),
+      ent('advance', ['input_number', 'sensor']),
+      ent('archive', ['sensor']),
+      numb('standby_w', 0, 5000, 5),
+      numb('active_w', 0, 5000, 5),
+      numb('watt_warn', 0, 20000, 10),
+      numb('watt_high', 0, 20000, 10),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
   });
@@ -60,6 +69,12 @@
       { path: 'feed_in', label: 'Einspeisevergütung (€ pro kWh)', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
       { path: 'valuation', label: 'Bewertung', kind: 'choice', options: VAL },
       { path: 'base_fee', label: 'Grundgebühr je Monat (€)', kind: 'number', optional: true, step: '0.5' },
+    ] },
+    { short: 'Auswertung', title: 'Abschlag, Live und Archiv', text: 'Alles hier ist optional. Mit einem Abschlag zeigt die Karte Fortschritt, Hochrechnung und Saldo. Für die Live-Anzeige trägst du je Bereich im Reiter "Alle Felder" einen Leistungssensor (W) ein.', fields: [
+      { path: 'advance', label: 'Abschlag je Monat (€)', kind: 'price', optional: true, hints: H(/abschlag|miete|advance/i) },
+      { path: 'standby_w', label: 'Standby-Schwelle nachts (W)', kind: 'number', optional: true, step: '5' },
+      { path: 'active_w', label: 'Aktiv ab (W)', kind: 'number', optional: true, step: '5' },
+      { path: 'archive', label: 'Monatsarchiv (Sensor)', kind: 'text', optional: true },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert.', summary: (c) => [
       `Raum: ${c.title || 'ohne Titel'}`,
