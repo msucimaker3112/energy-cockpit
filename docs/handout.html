@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><title>Energy-Cockpit Handout</title>
 <style>
-@page{size:A4;margin:14mm 14mm}
+@page{size:A4;margin:12mm 13mm}
 *{box-sizing:border-box}
-body{font-family:"Segoe UI",system-ui,Arial,sans-serif;color:#1b2333;font-size:10.3pt;line-height:1.42;margin:0}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;color:#1b2333;font-size:9.8pt;line-height:1.36;margin:0}
 header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0ea5c9;padding-bottom:8px;margin-bottom:12px}
 h1{font-size:21pt;margin:0}
 h1 small{display:block;font-size:10pt;font-weight:500;color:#5b6577;margin-top:2px}
@@ -21,12 +21,20 @@ table{border-collapse:collapse;width:100%;font-size:9.4pt}
 th,td{border:1px solid #d5dbe6;padding:3px 7px;text-align:left;vertical-align:top}
 th{background:#eaf1f8}
 .box{border-left:4px solid #f59e0b;background:#fff8e6;padding:6px 10px;border-radius:0 8px 8px 0;margin-top:8px}
-footer{margin-top:10px;border-top:1px solid #d5dbe6;padding-top:6px;color:#5b6577;font-size:9pt;display:flex;justify-content:space-between}
+footer{margin-top:6px;border-top:1px solid #d5dbe6;padding-top:6px;color:#5b6577;font-size:9pt;display:flex;justify-content:space-between}
+.pg{page-break-before:always}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shot{border:1px solid #d5dbe6;border-radius:8px;padding:6px;background:#f7f9fc}
+.shot img{width:84%;display:block;margin:0 auto;border-radius:5px}
+.shot p{margin:5px 2px 0;font-size:9pt;color:#334}
+.shot p b{color:#0b7a96}
+.wide{grid-column:1 / span 2}
+.wide img{width:72%;margin:0 auto}
 </style></head>
 <body>
 <header>
-  <h1>Energy-Cockpit<small>Energiefluss, Geräte &amp; Verbrauch und Statistik für Home Assistant</small></h1>
-  <span class="badge">Version 0.3.0</span>
+  <h1>Energy-Cockpit<small>Energiefluss, Geräte &amp; Verbrauch, Statistik und Raum-Abrechnung für Home Assistant</small></h1>
+  <span class="badge">Version 0.5.0</span>
 </header>
 
 <div class="cols">
@@ -57,13 +65,13 @@ footer{margin-top:10px;border-top:1px solid #d5dbe6;padding-top:6px;color:#5b657
   </div>
 
   <div>
-    <h2>Die drei Karten</h2>
+    <h2>Die vier Karten</h2>
     <table>
       <tr><th>Karte</th><th>Zeigt</th></tr>
       <tr><td><code>energy-cockpit-flow-card</code></td><td>Energiefluss: Solar, Netz, Batterie, Haus, Verbraucher, Überschuss</td></tr>
       <tr><td><code>energy-cockpit-devices-card</code></td><td>Räume und Geräte mit Live-Leistung, Kosten, Standby</td></tr>
       <tr><td><code>energy-cockpit-stats-card</code></td><td>Ersparnis, Autarkie, Amortisation, Grundlast, Monatsvergleich</td></tr>
-      <tr><td><code>energy-cockpit-room-card</code></td><td>Raum-Abrechnung: Verbrauch und Kosten je Bereich, Woche, Monat, Jahr, Vorjahr</td></tr>
+      <tr><td><code>energy-cockpit-room-card</code></td><td>Raum-Abrechnung: Abschlag, Hochrechnung, Live-Leistung, Herkunft Netz/Batterie/PV, Grundlast, Betriebszeiten, Monatsarchiv</td></tr>
     </table>
 
     <h2>Minimalkonfiguration (Energiefluss)</h2>
@@ -91,7 +99,38 @@ grid_price: input_number.strompreis</pre>
 </div>
 
 <footer>
-  <span>Alle Optionen: docs/KONFIGURATION.md · Anleitung: docs/INSTALLATION.md</span>
+  <span>Alle Optionen: KONFIGURATION.md · Anleitung: INSTALLATION.md · Raum-Abrechnung: ABRECHNUNG.md</span>
   <span>github.com/msucimaker3112/energy-cockpit · MIT-Lizenz</span>
 </footer>
+
+<div class="pg">
+<header>
+  <h1>Der Einrichtungsassistent<small>Schritt für Schritt, mit Vorschlägen und aktuellem Wert</small></h1>
+  <span class="badge">Seite 2</span>
+</header>
+<div class="shots">
+  <div class="shot"><img src="img/wiz-flow-1-solar.png"><p><b>1. Sensor wählen.</b> Vorschläge stehen oben. Mit <i>Vorschlag übernehmen</i> trägst du den wahrscheinlichsten Sensor mit einem Klick ein. Oben springst du zwischen den Schritten.</p></div>
+  <div class="shot"><img src="img/wiz-flow-5-verbraucher.png"><p><b>2. Verbraucher hinzufügen.</b> Wärmepumpe, Wallbox, Trockner: Sensor wählen, Name anpassen. Der aktuelle Wert steht in der Liste.</p></div>
+  <div class="shot"><img src="img/wiz-flow-6-preise.png"><p><b>3. Preise.</b> Strompreis und Einspeisevergütung als Sensor oder <code>input_number</code> schalten Kosten und Ersparnis frei.</p></div>
+  <div class="shot"><img src="img/wiz-flow-7-fertig.png"><p><b>4. Zusammenfassung.</b> Alles ist gespeichert. <i>Fertig</i> zeigt alle Felder für Gruppen und Feinheiten.</p></div>
+  <div class="shot wide"><img src="img/wiz-devices-assistent.png" style="width:46%"><p><b>Geräte &amp; Verbrauch:</b> <i>Räume und Geräte aus Bereichen vorschlagen</i> legt Räume anhand der Bereiche in Home Assistant an und ordnet alle Geräte mit Leistungssensor zu. Schalter und Energiezähler desselben Geräts werden übernommen.</p></div>
+</div>
+</div>
+
+<div class="pg">
+<header>
+  <h1>Raum-Abrechnung<small>Strommiete, Hochrechnung, Grundlast und Archiv</small></h1>
+  <span class="badge">Seite 3</span>
+</header>
+<div class="shots">
+  <div class="shot wide"><img src="img/room-abrechnung.png"><p><b>Abrechnung und Hochrechnung.</b> Kosten gegen Abschlag, Hochrechnung bis Monatsende, Guthaben oder Nachzahlung, Vergleich mit Vormonat und Vorjahr.</p></div>
+  <div class="shot"><img src="img/room-live.png"><p><b>Jetzt und heute.</b> Live-Leistung je Bereich, Ampelfarbe, Tageskurve.</p></div>
+  <div class="shot"><img src="img/room-herkunft.png"><p><b>Herkunft heute.</b> Netz, Batterie und PV, dazu die beste Zeit für große Lasten.</p></div>
+  <div class="shot"><img src="img/room-grundlast.png"><p><b>Grundlast nachts.</b> Leerlauf zwischen 0 und 5 Uhr, hochgerechnet auf kWh und Euro.</p></div>
+  <div class="shot"><img src="img/room-archiv.png"><p><b>Monatsarchiv.</b> Eingefrorene Monatswerte mit Zählerständen, Preisen und Saldo.</p></div>
+  <div class="shot wide"><img src="img/room-betriebszeiten.png"><p><b>Betriebszeiten.</b> Aktive Stunden heute, Woche und je Wochentag, dazu die Heatmap Wochentag × Stunde der letzten 8 Wochen.</p></div>
+</div>
+<div class="box"><b>Einrichtung:</b> Die Karte im Assistenten anlegen (Zähler, Herkunft, Preis, Auswertung). Leistungssensoren je Bereich unter <i>Alle Felder</i>. Mitteilung am Monatsersten, Archiv-Sensor und Standby-Warnung stehen mit Beispielen in <b>ABRECHNUNG.md</b>.</div>
+
+</div>
 </body></html>

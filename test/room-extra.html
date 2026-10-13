@@ -34,4 +34,17 @@ const cfg={title:'Büro Keller',subtitle:'Strommiete',price:'input_number.price'
   home_energy:{pv:'sensor.pv',import:'sensor.imp',export:'sensor.exp',charge:'sensor.chg',discharge:'sensor.dis'}};
 const c=document.createElement('energy-cockpit-room-card');c.setConfig(cfg);document.getElementById('host').appendChild(c);c.hass=hass;
 window.card=c;
+// Für Screenshots: ?show=head,kpis,0,1 zeigt nur die genannten Bereiche (Zahlen = Panel-Index)
+const sh = new URLSearchParams(location.search).get('show');
+if (sh) {
+  document.body.style.background = '#111';
+  const want = sh.split(',');
+  setTimeout(() => {
+    const r = c.shadowRoot;
+    const hd = r.querySelector('header'); if (hd && want.indexOf('head') < 0) hd.style.display = 'none';
+    const kp = r.querySelector('.kpis'); if (kp && want.indexOf('kpis') < 0) kp.style.display = 'none';
+    r.querySelectorAll('.panel').forEach((pn, i) => { if (want.indexOf(String(i)) < 0) pn.style.display = 'none'; else if (i === +want.find((w) => /^\d+$/.test(w))) pn.style.marginTop = '0'; });
+    r.querySelector('.wrap').style.paddingBottom = '22px';
+  }, 1200);
+}
 </script></body></html>

@@ -1,0 +1,83 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Energy-Cockpit Assistent (Screenshots)</title>
+<style>
+:root{--primary-color:#03a9f4;--text-primary-color:#fff;--primary-text-color:#e1e1e1;--secondary-background-color:#2b2b2b;--card-background-color:#1c1c1c;--divider-color:#4a4a4a}
+html,body{margin:0;background:#111;color:#e1e1e1;font-family:Roboto,system-ui,sans-serif;font-size:14px}
+.dlg{width:560px;margin:0;background:#1c1c1c;border-radius:14px;overflow:hidden}
+.hd{padding:14px 18px;font-size:18px;border-bottom:1px solid #333;display:flex;justify-content:space-between}
+.hd small{opacity:.6;font-size:13px;align-self:center}
+.bd{padding:14px 18px 18px}
+</style></head>
+<body>
+<div class="dlg"><div class="hd"><span id="ttl">Karte konfigurieren</span><small>Energy-Cockpit</small></div><div class="bd" id="host"></div></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+// Nachbau von ha-form (nur für die Screenshots): zeigt Felder und Werte wie das Formular von Home Assistant
+customElements.define('ha-form', class extends HTMLElement {
+  set schema(v) { this._s = v; this._r(); } set data(v) { this._d = v || {}; this._r(); }
+  set computeLabel(f) { this._l = f; this._r(); } set computeHelper(f) { this._h = f; } set hass(h) { this._hs = h; }
+  _r() {
+    if (!this._s) return;
+    const lab = (it) => (this._l ? this._l(it) : '') || it.title || it.name;
+    const draw = (schema, data, depth) => schema.map((it) => {
+      if (it.type === 'expandable') {
+        return '<div style="border:1px solid #4a4a4a;border-radius:10px;margin:8px 0;padding:8px 12px"><div style="font-weight:600">&#9656; ' + (it.title || it.name) + '</div></div>';
+      }
+      const v = data ? data[it.name] : undefined;
+      const sel = it.selector || {};
+      const kind = sel.entity ? 'Entität' : sel.boolean ? '' : '';
+      if (sel.boolean) return '<div style="margin:10px 0"><span style="display:inline-block;width:34px;height:18px;border-radius:10px;background:' + (v ? '#03a9f4' : '#555') + ';vertical-align:middle;margin-right:10px"></span>' + lab(it) + '</div>';
+      return '<div style="margin:10px 0"><div style="font-size:12px;opacity:.65;margin-bottom:3px">' + lab(it) + '</div><div style="border-bottom:1px solid #777;padding:6px 2px;min-height:20px">' + (v === undefined || v === '' ? '<span style="opacity:.4">' + kind + '</span>' : (typeof v === 'object' ? JSON.stringify(v) : String(v).slice(0, 60))) + '</div></div>';
+    }).join('');
+    this.innerHTML = draw(this._s, this._d, 0);
+  }
+});
+const q = new URLSearchParams(location.search);
+const card = q.get('card') || 'flow', step = parseInt(q.get('step') || '0', 10), cfgName = q.get('cfg') || 'empty';
+const S = (state, a) => ({ state: String(state), attributes: a || {}, last_changed: '', last_updated: '' });
+const W = (n, v) => S(v, { unit_of_measurement: 'W', device_class: 'power', friendly_name: n });
+const K = (n, v) => S(v, { unit_of_measurement: 'kWh', device_class: 'energy', friendly_name: n, state_class: 'total_increasing' });
+const states = {
+  'sensor.pv_leistung': W('PV Leistung', 3240), 'sensor.netz_leistung': W('Netz Leistung', -1180), 'sensor.batterie_leistung': W('Batterie Leistung', 560),
+  'sensor.batterie_ladestand': S(74, { unit_of_measurement: '%', device_class: 'battery', friendly_name: 'Batterie Ladestand' }),
+  'sensor.hausverbrauch': W('Hausverbrauch', 1490), 'sensor.waermepumpe_leistung': W('Wärmepumpe Leistung', 820), 'sensor.waschmaschine_leistung': W('Waschmaschine Leistung', 0),
+  'sensor.wallbox_leistung': W('Wallbox Leistung', 0), 'sensor.trockner_leistung': W('Trockner Leistung', 0), 'sensor.kuehlschrank_leistung': W('Kühlschrank Leistung', 62),
+  'sensor.pv_gesamt_energie': K('PV Gesamtertrag', 8421.4), 'sensor.netzbezug_gesamt': K('Netzbezug gesamt', 5123.8), 'sensor.einspeisung_gesamt': K('Einspeisung gesamt', 4210.2),
+  'sensor.batterie_geladen_gesamt': K('Batterie geladen gesamt', 1822.5), 'sensor.batterie_entladen_gesamt': K('Batterie entladen gesamt', 1604.1),
+  'sensor.buro_1_energie': K('Büro 1 Energie', 97.6), 'sensor.buro_2_energie': K('Büro 2 Energie', 13.9),
+  'sensor.buro_1_leistung': W('Büro 1 Leistung', 412), 'sensor.buro_2_leistung': W('Büro 2 Leistung', 6),
+  'input_number.strompreis_netzbezug': S(0.34, { unit_of_measurement: '€/kWh', friendly_name: 'Strompreis Netzbezug' }),
+  'input_number.einspeiseverguetung': S(0.06, { unit_of_measurement: '€/kWh', friendly_name: 'Einspeisevergütung' }),
+  'input_number.abschlag': S(35, { unit_of_measurement: '€', friendly_name: 'Abschlag pro Monat' }),
+  'switch.waschmaschine': S('off', { friendly_name: 'Waschmaschine' }), 'switch.trockner': S('off', { friendly_name: 'Trockner' }),
+};
+const hass = { states, language: 'de', config: { currency: 'EUR' },
+  areas: { a1: { name: 'Keller', icon: 'mdi:stairs' }, a2: { name: 'Küche', icon: 'mdi:countertop' } },
+  devices: { d1: { name: 'Wärmepumpe', area_id: 'a1' }, d2: { name: 'Waschmaschine', area_id: 'a1' }, d3: { name: 'Kühlschrank', area_id: 'a2' } },
+  entities: { 'sensor.waermepumpe_leistung': { device_id: 'd1' }, 'sensor.waschmaschine_leistung': { device_id: 'd2' }, 'switch.waschmaschine': { device_id: 'd2' }, 'sensor.kuehlschrank_leistung': { device_id: 'd3' } },
+  callWS: async () => ({}) };
+const CFG = {
+  empty: {},
+  flow: { pv: { entity: 'sensor.pv_leistung' }, grid: { entity: 'sensor.netz_leistung' }, battery: { power: 'sensor.batterie_leistung', soc: 'sensor.batterie_ladestand' },
+          consumers: [{ entity: 'sensor.waermepumpe_leistung', name: 'Wärmepumpe' }, { entity: 'sensor.kuehlschrank_leistung', name: 'Kühlschrank' }] },
+  room: { title: 'Büro Keller', devices: [{ energy: 'sensor.buro_1_energie', name: 'Arbeitsplätze' }, { energy: 'sensor.buro_2_energie', name: 'Chillecke' }],
+          home_energy: { pv: 'sensor.pv_gesamt_energie', import: 'sensor.netzbezug_gesamt', export: 'sensor.einspeisung_gesamt', charge: 'sensor.batterie_geladen_gesamt', discharge: 'sensor.batterie_entladen_gesamt' } },
+};
+const TAGS = { flow: 'energy-cockpit-flow-card-editor', devices: 'energy-cockpit-devices-card-editor', stats: 'energy-cockpit-stats-card-editor', room: 'energy-cockpit-room-card-editor' };
+const TYPE = { flow: 'custom:energy-cockpit-flow-card', devices: 'custom:energy-cockpit-devices-card', stats: 'custom:energy-cockpit-stats-card', room: 'custom:energy-cockpit-room-card' };
+const base = Object.assign({ type: TYPE[card] }, JSON.parse(JSON.stringify(CFG[cfgName] || {})));
+const ed = document.createElement(TAGS[card]);
+document.getElementById('host').appendChild(ed);
+ed.hass = hass;
+ed.setConfig(base);
+setTimeout(() => {
+  // zum gewünschten Schritt springen: Fortschrittsknöpfe sind die ersten Buttons nach den Reitern
+  const tab = q.get('tab');
+  if (tab) { const t = Array.from(ed.querySelectorAll('button')).find((b) => b.textContent === tab); if (t) t.click(); }
+  const btns = ed.querySelectorAll('button');
+  const prog = Array.from(btns).filter((b) => /^\d+\./.test(b.textContent));
+  if (prog[step]) prog[step].click();
+  const act = q.get('click');
+  if (act) setTimeout(() => { const b = Array.from(ed.querySelectorAll('button')).find((x) => x.textContent.indexOf(act) >= 0); if (b) b.click(); }, 50);
+}, 200);
+</script></body></html>
