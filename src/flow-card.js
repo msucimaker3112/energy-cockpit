@@ -84,6 +84,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .soc-fill{position:absolute;top:0;left:0;bottom:0;width:0;border-radius:inherit;background:linear-gradient(90deg,rgba(var(--sc,var(--c)),.45),rgb(var(--sc,var(--c))));box-shadow:0 0 0 1px rgba(var(--sc,var(--c)),.35);transition:width 1.2s cubic-bezier(.2,.8,.2,1);overflow:hidden}
 .bat.charging .soc-fill:after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(var(--ov),.55),transparent);animation:shine 1.8s linear infinite}
 @keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.soc-low,.soc-high{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.22) 0 3px,rgba(var(--ov),.06) 3px 6px);pointer-events:none}
+.soc-low{left:0;border-right:1px solid rgba(var(--ov),.5)}
+.soc-high{right:0;border-left:1px solid rgba(var(--ov),.5)}
 .soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:.72rem;color:rgb(var(--mut))}
 .soc-row b{color:var(--txt);font-variant-numeric:tabular-nums}
 .hub-wrap{grid-area:hub;display:flex;flex-direction:column;align-items:center}
@@ -333,7 +336,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
       nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power,
-        `<div class="soc"><div class="soc-fill"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
+        `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
       links.push('bat');
     }
     const cons = c.consumers.map((x, i) => {
@@ -543,7 +546,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._emaT = now;
     }
     if (!cap || soc === null) return '';
-    const maxSoc = val(h, c.battery.max_soc, 100), reserve = val(h, c.battery.reserve_soc, 0);
+    const { reserve, maxSoc } = this._limits();
     // Richtungswechsel oder Glättung noch nicht eingeschwungen -> aktuellen Wert nehmen
     const e = this._ema || 0;
     const p = bat !== null && (Math.sign(e) !== Math.sign(bat) || Math.abs(e) < Math.abs(bat) * 0.3) ? bat : e;
@@ -560,6 +563,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     if (soc >= maxSoc - 0.5) return T('bat.full', { kwh: nf(avail, 1) });
     return T('bat.usable', { kwh: nf(avail, 1), res: Math.round(reserve) });
+  }
+
+  // Entladegrenze und Maximalladung der Batterie in Prozent: Sensor, Helfer oder fester Wert
+  _limits() {
+    const h = this._hass, b = (this._c && this._c.battery) || {};
+    const lim = (sensor, fixed, def) => {
+      const v = val(h, sensor, null);
+      if (v !== null && !isNaN(v)) return Math.max(0, Math.min(100, v));
+      return typeof fixed === 'number' ? Math.max(0, Math.min(100, fixed)) : def;
+    };
+    const reserve = lim(b.reserve_soc, b.reserve_pct, 0);
+    const maxSoc = Math.max(reserve + 1, lim(b.max_soc, b.max_pct, 100));
+    return { reserve, maxSoc };
   }
 
   // Präsenz-Banner: PV-Überschuss oder hoher Netzbezug (mit Verzögerung gegen Flackern)
@@ -603,7 +619,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       icon.setAttribute('icon', 'mdi:transmission-tower-import');
       title = '⚡ ' + T('ban.fromgrid', { w: fW(x.gImp) });
       const cost = price === null ? null : x.gImp / 1000 * price;
-      let why = x.soc !== null && x.soc <= val(h, c.battery && c.battery.reserve_soc, 0) + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
+      let why = x.soc !== null && x.soc <= this._limits().reserve + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
       let big = null;
       (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? watt(h, s.entity) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
       if (big) why = (why ? why + ' · ' : '') + `${big.n}: ${fW(big.w)}`;
@@ -670,9 +686,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._anim('bat', bat === null ? null : Math.abs(bat), el);
       this._set('.bat .tag', bat === null ? T('tag.offline') : !on ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'));
       const fill = this._$('.soc-fill');
-      fill.style.width = (soc === null ? 0 : Math.max(0, Math.min(100, soc))) + '%';
-      fill.style.setProperty('--sc', soc !== null && soc < 20 ? PAL.imp : soc !== null && soc < 40 ? PAL.pv : col);
-      this._set('.soc-txt', soc === null ? '—' : Math.round(soc) + ' %');
+      const lm = this._limits();
+      const usable = c.battery.soc_display === 'nutzbar' && lm.maxSoc > lm.reserve;
+      // nutzbar: 0 % = Entladegrenze, 100 % = Maximalladung
+      const shown = soc === null ? null : usable ? Math.max(0, Math.min(100, (soc - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, soc));
+      fill.style.width = (shown === null ? 0 : shown) + '%';
+      fill.style.setProperty('--sc', shown !== null && shown < 20 ? PAL.imp : shown !== null && shown < 40 ? PAL.pv : col);
+      this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''));
+      const lo = this._$('.soc-low'), hi = this._$('.soc-high');
+      if (lo) { lo.style.width = (usable ? 0 : lm.reserve) + '%'; lo.style.display = !usable && lm.reserve > 0 ? '' : 'none'; }
+      if (hi) { hi.style.width = (usable ? 0 : 100 - lm.maxSoc) + '%'; hi.style.display = !usable && lm.maxSoc < 100 ? '' : 'none'; }
       this._set('.bat .sub', this._batForecast(bat, soc), true);
       this._link('bat', on, !chg, col, bat);
     }

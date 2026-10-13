@@ -27,7 +27,9 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `battery.soc` | Sensor | Ladestand in % |
 | `battery.invert` | Ja/Nein | Vorzeichen umkehren |
 | `battery.capacity_kwh` | Zahl | Kapazität für die Prognose "voll um / reicht bis" |
-| `battery.reserve_soc`, `battery.max_soc` | Zahl oder Sensor | Reserve und Maximum in % |
+| `battery.reserve_soc`, `battery.max_soc` | Sensor oder Helfer (Zahl-Entität) | Entladegrenze und Maximalladung der Batterie in %. Der Sensor heißt bei jedem Wechselrichter anders, deshalb frei wählbar (zum Beispiel "Entlade-Ende-Ladestand") |
+| `battery.reserve_pct`, `battery.max_pct` | Zahl | Alternative ohne Sensor: fester Wert in %, zum Beispiel `10`, wenn die Batterie nur bis 10 % entladen wird. Ein Sensor hat Vorrang |
+| `battery.soc_display` | `brutto` (Standard) oder `nutzbar` | `nutzbar` zeigt den Ladestand relativ zum nutzbaren Bereich (0 % = Entladegrenze, 100 % = Maximalladung). Mit `brutto` bleibt die Anzeige wie die Batterie, die Grenzen erscheinen als schraffierte Bereiche auf dem Balken |
 | `battery.daily_charge`, `battery.daily_discharge` | Sensor | geladen / entladen heute (kWh) |
 | `home.entity`, `home.name` | Sensor, Text | Hausverbrauch (sonst berechnet) |
 | `grid_price`, `feed_in` | Sensor, `input_number` oder Zahl | Preis je kWh (Euro) für Kostenangaben |
