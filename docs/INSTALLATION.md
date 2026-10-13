@@ -66,7 +66,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 | 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
 | 4. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
-| 5. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). |
+| 5. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). Hier wählst du auch, ob jede Gruppe eine eigene Linie bekommt oder eine Sammel-Linie den ganzen Bereich speist. |
 | 6. Preise | Strompreis und Einspeisevergütung für Kosten und Ersparnis. |
 | 7. Aussehen | Farbschema wählen (Kacheln mit Vorschau), siehe unten. |
 | 8. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |

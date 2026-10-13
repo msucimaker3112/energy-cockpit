@@ -178,6 +178,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .it{font-size:.72rem}
 .wide .stat b{font-size:1.35rem}
 .wide .stat span{font-size:.7rem}
+/* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
+.sam-on .mix{order:-1;margin:0 0 12px}
+.sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
+.wrap .sambox .consumers,.wrap .sambox .groups{margin-top:0}
+.wrap .sambox .consumers+.groups{margin-top:12px}
+.sam{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:9px;padding:7px 16px;border-radius:999px;background:var(--panel);border:1px solid var(--stroke);white-space:nowrap;z-index:2;transition:border-color .5s,box-shadow .5s}
+.sam.on{border-color:rgba(var(--home),.6);box-shadow:0 0 0 1px rgba(var(--home),.3)}
+.sam-t{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650}
+.sam-w{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
@@ -339,8 +348,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
       links.push('bat');
     }
+    const sam = c.groups_lines === 'sammel' && (c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
+    if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
-      if (x.entity) links.push('c' + i);
+      if (x.entity && !sam) links.push('c' + i);
       return `<div class="cons" data-k="c${i}" data-e="${x.entity || x.secondary || ''}" style="--c:${rgb(x.color || '#a78bfa')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${x.name || x.entity}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
@@ -350,7 +361,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let grps = '';
     if (G.length) {
       grps = G.map((g, i) => {
-        links.push('g' + i);
+        if (!sam) links.push('g' + i);
         return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color || '#a78bfa')}">
           <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span>`}<span class="lbl">${g.name || ''}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
@@ -359,7 +370,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }).join('');
       const showRest = c.rest !== false;
       if (showRest) {
-        links.push('grest');
+        if (!sam) links.push('grest');
         grps += `<div class="grp rest" data-k="grest" style="--c:${PAL.mut}">
           <div class="g-hd"><span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span><span class="lbl">${(c.rest && c.rest.name) || T('flow.rest')}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
@@ -377,7 +388,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap">
+    <ha-card><div class="wrap${sam ? ' sam-on' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -413,8 +424,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
           </div>
         </div>
-        ${cons ? `<div class="consumers">${cons}</div>` : ''}
-        ${grps}
+        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}</div>` : ''}
+        ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
     </div></ha-card>`;
@@ -713,6 +724,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       start += len;
       this._set(`[data-m="${k}"]`, tot ? Math.round(sh[k] * 100) + ' %' : '—');
     });
+    let sumAll = 0;
     c.consumers.forEach((x, i) => {
       const el = this._$(`[data-k="c${i}"]`);
       if (!el) return;
@@ -722,6 +734,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         ? `${nf(parseFloat(secSt.state) || 0, dec)} ${secSt.attributes.unit_of_measurement || ''}`.trim() : '';
       if (x.entity) {
         const p = watt(h, x.entity), on = (p || 0) > TH;
+        sumAll += p || 0;
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt);
@@ -758,6 +771,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           if (b.textContent !== txt) b.textContent = txt;
         });
         known += sum;
+        sumAll += sum;
         const shown = (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
         el.style.display = shown ? '' : 'none';
         if (shown) vis++;
@@ -781,6 +795,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._anim('grest', rest, rel);
         this._link('grest', on, false, PAL.mut, rest);
         this._set('.rest-t', home > TH ? T('flow.restpct', { n: Math.round(Math.min(1, known / home) * 100) }) : '');
+      }
+    }
+    if (c.groups_lines === 'sammel') {
+      const bel = this._$('[data-k="bundle"]');
+      if (bel) {
+        const on = sumAll > TH;
+        bel.classList.toggle('on', on);
+        this._set('.sam-w', fW(sumAll), true);
+        this._link('bundle', on, false, PAL.home, sumAll);
       }
     }
     const dPv = c.pv ? num(h, c.pv.daily) : null;
