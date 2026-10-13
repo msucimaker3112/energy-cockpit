@@ -1,0 +1,25 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Energy-Cockpit Preise und Start</title></head>
+<body style="background:#111;color:#eee;font-family:system-ui"><pre id="out">läuft …</pre>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(s,a)=>({state:String(s),attributes:a||{}});
+const hass={states:{'sensor.pv_leistung':S(3000,{unit_of_measurement:'W'}),'sensor.netz_leistung':S(-500,{unit_of_measurement:'W'}),'sensor.pv_gesamt':S(100,{unit_of_measurement:'kWh'}),'sensor.waschmaschine_leistung':S(0,{unit_of_measurement:'W'}),'sensor.x_energie':S(5,{unit_of_measurement:'kWh'})},language:'de',config:{currency:'EUR'},callWS:async()=>({})};
+(async()=>{
+const r={};
+const tags=['flow','devices','stats','room'];
+for(const t of tags){
+  const C=customElements.get('energy-cockpit-'+t+'-card');
+  const stub=C.getStubConfig(hass);
+  const ed=document.createElement('energy-cockpit-'+t+'-card-editor');
+  document.body.appendChild(ed); ed.hass=hass; ed.setConfig(Object.assign({type:'custom:energy-cockpit-'+t+'-card'},stub));
+  await new Promise(x=>setTimeout(x,300));
+  const first=Array.from(ed.querySelectorAll('button')).filter(b=>/Assistent|Alle Felder/.test(b.textContent));
+  const wiz=ed.textContent.indexOf('Weiter')>=0 || /Schritt|1\./.test(ed.textContent);
+  r[t]={stub:JSON.stringify(stub),buttons:first.map(b=>b.textContent).join('|'),startetImAssistenten:wiz||(ed.textContent.indexOf('Räume und Geräte aus Bereichen')>=0)};
+  const c=document.createElement('energy-cockpit-'+t+'-card'); c.setConfig(stub);
+  r[t].karte=c.shadowRoot.innerHTML.indexOf('Noch nicht eingerichtet')>=0?'Hinweis (nicht eingerichtet)':'zeigt Daten';
+}
+r.preis={ct:WD.price(hass,undefined,34,0),sensor:WD.price({states:{'input_number.p':S(0.3)}},'input_number.p',34,0),zahl:WD.price(hass,0.25,34,0),keiner:WD.price(hass,undefined,undefined,0)};
+document.getElementById('out').textContent=JSON.stringify(r,null,1);document.title='FERTIG';
+})().catch(e=>{document.getElementById('out').textContent='FEHLER '+e.message+' '+e.stack;});
+</script></body></html>

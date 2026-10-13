@@ -123,7 +123,16 @@ Mindestens einen der Sensoren **PV** oder **Netz** auswählen:
 | Batterie: Ladestand | Ladezustand | % |
 | Hausverbrauch | optional; fehlt er, wird er aus PV + Netz + Batterie berechnet | W oder kW |
 
-Der **Strompreis** (`grid_price`) schaltet Kostenangaben frei, die **Einspeisevergütung** (`feed_in`) die Ersparnisrechnung.
+### Wo wird der Strompreis festgelegt?
+
+Es gibt **keinen voreingestellten Preis**. Kosten, Ersparnis und Amortisation erscheinen erst, wenn du einen Preis angibst. Du trägst ihn in jeder Karte selbst ein, im Assistenten im Schritt **Preise** (Raum-Abrechnung: Schritt **Preis**):
+
+| Möglichkeit | So geht es |
+|---|---|
+| **Fester Preis** | Feld *oder fester Strompreis (Cent pro kWh)*: den Preis aus der Rechnung eintragen, zum Beispiel `34`. Gleiches gilt für die Einspeisevergütung (`feed_in_ct`). |
+| **Sensor oder Helfer** | Feld *Strompreis Bezug*: einen Sensor oder `input_number` auswählen (Euro pro kWh). Sinnvoll bei dynamischen Tarifen oder wenn mehrere Karten denselben Preis nutzen sollen. |
+
+Der **Strompreis** (`grid_price` oder `grid_price_ct`) schaltet Kostenangaben frei, die **Einspeisevergütung** (`feed_in` oder `feed_in_ct`) die Ersparnisrechnung. Ein Sensor hat Vorrang vor dem festen Preis.
 
 ## 7. Aktualisieren
 
@@ -143,7 +152,7 @@ HACS: Eintrag öffnen → ⋮ → **Entfernen**. Manuell: Ressource löschen und
 | Karte zeigt "—" statt Werten | Sensor nicht verfügbar oder falsche Einheit. Sensor in den Entwicklerwerkzeugen prüfen |
 | Netz zeigt Bezug als Einspeisung | **Vorzeichen umkehren** beim Netz einschalten |
 | Batterie lädt, zeigt aber "Entlädt" | **Vorzeichen umkehren** bei der Batterie |
-| Keine Kosten sichtbar | `grid_price` (und `feed_in`) konfigurieren |
+| Keine Kosten sichtbar | Strompreis eintragen: `grid_price` (Sensor) oder `grid_price_ct` (Cent), dazu `feed_in` |
 | Statistik-Balken leer | Zähler brauchen Langzeitstatistik (`state_class`), mindestens einen vollen Tag |
 | Fehlermeldung "Mindestens pv oder grid konfigurieren" | Beim Energiefluss muss PV oder Netz gesetzt sein |
 | Fehlermeldung "rooms fehlt" | Bei der Geräte-Karte mindestens einen Raum anlegen |

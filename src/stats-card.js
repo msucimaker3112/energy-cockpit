@@ -113,11 +113,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     static getStubConfig(hass) {
       const ids = hass && hass.states ? Object.keys(hass.states) : [];
       const find = (re) => ids.find((i) => re.test(i)) || '';
-      return {
-        pv_total: find(/^sensor\..*(pv|solar|inverter).*(total|gesamt|lifetime)/i),
-        grid_import_total: find(/^sensor\..*(import|bezug|verbrauch).*(total|gesamt)/i),
-        grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
-      };
+      // Bewusst leer: Die Karte startet im Einrichtungsassistenten
+      void find; void ids;
+      return {};
     }
     static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
     setConfig(c) {
@@ -317,7 +315,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _render() {
       const c = this._c, h = this._hass;
       if (!h) return;
-      const price = val(h, c.grid_price, 0), feed = val(h, c.feed_in, 0), CUR = cur();
+      const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
       // Geld
       const p = this._periodVals();

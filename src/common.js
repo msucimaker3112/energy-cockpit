@@ -43,6 +43,8 @@ const WD = (() => {
     if (typeof v === 'string') { const x = num(h, v); return x === null ? def : x; }
     return def;
   };
+  // Preis in Euro pro kWh: Sensor, Helfer oder Zahl, sonst fester Preis in Cent (…_ct), sonst Standardwert
+  const price = (h, v, ct, def) => { const x = val(h, v, null); if (x !== null) return x; return typeof ct === 'number' && ct >= 0 ? ct / 100 : def; };
   const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
   const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
   const splitW = (w) => {
@@ -110,5 +112,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
 })();

@@ -172,10 +172,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 
   class DevicesCard extends HTMLElement {
     constructor() { super(); this.attachShadow({ mode: 'open' }); this._energy = {}; this._cost = {}; this._gridk = {}; this._pend = {}; }
-    static getStubConfig() { return { rooms: [{ name: T('dev.room'), devices: [] }] }; }
+    static getStubConfig() { return { rooms: [] }; }
     static getConfigElement() { return document.createElement('energy-cockpit-devices-card-editor'); }
     setConfig(c) {
-      if (!c.rooms || !c.rooms.length) {
+      if (!c.rooms || !c.rooms.some((r) => r && r.devices && r.devices.length)) {
         this._c = null;
         this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Geräte &amp; Verbrauch</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
         return;
@@ -410,7 +410,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
           hImp += o.imp; hHome += o.home;
         });
         const gAvg = hHome > 0 ? Math.min(1, hImp / hHome) : 1;
-        const price = num(h, c.grid_price) || 0, feed = num(h, c.feed_in) || 0;
+        const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
         this._hasP = price > 0;
         const e = {}, cost = {}, grid = {};
         ids.forEach((id) => {
@@ -439,7 +439,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     _render() {
       const h = this._hass, c = this._c, devs = this._devs;
       if (!h || !devs || !this._$('.rooms')) return;
-      const price = num(h, c.grid_price) || 0;
+      const price = WD.price(h, c.grid_price, c.grid_price_ct, 0);
       this._hasP = price > 0;
       const CUR = cur();
       const now = Date.now();

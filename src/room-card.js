@@ -113,7 +113,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     static getStubConfig(hass) {
       const ids = hass && hass.states ? Object.keys(hass.states) : [];
-      return { title: 'Raum', devices: ids.filter((i) => /^sensor\..*(energy|energie)/i.test(i)).slice(0, 2).map((i) => ({ energy: i, name: i })) };
+      void ids;
+      return { title: 'Raum' }; // Die Karte startet im Einrichtungsassistenten
     }
     static getConfigElement() { return document.createElement('energy-cockpit-room-card-editor'); }
     setConfig(c) {

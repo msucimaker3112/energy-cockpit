@@ -11,7 +11,7 @@ const hass={states,language:'de',config:{currency:'EUR'},callWS:async(m)=>{
   const r={};const y=new Date().getFullYear();
   m.statistic_ids.forEach((id,i)=>{const rows=[];for(let d=new Date(y-1,2,1);d<=new Date();d.setDate(d.getDate()+1)){const wk=[0,6].includes(d.getDay());rows.push({start:d.getTime(),change:(i===0?(wk?0.2:1.2):(wk?0.1:0.3))+((d.getDate()*7)%5)/20});}r[id]=rows;});
   return r;}};
-const cfg={title:'Büro Keller',subtitle:'Strommiete',image:'horizon-logo.jpg',price:'input_number.price',base_fee:0,devices:[{energy:'sensor.e1',name:'Arbeitsplätze'},{energy:'sensor.e2',name:'Chillecke'}]};
+const cfg={title:'Büro',subtitle:'Strommiete',price:'input_number.price',base_fee:0,devices:[{energy:'sensor.e1',name:'Arbeitsplätze'},{energy:'sensor.e2',name:'Chillecke'}]};
 const c=document.createElement('energy-cockpit-room-card');c.setConfig(cfg);document.getElementById('host').appendChild(c);c.hass=hass;
 window.card=c;
 </script></body></html>

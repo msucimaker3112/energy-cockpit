@@ -30,7 +30,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `battery.reserve_soc`, `battery.max_soc` | Zahl oder Sensor | Reserve und Maximum in % |
 | `battery.daily_charge`, `battery.daily_discharge` | Sensor | geladen / entladen heute (kWh) |
 | `home.entity`, `home.name` | Sensor, Text | Hausverbrauch (sonst berechnet) |
-| `grid_price`, `feed_in` | Zahl oder Sensor | Preis je kWh für Kostenangaben |
+| `grid_price`, `feed_in` | Sensor, `input_number` oder Zahl | Preis je kWh (Euro) für Kostenangaben |
+| `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
 
 ### Verbraucher
 

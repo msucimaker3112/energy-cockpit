@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.5.0 - MIT License */
+/*! energy-cockpit v0.5.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -45,6 +45,8 @@ const WD = (() => {
     if (typeof v === 'string') { const x = num(h, v); return x === null ? def : x; }
     return def;
   };
+  // Preis in Euro pro kWh: Sensor, Helfer oder Zahl, sonst fester Preis in Cent (…_ct), sonst Standardwert
+  const price = (h, v, ct, def) => { const x = val(h, v, null); if (x !== null) return x; return typeof ct === 'number' && ct >= 0 ? ct / 100 : def; };
   const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
   const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
   const splitW = (w) => {
@@ -112,7 +114,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
 })();
 
 
@@ -684,11 +686,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Erste passende Entitäten vorschlagen, damit die Karte nach dem Hinzufügen etwas zeigt
     const ids = hass && hass.states ? Object.keys(hass.states) : [];
     const find = (re) => ids.find((i) => re.test(i)) || '';
-    return {
-      pv: { entity: find(/^sensor\..*(pv|solar).*(power|leistung)/i) },
-      grid: { entity: find(/^sensor\..*(grid|netz).*(power|leistung)/i) },
-      battery: { power: find(/^sensor\..*batter.*(power|leistung)/i), soc: find(/^sensor\..*batter.*(soc|ladung|level)/i) },
-    };
+    // Bewusst leer: Die Karte startet im Einrichtungsassistenten, der Sensoren vorschlägt und den aktuellen Wert zeigt
+    void find; void ids;
+    return {};
   }
   static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
   setConfig(config) {
@@ -1051,7 +1051,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!el) return;
     const sc = c.surplus || {}, gc = c.grid_alert || {};
     const now = Date.now();
-    const price = val(h, c.grid_price, null), feed = val(h, c.feed_in, 0);
+    const price = WD.price(h, c.grid_price, c.grid_price_ct, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
     const thrS = sc.threshold || 1500, thrG = gc.threshold || 1000;
     const delayS = (sc.delay === undefined ? 60 : sc.delay) * 1000, delayG = (gc.delay === undefined ? 120 : gc.delay) * 1000;
     const surOn = sc.enabled !== false && x.gExp > (this._modeB === 'sur' ? thrS * 0.7 : thrS);
@@ -1285,7 +1285,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Reserve-Ladestand (%)', max_soc: 'Maximaler Ladestand (%)',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
-    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)',
+    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -1314,7 +1314,9 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('consumers', 'Einzelverbraucher (bis zu 12)', slots(12, (n) => `Verbraucher ${n}`, consumerFields)),
       sec('consumer_groups', 'Gruppen (bis zu 10)', slots(10, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
+      numb('grid_price_ct', 0, 200, 0.1),
       ent('feed_in', ['sensor', 'input_number']),
+      numb('feed_in_ct', 0, 200, 0.1),
       bool('show_clock', true),
       bool('fit_screen', true),
       txt('nav_path'),
@@ -1352,7 +1354,9 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ] },
     { short: 'Preise', title: 'Strompreise (optional)', text: 'Mit Preisen zeigt die Karte Kosten und Ersparnis. Wähle Sensoren oder input_number-Helfer in Euro pro kWh.', fields: [
       { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
+      { path: 'grid_price_ct', label: 'oder fester Strompreis (Cent pro kWh)', kind: 'number', optional: true, step: '0.1', help: 'Ohne Sensor oder Helfer: einfach den Preis aus deiner Rechnung eintragen, zum Beispiel 34.' },
       { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
+      { path: 'feed_in_ct', label: 'oder feste Einspeisevergütung (Cent pro kWh)', kind: 'number', optional: true, step: '0.1' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
       `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,
@@ -1360,7 +1364,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       `Batterie: ${(c.battery && c.battery.power) || 'keine'}`,
       `Haus: ${(c.home && c.home.entity) || 'berechnet'}`,
       `Einzelverbraucher: ${(Array.isArray(c.consumers) ? c.consumers : []).filter((x) => x && x.entity).length}`,
-      `Preise: ${c.grid_price ? 'Bezug gesetzt' : 'keine'}`,
+      `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'Bezug gesetzt' : 'keine'}`,
     ] },
   ];
 
@@ -1564,10 +1568,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 
   class DevicesCard extends HTMLElement {
     constructor() { super(); this.attachShadow({ mode: 'open' }); this._energy = {}; this._cost = {}; this._gridk = {}; this._pend = {}; }
-    static getStubConfig() { return { rooms: [{ name: T('dev.room'), devices: [] }] }; }
+    static getStubConfig() { return { rooms: [] }; }
     static getConfigElement() { return document.createElement('energy-cockpit-devices-card-editor'); }
     setConfig(c) {
-      if (!c.rooms || !c.rooms.length) {
+      if (!c.rooms || !c.rooms.some((r) => r && r.devices && r.devices.length)) {
         this._c = null;
         this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Geräte &amp; Verbrauch</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
         return;
@@ -1802,7 +1806,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
           hImp += o.imp; hHome += o.home;
         });
         const gAvg = hHome > 0 ? Math.min(1, hImp / hHome) : 1;
-        const price = num(h, c.grid_price) || 0, feed = num(h, c.feed_in) || 0;
+        const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
         this._hasP = price > 0;
         const e = {}, cost = {}, grid = {};
         ids.forEach((id) => {
@@ -1831,7 +1835,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     _render() {
       const h = this._hass, c = this._c, devs = this._devs;
       if (!h || !devs || !this._$('.rooms')) return;
-      const price = num(h, c.grid_price) || 0;
+      const price = WD.price(h, c.grid_price, c.grid_price_ct, 0);
       this._hasP = price > 0;
       const CUR = cur();
       const now = Date.now();
@@ -2008,7 +2012,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
   const { T, setLocale } = WD;
 
   WD.addStrings({
-    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)',
+    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)', 'ed.d.price_ct': 'oder fester Strompreis (Cent pro kWh)', 'ed.d.feed_ct': 'oder feste Einspeisevergütung (Cent pro kWh)',
     'ed.d.surplus': 'PV-Überschuss (Leistung)', 'ed.d.standby': 'Standby-Schwelle (W)', 'ed.d.fit': 'Auf Bildschirmhöhe skalieren',
     'ed.d.nav_path': 'Weiter-Schaltfläche: Pfad', 'ed.d.nav_label': 'Weiter-Schaltfläche: Text',
     'ed.d.room': 'Raum', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Symbol', 'ed.d.color': 'Farbe (z. B. 248,113,113)', 'ed.d.image': 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -2177,7 +2181,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       }
       const c = this._c;
       const lbl = {
-        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
+        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', grid_price_ct: 'ed.d.price_ct', feed_in_ct: 'ed.d.feed_ct', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
         fit_screen: 'ed.d.fit', nav_path: 'ed.d.nav_path', nav_label: 'ed.d.nav_label', icon: 'ed.d.icon', color: 'ed.d.color', image: 'ed.d.image', type: 'ed.d.type',
         entity: 'ed.d.entity', power: 'ed.d.power', energy: 'ed.d.energy', max_w: 'ed.d.max_w', run_w: 'ed.d.run_w', lock: 'ed.d.lock',
       };
@@ -2185,13 +2189,14 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 
       // Allgemein
       const top = this._form([
-        txt('title'), ent('home', ['sensor']), ent('grid_price', ['sensor', 'input_number']), ent('feed_in', ['sensor', 'input_number']),
+        txt('title'), ent('home', ['sensor']), ent('grid_price', ['sensor', 'input_number']), numb('grid_price_ct', 0, 200, 0.1), ent('feed_in', ['sensor', 'input_number']), numb('feed_in_ct', 0, 200, 0.1),
         ent('surplus', ['sensor']), numb('standby_w', 0, 200, 1), bool('fit_screen'), txt('nav_path'), txt('nav_label'),
       ], {
-        title: c.title || '', home: c.home || '', grid_price: c.grid_price || '', feed_in: c.feed_in || '', surplus: c.surplus || '',
+        title: c.title || '', home: c.home || '', grid_price: c.grid_price || '', feed_in: c.feed_in || '', surplus: c.surplus || '', grid_price_ct: c.grid_price_ct === undefined ? '' : c.grid_price_ct, feed_in_ct: c.feed_in_ct === undefined ? '' : c.feed_in_ct,
         standby_w: c.standby_w === undefined ? 15 : c.standby_w, fit_screen: c.fit_screen !== false, nav_path: c.nav_path || '', nav_label: c.nav_label || '',
       }, (v) => {
         ['title', 'home', 'grid_price', 'feed_in', 'surplus', 'nav_path', 'nav_label'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; });
+        ['grid_price_ct', 'feed_in_ct'].forEach((k) => { if (typeof v[k] === 'number') c[k] = v[k]; else delete c[k]; });
         if (v.standby_w === undefined || v.standby_w === 15) delete c.standby_w; else c.standby_w = v.standby_w;
         if (v.fit_screen === false) c.fit_screen = false; else delete c.fit_screen;
         this._emit();
@@ -2371,7 +2376,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     static getStubConfig(hass) {
       const ids = hass && hass.states ? Object.keys(hass.states) : [];
-      return { title: 'Raum', devices: ids.filter((i) => /^sensor\..*(energy|energie)/i.test(i)).slice(0, 2).map((i) => ({ energy: i, name: i })) };
+      void ids;
+      return { title: 'Raum' }; // Die Karte startet im Einrichtungsassistenten
     }
     static getConfigElement() { return document.createElement('energy-cockpit-room-card-editor'); }
     setConfig(c) {
@@ -3065,11 +3071,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     static getStubConfig(hass) {
       const ids = hass && hass.states ? Object.keys(hass.states) : [];
       const find = (re) => ids.find((i) => re.test(i)) || '';
-      return {
-        pv_total: find(/^sensor\..*(pv|solar|inverter).*(total|gesamt|lifetime)/i),
-        grid_import_total: find(/^sensor\..*(import|bezug|verbrauch).*(total|gesamt)/i),
-        grid_export_total: find(/^sensor\..*(export|einspeis).*(total|gesamt)/i),
-      };
+      // Bewusst leer: Die Karte startet im Einrichtungsassistenten
+      void find; void ids;
+      return {};
     }
     static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
     setConfig(c) {
@@ -3269,7 +3273,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _render() {
       const c = this._c, h = this._hass;
       if (!h) return;
-      const price = val(h, c.grid_price, 0), feed = val(h, c.feed_in, 0), CUR = cur();
+      const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
       // Geld
       const p = this._periodVals();
@@ -3379,7 +3383,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Bezug heute (kWh)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
-    home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)',
+    home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
@@ -3391,7 +3395,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'title', selector: { text: {} } },
       ...KEYS.map((k) => ent(k, ['sensor'])),
       { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
-      ent('grid_price', ['sensor', 'input_number']), ent('feed_in', ['sensor', 'input_number']), ent('investment', ['sensor', 'input_number']),
+      ent('grid_price', ['sensor', 'input_number']), { name: 'grid_price_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      ent('feed_in', ['sensor', 'input_number']), { name: 'feed_in_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      ent('investment', ['sensor', 'input_number']),
       { name: 'fit_screen', default: true, selector: { boolean: {} } },
       { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
     ],
@@ -3421,7 +3427,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     ] },
     { short: 'Preise', title: 'Preise, Haus und Anlage (optional)', text: 'Mit Preisen zeigt die Karte Geldwerte. Die Anschaffungskosten ergeben die Amortisation, der Hausverbrauch die nächtliche Grundlast.', fields: [
       { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
+      { path: 'grid_price_ct', label: 'oder fester Strompreis (Cent pro kWh)', kind: 'number', optional: true, step: '0.1', help: 'Ohne Sensor oder Helfer: einfach den Preis aus deiner Rechnung eintragen, zum Beispiel 34.' },
       { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
+      { path: 'feed_in_ct', label: 'oder feste Einspeisevergütung (Cent pro kWh)', kind: 'number', optional: true, step: '0.1' },
       { path: 'investment', label: 'Anschaffungskosten der PV-Anlage', kind: 'money', optional: true, hints: H(/anschaff|invest|kosten|cost/i) },
       { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
     ] },
@@ -3430,7 +3438,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       `Netzbezug gesamt: ${c.grid_import_total || 'nicht gewählt'}`,
       `Einspeisung gesamt: ${c.grid_export_total || 'nicht gewählt'}`,
       `Batterie: ${c.battery_charge_total ? 'ja' : 'nein'}`,
-      `Preise: ${c.grid_price ? 'gesetzt' : 'keine'}`,
+      `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'gesetzt' : 'keine'}`,
     ] },
   ];
 

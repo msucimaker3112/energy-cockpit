@@ -201,11 +201,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Erste passende Entitäten vorschlagen, damit die Karte nach dem Hinzufügen etwas zeigt
     const ids = hass && hass.states ? Object.keys(hass.states) : [];
     const find = (re) => ids.find((i) => re.test(i)) || '';
-    return {
-      pv: { entity: find(/^sensor\..*(pv|solar).*(power|leistung)/i) },
-      grid: { entity: find(/^sensor\..*(grid|netz).*(power|leistung)/i) },
-      battery: { power: find(/^sensor\..*batter.*(power|leistung)/i), soc: find(/^sensor\..*batter.*(soc|ladung|level)/i) },
-    };
+    // Bewusst leer: Die Karte startet im Einrichtungsassistenten, der Sensoren vorschlägt und den aktuellen Wert zeigt
+    void find; void ids;
+    return {};
   }
   static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
   setConfig(config) {
@@ -568,7 +566,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!el) return;
     const sc = c.surplus || {}, gc = c.grid_alert || {};
     const now = Date.now();
-    const price = val(h, c.grid_price, null), feed = val(h, c.feed_in, 0);
+    const price = WD.price(h, c.grid_price, c.grid_price_ct, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
     const thrS = sc.threshold || 1500, thrG = gc.threshold || 1000;
     const delayS = (sc.delay === undefined ? 60 : sc.delay) * 1000, delayG = (gc.delay === undefined ? 120 : gc.delay) * 1000;
     const surOn = sc.enabled !== false && x.gExp > (this._modeB === 'sur' ? thrS * 0.7 : thrS);
