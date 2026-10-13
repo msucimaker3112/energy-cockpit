@@ -89,7 +89,7 @@ Der **Assistent** legt Räume und Geräte aus den Bereichen von Home Assistant a
 
 ### Statistik
 
-Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batterie, Tageswerte, Preise und Anlagenkosten sind optional.
+Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batterie, Tageswerte, Preise und Anlagenkosten sind optional. Die **Anschaffungskosten** der PV-Anlage trägst du im Schritt *Preise* als Betrag in Euro ein (zum Beispiel `18000`). Daraus berechnet die Karte die Amortisation.
 
 ![Statistik: Gesamtzähler](img/wiz-stats-1-zaehler.png)
 

@@ -334,7 +334,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? fPct(1 - p.exp / p.pv) : '—', cons: fKwh(cons) }));
       }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
-      const inv = val(h, c.investment, 0);
+      const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
       const pvT = live(h, c.pv_total), expT = live(h, c.grid_export_total);
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         const earned = Math.max(0, pvT - expT) * price + expT * feed;

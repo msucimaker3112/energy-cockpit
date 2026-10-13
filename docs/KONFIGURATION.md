@@ -190,10 +190,11 @@ discharge_today: sensor.batterie_entladen_heute
 home_power: sensor.hausverbrauch          # für die Grundlast nachts
 grid_price: input_number.strompreis
 feed_in: input_number.einspeiseverguetung
-investment: input_number.anschaffung_pv    # für die Amortisation
+investment_eur: 18000                      # Anschaffungskosten in Euro für die Amortisation ...
+# investment: input_number.anschaffung_pv  # ... oder aus einem Sensor oder Helfer
 ```
 
-Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment` keine Amortisation.
+Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
 
 ---
 
