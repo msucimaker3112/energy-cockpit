@@ -7,7 +7,7 @@ Die Karte `energy-cockpit-room-card` rechnet Verbrauch und Kosten eines Raums ab
 ## 1. Karte anlegen
 
 1. Dashboard → **Bearbeiten** → **Karte hinzufügen** → **Energy-Cockpit Raum-Abrechnung**.
-2. Im **Assistenten** (6 Schritte, siehe [INSTALLATION.md](INSTALLATION.md#raum-abrechnung-6-schritte)):
+2. Im **Assistenten** (7 Schritte, siehe [INSTALLATION.md](INSTALLATION.md#raum-abrechnung-7-schritte)):
    - **Zähler:** die Energiezähler (kWh) der Bereiche, etwa *Arbeitsplätze* und *Chillecke*.
    - **Herkunft:** die Zähler des ganzen Hauses (PV-Ertrag, Netzbezug, Einspeisung, Batterie geladen, Batterie entladen). Ohne sie wird alles zum Bezugspreis abgerechnet.
    - **Preis:** Bezugspreis und Einspeisevergütung als Sensor, `input_number` oder fester Wert (Cent).

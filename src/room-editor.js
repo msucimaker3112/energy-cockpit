@@ -20,6 +20,7 @@
     charge: 'Batterie geladen gesamt (kWh)', discharge: 'Batterie entladen gesamt (kWh)',
     power: 'Leistungssensor (W, für die Live-Anzeige)', advance: 'Abschlag je Monat (Zahl in € oder input_number)', archive: 'Monatsarchiv (Sensor, optional)',
     standby_w: 'Standby-Schwelle nachts (W, Zahl oder input_number)', active_w: 'Ab wie viel Watt gilt ein Bereich als aktiv (W)',
+    theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 245,158,11 oder #f59e0b)',
     watt_warn: 'Live-Anzeige: erhöht ab (W)', watt_high: 'Live-Anzeige: hoch ab (W)',
   };
 
@@ -41,6 +42,8 @@
       numb('active_w', 0, 5000, 5),
       numb('watt_warn', 0, 20000, 10),
       numb('watt_high', 0, 20000, 10),
+      { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
+      txt('accent'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
   });
@@ -75,6 +78,10 @@
       { path: 'standby_w', label: 'Standby-Schwelle nachts (W)', kind: 'number', optional: true, step: '5' },
       { path: 'active_w', label: 'Aktiv ab (W)', kind: 'number', optional: true, step: '5' },
       { path: 'archive', label: 'Monatsarchiv (Sensor)', kind: 'text', optional: true },
+    ] },
+    { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
+      { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'accent', label: 'Akzentfarbe (optional, z. B. 34,197,94 oder #22c55e)', kind: 'text', optional: true },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert.', summary: (c) => [
       `Raum: ${c.title || 'ohne Titel'}`,

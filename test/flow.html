@@ -4,7 +4,7 @@
 <body><div class="bar"><button onclick="setLang('de')">DE</button><button onclick="scen('sun')">Überschuss</button><button onclick="scen('night')">Nacht/Netzbezug</button><button onclick="scen('nobat')">Ohne Batterie</button><span id="info"></span></div>
 <div id="host"></div>
 <script>if(location.search.indexOf("shot")>=0){var st=document.createElement("style");st.textContent=".bar{display:none}";document.head.appendChild(st)}</script>
-<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
 <script>
 const S=(state,attrs)=>({state:String(state),attributes:Object.assign({unit_of_measurement:'W'},attrs||{}),last_updated:'x'});
 const scenes={

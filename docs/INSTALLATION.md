@@ -58,7 +58,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 ![Assistent, Schritt Solar](img/wiz-flow-1-solar.png)
 
-### Energiefluss (7 Schritte)
+### Energiefluss (8 Schritte)
 
 | Schritt | Aufgabe |
 |---|---|
@@ -68,7 +68,8 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 | 4. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
 | 5. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). |
 | 6. Preise | Strompreis und Einspeisevergütung für Kosten und Ersparnis. |
-| 7. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |
+| 7. Aussehen | Farbschema wählen (Kacheln mit Vorschau), siehe unten. |
+| 8. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |
 
 ![Netz](img/wiz-flow-2-netz.png)
 
@@ -76,7 +77,9 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 ![Preise](img/wiz-flow-6-preise.png)
 
-![Zusammenfassung](img/wiz-flow-7-fertig.png)
+![Farbschema wählen](img/wiz-flow-7-aussehen.png)
+
+![Zusammenfassung](img/wiz-flow-8-fertig.png)
 
 ### Geräte & Verbrauch
 
@@ -90,7 +93,7 @@ Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batteri
 
 ![Statistik: Gesamtzähler](img/wiz-stats-1-zaehler.png)
 
-### Raum-Abrechnung (6 Schritte)
+### Raum-Abrechnung (7 Schritte)
 
 | Schritt | Aufgabe |
 |---|---|
@@ -99,7 +102,8 @@ Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batteri
 | 3. Herkunft | Haus-Zähler für PV, Bezug, Einspeisung und Batterie, damit die Karte den Netz-, Batterie- und PV-Anteil ermittelt. |
 | 4. Preis | Bezugspreis, Einspeisevergütung, Bewertung und Grundgebühr. |
 | 5. Auswertung | Abschlag, Standby-Schwelle, Aktiv-Schwelle und Archiv-Sensor (alles optional). |
-| 6. Fertig | Zusammenfassung. Die Leistungssensoren je Bereich stehen unter *Alle Felder*. |
+| 6. Aussehen | Farbschema und Akzentfarbe. |
+| 7. Fertig | Zusammenfassung. Die Leistungssensoren je Bereich stehen unter *Alle Felder*. |
 
 ![Raum: Zähler](img/wiz-room-2-zaehler.png)
 

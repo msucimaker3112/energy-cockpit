@@ -50,7 +50,8 @@ JOBS = [
     ('wizard.html', 'wiz-flow-3-batterie', '?card=flow&step=2'),
     ('wizard.html', 'wiz-flow-5-verbraucher', '?card=flow&step=4&cfg=flow&tab=Assistent'),
     ('wizard.html', 'wiz-flow-6-preise', '?card=flow&step=5&cfg=flow&tab=Assistent'),
-    ('wizard.html', 'wiz-flow-7-fertig', '?card=flow&step=6&cfg=flow&tab=Assistent'),
+    ('wizard.html', 'wiz-flow-7-aussehen', '?card=flow&step=6&cfg=flow&tab=Assistent'),
+    ('wizard.html', 'wiz-flow-8-fertig', '?card=flow&step=7&cfg=flow&tab=Assistent'),
     ('wizard.html', 'wiz-devices-assistent', '?card=devices'),
     ('wizard.html', 'wiz-stats-1-zaehler', '?card=stats&step=0'),
     ('wizard.html', 'wiz-room-1-raum', '?card=room&step=0&cfg=room&tab=Assistent'),
@@ -58,18 +59,25 @@ JOBS = [
     ('wizard.html', 'wiz-room-3-herkunft', '?card=room&step=2&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-4-preis', '?card=room&step=3&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-5-auswertung', '?card=room&step=4&cfg=room&tab=Assistent'),
-    ('wizard.html', 'wiz-room-6-fertig', '?card=room&step=5&cfg=room&tab=Assistent'),
+    ('wizard.html', 'wiz-room-6-aussehen', '?card=room&step=5&cfg=room&tab=Assistent'),
+    ('wizard.html', 'wiz-room-7-fertig', '?card=room&step=6&cfg=room&tab=Assistent'),
 ]
 # Karte der Raum-Abrechnung (Beispieldaten), je Bereich ein Bild
 ROOM = [('room-kpis', 'head,kpis'), ('room-abrechnung', '0'), ('room-live', '1'), ('room-herkunft', '2'), ('room-grundlast', '3'),
         ('room-betriebszeiten', '4'), ('room-verlauf', '5'), ('room-archiv', '8')]
 for name, show in ROOM:
     JOBS.append(('room-extra.html', name, '?show=' + show))
+# Farbschemen
+for th in ['hell', 'warm', 'graphit']:
+    JOBS.append(('flow.html', f'theme-{th}-flow', f'?theme={th}'))
+    JOBS.append(('room-extra.html', f'theme-{th}-room', f'?theme={th}&show=head,kpis,0,1'))
+for page, nm in [('devices.html', 'devices'), ('stats.html', 'stats')]:
+    JOBS.append((page, f'theme-hell-{nm}', '?theme=hell'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (1100, 3200) if page.startswith('room') else (560, 1100)
+    w, h = (1100, 3200) if page.startswith('room') else ((1100, 1400) if page.startswith('theme') or name.startswith('theme') else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)

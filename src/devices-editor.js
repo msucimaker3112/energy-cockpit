@@ -4,7 +4,7 @@
   const { T, setLocale } = WD;
 
   WD.addStrings({
-    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)', 'ed.d.price_ct': 'oder fester Strompreis (Cent pro kWh)', 'ed.d.feed_ct': 'oder feste Einspeisevergütung (Cent pro kWh)',
+    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)', 'ed.d.theme': 'Farbschema', 'ed.d.price_ct': 'oder fester Strompreis (Cent pro kWh)', 'ed.d.feed_ct': 'oder feste Einspeisevergütung (Cent pro kWh)',
     'ed.d.surplus': 'PV-Überschuss (Leistung)', 'ed.d.standby': 'Standby-Schwelle (W)', 'ed.d.fit': 'Auf Bildschirmhöhe skalieren',
     'ed.d.nav_path': 'Weiter-Schaltfläche: Pfad', 'ed.d.nav_label': 'Weiter-Schaltfläche: Text',
     'ed.d.room': 'Raum', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Symbol', 'ed.d.color': 'Farbe (z. B. 248,113,113)', 'ed.d.image': 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -173,7 +173,7 @@
       }
       const c = this._c;
       const lbl = {
-        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', grid_price_ct: 'ed.d.price_ct', feed_in_ct: 'ed.d.feed_ct', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
+        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', grid_price_ct: 'ed.d.price_ct', feed_in_ct: 'ed.d.feed_ct', theme: 'ed.d.theme', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
         fit_screen: 'ed.d.fit', nav_path: 'ed.d.nav_path', nav_label: 'ed.d.nav_label', icon: 'ed.d.icon', color: 'ed.d.color', image: 'ed.d.image', type: 'ed.d.type',
         entity: 'ed.d.entity', power: 'ed.d.power', energy: 'ed.d.energy', max_w: 'ed.d.max_w', run_w: 'ed.d.run_w', lock: 'ed.d.lock',
       };
@@ -182,14 +182,15 @@
       // Allgemein
       const top = this._form([
         txt('title'), ent('home', ['sensor']), ent('grid_price', ['sensor', 'input_number']), numb('grid_price_ct', 0, 200, 0.1), ent('feed_in', ['sensor', 'input_number']), numb('feed_in_ct', 0, 200, 0.1),
-        ent('surplus', ['sensor']), numb('standby_w', 0, 200, 1), bool('fit_screen'), txt('nav_path'), txt('nav_label'),
+        ent('surplus', ['sensor']), numb('standby_w', 0, 200, 1), bool('fit_screen'), { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } }, txt('nav_path'), txt('nav_label'),
       ], {
         title: c.title || '', home: c.home || '', grid_price: c.grid_price || '', feed_in: c.feed_in || '', surplus: c.surplus || '', grid_price_ct: c.grid_price_ct === undefined ? '' : c.grid_price_ct, feed_in_ct: c.feed_in_ct === undefined ? '' : c.feed_in_ct,
-        standby_w: c.standby_w === undefined ? 15 : c.standby_w, fit_screen: c.fit_screen !== false, nav_path: c.nav_path || '', nav_label: c.nav_label || '',
+        standby_w: c.standby_w === undefined ? 15 : c.standby_w, theme: c.theme || 'dunkel', fit_screen: c.fit_screen !== false, nav_path: c.nav_path || '', nav_label: c.nav_label || '',
       }, (v) => {
         ['title', 'home', 'grid_price', 'feed_in', 'surplus', 'nav_path', 'nav_label'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; });
         ['grid_price_ct', 'feed_in_ct'].forEach((k) => { if (typeof v[k] === 'number') c[k] = v[k]; else delete c[k]; });
         if (v.standby_w === undefined || v.standby_w === 15) delete c.standby_w; else c.standby_w = v.standby_w;
+        if (v.theme && v.theme !== 'dunkel') c.theme = v.theme; else delete c.theme;
         if (v.fit_screen === false) c.fit_screen = false; else delete c.fit_screen;
         this._emit();
       }, label);

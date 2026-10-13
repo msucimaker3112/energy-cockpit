@@ -31,6 +31,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `battery.daily_charge`, `battery.daily_discharge` | Sensor | geladen / entladen heute (kWh) |
 | `home.entity`, `home.name` | Sensor, Text | Hausverbrauch (sonst berechnet) |
 | `grid_price`, `feed_in` | Sensor, `input_number` oder Zahl | Preis je kWh (Euro) für Kostenangaben |
+| `theme` | Text | Farbschema: `dunkel` (Standard), `graphit`, `hell`, `warm`, `auto` (folgt dem Home-Assistant-Design hell/dunkel) oder `ha` (Farben des HA-Designs). Gilt für alle vier Karten |
+| `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
 | `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
 
 ### Verbraucher

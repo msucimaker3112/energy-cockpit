@@ -116,6 +116,30 @@
       return wrap;
     };
 
+    // Farbschema: Kacheln mit Vorschau
+    const fieldTheme = (f) => {
+      const wrap = el('div');
+      wrap.appendChild(el('label', css.label, f.label));
+      if (f.help) wrap.appendChild(el('div', css.help, f.help));
+      const grid = el('div', 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px');
+      const cur = getPath(cfg, f.path) || 'dunkel';
+      const T = WD.THEMES;
+      const mix = (a, b) => `linear-gradient(110deg,${a.bg1} 0 50%,${b.bg1} 50% 100%)`;
+      ['dunkel', 'graphit', 'hell', 'warm', 'auto', 'ha'].forEach((k) => {
+        const t = k === 'auto' ? { n: 'Automatisch', bg: mix(T.dunkel, T.hell), txt: '#8b97b3', dot: true } : Object.assign({ bg: T[k].bg1, dot: true }, T[k]);
+        const tile = el('button', `cursor:pointer;text-align:left;padding:10px;border-radius:10px;font:inherit;border:2px solid ${cur === k ? 'var(--primary-color,#03a9f4)' : 'var(--divider-color,#555)'};background:${k === 'auto' ? t.bg : (k === 'ha' ? 'var(--card-background-color,#222)' : T[k].bg1)};color:${k === 'auto' ? '#8b97b3' : T[k].txt}`);
+        tile.type = 'button';
+        tile.appendChild(el('div', k === 'auto' ? 'font-weight:700;display:inline-block;padding:1px 7px;border-radius:6px;background:rgba(15,23,42,.8);color:#fff' : 'font-weight:700', t.n));
+        const dots = el('div', 'display:flex;gap:4px;margin-top:6px');
+        ['255,197,61', '255,92,122', '96,165,250'].forEach((c) => dots.appendChild(el('span', `width:14px;height:14px;border-radius:50%;background:rgb(${c})`)));
+        tile.appendChild(dots);
+        tile.addEventListener('click', () => { setPath(cfg, f.path, k === 'dunkel' ? '' : k); emit(); render(); });
+        grid.appendChild(tile);
+      });
+      wrap.appendChild(grid);
+      return wrap;
+    };
+
     const fieldChoice = (f) => {
       const wrap = el('div');
       wrap.appendChild(el('label', css.label, f.label));
@@ -208,6 +232,7 @@
         else if (f.kind === 'text') root.appendChild(fieldInput(f, 'text'));
         else if (f.kind === 'list') root.appendChild(fieldList(f));
         else if (f.kind === 'choice') root.appendChild(fieldChoice(f));
+        else if (f.kind === 'theme') root.appendChild(fieldTheme(f));
         else root.appendChild(fieldSelect(f));
       });
       if (st.summary) {

@@ -19,15 +19,34 @@ Vier Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das H
 
 Nach dem Hinzufügen einer Karte öffnet sich der Editor im Reiter **Assistent**. Er führt Schritt für Schritt durch die Karte, schlägt passende Sensoren aus deinen vorhandenen Entitäten vor und zeigt zu jeder Auswahl den **aktuellen Wert**, damit du sofort siehst, ob es der richtige Sensor ist. Alles wird sofort gespeichert. Im Reiter **Alle Felder** stehen danach alle Optionen für Feinheiten.
 
-| 1. Schritt wählen und Vorschlag übernehmen | 2. Verbraucher hinzufügen | 3. Zusammenfassung |
+| 1. Schritt wählen und Vorschlag übernehmen | 2. Verbraucher hinzufügen | 3. Farbschema wählen |
 |---|---|---|
-| ![Assistent: Solar](docs/img/wiz-flow-1-solar.png) | ![Assistent: Verbraucher](docs/img/wiz-flow-5-verbraucher.png) | ![Assistent: Fertig](docs/img/wiz-flow-7-fertig.png) |
+| ![Assistent: Solar](docs/img/wiz-flow-1-solar.png) | ![Assistent: Verbraucher](docs/img/wiz-flow-5-verbraucher.png) | ![Assistent: Farbschema](docs/img/wiz-flow-7-aussehen.png) |
 
 Bei **Geräte & Verbrauch** legt der Assistent auf Wunsch Räume und Geräte aus den **Bereichen** von Home Assistant an:
 
 ![Assistent: Räume aus Bereichen](docs/img/wiz-devices-assistent.png)
 
 Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INSTALLATION.md#5-einrichtungsassistent) mit Bildern erklärt.
+
+## Farbschemen
+
+Alle vier Karten gibt es in mehreren Farbschemen. Gewählt wird im Assistenten (Schritt *Aussehen*) oder mit `theme` im YAML. Ohne Angabe bleibt das dunkle Standarddesign.
+
+| `theme` | Aussehen |
+|---|---|
+| `dunkel` | Mitternachtsblau (Standard) |
+| `graphit` | Neutrales Dunkelgrau |
+| `hell` | Weiß mit kühlem Grau |
+| `warm` | Helles Papier |
+| `auto` | Folgt dem hellen oder dunklen Design von Home Assistant |
+| `ha` | Übernimmt die Farben deines Home-Assistant-Designs |
+
+| Hell | Warm | Graphit |
+|---|---|---|
+| ![Hell](docs/img/theme-hell-flow.png) | ![Warm](docs/img/theme-warm-flow.png) | ![Graphit](docs/img/theme-graphit-flow.png) |
+
+Die Raum-Abrechnung kennt zusätzlich `accent` (Akzentfarbe, etwa `34,197,94` oder `#22c55e`). Die Farben der Quellen (Netz rot, Batterie blau, PV gelb) bleiben in allen Schemen gleich.
 
 ## Neu: Raum-Abrechnung
 

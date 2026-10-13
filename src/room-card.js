@@ -13,27 +13,27 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const CSS = `
-:host{display:block;--txt:#e8eefc;--mut:139,151,179;--acc:245,158,11;--stroke:rgba(255,255,255,.08)}
-ha-card{display:block;background:radial-gradient(120% 80% at 50% 0%,#121b30 0%,#070b14 65%);border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
+${WD.themeCss()}:host{display:block;--acc:245,158,11}
+ha-card{display:block;background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 65%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px;box-sizing:border-box}
 header{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .title{display:flex;align-items:center;font-size:1.1rem;font-weight:700;margin-right:auto}
 .title img{height:34px;max-width:110px;object-fit:contain;border-radius:6px;margin-right:12px}
 .title small{display:block;font-size:.74rem;color:rgb(var(--mut));font-weight:500;margin-top:2px}
-.tabs{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:999px;padding:3px}
+.tabs{display:flex;background:rgba(var(--ov),.05);border:1px solid var(--stroke);border-radius:999px;padding:3px}
 .tab{padding:7px 14px;border-radius:999px;font-size:.8rem;font-weight:650;color:rgb(var(--mut));cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tab.on{background:rgba(var(--acc),.2);color:rgb(var(--acc));box-shadow:0 0 0 1px rgba(var(--acc),.4)}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:12px;gap:12px}
-.kpi{padding:14px 16px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.065),rgba(255,255,255,.015)),#0c1322;border:1px solid var(--stroke);cursor:pointer}
+.kpi{padding:14px 16px;border-radius:20px;background:linear-gradient(160deg,rgba(var(--ov),.065),rgba(var(--ov),.015)),var(--panel);border:1px solid var(--stroke);cursor:pointer}
 .kpi.on{border-color:rgba(var(--acc),.55);box-shadow:0 0 0 1px rgba(var(--acc),.3)}
 .kpi .l{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut))}
 .kpi .k{font-size:1.7rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
 .kpi .k small{font-size:.8rem;opacity:.7;margin-left:3px}
 .kpi .e{font-size:1rem;font-weight:700;color:rgb(var(--acc));margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:.68rem;color:rgb(var(--mut));margin-top:3px;line-height:1.5}
-.mixbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin-top:8px}
+.mixbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(var(--ov),.07);margin-top:8px}
 .mixbar i{display:block;height:100%;background:rgb(var(--c))}
-.panel{margin-top:16px;padding:16px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),#0c1322;border:1px solid var(--stroke)}
+.panel{margin-top:16px;padding:16px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(var(--ov),.05),rgba(var(--ov),.012)),var(--panel);border:1px solid var(--stroke)}
 .ph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut))}
 .leg{display:flex;flex-wrap:wrap;font-size:.74rem;color:rgb(var(--mut))}
@@ -43,35 +43,35 @@ header{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
 .col .st{display:flex;flex-direction:column-reverse;border-radius:6px 6px 0 0;overflow:hidden;min-height:2px}
 .col .st i{display:block;background:rgb(var(--c))}
-.col.cur .st{box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+.col.cur .st{box-shadow:0 0 0 1px rgba(var(--ov),.55)}
 .xl{display:flex;margin-top:6px;gap:4px}
 .xl span{flex:1;text-align:center;font-size:.64rem;color:rgb(var(--mut));font-weight:600;min-width:0;overflow:hidden}
 .xl span.cur{color:rgb(var(--acc))}
 .tw{max-height:320px;overflow:auto;margin-top:12px}
 table{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
-th{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));text-align:right;padding:6px 8px;position:sticky;top:0;background:#0c1322}
-td{padding:7px 8px;text-align:right;border-top:1px solid rgba(255,255,255,.05)}
+th{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));text-align:right;padding:6px 8px;position:sticky;top:0;background:var(--panel)}
+td{padding:7px 8px;text-align:right;border-top:1px solid rgba(var(--ov),.05)}
 th:first-child,td:first-child{text-align:left}
 tr.cur td{color:rgb(var(--acc));font-weight:700}
-tr.sum td{border-top:2px solid rgba(255,255,255,.2);font-weight:800}
+tr.sum td{border-top:2px solid rgba(var(--ov),.2);font-weight:800}
 td.z{opacity:.35}
 .note{margin-top:12px;font-size:.72rem;color:rgb(var(--mut));line-height:1.55}
 .note b{color:var(--txt)}
 .foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;font-size:.72rem;color:rgb(var(--mut))}
-.btn{cursor:pointer;padding:7px 14px;border-radius:999px;font-size:.78rem;font-weight:650;color:var(--txt);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);-webkit-tap-highlight-color:transparent}
+.btn{cursor:pointer;padding:7px 14px;border-radius:999px;font-size:.78rem;font-weight:650;color:var(--txt);background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);-webkit-tap-highlight-color:transparent}
 .empty{padding:26px;text-align:center;color:rgb(var(--mut))}
 .big{font-size:2.1rem;font-weight:800;margin-top:8px;font-variant-numeric:tabular-nums}
 .big small{font-size:.9rem;opacity:.7}
-.pbar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:10px;overflow:hidden}
+.pbar{height:10px;border-radius:99px;background:rgba(var(--ov),.08);margin-top:10px;overflow:hidden}
 .pbar i{display:block;height:100%;border-radius:99px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.mini{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)}
+.mini{padding:10px 12px;border-radius:14px;background:rgba(var(--ov),.04);border:1px solid var(--stroke)}
 .mini .l,.tile .l{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;font-weight:650;color:rgb(var(--mut))}
 .mini .v{font-size:1.15rem;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
 .mini .s,.tile .s,.s2{font-size:.7rem;color:rgb(var(--mut));margin-top:4px;line-height:1.5}
 .s2{margin-top:12px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}
-.tile{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-top:2px solid rgb(var(--c))}
+.tile{padding:12px 14px;border-radius:16px;background:rgba(var(--ov),.04);border:1px solid var(--stroke);border-top:2px solid rgb(var(--c))}
 .wl{margin-top:4px;font-variant-numeric:tabular-nums}
 .wv{font-size:1.9rem;font-weight:800}
 .wl small{font-size:.8rem;opacity:.7;margin-left:4px}
@@ -118,11 +118,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     static getConfigElement() { return document.createElement('energy-cockpit-room-card-editor'); }
     setConfig(c) {
+      WD.applyTheme(this, c, this._hass);
       const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
       const devs = arr(c && c.devices).filter((d) => d && d.energy);
       if (!devs.length) {
         this._c = null;
-        this.shadowRoot.innerHTML = '<style>ha-card{padding:22px;border-radius:24px;background:#0c1322;color:#e8eefc;font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Raum-Abrechnung</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
+        this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Raum-Abrechnung</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
         return;
       }
       this._c = Object.assign({}, c, { devices: devs });
@@ -132,6 +133,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       if (this._hass) this._load();
     }
     set hass(h) {
+      WD.applyTheme(this, null, h);
       setLocale(h);
       this._hass = h;
       if (!this._c) return;
@@ -412,7 +414,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           let off = 0;
           const R = 38, C = 2 * Math.PI * R;
           const seg = t.src.map((v, i) => { const len = v / tot * C; const s = `<circle r="${R}" cx="50" cy="50" fill="none" stroke="rgb(${SRC[i][1]})" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`; off += len; return s; }).join('');
-          donut = `<svg viewBox="0 0 100 100" class="donut"><circle r="${R}" cx="50" cy="50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>${seg}<text x="50" y="54" text-anchor="middle" fill="#e8eefc" font-size="14" font-weight="800">${fk(tot)}</text></svg>`;
+          donut = `<svg viewBox="0 0 100 100" class="donut"><circle r="${R}" cx="50" cy="50" fill="none" stroke="rgba(var(--ov),.07)" stroke-width="14"/>${seg}<text x="50" y="54" text-anchor="middle" fill="var(--txt)" font-size="14" font-weight="800">${fk(tot)}</text></svg>`;
         }
         const legend = t.src.map((v, i) => `<div><span style="--c:${SRC[i][1]}" class="dot"></span>${SRC[i][0]} <b>${tot > 0 ? nf(v / tot * 100, 0) : 0} %</b> <span class="mut">${fk(v)} kWh</span></div>`).join('');
         const mh = this._mixH || [];

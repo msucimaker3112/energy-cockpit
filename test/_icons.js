@@ -19,3 +19,10 @@ if (!customElements.get('ha-icon')) {
   }
   customElements.define('ha-icon', HaIcon);
 }
+
+/* Nur für die Testseiten: <ha-card> ist in Home Assistant ein Block-Element mit eigener Fläche. */
+if (!customElements.get('ha-card')) {
+  customElements.define('ha-card', class extends HTMLElement {
+    connectedCallback() { this.style.display = 'block'; }
+  });
+}
