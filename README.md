@@ -4,9 +4,9 @@ Vier Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das H
 
 | Karte | Zeigt |
 |---|---|
-| `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar, Netz, Batterie, Haus, Verbraucher, Überschuss-Hinweis, Akku-Prognose |
+| `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar, Netz, Batterie mit Entladegrenze, Haus, Verbraucher (eine Linie je Gerät oder eine Sammel-Linie), Überschuss-Hinweis, Akku-Prognose |
 | `energy-cockpit-devices-card` | **Geräte & Verbrauch**: Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät, Standby-Detektiv |
-| `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation, Grundlast, Monatsvergleich, Akku |
+| `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation (mit Anschaffungskosten), Grundlast, Monatsvergleich, Akku |
 | `energy-cockpit-room-card` | **Raum-Abrechnung**: Verbrauch und Kosten eines Raums mit Abschlag, Hochrechnung, Live-Leistung, Herkunft (Netz, Batterie, PV), Grundlast, Betriebszeiten und Monatsarchiv |
 
 ![Energiefluss](docs/img/flow.png)
@@ -28,6 +28,21 @@ Bei **Geräte & Verbrauch** legt der Assistent auf Wunsch Räume und Geräte aus
 ![Assistent: Räume aus Bereichen](docs/img/wiz-devices-assistent.png)
 
 Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INSTALLATION.md#5-einrichtungsassistent) mit Bildern erklärt.
+
+## Strompreis, Batterie und Linien
+
+| Thema | Was du einstellen kannst |
+|---|---|
+| **Strompreis** | Fester Preis in Cent pro kWh (`grid_price_ct`, `feed_in_ct`) oder ein Sensor bzw. `input_number` (`grid_price`, `feed_in`). Es gibt keinen voreingestellten Preis. |
+| **Batterie** | Entladegrenze und Maximalladung als Sensor/Helfer oder fester Prozentwert. Die Grenzen erscheinen schraffiert auf dem Ladebalken, die nutzbare Kapazität fließt in die Prognose ein. Optional zeigt `battery.soc_display: nutzbar` den Ladestand relativ zum nutzbaren Bereich. |
+| **Linien zu den Verbrauchern** | `groups_lines: direkt` (Standard) zeichnet eine Linie je Gerät oder Gruppe, `groups_lines: sammel` nur eine Linie zum ganzen Verbraucherbereich mit der Summe. |
+| **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. |
+
+| Batterie mit Entladegrenze | Sammel-Linie zu den Verbrauchern |
+|---|---|
+| ![Batterie](docs/img/batterie-grenze.png) | ![Sammel-Linie](docs/img/sammel-breit.png) |
+
+Alle Optionen mit Beispielen: [docs/KONFIGURATION.md](docs/KONFIGURATION.md). Die Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Farbschemen
 
