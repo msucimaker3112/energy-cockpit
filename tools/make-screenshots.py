@@ -73,6 +73,7 @@ for th in ['hell', 'warm', 'graphit']:
     JOBS.append(('room-extra.html', f'theme-{th}-room', f'?theme={th}&show=head,kpis,0,1'))
 for page, nm in [('devices.html', 'devices'), ('stats.html', 'stats')]:
     JOBS.append((page, f'theme-hell-{nm}', '?theme=hell'))
+JOBS.append(('flow.html', 'theme-hell-flow-clean', '?theme=hell&shot=1'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
