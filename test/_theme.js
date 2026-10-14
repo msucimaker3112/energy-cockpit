@@ -1,6 +1,8 @@
 // Testhilfe: ?theme=hell setzt das Farbschema aller Karten der Seite
 (() => {
   const q = new URLSearchParams(location.search);
+  // Für Screenshots: Zähl- und Gleitanimationen sofort bis zum Endwert laufen lassen
+  if (q.get('still')) window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now() + 10000), 16);
   const t = q.get('theme');
   const sammel = q.get('sammel'), gr0 = q.get('groups');
   const bat = q.get('battery'); // z. B. battery=reserve:10,max:95,disp:nutzbar

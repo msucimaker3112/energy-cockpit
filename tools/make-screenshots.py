@@ -13,7 +13,7 @@ out.mkdir(exist_ok=True)
 
 def shot(page, name, width, height, scale=1, query=''):
     import time
-    url = (root / 'test' / page).as_uri() + query
+    url = (root / 'test' / page).as_uri() + query + ('&' if '?' in query else '?') + 'still=1'
     dst = out / f'{name}.png'
     if dst.exists():
         dst.unlink()
@@ -67,6 +67,10 @@ ROOM = [('room-kpis', 'head,kpis'), ('room-abrechnung', '0'), ('room-live', '1')
         ('room-betriebszeiten', '4'), ('room-verlauf', '5'), ('room-archiv', '8')]
 for name, show in ROOM:
     JOBS.append(('room-extra.html', name, '?show=' + show))
+# Hauptbilder der Karten
+JOBS.append(('flow.html', 'flow', '?shot=1'))
+JOBS.append(('devices.html', 'devices', '?shot=1'))
+JOBS.append(('stats.html', 'stats', '?shot=1'))
 # Farbschemen
 for th in ['hell', 'warm', 'graphit']:
     JOBS.append(('flow.html', f'theme-{th}-flow', f'?theme={th}'))
@@ -83,7 +87,7 @@ only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 1500) if name == 'sammel-schmal' else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie')) else (560, 1100))
+    w, h = (560, 1500) if name == 'sammel-schmal' else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)
