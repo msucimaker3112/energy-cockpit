@@ -368,7 +368,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${x.entity || x.secondary || ''}"><i></i><span class="in">${x.name || x.entity}</span><b></b></div>`).join('')}</div>
         </div>`;
       }).join('');
-      const showRest = c.rest !== false;
+      const showRest = c.rest !== false && !c.hide_rest;
       if (showRest) {
         if (!sam) links.push('grest');
         grps += `<div class="grp rest" data-k="grest" style="--c:${PAL.mut}">
