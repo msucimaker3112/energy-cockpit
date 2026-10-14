@@ -5,7 +5,7 @@
       'flow.title': 'Energiefluss', 'flow.pv': 'PV-Anlage', 'flow.grid': 'Netz', 'flow.battery': 'Batterie', 'flow.home': 'Hausverbrauch',
       'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
-      'pill.aut': 'Autarkie', 'pill.self': 'Eigenverbrauch',
+      'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz',
       'stat.pv': 'PV heute', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',

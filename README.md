@@ -9,7 +9,13 @@ Vier Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das H
 | `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation (mit Anschaffungskosten), Grundlast, Monatsvergleich, Akku |
 | `energy-cockpit-room-card` | **Raum-Abrechnung**: Verbrauch und Kosten eines Raums mit Abschlag, Hochrechnung, Live-Leistung, Herkunft (Netz, Batterie, PV), Grundlast, Betriebszeiten und Monatsarchiv |
 
-![Energiefluss](docs/img/flow.png)
+**Morgens, wenig Sonne** (Beispieldaten): 81 W PV gehen komplett ins Haus, der Rest von 189 W kommt aus dem Netz.
+
+![Energiefluss am Morgen](docs/img/flow-watt.png)
+
+**Mittags, viel Sonne** (Beispieldaten): Die PV-Kachel zeigt, wohin die Leistung geht. Hier 6,2 kW = 1,0 kW Haus + 1,8 kW Batterie + 3,4 kW ins Netz.
+
+![Energiefluss mittags](docs/img/flow.png)
 
 ![Geräte und Verbrauch](docs/img/devices.png)
 

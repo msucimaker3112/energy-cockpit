@@ -673,7 +673,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.classList.toggle('on', on);
       this._anim('pv', pv, el);
       this._set('.pv .tag', pv === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
-      const parts = (c.pv.strings || []).map((s) => `${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`);
+      const parts = [];
+      // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
+      if (on) {
+        const use = [];
+        if (pvHome > TH) use.push(`${T('pv.use.home')} <b>${fW(pvHome)}</b>`);
+        const toBat = Math.min(bChg, Math.max(0, (pv || 0) - pvHome));
+        if (toBat > TH) use.push(`${T('pv.use.bat')} <b>${fW(toBat)}</b>`);
+        if (gExp > TH) use.push(`${T('pv.use.grid')} <b>${fW(gExp)}</b>`);
+        if (use.length) parts.push('→ ' + use.join(' · '));
+      }
+      (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
       const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
       if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
       this._set('.pv .sub', parts.join('<br>'), true);

@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.8.0 - MIT License */
+/*! energy-cockpit v0.8.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -166,7 +166,7 @@ const WD = (() => {
       'flow.title': 'Energiefluss', 'flow.pv': 'PV-Anlage', 'flow.grid': 'Netz', 'flow.battery': 'Batterie', 'flow.home': 'Hausverbrauch',
       'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
-      'pill.aut': 'Autarkie', 'pill.self': 'Eigenverbrauch',
+      'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz',
       'stat.pv': 'PV heute', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
@@ -1223,7 +1223,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.classList.toggle('on', on);
       this._anim('pv', pv, el);
       this._set('.pv .tag', pv === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
-      const parts = (c.pv.strings || []).map((s) => `${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`);
+      const parts = [];
+      // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
+      if (on) {
+        const use = [];
+        if (pvHome > TH) use.push(`${T('pv.use.home')} <b>${fW(pvHome)}</b>`);
+        const toBat = Math.min(bChg, Math.max(0, (pv || 0) - pvHome));
+        if (toBat > TH) use.push(`${T('pv.use.bat')} <b>${fW(toBat)}</b>`);
+        if (gExp > TH) use.push(`${T('pv.use.grid')} <b>${fW(gExp)}</b>`);
+        if (use.length) parts.push('→ ' + use.join(' · '));
+      }
+      (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
       const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
       if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
       this._set('.pv .sub', parts.join('<br>'), true);
