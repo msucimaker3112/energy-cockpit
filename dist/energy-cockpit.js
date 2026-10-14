@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.8.2 - MIT License */
+/*! energy-cockpit v0.8.3 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -737,6 +737,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .sam.on{border-color:rgba(var(--home),.6);box-shadow:0 0 0 1px rgba(var(--home),.3)}
 .sam-t{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650}
 .sam-w{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
+/* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy) */
+.ts-l .pill,.ts-l .tag,.ts-l .sub,.ts-l .mix,.ts-l .n-top,.ts-l .hub-lbl,.ts-l .title,.ts-l .navbtn,.ts-l .it,.ts-l .c-sec,.ts-l .cons .lbl,.ts-l .grp .lbl,.ts-l .b-sub,.ts-l .stat span,.ts-l .soc-row{zoom:1.25}
+.ts-xl .pill,.ts-xl .tag,.ts-xl .sub,.ts-xl .mix,.ts-xl .n-top,.ts-xl .hub-lbl,.ts-xl .title,.ts-xl .navbtn,.ts-xl .it,.ts-xl .c-sec,.ts-xl .cons .lbl,.ts-xl .grp .lbl,.ts-xl .b-sub,.ts-xl .stat span,.ts-xl .soc-row{zoom:1.5}
+.ts-l .soc-row b,.ts-xl .soc-row b{font-size:1.05rem}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
@@ -938,7 +942,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${sam ? ' sam-on' : ''}">
+    <ha-card><div class="wrap${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -1245,7 +1249,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.style.setProperty('--c', on ? col : PAL.mut);
       el.classList.toggle('on', on);
       this._anim('grid', grid === null ? null : Math.abs(grid), el);
-      this._set('.grid .tag', grid === null ? T('tag.offline') : !on ? T('tag.balanced') : imp ? T('tag.import') : T('tag.export'));
+      this._set('.grid .tag', grid === null ? T('tag.offline') : Math.abs(grid) < 0.5 ? T('tag.balanced') : imp ? T('tag.import') : T('tag.export'));
       this._link('grid', on, imp, col, grid);
     }
     if (c.battery) {
@@ -1341,7 +1345,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('g' + i, on, false, rgb(g.color || '#a78bfa'), sum);
       });
       const rel = this._$('[data-k="grest"]');
-      if (rel) vis++;
+      const restW = Math.max(0, home - known);
+      const restMin = parseFloat(c.rest_min) || 0;
+      const restShow = !!rel && (restMin <= 0 || (home > TH && restW / home * 100 >= restMin));
+      if (rel) { rel.style.display = restShow ? '' : 'none'; if (restShow) vis++; }
       if (vis !== this._gVis) {
         this._gVis = vis;
         const gw = this._$('.groups');
@@ -1406,7 +1413,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
-    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als',
+    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
@@ -1445,6 +1452,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       bool('show_clock', true),
       bool('fit_screen', true),
       bool('hide_rest', false),
+      numb('rest_min', 0, 100, 1),
+      { name: 'text_size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
       txt('nav_path'),
@@ -1484,6 +1493,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ] },
     { short: 'Verbraucher', title: 'Einzelverbraucher', text: 'Wähle Geräte mit eigenem Leistungssensor, zum Beispiel Wärmepumpe, Wallbox oder Trockner. Gruppen (z. B. je Raum) findest du unter "Alle Felder".', fields: [
       { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 12 },
+      { path: 'rest_min', label: 'Kachel "Nicht erfasst" erst anzeigen ab (% vom Hausverbrauch)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 10: Die Kachel erscheint nur, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind.' },
       { path: 'hide_rest', label: 'Kachel "Nicht erfasst" ausblenden', kind: 'bool', help: 'Die Kachel zeigt den Teil des Hausverbrauchs, der keinem Gerät und keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen).' },
       { path: 'groups_lines', label: 'Linien zu den Verbrauchern', kind: 'choice', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }], help: 'Bei vielen Geräten wirkt eine einzelne Sammel-Linie zum ganzen Bereich ruhiger.' },
     ] },
@@ -1495,6 +1505,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }], help: 'Vergrößert die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
       `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,

@@ -30,6 +30,14 @@
       };
     }
   }
+  const ts = q.get('textsize'), rm = q.get('restmin');
+  if (ts || rm) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) { return o.call(this, Object.assign({}, c, ts ? { text_size: ts } : {}, rm ? { rest_min: +rm } : {})); };
+    }
+  }
   if (!t) return;
   ['flow', 'devices', 'stats', 'room'].forEach((k) => {
     const C = customElements.get('energy-cockpit-' + k + '-card');

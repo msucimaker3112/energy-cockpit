@@ -187,6 +187,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .sam.on{border-color:rgba(var(--home),.6);box-shadow:0 0 0 1px rgba(var(--home),.3)}
 .sam-t{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650}
 .sam-w{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
+/* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy) */
+.ts-l .pill,.ts-l .tag,.ts-l .sub,.ts-l .mix,.ts-l .n-top,.ts-l .hub-lbl,.ts-l .title,.ts-l .navbtn,.ts-l .it,.ts-l .c-sec,.ts-l .cons .lbl,.ts-l .grp .lbl,.ts-l .b-sub,.ts-l .stat span,.ts-l .soc-row{zoom:1.25}
+.ts-xl .pill,.ts-xl .tag,.ts-xl .sub,.ts-xl .mix,.ts-xl .n-top,.ts-xl .hub-lbl,.ts-xl .title,.ts-xl .navbtn,.ts-xl .it,.ts-xl .c-sec,.ts-xl .cons .lbl,.ts-xl .grp .lbl,.ts-xl .b-sub,.ts-xl .stat span,.ts-xl .soc-row{zoom:1.5}
+.ts-l .soc-row b,.ts-xl .soc-row b{font-size:1.05rem}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
@@ -388,7 +392,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${sam ? ' sam-on' : ''}">
+    <ha-card><div class="wrap${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -695,7 +699,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.style.setProperty('--c', on ? col : PAL.mut);
       el.classList.toggle('on', on);
       this._anim('grid', grid === null ? null : Math.abs(grid), el);
-      this._set('.grid .tag', grid === null ? T('tag.offline') : !on ? T('tag.balanced') : imp ? T('tag.import') : T('tag.export'));
+      this._set('.grid .tag', grid === null ? T('tag.offline') : Math.abs(grid) < 0.5 ? T('tag.balanced') : imp ? T('tag.import') : T('tag.export'));
       this._link('grid', on, imp, col, grid);
     }
     if (c.battery) {
@@ -791,7 +795,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('g' + i, on, false, rgb(g.color || '#a78bfa'), sum);
       });
       const rel = this._$('[data-k="grest"]');
-      if (rel) vis++;
+      const restW = Math.max(0, home - known);
+      const restMin = parseFloat(c.rest_min) || 0;
+      const restShow = !!rel && (restMin <= 0 || (home > TH && restW / home * 100 >= restMin));
+      if (rel) { rel.style.display = restShow ? '' : 'none'; if (restShow) vis++; }
       if (vis !== this._gVis) {
         this._gVis = vis;
         const gw = this._$('.groups');
