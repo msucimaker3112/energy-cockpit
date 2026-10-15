@@ -35,7 +35,11 @@
     if (C) {
       const o = C.prototype.setConfig;
       C.prototype.setConfig = function (c) {
-        return o.call(this, Object.assign({}, c, { pv: Object.assign({}, c.pv, { name: 'Dach', daily: 'sensor.pv_day' }), pv2: { entity: 'sensor.bkw', name: 'Balkonkraftwerk', daily: 'sensor.bkw_day' } }));
+        return o.call(this, Object.assign({}, c, { pv: Object.assign({}, c.pv, { name: 'Dach', daily: 'sensor.pv_day' }), pv2: { entity: 'sensor.bkw', name: 'Balkonkraftwerk', daily: 'sensor.bkw_day' } }, q.get('pv2') === 'cons' ? { groups_lines: 'sammel', consumer_groups: [
+          { name: 'Küche', icon: 'mdi:stove', color: '#fb923c', items: [{ entity: 'sensor.c_kueche', name: 'Küche' }] },
+          { name: 'Wohnzimmer', icon: 'mdi:sofa-outline', color: '#818cf8', items: [{ entity: 'sensor.c_wohn', name: 'Wohnzimmer' }] },
+          { name: 'Büro', icon: 'mdi:desktop-classic', color: '#7dd3fc', items: [{ entity: 'sensor.c_buero', name: 'Büro' }] },
+          { name: 'Technik', icon: 'mdi:server-network', color: '#34d399', items: [{ entity: 'sensor.c_technik', name: 'Technik' }] }] } : {}));
       };
     }
   }

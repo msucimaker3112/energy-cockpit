@@ -51,7 +51,9 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 |---|---|
 | ![Batterie](docs/img/batterie-grenze.png) | ![Sammel-Linie](docs/img/sammel-breit.png) |
 
-![Zwei PV-Anlagen: Dach und Balkonkraftwerk](docs/img/pv2-bkw.png)
+| Zwei PV-Anlagen | Mit Verbrauchern und Sammel-Linie |
+|---|---|
+| ![Zwei PV-Anlagen: Dach und Balkonkraftwerk](docs/img/pv2-bkw.png) | ![Zwei PV-Anlagen mit Verbrauchern](docs/img/pv2-bkw-verbraucher.png) |
 
 | Textgröße normal | Textgröße `gross` | Textgröße `sehr_gross` |
 |---|---|---|
