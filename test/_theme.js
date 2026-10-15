@@ -30,6 +30,15 @@
       };
     }
   }
+  if (q.get('pv2')) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) {
+        return o.call(this, Object.assign({}, c, { pv: Object.assign({}, c.pv, { name: 'Dach', daily: 'sensor.pv_day' }), pv2: { entity: 'sensor.bkw', name: 'Balkonkraftwerk', daily: 'sensor.bkw_day' } }));
+      };
+    }
+  }
   const ts = q.get('textsize'), rm = q.get('restmin');
   if (ts || rm) {
     const C = customElements.get('energy-cockpit-flow-card');

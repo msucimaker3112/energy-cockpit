@@ -42,6 +42,7 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Strompreis** | Fester Preis in Cent pro kWh (`grid_price_ct`, `feed_in_ct`) oder ein Sensor bzw. `input_number` (`grid_price`, `feed_in`). Es gibt keinen voreingestellten Preis. |
 | **Batterie** | Entladegrenze und Maximalladung als Sensor/Helfer oder fester Prozentwert. Die Grenzen erscheinen schraffiert auf dem Ladebalken, die nutzbare Kapazität fließt in die Prognose ein. Optional zeigt `battery.soc_display: nutzbar` den Ladestand relativ zum nutzbaren Bereich. |
 | **Linien zu den Verbrauchern** | `groups_lines: direkt` (Standard) zeichnet eine Linie je Gerät oder Gruppe, `groups_lines: sammel` nur eine Linie zum ganzen Verbraucherbereich mit der Summe. |
+| **Zweite Solaranlage** | `pv2` (z. B. Balkonkraftwerk): eigene Kachel und Linie, Autarkie, Eigenverbrauch und Herkunft rechnen mit der Summe. Die zweite Anlage deckt zuerst das Haus, die erste lädt danach die Batterie. |
 | **Textgröße** | `text_size: gross` oder `sehr_gross` vergrößert Ladestand, Kennzahlen oben rechts und Beschriftungen. Gedacht für Handy und Tablet. |
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
 | **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. |
@@ -49,6 +50,8 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | Batterie mit Entladegrenze | Sammel-Linie zu den Verbrauchern |
 |---|---|
 | ![Batterie](docs/img/batterie-grenze.png) | ![Sammel-Linie](docs/img/sammel-breit.png) |
+
+![Zwei PV-Anlagen: Dach und Balkonkraftwerk](docs/img/pv2-bkw.png)
 
 | Textgröße normal | Textgröße `gross` | Textgröße `sehr_gross` |
 |---|---|---|

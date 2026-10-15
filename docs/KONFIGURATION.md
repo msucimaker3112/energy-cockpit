@@ -55,6 +55,21 @@ consumers:
     secondary_decimals: 1
 ```
 
+Zweite Solaranlage, zum Beispiel ein Balkonkraftwerk mit eigenem Sensor:
+
+```yaml
+pv:
+  entity: sensor.pv_leistung        # große Anlage (lädt die Batterie)
+  name: Dach
+pv2:
+  entity: sensor.bkw_leistung       # Balkonkraftwerk (speist direkt ins Hausnetz)
+  name: Balkonkraftwerk
+  daily: sensor.bkw_heute           # optional, wird zum Tagesertrag addiert
+  add_to_home: false                # true, wenn dein Hausverbrauchs-Sensor das BKW NICHT enthält
+```
+
+Die Karte zeigt eine eigene Kachel mit eigener Linie. Autarkie, Eigenverbrauch und die Herkunft im Ring rechnen mit der Summe beider Anlagen. Die zweite Anlage deckt zuerst das Haus, die erste lädt danach die Batterie und speist ein.
+
 Gruppen (mehrere Verbraucher je Raum) und der Rest "nicht erfasst":
 
 ```yaml

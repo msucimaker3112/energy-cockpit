@@ -66,7 +66,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 @keyframes breathe{50%{box-shadow:inset 0 0 0 1px rgba(var(--c),.26),0 0 0 1px rgba(var(--c),.35)}}
 .node:not(.on){border-color:rgba(var(--ov),.05)}
 .node:not(.on) .val,.node:not(.on) .n-top,.node:not(.on) .sub{opacity:.7}
-.pv{grid-area:pv}.grid{grid-area:grid}.bat{grid-area:bat}
+.pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
+.layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 .n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
@@ -195,6 +196,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
 .narrow .layout{grid-template-columns:1fr 1fr;grid-template-areas:"hub hub" "pv bat" "grid bat";gap:16px 14px}
+.narrow .layout.has-pv2{grid-template-areas:"hub hub" "pv bat" "pv2 bat" "grid bat"}
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:1.5rem}
 .narrow .core .num{font-size:1.8rem}
@@ -346,6 +348,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const links = [];
     let nodes = '';
     if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity); links.push('pv'); }
+    const hasPv2 = !!(c.pv2 && c.pv2.entity);
+    if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
       nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power,
@@ -385,7 +389,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     const d = (k, lbl, color) => `<div class="stat" data-s="${k}" style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
     let stats = '';
-    if (c.pv && c.pv.daily) stats += d('pv', T('stat.pv'), PAL.pv);
+    if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
     if (c.battery && (c.battery.daily_charge || c.battery.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
@@ -404,7 +408,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>
-        <div class="layout">
+        <div class="layout${hasPv2 ? ' has-pv2' : ''}">
           ${nodes}
           <div class="hub-wrap">
             <div class="hub" data-e="${(c.home && c.home.entity) || ''}">
@@ -497,8 +501,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const top = (r.top - sr.top) / k0, bottom = (r.bottom - sr.top) / k0, left = (r.left - sr.left) / k0, right = (r.right - sr.left) / k0;
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
-      if (top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
-      else if (bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
+      // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
+      const sideOnly = this._mode !== 'narrow' && ['pv', 'pv2', 'grid', 'bat'].includes(L.k);
+      if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
+      else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
       else { ax = left; ay = ncy; tx = -1; ty = 0; }
       let ang = Math.atan2(ay - cy, ax - cx);
@@ -655,7 +661,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _update() {
     const h = this._hass, c = this._c;
     if (!h || !c || !this._$('.stage')) return;
-    const pv = c.pv ? watt(h, c.pv.entity) : null;
+    const pv1 = c.pv ? watt(h, c.pv.entity) : null;
+    const pv2 = c.pv2 && c.pv2.entity ? watt(h, c.pv2.entity) : null;
+    // Summe aller Erzeuger. Mit pv2 gilt: PV 2 (z. B. Balkonkraftwerk) speist zuerst ins Haus.
+    const pv = pv1 === null && pv2 === null ? null : (pv1 || 0) + (pv2 || 0);
     let grid = c.grid ? watt(h, c.grid.entity) : null;
     if (grid !== null && c.grid.invert) grid = -grid;
     let bat = c.battery ? watt(h, c.battery.power) : null;
@@ -663,6 +672,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const soc = c.battery ? num(h, c.battery.soc) : null;
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
     if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0));
+    else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
     const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
     const bDis = Math.max(0, -(bat || 0)), bChg = Math.max(0, bat || 0);
@@ -672,26 +682,49 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._set('[data-p="aut"]', home > TH ? fPct(1 - gImp / home) : '—');
     this._set('[data-p="self"]', (pv || 0) > TH ? fPct(1 - gExp / pv) : '—');
 
-    if (c.pv) {
-      const el = this._$('[data-k="pv"]'), on = (pv || 0) > TH;
+    // Aufteilung je Quelle: PV 2 (Balkonkraftwerk) deckt zuerst das Haus, PV 1 lädt danach die Batterie und speist ein
+    const need = Math.max(0, home - gImp - bDis);
+    const p2 = Math.max(0, pv2 || 0), p1 = Math.max(0, pv1 || 0);
+    const p2Home = Math.min(p2, need);
+    const p1Home = Math.min(p1, Math.max(0, need - p2Home));
+    const p1Bat = Math.min(bChg, Math.max(0, p1 - p1Home));
+    const p1Exp = Math.min(gExp, Math.max(0, p1 - p1Home - p1Bat));
+    const p2Exp = Math.min(Math.max(0, gExp - p1Exp), Math.max(0, p2 - p2Home));
+    const useText = (home_, bat_, exp_) => {
+      const use = [];
+      if (home_ > TH) use.push(`${T('pv.use.home')} <b>${fW(home_)}</b>`);
+      if (bat_ > TH) use.push(`${T('pv.use.bat')} <b>${fW(bat_)}</b>`);
+      if (exp_ > TH) use.push(`${T('pv.use.grid')} <b>${fW(exp_)}</b>`);
+      return use.length ? '→ ' + use.join(' · ') : '';
+    };
+    if (c.pv2 && c.pv2.entity) {
+      const el = this._$('[data-k="pv2"]'), on = p2 > TH;
       el.classList.toggle('on', on);
-      this._anim('pv', pv, el);
-      this._set('.pv .tag', pv === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
+      this._anim('pv2', pv2, el);
+      this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
+      const parts2 = [];
+      const u2 = on ? useText(p2Home, 0, p2Exp) : '';
+      if (u2) parts2.push(u2);
+      (c.pv2.strings || []).forEach((s) => parts2.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
+      this._set('.pv2 .sub', parts2.join('<br>'), true);
+      this._link('pv2', on, true, PAL.pv, pv2);
+    }
+    if (c.pv) {
+      const el = this._$('[data-k="pv"]'), on = p1 > TH;
+      el.classList.toggle('on', on);
+      this._anim('pv', pv1, el);
+      this._set('.pv .tag', pv1 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts = [];
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
-        const use = [];
-        if (pvHome > TH) use.push(`${T('pv.use.home')} <b>${fW(pvHome)}</b>`);
-        const toBat = Math.min(bChg, Math.max(0, (pv || 0) - pvHome));
-        if (toBat > TH) use.push(`${T('pv.use.bat')} <b>${fW(toBat)}</b>`);
-        if (gExp > TH) use.push(`${T('pv.use.grid')} <b>${fW(gExp)}</b>`);
-        if (use.length) parts.push('→ ' + use.join(' · '));
+        const u1 = useText(p1Home, p1Bat, p1Exp);
+        if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
       const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
       if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
       this._set('.pv .sub', parts.join('<br>'), true);
-      this._link('pv', on, true, PAL.pv, pv);
+      this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {
       const el = this._$('[data-k="grid"]'), on = Math.abs(grid || 0) > TH, imp = (grid || 0) > 0;
@@ -823,7 +856,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('bundle', on, false, PAL.home, sumAll);
       }
     }
-    const dPv = c.pv ? num(h, c.pv.daily) : null;
+    let dPv = c.pv ? num(h, c.pv.daily) : null;
+    if (c.pv2 && c.pv2.daily) { const d2 = num(h, c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
     const dImp = c.grid ? num(h, c.grid.daily_import) : null;
     const dExp = c.grid ? num(h, c.grid.daily_export) : null;
     const dChg = c.battery ? num(h, c.battery.daily_charge) : null;

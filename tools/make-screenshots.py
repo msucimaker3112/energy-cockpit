@@ -78,6 +78,7 @@ JOBS.append(('flow.html', 'text-normal', '?shot=1&scene=morgen'))
 JOBS.append(('flow.html', 'text-gross', '?shot=1&scene=morgen&textsize=gross'))
 JOBS.append(('flow.html', 'text-sehr-gross', '?shot=1&scene=morgen&textsize=sehr_gross'))
 JOBS.append(('flow.html', 'rest-ab-10', '?shot=1&groups=5&restmin=10'))
+JOBS.append(('flow.html', 'pv2-bkw', '?shot=1&scene=bkw&pv2=1'))
 # Farbschemen
 for th in ['hell', 'warm', 'graphit']:
     JOBS.append(('flow.html', f'theme-{th}-flow', f'?theme={th}'))
@@ -94,7 +95,7 @@ only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 1500) if name == 'sammel-schmal' else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 1500) if name == 'sammel-schmal' else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)

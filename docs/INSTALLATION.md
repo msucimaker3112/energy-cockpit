@@ -62,7 +62,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 | Schritt | Aufgabe |
 |---|---|
-| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. |
+| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
 | 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
 | 4. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
