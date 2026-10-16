@@ -352,8 +352,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
-      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power || c.battery.power_charge || c.battery.power_discharge,
-        `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
+      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, (c.battery.tap === 'soc' && c.battery.soc) || c.battery.power || c.battery.power_charge || c.battery.power_discharge,
+        // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
+        `<div class="socbox"${c.battery.soc ? ` data-e="${esc(c.battery.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>`);
       links.push('bat');
     }
     const sam = c.groups_lines === 'sammel' && (c.consumers.length > 0 || (c.consumer_groups || []).length > 0);

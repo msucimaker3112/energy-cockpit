@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.9.1 - MIT License */
+/*! energy-cockpit v0.9.2 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -903,8 +903,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
-      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power || c.battery.power_charge || c.battery.power_discharge,
-        `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
+      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, (c.battery.tap === 'soc' && c.battery.soc) || c.battery.power || c.battery.power_charge || c.battery.power_discharge,
+        // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
+        `<div class="socbox"${c.battery.soc ? ` data-e="${esc(c.battery.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>`);
       links.push('bat');
     }
     const sam = c.groups_lines === 'sammel' && (c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
@@ -1462,7 +1463,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
-    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als',
+    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     show_clock: 'Uhr anzeigen', fit_screen: 'Auf Bildschirmhöhe skalieren',
@@ -1489,7 +1490,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
         ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
         numb('capacity_kwh', 0, 200, 0.1), ent('reserve_soc', ['sensor', 'number', 'input_number']), numb('reserve_pct', 0, 100, 1),
         ent('max_soc', ['sensor', 'number', 'input_number']), numb('max_pct', 0, 100, 1),
-        { name: 'soc_display', selector: { select: { mode: 'dropdown', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] } } },
+        { name: 'tap', selector: { select: { mode: 'dropdown', options: [{ value: 'power', label: 'Verlauf der Lade-/Entladeleistung (Standard)' }, { value: 'soc', label: 'Verlauf des Ladestands in %' }] } } },
+      { name: 'soc_display', selector: { select: { mode: 'dropdown', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] } } },
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name')]),
