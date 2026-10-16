@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.9.0 - MIT License */
+/*! energy-cockpit v0.9.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -37,7 +37,8 @@ const WD = (() => {
     const v = num(h, id);
     if (v === null) return null;
     const u = h.states[id].attributes.unit_of_measurement || 'W';
-    return u === 'kW' ? v * 1000 : u === 'MW' ? v * 1e6 : v;
+    const ul = String(u).toLowerCase();
+    return ul === 'kw' ? v * 1000 : ul === 'mw' ? v * 1e6 : v;
   };
   // Zahl oder Entität; sonst Standardwert
   const val = (h, v, def) => {
@@ -171,7 +172,7 @@ const WD = (() => {
       'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
       'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Lädt', 'tag.discharging': 'Entlädt',
-      'forecast': 'Prognose', 'offline': 'offline',
+      'forecast': 'Prognose', 'forecast.day': 'Prognose heute', 'offline': 'offline',
       'ka.on': '● Wach', 'ka.wait': '☝ Einmal tippen – Bildschirm bleibt an',
       'waste.today': 'Heute', 'waste.tomorrow': 'Morgen',
       'bat.usable_pct': 'nutzbar', 'bat.usable_slow': '<b>{kwh} kWh</b> nutzbar · lädt langsam', 'bat.full_at': 'Voll um <b>{time}</b> · in {dur}',
@@ -902,7 +903,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
-      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power,
+      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power || c.battery.power_charge || c.battery.power_discharge,
         `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
       links.push('bat');
     }
@@ -1218,6 +1219,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let grid = c.grid ? watt(h, c.grid.entity) : null;
     if (grid !== null && c.grid.invert) grid = -grid;
     let bat = c.battery ? watt(h, c.battery.power) : null;
+    // Getrennte Sensoren für Laden und Entladen (z. B. SunEnergyXT): Laden positiv, Entladen negativ
+    if (c.battery && !c.battery.power && (c.battery.power_charge || c.battery.power_discharge)) {
+      const pc = c.battery.power_charge ? watt(h, c.battery.power_charge) : null, pd = c.battery.power_discharge ? watt(h, c.battery.power_discharge) : null;
+      bat = pc === null && pd === null ? null : (pc || 0) - (pd || 0);
+    }
     if (bat !== null && c.battery.invert) bat = -bat;
     const soc = c.battery ? num(h, c.battery.soc) : null;
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
@@ -1271,8 +1277,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
-      const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
-      if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
+      // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
+      const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
+      const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
+      if (/^(k|m)?wh$/i.test(fUnit)) {
+        const e = num(h, c.pv.forecast);
+        const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
+        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${fKwh(kwh)} kWh</b>`);
+      } else {
+        const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
+        if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
+      }
       this._set('.pv .sub', parts.join('<br>'), true);
       this._link('pv', on, true, PAL.pv, pv1);
     }
@@ -1444,9 +1459,9 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   const LABELS = {
     title: 'Titel', name: 'Anzeigename', icon: 'Symbol',
-    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung)',
+    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
-    power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
+    power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
@@ -1471,7 +1486,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
       sec('grid', 'Netz', [ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('battery', 'Batterie', [
-        ent('power', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
+        ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
         numb('capacity_kwh', 0, 200, 0.1), ent('reserve_soc', ['sensor', 'number', 'input_number']), numb('reserve_pct', 0, 100, 1),
         ent('max_soc', ['sensor', 'number', 'input_number']), numb('max_pct', 0, 100, 1),
         { name: 'soc_display', selector: { select: { mode: 'dropdown', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] } } },
@@ -1504,7 +1519,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Solar', title: 'Solaranlage', text: 'Wähle den Sensor, der die aktuelle Erzeugung der PV-Anlage in Watt anzeigt.', fields: [
       { path: 'pv.entity', label: 'PV-Leistung', kind: 'power', hints: H(/pv|solar|photovolt|inverter|wechselrichter|erzeugung/i, /input|eingang|power|leistung/i) },
       { path: 'pv.daily', label: 'Tagesertrag (kWh)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute|yield|ertrag/i, /pv|solar|inverter/i) },
-      { path: 'pv.forecast', label: 'Prognose der Leistung (z. B. Solcast)', kind: 'power', optional: true, hints: H(/forecast|prognose|solcast/i) },
+      { path: 'pv.forecast', label: 'Prognose (z. B. Solcast, Leistung in W/kW)', kind: 'power', optional: true, hints: H(/forecast|prognose|solcast/i), help: 'Eine Tagesprognose in kWh (Solcast "Prognose heute") wählst du im Formular, sie wird als kWh angezeigt.' },
       { path: 'pv2.entity', label: 'Zweite Anlage, z. B. Balkonkraftwerk (Leistung)', kind: 'power', optional: true, hints: H(/bkw|balkon|pv2|solar2|plug|steckdose|shelly/i), help: 'Eigene Kachel und Linie. Die Bilanz (Autarkie, Eigenverbrauch, Herkunft) rechnet mit der Summe beider Anlagen.' },
       { path: 'pv2.name', label: 'Name der zweiten Anlage', kind: 'text', optional: true },
       { path: 'pv2.daily', label: 'Tagesertrag der zweiten Anlage (kWh)', kind: 'energy', optional: true },
@@ -1518,6 +1533,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ] },
     { short: 'Batterie', title: 'Batteriespeicher', text: 'Überspringen, wenn du keine Batterie hast.', fields: [
       { path: 'battery.power', label: 'Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i) },
+      { path: 'battery.power_charge', label: 'oder getrennt: Ladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|input|eingang/i), help: 'Nur wenn dein System zwei Sensoren hat (Laden und Entladen getrennt). Dann das Feld oben leer lassen.' },
+      { path: 'battery.power_discharge', label: 'oder getrennt: Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /entlade|discharge|output|ausgang/i) },
       { path: 'battery.soc', label: 'Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level|batterieladung/i, /batter|akku/i) },
       { path: 'battery.reserve_soc', label: 'Entladegrenze der Batterie (Sensor oder Helfer, %)', kind: 'percent', optional: true, help: 'Bis zu diesem Ladestand wird die Batterie entladen. Viele Wechselrichter bieten dafür eine Zahl-Entität an (zum Beispiel "Entlade-Ende-Ladestand"). Die Karte zeigt die Grenze auf dem Ladebalken und rechnet die nutzbare Kapazität.', hints: H(/entlad|reserve|min.*soc|discharge.*(end|cut|limit)|ende/i, /soc|ladestand|ladung/i) },
       { path: 'battery.reserve_pct', label: 'oder feste Entladegrenze (%)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 10, wenn die Batterie nur bis 10 % entladen wird.' },

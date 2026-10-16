@@ -35,7 +35,8 @@ const WD = (() => {
     const v = num(h, id);
     if (v === null) return null;
     const u = h.states[id].attributes.unit_of_measurement || 'W';
-    return u === 'kW' ? v * 1000 : u === 'MW' ? v * 1e6 : v;
+    const ul = String(u).toLowerCase();
+    return ul === 'kw' ? v * 1000 : ul === 'mw' ? v * 1e6 : v;
   };
   // Zahl oder Entität; sonst Standardwert
   const val = (h, v, def) => {

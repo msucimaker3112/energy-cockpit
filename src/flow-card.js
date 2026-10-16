@@ -352,7 +352,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
     if (c.battery) {
-      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power,
+      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, c.battery.power || c.battery.power_charge || c.battery.power_discharge,
         `<div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div>`);
       links.push('bat');
     }
@@ -668,6 +668,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let grid = c.grid ? watt(h, c.grid.entity) : null;
     if (grid !== null && c.grid.invert) grid = -grid;
     let bat = c.battery ? watt(h, c.battery.power) : null;
+    // Getrennte Sensoren für Laden und Entladen (z. B. SunEnergyXT): Laden positiv, Entladen negativ
+    if (c.battery && !c.battery.power && (c.battery.power_charge || c.battery.power_discharge)) {
+      const pc = c.battery.power_charge ? watt(h, c.battery.power_charge) : null, pd = c.battery.power_discharge ? watt(h, c.battery.power_discharge) : null;
+      bat = pc === null && pd === null ? null : (pc || 0) - (pd || 0);
+    }
     if (bat !== null && c.battery.invert) bat = -bat;
     const soc = c.battery ? num(h, c.battery.soc) : null;
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
@@ -721,8 +726,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
-      const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
-      if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
+      // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
+      const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
+      const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
+      if (/^(k|m)?wh$/i.test(fUnit)) {
+        const e = num(h, c.pv.forecast);
+        const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
+        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${fKwh(kwh)} kWh</b>`);
+      } else {
+        const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
+        if (fc !== null) parts.push(`${T('forecast')} <b>${fW(fc)}</b>`);
+      }
       this._set('.pv .sub', parts.join('<br>'), true);
       this._link('pv', on, true, PAL.pv, pv1);
     }

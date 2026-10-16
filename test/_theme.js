@@ -43,6 +43,18 @@
       };
     }
   }
+  if (q.get('batsplit') || q.get('fc')) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) {
+        const n = Object.assign({}, c);
+        if (q.get('batsplit')) n.battery = Object.assign({}, c.battery, { power: undefined, power_charge: 'sensor.bat_in', power_discharge: 'sensor.bat_out' });
+        if (q.get('fc')) n.pv = Object.assign({}, c.pv, { forecast: 'sensor.fc_kwh' });
+        return o.call(this, n);
+      };
+    }
+  }
   const ts = q.get('textsize'), rm = q.get('restmin');
   if (ts || rm) {
     const C = customElements.get('energy-cockpit-flow-card');

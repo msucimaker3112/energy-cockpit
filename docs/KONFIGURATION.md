@@ -24,6 +24,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `grid.invert` | Ja/Nein | Vorzeichen umkehren |
 | `grid.daily_import`, `grid.daily_export` | Sensor | Bezug / Einspeisung heute (kWh) |
 | `battery.power` | Sensor | Laden positiv, Entladen negativ |
+| `battery.power_charge`, `battery.power_discharge` | Sensoren | Statt `power`: zwei getrennte Sensoren für Laden und Entladen (beide positiv). Die Karte rechnet Laden minus Entladen |
+| `pv.forecast` | Sensor | Prognose in W/kW (zeigt "Prognose 6,0 kW") oder Tagesprognose in kWh (zeigt "Prognose heute 6,0 kWh"), z. B. Solcast |
 | `battery.soc` | Sensor | Ladestand in % |
 | `battery.invert` | Ja/Nein | Vorzeichen umkehren |
 | `battery.capacity_kwh` | Zahl | Kapazität für die Prognose "voll um / reicht bis" |
