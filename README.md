@@ -1,6 +1,12 @@
 # Energy-Cockpit
 
-Vier Karten für Home Assistant, die zusammen ein **Energie-Cockpit** für das Haus ergeben. Alle Sensoren sind frei wählbar, es gibt keine festen Gerätenamen im Code. Die Texte sind komplett deutsch, die Währung kommt aus Home Assistant.
+**Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.** Komplett deutsch, kostenlos, mit Einrichtungsassistent. Du brauchst kein YAML.
+
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=msucimaker3112&repository=energy-cockpit&category=plugin)
+
+![Energy-Cockpit: zwei PV-Anlagen, Batterie und Verbraucher](docs/img/pv2-bkw-verbraucher.png)
+
+*Beispieldaten.* Vier Karten, die zusammen ein **Energie-Cockpit** für das Haus ergeben. Alle Sensoren sind frei wählbar, es gibt keine festen Gerätenamen im Code. Die Währung kommt aus Home Assistant.
 
 | Karte | Zeigt |
 |---|---|
@@ -134,7 +140,7 @@ price_ct: 34
 advance: 35
 ```
 
-Die meisten Einstellungen erledigt der grafische Editor. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.
+Die meisten Einstellungen erledigt der grafische Editor. Drei optionale Zusatzfunktionen gibt es nur im YAML-Editor: ein **Müllabfuhr-Hinweis** aus einem HA-Kalender, **Überschuss-Vorschläge** (zum Beispiel "jetzt Waschmaschine starten") und ein **Netzalarm** bei hohem Bezug. Beispiele stehen in der [Konfigurationsanleitung](docs/KONFIGURATION.md).
 
 ## Voraussetzungen
 
@@ -148,6 +154,10 @@ Die meisten Einstellungen erledigt der grafische Editor. Abfallkalender, Übersc
 - Die Karten skalieren sich auf die sichtbare Bildschirmhöhe (Wandtablet-Betrieb). Abschaltbar mit `fit_screen: false`.
 - Die Raum-Abrechnung braucht ein bis zwei volle Stunden Daten, bevor Betriebszeiten und Grundlast Werte zeigen. Für die Hochrechnung ist mindestens ein ganzer Messtag nötig.
 - Getestet mit Chromium-basierten Browsern und dem Silk-Browser des Echo Show (ältere Browser: keine Container-Queries, kein `color-mix`).
+
+## Gefällt dir das Projekt?
+
+Ein ⭐ oben rechts hilft anderen, es zu finden. Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues), viele Funktionen (zweite PV-Anlage, Textgröße, Batteriegrenzen) sind genau so entstanden.
 
 ## Lizenz
 
