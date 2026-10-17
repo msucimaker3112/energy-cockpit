@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.9.2 - MIT License */
+/*! energy-cockpit v0.9.3 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
