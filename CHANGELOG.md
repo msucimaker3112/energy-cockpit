@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.10.0
+- **Raum-Abrechnung: Unterposten (`devices[].items`):** Ein Bereich kann einzelne Geräte mit eigenem Zähler ausweisen (zum Beispiel ein Kühlschrank in der "Chillecke"). Die Abrechnung des Bereichs bleibt unverändert, die Unterposten erscheinen als "↳"-Zeilen mit kWh, Quellen (Netz, Batterie, PV) und Kosten, dazu "↳ übrige Geräte". In der Live-Kachel steht die aktuelle Leistung und der Verbrauch heute, im CSV eigene Spalten.
+
 ## 0.9.3
 - **HACS-Validierung:** Eine GitHub-Action prüft das Repository bei jeder Änderung automatisch (Voraussetzung für die Aufnahme in den HACS-Standard). Die Karten selbst sind unverändert.
 

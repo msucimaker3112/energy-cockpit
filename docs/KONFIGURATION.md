@@ -287,6 +287,7 @@ Unterhalb der Tabelle zeigt die Karte zum Vergleich immer auch den Betrag für "
 | `price_pv`, `price_battery` | Nur für `valuation: mix`. |
 | `base_fee` | Grundgebühr je Monat; wird für alle Monate ab dem ersten Messwert addiert. |
 | `advance` | Monatlicher Abschlag in Euro (Zahl oder `input_number`). Aktiviert Fortschrittsbalken, Saldo und Jahresbilanz. |
+| `devices[].items` | Optional: Unterposten des Bereichs, zum Beispiel ein einzelnes Gerät in der "Chillecke". Je Eintrag `energy` (kWh-Zähler, mit Langzeitstatistik), optional `name` und `power`. Die Summe bleibt der Zähler des Bereichs, die Unterposten erscheinen als "↳"-Zeilen in der Tabelle "Je Bereich" mit kWh, Quellen und Kosten, dazu "↳ übrige Geräte" (Bereich minus Unterposten) und die Live-Leistung in der Kachel. Nur im YAML-Editor |
 | `devices[].power` | Optional: Leistungssensor (W) des Bereichs für die Live-Anzeige. |
 | `watt_warn`, `watt_high` | Schwellen der Live-Anzeige in Watt (Standard 300 und 800). |
 | `standby_w` | Schwelle für die nächtliche Grundlast (0 bis 5 Uhr) in Watt (Zahl oder `input_number`, Standard 80). |

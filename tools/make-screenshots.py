@@ -80,6 +80,8 @@ JOBS.append(('flow.html', 'text-sehr-gross', '?shot=1&scene=morgen&textsize=sehr
 JOBS.append(('flow.html', 'rest-ab-10', '?shot=1&groups=5&restmin=10'))
 JOBS.append(('flow.html', 'pv2-bkw-verbraucher', '?shot=1&scene=bkw&pv2=cons'))
 JOBS.append(('flow.html', 'pv2-bkw', '?shot=1&scene=bkw&pv2=1'))
+JOBS.append(('room-extra.html', 'room-unterposten', '?show=7'))
+JOBS.append(('room-extra.html', 'room-unterposten-live', '?show=1'))
 # Farbschemen
 for th in ['hell', 'warm', 'graphit']:
     JOBS.append(('flow.html', f'theme-{th}-flow', f'?theme={th}'))

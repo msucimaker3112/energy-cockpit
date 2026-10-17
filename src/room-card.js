@@ -90,6 +90,8 @@ td.z{opacity:.35}
 .hm .cell{height:18px;border-radius:3px}
 .hm .dl{text-align:left;font-weight:650;font-size:.7rem}
 .hm .ah{text-align:right;font-size:.68rem;font-weight:650;color:var(--txt)}
+.tile .s .wv{font-size:1em;font-weight:700}
+tr.ch td{font-size:.86em;color:rgb(var(--mut))}tr.ch td:first-child{text-align:left;padding-left:18px}
 tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;padding-top:0}
 .narrow .kpis{grid-template-columns:1fr 1fr}
 .narrow .grid3{grid-template-columns:1fr}
@@ -126,7 +128,10 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Raum-Abrechnung</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
         return;
       }
-      this._c = Object.assign({}, c, { devices: devs });
+      // Unterposten (devices[].items): eigener Zähler innerhalb eines Bereichs, zählt nicht doppelt zur Summe
+      const items = [];
+      devs.forEach((d, pi) => arr(d.items).filter((x) => x && x.energy).forEach((x) => items.push(Object.assign({}, x, { parent: pi }))));
+      this._c = Object.assign({}, c, { devices: devs, items });
       this._days = null;
       this._loadedAt = 0;
       this._render();
@@ -155,6 +160,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       if (!this._c) return;
       this.shadowRoot.querySelectorAll('[data-w]').forEach((el) => {
         const w = this._watt(this._c.devices[+el.dataset.w]);
+        el.textContent = w === null ? '–' : nf(w, 0);
+        el.className = 'wv ' + this._wcls(w);
+      });
+      this.shadowRoot.querySelectorAll('[data-wi]').forEach((el) => {
+        const w = this._watt(this._c.items[+el.dataset.wi]);
         el.textContent = w === null ? '–' : nf(w, 0);
         el.className = 'wv ' + this._wcls(w);
       });
@@ -193,11 +203,13 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       try {
         const ids = c.devices.map((d) => d.energy);
         const nd = ids.length;
+        const iids = c.items.map((x) => x.energy);
+        const ni = iids.length;
         const y = new Date().getFullYear();
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
-        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids, types: ['change'] });
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'] });
         let firstTs = null;
         ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
@@ -207,16 +219,16 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         if (firstTs === null) {
           this._first = null;
         } else if (!this._hasMix) {
-          ids.forEach((id, di) => (dr[id] || []).forEach((x) => {
+          ids.concat(iids).forEach((id, di) => (dr[id] || []).forEach((x) => {
             const k = key(new Date(ts(x)));
-            (days[k] = days[k] || ids.map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
+            (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
           }));
           this._first = key(new Date(firstTs));
         } else {
           // 2) Stundenwerte: Geräte und Haus-Mix (PV, Bezug, Einspeisung, Batterie laden/entladen)
           const from = new Date(firstTs);
           from.setHours(0, 0, 0, 0);
-          const all = ids.concat(srcIds);
+          const all = ids.concat(iids, srcIds);
           const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'] });
           const at = {};
           all.forEach((id, i) => (hr[id] || []).forEach((x) => {
@@ -229,28 +241,30 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           Object.keys(at).forEach((t) => {
             const row = at[t];
             const dev = ids.map((id) => row[id] || 0);
+            const idev = iids.map((id) => row[id] || 0);
             const pv = row[he.pv] || 0, imp = row[he.import] || 0, exp = row[he.export] || 0, chg = row[he.charge] || 0, dis = row[he.discharge] || 0;
             const home = pv + imp - exp - chg + dis;
             let g = 1, b = 0;
             if (home > 0.0001) { g = clamp(imp / home, 0, 1); b = clamp(dis / home, 0, 1 - g); }
             const p = 1 - g - b;
             // Stundenwerte (auch Stunden ohne Verbrauch) für Grundlast, Betriebszeiten und beste Zeit
-            if (ids.some((id) => row[id] !== undefined)) this._hrs.push({ t: +t, dev });
+            if (ids.some((id) => row[id] !== undefined)) this._hrs.push({ t: +t, dev, idev });
             if (row[he.import] !== undefined && home > 0.0001 && +t >= mixFrom) {
               const m = this._mixH[new Date(+t).getHours()];
               m.n++; m.g += g; m.b += b; m.p += p;
             }
             if (!dev.some((v) => v > 0)) return;
             const k = key(new Date(+t));
-            const a = (days[k] = days[k] || ids.map(() => [0, 0, 0, 0]));
+            const a = (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]));
             const sur = exp > 0.0001; // in dieser Stunde wurde eingespeist: PV-Anteil hätte sonst Einspeisevergütung gebracht
             dev.forEach((v, di) => { a[di][0] += v * g; a[di][1] += v * b; a[di][sur ? 3 : 2] += v * p; });
+            idev.forEach((v, j) => { const q = a[nd + j]; q[0] += v * g; q[1] += v * b; q[sur ? 3 : 2] += v * p; });
           });
           this._first = key(new Date(firstTs));
         }
         this._firstTs = firstTs;
         this._days = days;
-        this._nd = nd;
+        this._nd = nd + ni;
         this._loadedAt = Date.now();
       } catch (e) {
         console.warn('energy-cockpit-room-card: load failed', e);
@@ -262,7 +276,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     // Summe über [from, to]: je Gerät [Netz, Batterie, PV]
     _sum(from, to) {
-      const nd = this._c.devices.length;
+      const nd = this._c.devices.length + this._c.items.length;
       const out = Array.from({ length: nd }, () => [0, 0, 0, 0]);
       const f = key(from), t = key(to);
       Object.keys(this._days).forEach((k) => {
@@ -315,7 +329,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     //  grid:        alles zum Bezugspreis.
     _calc(from, to, withFee) {
       const P = this._prices(), mode = this._c.valuation || 'opportunity';
-      const raw = this._sum(from, to);
+      const rawAll = this._sum(from, to), nDev = this._c.devices.length;
+      const raw = rawAll.slice(0, nDev), rawI = rawAll.slice(nDev);
       const price = (d) => {
         if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * P.grid;
         if (mode === 'mix') return d[0] * P.grid + d[1] * P.batt + (d[2] + d[3]) * P.pv;
@@ -330,7 +345,9 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const devCost = raw.map(price);
       const cost = devCost.reduce((a, v) => a + v, 0) + fee;
       const costFull = kwh * P.grid + fee;
-      return { dev, src, kwh, fee, cost, costFull, devCost, surplus };
+      const items = rawI.map((d) => [d[0], d[1], d[2] + d[3]]);
+      const itemCost = rawI.map(price);
+      return { dev, src, kwh, fee, cost, costFull, devCost, surplus, items, itemCost };
     }
     _period(tab) {
       const now = new Date(), y = now.getFullYear();
@@ -344,11 +361,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
       const num = (v) => v.toFixed(3).replace('.', ',');
-      const head = ['Zeitraum', 'Summe kWh', 'Netz kWh', 'Batterie kWh', 'PV kWh', 'Kosten ' + cur(), 'bei Bezugspreis ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'));
+      const head = ['Zeitraum', 'Summe kWh', 'Netz kWh', 'Batterie kWh', 'PV kWh', 'Kosten ' + cur(), 'bei Bezugspreis ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
         return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
-          .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])));
+          .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])), r.items.map((d) => num(d[0] + d[1] + d[2])));
       });
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
     }
@@ -399,9 +416,14 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const mx = Math.max(1, ...arr.map((v) => v || 0));
         const bars = arr.map((v, hh) => `<i class="${hh === now.getHours() ? 'now' : ''}" style="height:${v === null ? 0 : Math.max(3, v / mx * 100)}%"></i>`).join('');
         const todayKwh = arr.reduce((a, v) => a + (v || 0), 0) / 1000;
+        const sub = c.items.map((x, j) => ({ x, j })).filter((o) => o.x.parent === i).map((o) => {
+          const wi = this._watt(o.x);
+          const tk = hrs.reduce((a, h2) => (key(new Date(h2.t)) === todayK ? a + (h2.idev ? h2.idev[o.j] || 0 : 0) : a), 0);
+          return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · heute ${fk(tk)} kWh</div>`;
+        }).join('');
         return `<div class="tile" style="--c:${d.color || '96,165,250'}"><div class="l">${esc(d.name || d.energy)}</div>
           <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
-          <div class="spark">${bars}</div><div class="s">heute ${fk(todayKwh)} kWh · Kurve je Stunde</div></div>`;
+          <div class="spark">${bars}</div><div class="s">heute ${fk(todayKwh)} kWh · Kurve je Stunde</div>${sub}</div>`;
       }).join('');
       top += `<div class="panel"><div class="ph"><span class="lbl">Jetzt und heute</span><span class="leg"><span style="--c:52,211,153"><i></i>ruhig</span><span style="--c:255,197,61"><i></i>erhöht</span><span style="--c:255,92,122"><i></i>hoch</span></span></div><div class="tiles">${tiles}</div></div>`;
 
@@ -528,7 +550,20 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const cur_ = per[tab];
         const devRows = c.devices.map((d, i) => {
           const dv = cur_.dev[i], t = dv[0] + dv[1] + dv[2];
-          return `<tr><td>${esc(d.name || d.energy)}</td><td>${fk(t)}</td>${mix ? dv.map(cell).join('') : ''}<td>${fe(cur_.devCost[i])}</td></tr>`;
+          let out = `<tr><td>${esc(d.name || d.energy)}</td><td>${fk(t)}</td>${mix ? dv.map(cell).join('') : ''}<td>${fe(cur_.devCost[i])}</td></tr>`;
+          const its = c.items.map((x, j) => ({ x, j })).filter((o) => o.x.parent === i);
+          if (its.length) {
+            const rest = dv.slice(), restCost = [cur_.devCost[i]];
+            its.forEach((o) => {
+              const iv = cur_.items[o.j];
+              out += `<tr class="ch"><td>↳ ${esc(o.x.name || o.x.energy)}</td><td>${fk(iv[0] + iv[1] + iv[2])}</td>${mix ? iv.map(cell).join('') : ''}<td>${fe(cur_.itemCost[o.j])}</td></tr>`;
+              iv.forEach((v, k) => { rest[k] -= v; });
+              restCost[0] -= cur_.itemCost[o.j];
+            });
+            const rv = rest.map((v) => Math.max(0, v));
+            out += `<tr class="ch"><td>↳ übrige Geräte</td><td>${fk(rv[0] + rv[1] + rv[2])}</td>${mix ? rv.map(cell).join('') : ''}<td>${fe(Math.max(0, restCost[0]))}</td></tr>`;
+          }
+          return out;
         }).join('');
         const title = { week: 'Diese Woche', month: MONTHS_LONG[new Date().getMonth()] + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
         const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${s[0]}</span>`).join('') : '';
