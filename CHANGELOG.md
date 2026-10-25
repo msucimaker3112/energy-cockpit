@@ -1,6 +1,6 @@
 # Änderungsprotokoll
 
-## Unveröffentlicht
+## 0.11.0
 - **Energiefluss: kein Zucken mehr bei Netzbezug.** Während das Hinweis-Banner ein- oder ausfährt, bleibt die Skalierung stehen und wird danach einmal angepasst. Kleine Schwankungen unter 2 % werden ignoriert.
 - **Geräte & Verbrauch: gleiche Größe in allen Zeiträumen.** Der Wechsel zwischen Heute, Woche, Monat und Jahr verkleinert die Karte nicht mehr. Neu skaliert wird nur, wenn sich Breite oder Bildschirmhöhe ändern.
 - **Energiefluss: Option `watt_only`.** Zeigt alle Leistungen in Watt statt ab 1000 W in kW. Standard bleibt kW.

@@ -52,7 +52,11 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Unterposten in der Raum-Abrechnung** | `devices[].items` weist einzelne Geräte innerhalb eines Bereichs aus (zum Beispiel einen Kühlschrank in der Chillecke) mit eigenen kWh, Quellen und Kosten, plus "übrige Geräte". Die Abrechnung des Bereichs bleibt unverändert. |
 | **Textgröße** | `text_size: gross` oder `sehr_gross` vergrößert Ladestand, Kennzahlen oben rechts und Beschriftungen. Gedacht für Handy und Tablet. |
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
-| **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. |
+| **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. Mit `earned_before_eur` zählt auch, was die Anlage vor Beginn der Home-Assistant-Zähler schon erwirtschaftet hat. |
+| **Gruppen pro Reihe** | `groups_columns: 1` stellt jede Gruppe in eine eigene Reihe über die volle Breite. Die Gerätenamen sind dann auch auf dem Handy vollständig lesbar. Standard: alle Gruppen nebeneinander. |
+| **Nur Watt** | `watt_only: true` zeigt alle Leistungen in Watt (zum Beispiel 6.200 W) statt ab 1000 W in kW. |
+| **Aktiv ab** | `on_w` je Verbraucher oder Gruppe: ab welcher Leistung Rahmen und Linie erscheinen (Standard 10 W). Gut für kleine Verbraucher wie eine Zirkulationspumpe. |
+| **Haus heute** | Kachel mit dem Hausverbrauch des Tages in kWh, berechnet oder aus einem eigenen Sensor (`home.daily`). |
 
 | Batterie mit Entladegrenze | Sammel-Linie zu den Verbrauchern |
 |---|---|
@@ -61,6 +65,14 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | Zwei PV-Anlagen | Mit Verbrauchern und Sammel-Linie |
 |---|---|
 | ![Zwei PV-Anlagen: Dach und Balkonkraftwerk](docs/img/pv2-bkw.png) | ![Zwei PV-Anlagen mit Verbrauchern](docs/img/pv2-bkw-verbraucher.png) |
+
+| Handy: Gruppen nebeneinander (Standard) | Handy: `groups_columns: 1` |
+|---|---|
+| ![Gruppen nebeneinander](docs/img/gruppen-vorher-handy.png) | ![Eine Gruppe pro Reihe](docs/img/gruppen-reihe-handy.png) |
+
+| `watt_only: true` und Kachel "Haus heute" | `groups_columns: 1` auf dem Tablet |
+|---|---|
+| ![Alles in Watt](docs/img/watt-only.png) | ![Eine Gruppe pro Reihe, breit](docs/img/gruppen-reihe-breit.png) |
 
 | Textgröße normal | Textgröße `gross` | Textgröße `sehr_gross` |
 |---|---|---|

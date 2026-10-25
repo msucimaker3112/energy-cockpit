@@ -94,6 +94,16 @@ rest:                               # false = ausblenden
   name: Nicht erfasst
 ```
 
+Gruppen untereinander, eine pro Reihe (`groups_columns: 1`):
+
+```yaml
+groups_columns: 1      # 2 = zwei Gruppen pro Reihe; ohne Angabe alle nebeneinander
+```
+
+| Standard | `groups_columns: 1` |
+|---|---|
+| ![Gruppen nebeneinander](img/gruppen-vorher-handy.png) | ![Eine Gruppe pro Reihe](img/gruppen-reihe-handy.png) |
+
 Textgröße und Kachel "Nicht erfasst" (Bilder: `docs/img/text-*.png`, `docs/img/rest-ab-10.png`):
 
 ```yaml

@@ -55,6 +55,33 @@
       };
     }
   }
+  // grpdemo=1: Gruppen mit mehreren, lang benannten Geräten; gc=1: groups_columns; watt=1: watt_only
+  const gdemo = q.get('grpdemo'), gcq = q.get('gc'), wq = q.get('watt');
+  if (gdemo || gcq || wq) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) {
+        const n = Object.assign({}, c);
+        if (gdemo) {
+          const G = [['Wohnzimmer', 'mdi:sofa-outline', '#818cf8', [['Fernseher Samsung', 84], ['Soundbar', 12], ['Stehlampe Ecke', 9], ['Router und Switch', 21]]],
+            ['Küche', 'mdi:stove', '#fb923c', [['Kühlschrank', 64], ['Geschirrspüler', 1830], ['Kaffeemaschine', 0]]],
+            ['Keller', 'mdi:home-floor-negative-1', '#7dd3fc', [['Waschmaschine', 0], ['Gefrierschrank Keller', 71], ['Zirkulationspumpe', 6]]],
+            ['Büro', 'mdi:desktop-classic', '#34d399', [['Arbeitsplatz PC', 142], ['Server NAS', 38]]]];
+          let k = 0;
+          n.consumer_groups = G.map(([name, icon, color, its]) => ({ name, icon, color, items: its.map(([nm, w]) => {
+            const id = 'sensor.demo_' + (k++);
+            if (typeof scenes !== 'undefined') Object.values(scenes).forEach((s) => { s[id] = { state: String(w), attributes: { unit_of_measurement: 'W' } }; });
+            return Object.assign({ entity: id, name: nm }, nm === 'Zirkulationspumpe' ? { on_w: 3 } : {});
+          }) }));
+          n.consumers = [];
+        }
+        if (gcq) n.groups_columns = +gcq;
+        if (wq) n.watt_only = true;
+        return o.call(this, n);
+      };
+    }
+  }
   const ts = q.get('textsize'), rm = q.get('restmin');
   if (ts || rm) {
     const C = customElements.get('energy-cockpit-flow-card');
