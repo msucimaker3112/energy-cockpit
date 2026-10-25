@@ -198,7 +198,11 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     getCardSize() { return 10; }
     getGridOptions() { return { columns: 'full', min_columns: 6 }; }
     connectedCallback() {
-      if (!this._ro && window.ResizeObserver) this._ro = new ResizeObserver(() => this._sched());
+      // Nur auf Breitenänderungen reagieren: Die Höhe setzt die Karte selbst (sonst passt sie sich an den Inhalt jedes Zeitraums an)
+      if (!this._ro && window.ResizeObserver) this._ro = new ResizeObserver((en) => {
+        const w = en[0] && en[0].contentRect.width;
+        if (w !== this._roW) { this._roW = w; this._sched(); }
+      });
       if (this._ro) this._ro.observe(this);
       if (!this._onResize) this._onResize = () => this._sched();
       window.addEventListener('resize', this._onResize);
@@ -222,6 +226,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const wrap = this._$('.wrap'), card = this._$('ha-card');
       if (!wrap || !card) return;
       wrap.style.transform = ''; wrap.style.width = ''; wrap.style.minHeight = ''; card.style.height = '';
+      this._fs = null;
       if (this._c.fit_screen === false) return;
       const top = Math.max(0, this.getBoundingClientRect().top);
       const avail = window.innerHeight - top - (this._c.fit_margin === undefined ? 8 : this._c.fit_margin);
@@ -239,7 +244,15 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       }
       wrap.style.minHeight = (avail / s) + 'px';
       if (s !== 1) wrap.style.transform = 'scale(' + s + ')';
-      card.style.height = Math.ceil(Math.max(avail, wrap.offsetHeight * s)) + 'px';
+      this._fs = { s, avail };
+      this._fitH();
+    }
+    // Nach einem Wechsel des Zeitraums: Maßstab bleibt, nur die Kartenhöhe folgt dem Inhalt
+    _fitH() {
+      const wrap = this._$('.wrap'), card = this._$('ha-card'), f = this._fs;
+      if (!wrap || !card || !f || this._c.fit_screen === false) return;
+      const hh = Math.ceil(Math.max(f.avail, wrap.offsetHeight * f.s)) + 'px';
+      if (card.style.height !== hh) card.style.height = hh;
     }
 
     // Geräte, die gerade erreichbar sind (offline wird weggelassen)
@@ -558,6 +571,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
           else if (this._isOn(d)) this._toggle(d);
         });
       }
+      this._fitH();
     }
     _renderMedia(d, el, w, on) {
       const h = this._hass, a = d.ambilight || {};

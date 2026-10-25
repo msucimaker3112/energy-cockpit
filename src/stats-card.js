@@ -337,7 +337,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
       const pvT = live(h, c.pv_total), expT = live(h, c.grid_export_total);
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
-        const earned = Math.max(0, pvT - expT) * price + expT * feed;
+        // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
+        const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
+        const earned = Math.max(0, pvT - expT) * price + expT * feed + before;
         const pct = earned / inv;
         this._count('amo', Math.min(100, pct * 100), 0);
         requestAnimationFrame(() => { const f = this._$('.pfill'); if (f) f.style.width = Math.min(100, pct * 100) + '%'; });

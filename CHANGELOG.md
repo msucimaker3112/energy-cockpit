@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+- **Energiefluss: kein Zucken mehr bei Netzbezug.** Während das Hinweis-Banner ein- oder ausfährt, bleibt die Skalierung stehen und wird danach einmal angepasst. Kleine Schwankungen unter 2 % werden ignoriert.
+- **Geräte & Verbrauch: gleiche Größe in allen Zeiträumen.** Der Wechsel zwischen Heute, Woche, Monat und Jahr verkleinert die Karte nicht mehr. Neu skaliert wird nur, wenn sich Breite oder Bildschirmhöhe ändern.
+- **Energiefluss: Option `watt_only`.** Zeigt alle Leistungen in Watt statt ab 1000 W in kW. Standard bleibt kW.
+- **Energiefluss: Kachel "Haus heute".** Hausverbrauch des Tages in kWh in der unteren Zeile. Berechnet aus PV-Ertrag, Bezug, Einspeisung und Batterie oder aus einem eigenen Sensor (`home.daily`).
+- **Energiefluss: Schwelle je Verbraucher (`on_w`).** Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie). Standard bleibt 10 W.
+- **Energiefluss: Gruppen pro Reihe (`groups_columns`).** Mit `1` steht jede Gruppe in einer eigenen Reihe über die volle Breite, die Verbrauchernamen sind besser lesbar. Standard bleibt: alle Gruppen nebeneinander.
+- **Statistik: bereits erwirtschaftet (`earned_before_eur` oder `earned_before`).** Wird zur Amortisation addiert, wenn die Anlage schon lief, bevor Home Assistant die Zähler erfasst hat.
+
 ## 0.10.1
 - **Sicherheit:** Namen, Symbole, Entitäten, Navigationspfade und Texte aus der Konfiguration sowie Attribute von Entitäten (zum Beispiel das Monatsarchiv der Raum-Abrechnung) werden vor der Anzeige maskiert. Ein `<`, `'` oder `"` in einem Namen bricht die Karte nicht mehr, und HTML darin wird nicht mehr ausgeführt. Farben (`color`) werden geprüft: Erlaubt sind `#rrggbb`, `#rgb` und `r,g,b`, andere Werte fallen auf die Standardfarbe zurück.
 

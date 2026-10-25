@@ -83,13 +83,14 @@ const WD = (() => {
   };
   const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
   const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
-  const splitW = (w) => {
+  // onlyW: immer in Watt, nie in kW umschalten (Option watt_only)
+  const splitW = (w, onlyW) => {
     if (w === null || w === undefined || isNaN(w)) return ['—', ''];
     const a = Math.abs(w);
-    if (a >= 999.5) return [nf(a / 1000, a >= 10000 ? 1 : 2), 'kW'];
+    if (a >= 999.5 && !onlyW) return [nf(a / 1000, a >= 10000 ? 1 : 2), 'kW'];
     return [nf(Math.round(a), 0), 'W'];
   };
-  const fW = (w) => splitW(w).join(' ');
+  const fW = (w, onlyW) => splitW(w, onlyW).join(' ');
   const fKwh = (v) => (v === null ? '—' : nf(v, v >= 100 ? 0 : 1));
   const fPct = (v) => (v === null || !isFinite(v) ? '—' : Math.round(Math.max(0, Math.min(1, v)) * 100) + ' %');
   // Währungssymbol aus Home Assistant (€, $, £ …)
