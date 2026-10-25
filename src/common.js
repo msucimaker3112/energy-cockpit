@@ -12,16 +12,22 @@ const WD = (() => {
   const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', home: '34,211,238', mut: '139,151,179' };
   const TH = 10;
 
-  const rgb = (c) => {
-    if (!c) return PAL.bat;
-    if (PAL[c]) return PAL[c];
-    if (c[0] === '#') {
-      let x = c.slice(1);
-      if (x.length === 3) x = x.split('').map((y) => y + y).join('');
-      const n = parseInt(x, 16);
-      return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+  // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
+  const accentRgb = (a) => {
+    if (typeof a !== 'string') return '';
+    const s = a.trim();
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+    if (m) {
+      let h = m[1];
+      if (h.length === 3) h = h.split('').map((x) => x + x).join('');
+      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
     }
-    return c;
+    return /^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(s) ? s.replace(/\s+/g, '') : '';
+  };
+  // Sichere Farbe für style-Attribute: Palettenname, "#hex" oder "r,g,b", sonst Standardwert
+  const rgb = (c, def) => {
+    if (c && PAL[c]) return PAL[c];
+    return accentRgb(c) || def || PAL.bat;
   };
   const num = (h, id) => {
     if (!id) return null;
@@ -60,17 +66,6 @@ const WD = (() => {
   const themeVars = (t) => `--ov:${t.ov};--bg0:${t.bg0};--bg1:${t.bg1};--bg2:${t.bg2};--panel:${t.panel};--txt:${t.txt};--mut:${t.mut};--stroke:${t.stroke};--glass:${t.glass};--y1:${t.y1};--o1:${t.o1};--y0:${t.y0}`;
   const themeCss = () => ':host{' + themeVars(THEMES.dunkel) + '}\n'
     + Object.keys(THEMES).filter((k) => k !== 'dunkel').map((k) => `:host([data-theme="${k}"]){${themeVars(THEMES[k])}}`).join('\n') + '\n';
-  const accentRgb = (a) => {
-    if (typeof a !== 'string') return '';
-    const s = a.trim();
-    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
-    if (m) {
-      let h = m[1];
-      if (h.length === 3) h = h.split('').map((x) => x + x).join('');
-      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
-    }
-    return /^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(s) ? s.replace(/\s+/g, '') : '';
-  };
   // Setzt data-theme (und optional --acc) am Kartenelement. cfg = Kartenkonfiguration, hass für "auto".
   const applyTheme = (el, cfg, hass) => {
     if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; }
@@ -105,7 +100,7 @@ const WD = (() => {
       return x ? x.value : state.currency;
     } catch (e) { return state.currency; }
   };
-  const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // Navigation innerhalb von Home Assistant (funktioniert auch im Kiosk-Modus ohne Kopfzeile)
   const haNavigate = (path) => {
@@ -153,5 +148,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
 })();

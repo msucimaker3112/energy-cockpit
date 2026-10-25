@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.10.0 - MIT License */
+/*! energy-cockpit v0.10.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -14,16 +14,22 @@ const WD = (() => {
   const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', home: '34,211,238', mut: '139,151,179' };
   const TH = 10;
 
-  const rgb = (c) => {
-    if (!c) return PAL.bat;
-    if (PAL[c]) return PAL[c];
-    if (c[0] === '#') {
-      let x = c.slice(1);
-      if (x.length === 3) x = x.split('').map((y) => y + y).join('');
-      const n = parseInt(x, 16);
-      return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+  // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
+  const accentRgb = (a) => {
+    if (typeof a !== 'string') return '';
+    const s = a.trim();
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+    if (m) {
+      let h = m[1];
+      if (h.length === 3) h = h.split('').map((x) => x + x).join('');
+      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
     }
-    return c;
+    return /^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(s) ? s.replace(/\s+/g, '') : '';
+  };
+  // Sichere Farbe für style-Attribute: Palettenname, "#hex" oder "r,g,b", sonst Standardwert
+  const rgb = (c, def) => {
+    if (c && PAL[c]) return PAL[c];
+    return accentRgb(c) || def || PAL.bat;
   };
   const num = (h, id) => {
     if (!id) return null;
@@ -62,17 +68,6 @@ const WD = (() => {
   const themeVars = (t) => `--ov:${t.ov};--bg0:${t.bg0};--bg1:${t.bg1};--bg2:${t.bg2};--panel:${t.panel};--txt:${t.txt};--mut:${t.mut};--stroke:${t.stroke};--glass:${t.glass};--y1:${t.y1};--o1:${t.o1};--y0:${t.y0}`;
   const themeCss = () => ':host{' + themeVars(THEMES.dunkel) + '}\n'
     + Object.keys(THEMES).filter((k) => k !== 'dunkel').map((k) => `:host([data-theme="${k}"]){${themeVars(THEMES[k])}}`).join('\n') + '\n';
-  const accentRgb = (a) => {
-    if (typeof a !== 'string') return '';
-    const s = a.trim();
-    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
-    if (m) {
-      let h = m[1];
-      if (h.length === 3) h = h.split('').map((x) => x + x).join('');
-      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
-    }
-    return /^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(s) ? s.replace(/\s+/g, '') : '';
-  };
   // Setzt data-theme (und optional --acc) am Kartenelement. cfg = Kartenkonfiguration, hass für "auto".
   const applyTheme = (el, cfg, hass) => {
     if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; }
@@ -107,7 +102,7 @@ const WD = (() => {
       return x ? x.value : state.currency;
     } catch (e) { return state.currency; }
   };
-  const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // Navigation innerhalb von Home Assistant (funktioniert auch im Kiosk-Modus ohne Kopfzeile)
   const haNavigate = (path) => {
@@ -155,7 +150,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
 })();
 
 
@@ -811,7 +806,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     try {
       const s = new Date(); s.setHours(0, 0, 0, 0);
       const e = new Date(s.getTime() + 3 * 864e5);
-      const ev = await h.callApi('GET', `calendars/${w.calendar}?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
+      const ev = await h.callApi('GET', `calendars/${encodeURIComponent(w.calendar)}?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
       this._waste = (ev || []).map((x) => {
         const t = document.createElement('textarea'); t.innerHTML = x.summary || '';
         const lower = t.value.toLowerCase();
@@ -838,8 +833,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const list = todayEv.length ? todayEv : tomorrowEv;
     if (!list.length) { el.classList.remove('show', 'urgent'); return; }
     const names = [...new Set(list.map((x) => x.type.name))].join(' + ');
-    el.style.setProperty('--wc', list[0].type.color);
-    el.innerHTML = `🗑 ${todayEv.length ? T('waste.today') : T('waste.tomorrow')}: <b>${names}</b>`;
+    el.style.setProperty('--wc', rgb(list[0].type.color, PAL.mut));
+    el.innerHTML = `🗑 ${todayEv.length ? T('waste.today') : T('waste.tomorrow')}: <b>${esc(names)}</b>`;
     el.classList.add('show');
     el.classList.toggle('urgent', !!todayEv.length || mins >= rf[0] * 60 + (rf[1] || 0));
     if (w.nav_path) el.dataset.nav = w.nav_path;
@@ -891,8 +886,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const c = this._c;
     this._bl = WD.state.lang;
     const node = (k, cls, icon, label, color, ent, extra = '') => `
-      <div class="node ${cls}" data-k="${k}" data-e="${ent || ''}" style="--c:${color}">
-        <div class="n-top"><span class="ico"><ha-icon icon="${icon}"></ha-icon></span><span class="lbl">${label}</span></div>
+      <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
+        <div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
         <div class="val"><span class="num">—</span><span class="unit"></span></div>
         <div class="tag"></div>${extra}<div class="sub"></div>
       </div>`;
@@ -912,9 +907,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons" data-k="c${i}" data-e="${x.entity || x.secondary || ''}" style="--c:${rgb(x.color || '#a78bfa')}">
-        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>`}
-        <div class="c-txt"><span class="lbl">${x.name || x.entity}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
+      return `<div class="cons" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
+        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
     const G = c.consumer_groups;
@@ -922,17 +917,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (G.length) {
       grps = G.map((g, i) => {
         if (!sam) links.push('g' + i);
-        return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color || '#a78bfa')}">
-          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span>`}<span class="lbl">${g.name || ''}</span></div>
+        return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color, '167,139,250')}">
+          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`}<span class="lbl">${esc(g.name)}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
-          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${x.entity || x.secondary || ''}"><i></i><span class="in">${x.name || x.entity}</span><b></b></div>`).join('')}</div>
+          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`).join('')}</div>
         </div>`;
       }).join('');
       const showRest = c.rest !== false && !c.hide_rest;
       if (showRest) {
         if (!sam) links.push('grest');
         grps += `<div class="grp rest" data-k="grest" style="--c:${PAL.mut}">
-          <div class="g-hd"><span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span><span class="lbl">${(c.rest && c.rest.name) || T('flow.rest')}</span></div>
+          <div class="g-hd"><span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
           <div class="its"><div class="it"><span class="in rest-t"></span></div></div>
         </div>`;
@@ -955,7 +950,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="pill wst"></div>
         <div class="pill">${T('pill.aut')}<b data-p="aut">—</b></div>
         <div class="pill">${T('pill.self')}<b data-p="self">—</b></div>
-        ${c.nav_path ? `<div class="navbtn" data-nav="${c.nav_path}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
+        ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
       </header>
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
@@ -963,7 +958,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="layout${hasPv2 ? ' has-pv2' : ''}">
           ${nodes}
           <div class="hub-wrap">
-            <div class="hub" data-e="${(c.home && c.home.entity) || ''}">
+            <div class="hub" data-e="${esc(c.home && c.home.entity)}">
               <svg viewBox="0 0 120 120">
                 <circle class="orbit" cx="60" cy="60" r="58.5"/>
                 <circle class="ring-bg" cx="60" cy="60" r="52"/>
@@ -974,7 +969,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
               <div class="core">
                 <ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon>
                 <div class="val"><span class="num">—</span><span class="unit"></span></div>
-                <div class="hub-lbl">${(c.home && c.home.name) || T('flow.home')}</div>
+                <div class="hub-lbl">${esc((c.home && c.home.name) || T('flow.home'))}</div>
               </div>
             </div>
             <div class="mix">
@@ -1186,7 +1181,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const st = s.entity && h.states[s.entity];
         const running = st && (st.state === 'on' || (parseFloat(st.state) || 0) > 10);
         if (!running && s.power && s.power > x.gExp) return '';
-        return `<span class="chip${running ? ' run' : ''}"><ha-icon icon="${s.icon || 'mdi:power-plug'}"></ha-icon>${running ? '✓ ' + (s.running || T('ban.running', { name: s.name })) : s.name}</span>`;
+        return `<span class="chip${running ? ' run' : ''}"><ha-icon icon="${esc(s.icon || 'mdi:power-plug')}"></ha-icon>${running ? '✓ ' + (s.running ? esc(s.running) : T('ban.running', { name: esc(s.name) })) : esc(s.name)}</span>`;
       }).join('');
     } else {
       icon.setAttribute('icon', 'mdi:transmission-tower-import');
@@ -1195,7 +1190,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       let why = x.soc !== null && x.soc <= this._limits().reserve + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
       let big = null;
       (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? watt(h, s.entity) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
-      if (big) why = (why ? why + ' · ' : '') + `${big.n}: ${fW(big.w)}`;
+      if (big) why = (why ? why + ' · ' : '') + `${esc(big.n)}: ${fW(big.w)}`;
       sub = (cost === null ? '' : T('ban.cost', { cost: nf(cost, 2), cur: cur() }) + (why ? ' · ' : '')) + why;
     }
     this._set('.b-title', title);
@@ -1262,7 +1257,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const parts2 = [];
       const u2 = on ? useText(p2Home, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
-      (c.pv2.strings || []).forEach((s) => parts2.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
+      (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${fW(watt(h, s.entity))}</b>`));
       this._set('.pv2 .sub', parts2.join('<br>'), true);
       this._link('pv2', on, true, PAL.pv, pv2);
     }
@@ -1277,7 +1272,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const u1 = useText(p1Home, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
-      (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
+      (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${fW(watt(h, s.entity))}</b>`));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
@@ -1351,7 +1346,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt);
-        this._link('c' + i, on, false, rgb(x.color || '#a78bfa'), p);
+        this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
       } else {
         el.classList.add('on');
         const parts = secTxt ? secTxt.split(' ') : ['—'];
@@ -1391,7 +1386,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const on = shown && sum > TH;
         el.classList.toggle('on', on);
         this._anim('g' + i, any ? sum : null, el);
-        this._link('g' + i, on, false, rgb(g.color || '#a78bfa'), sum);
+        this._link('g' + i, on, false, rgb(g.color, '167,139,250'), sum);
       });
       const rel = this._$('[data-k="grest"]');
       const restW = Math.max(0, home - known);
@@ -1603,7 +1598,7 @@ WD.addStrings({
 /* ---- devices-card.js ---- */
 /* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
 (() => {
-  const { nf, esc, haNavigate, T, setLocale, cur } = WD;
+  const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
   const num = (h, id) => {
     const s = h && id && h.states[id];
     if (!s || ['unavailable', 'unknown', ''].indexOf(s.state) >= 0) return null;
@@ -1883,7 +1878,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         </div>
         <div class="rooms">${rooms.length ? rooms.map((x, i) => {
           const col = TYPES[(x.d[0] && x.d[0].type) || 'plug'] || TYPES.plug;
-          return `<div class="room" data-r="${x.ri}" style="--rc:${x.r.color || col.c};animation-delay:${i * 70}ms">
+          return `<div class="room" data-r="${x.ri}" style="--rc:${rgb(x.r.color, col.c)};animation-delay:${i * 70}ms">
             <div class="rh">${x.r.image ? `<img class="rlogo" src="${esc(x.r.image)}" alt="">` : `<ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon>`}<b>${esc(x.r.name)}</b><span class="rw"></span></div>
             ${x.d.map((d) => this._devHtml(d)).join('')}
           </div>`;
@@ -1910,7 +1905,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
-      return `<div class="dv t-${d.type || 'plug'}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${d.color || t.c}">
+      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
         <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
         ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
@@ -2060,7 +2055,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         const t = TYPES[d.type] || TYPES.plug;
         const run = on && (d.run_state ? (h.states[d.run_state] && h.states[d.run_state].state === 'run') : w === null ? true : w > (d.run_w === undefined ? 3 : d.run_w));
         if (on) onCount++;
-        if (w !== null && !d.shared) { sum += w; roomW[d.room] = (roomW[d.room] || 0) + w; if (w > 0.5) segs.push({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, w, c: d.color || t.c }); }
+        if (w !== null && !d.shared) { sum += w; roomW[d.room] = (roomW[d.room] || 0) + w; if (w > 0.5) segs.push({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, w, c: rgb(d.color, t.c) }); }
         if (on) roomOn[d.room] = true;
         el.classList.toggle('on', on);
         el.classList.toggle('run', !!run);
@@ -2077,7 +2072,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         if (e !== null && e !== undefined) { kwh += e; eur += this._cost[d.energy] || 0; gk += this._gridk[d.energy] || 0; parts.push(`${nf(e, e < 10 ? 2 : 1)} kWh` + (this._hasP ? ` · ${nf(this._cost[d.energy] || 0, 2)} ${CUR}` : '')); }
         if (d.extra && h.states[d.extra]) parts.push(esc(h.states[d.extra].state + (d.extra_unit || '')));
         const ref = d.chans.length ? h.states[d.chans[0].entity] : h.states[d.entity];
-        if (d.type === 'fridge' && w !== null) parts.push(d.alt_w && w > d.alt_w ? (d.alt_label || T('dev.extra')) : run ? '❄ ' + T('dev.cooling') : T('dev.pause'));
+        if (d.type === 'fridge' && w !== null) parts.push(d.alt_w && w > d.alt_w ? (d.alt_label ? esc(d.alt_label) : T('dev.extra')) : run ? '❄ ' + T('dev.cooling') : T('dev.pause'));
         else if (ref && d.type !== 'media') parts.push(on ? T('dev.since') + ' ' + dur(now - new Date(ref.last_changed).getTime()) : T('dev.off'));
         const sb = el.querySelector('.sb'), html = parts.join('  ·  ');
         if (sb.innerHTML !== html) sb.innerHTML = html;
@@ -2114,7 +2109,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       });
       // Hero: Anteil am Hausverbrauch
       const home = num(h, c.home);
-      const extra = (c.extra_consumers || []).map((x) => ({ n: x.name, w: num(h, x.entity), c: x.color || '167,139,250' })).filter((x) => x.w && x.w > 0.5);
+      const extra = (c.extra_consumers || []).map((x) => ({ n: x.name, w: num(h, x.entity), c: rgb(x.color, '167,139,250') })).filter((x) => x.w && x.w > 0.5);
       extra.forEach((x) => { segs.push(x); });
       const known = sum + extra.reduce((a, x) => a + x.w, 0);
       const total = Math.max(home || 0, known, 1);
@@ -2143,8 +2138,8 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       this._$('.pk').innerHTML = loaded ? `${fK(kwh)}<u>kWh</u><u class="mx"><span class="sun">☀ ${fK(kwh - gk)}</span> · <span class="grd">⚡ ${fK(gk)}</span></u>` : '…';
       this._$('.pe').innerHTML = loaded ? (this._hasP ? `${nf(eur, 2)}<u>${CUR}</u><u class="mx">Ø ${nf(kwh > 0 ? eur / kwh * 100 : 0, 1)} ${T('dev.cent')} · ${Math.round(gs * 100)} % ${T('dev.grid')}</u>` : '—') : '…';
       this._$('.ph').innerHTML = this._home ? `${fK(this._home)}<u>kWh · ${Math.round(Math.min(1, kwh / this._home) * 100)} % ${T('dev.measured')}</u><u class="mx"><span class="sun">☀ ${Math.round((1 - this._homeGrid / this._home) * 100)} % ${T('dev.selfsup')}</span> · <span class="grd">⚡ ${Math.round(this._homeGrid / this._home * 100)} % ${T('dev.grid')}</span></u>` : '—';
-      const rank = devs.filter((d) => d.energy && this._energy[d.energy]).map((d) => ({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, e: this._energy[d.energy], k: this._cost[d.energy] || 0, c: d.color || (TYPES[d.type] || TYPES.plug).c }))
-        .concat(ex.map((x) => ({ n: x.name, e: this._energy[x.energy], k: this._cost[x.energy] || 0, c: x.color || '167,139,250' }))).sort((a, b) => b.e - a.e).slice(0, 5);
+      const rank = devs.filter((d) => d.energy && this._energy[d.energy]).map((d) => ({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, e: this._energy[d.energy], k: this._cost[d.energy] || 0, c: rgb(d.color, (TYPES[d.type] || TYPES.plug).c) }))
+        .concat(ex.map((x) => ({ n: x.name, e: this._energy[x.energy], k: this._cost[x.energy] || 0, c: rgb(x.color, '167,139,250') }))).sort((a, b) => b.e - a.e).slice(0, 5);
       const rk = rank.map((x, i) => `<span class="rk" style="--c:${x.c}"><i>${i + 1}.</i>${esc(x.n)}<b>${fK(x.e)} kWh${this._hasP ? ' · ' + nf(x.k, 2) + ' ' + CUR : ''}</b></span>`).join('');
       const rkEl = this._$('.rows'); if (rkEl.innerHTML !== rk) rkEl.innerHTML = rk;
       const pills = [];
@@ -2475,7 +2470,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
    getrennt nach Bereichen (Zählern) UND nach Herkunft der Energie (Netz, Batterie, PV). Der Herkunfts-Mix wird stundenweise aus dem Haus-Mix bestimmt:
    in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
-  const { nf, esc, T, setLocale, cur } = WD;
+  const { nf, esc, rgb, T, setLocale, cur } = WD;
   const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
   const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -2894,7 +2889,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const tk = hrs.reduce((a, h2) => (key(new Date(h2.t)) === todayK ? a + (h2.idev ? h2.idev[o.j] || 0 : 0) : a), 0);
           return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · heute ${fk(tk)} kWh</div>`;
         }).join('');
-        return `<div class="tile" style="--c:${d.color || '96,165,250'}"><div class="l">${esc(d.name || d.energy)}</div>
+        return `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div>
           <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
           <div class="spark">${bars}</div><div class="s">heute ${fk(todayKwh)} kWh · Kurve je Stunde</div>${sub}</div>`;
       }).join('');
@@ -2933,7 +2928,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const totW = per.reduce((a, v) => a + v, 0);
         const kwhM = totW * 24 * 30 / 1000;
         const cls = totW > sb ? 'hi' : 'lo';
-        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${d.color || '96,165,250'}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>W nachts</small></div></div>`).join('')}
+        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>W nachts</small></div></div>`).join('')}
           <div class="tile"><div class="l">Gesamt, 0 bis 5 Uhr</div><div class="wl"><span class="wv ${cls}">${nf(totW, 0)}</span><small>W</small></div><div class="s">Schwelle ${nf(sb, 0)} W · ${totW > sb ? 'liegt darüber' : 'in Ordnung'}</div></div></div>
           <div class="note">Läuft das Tag und Nacht so weiter, sind das etwa <b>${fk(kwhM)} kWh${P.grid > 0 ? ' und ' + fe(kwhM * P.grid) + ' ' + CUR : ''} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).</div>`;
       } else sbHtml = '<div class="note">Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).</div>';
@@ -2981,7 +2976,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         arr.forEach((r) => {
           const [yy, mm] = String(r.k).split('-');
           const saldo = typeof r.ab === 'number' && r.ab > 0 ? r.ab - r.cost : null;
-          rows += `<tr><td>${MONTHS[+mm - 1] || mm} ${yy}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
+          rows += `<tr><td>${esc(MONTHS[+mm - 1] || mm)} ${esc(yy)}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
             + `<tr class="sub"><td colspan="7">${(r.dev || []).map((d) => `${esc(d.n)}: Zähler ${nf(d.a, 2)} → ${nf(d.e, 2)} kWh (${fk(d.kwh)} kWh)`).join(' · ')} · Bezug ${nf((r.pg || 0) * 100, 1)} ct, Einspeisung ${nf((r.pf || 0) * 100, 1)} ct</td></tr>`;
         });
         bottom = `<div class="panel"><span class="lbl">Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)</span>${arr.length
@@ -3407,7 +3402,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           <div class="tabs">
             <div class="tab" data-p="day">${T('st.today')}</div><div class="tab" data-p="month">${MON[now.getMonth()]}</div><div class="tab" data-p="year">${now.getFullYear()}</div>
           </div>
-          ${c.nav_path ? `<div class="navbtn" data-nav="${c.nav_path}">${esc(c.nav_label || T('st.next'))}</div>` : ''}
+          ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('st.next'))}</div>` : ''}
         </header>
         <div class="money">
           ${m('pvsav', T('st.pvsav'), 'var(--pv)')}

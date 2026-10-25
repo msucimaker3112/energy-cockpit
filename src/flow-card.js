@@ -260,7 +260,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     try {
       const s = new Date(); s.setHours(0, 0, 0, 0);
       const e = new Date(s.getTime() + 3 * 864e5);
-      const ev = await h.callApi('GET', `calendars/${w.calendar}?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
+      const ev = await h.callApi('GET', `calendars/${encodeURIComponent(w.calendar)}?start=${encodeURIComponent(s.toISOString())}&end=${encodeURIComponent(e.toISOString())}`);
       this._waste = (ev || []).map((x) => {
         const t = document.createElement('textarea'); t.innerHTML = x.summary || '';
         const lower = t.value.toLowerCase();
@@ -287,8 +287,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const list = todayEv.length ? todayEv : tomorrowEv;
     if (!list.length) { el.classList.remove('show', 'urgent'); return; }
     const names = [...new Set(list.map((x) => x.type.name))].join(' + ');
-    el.style.setProperty('--wc', list[0].type.color);
-    el.innerHTML = `🗑 ${todayEv.length ? T('waste.today') : T('waste.tomorrow')}: <b>${names}</b>`;
+    el.style.setProperty('--wc', rgb(list[0].type.color, PAL.mut));
+    el.innerHTML = `🗑 ${todayEv.length ? T('waste.today') : T('waste.tomorrow')}: <b>${esc(names)}</b>`;
     el.classList.add('show');
     el.classList.toggle('urgent', !!todayEv.length || mins >= rf[0] * 60 + (rf[1] || 0));
     if (w.nav_path) el.dataset.nav = w.nav_path;
@@ -340,8 +340,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const c = this._c;
     this._bl = WD.state.lang;
     const node = (k, cls, icon, label, color, ent, extra = '') => `
-      <div class="node ${cls}" data-k="${k}" data-e="${ent || ''}" style="--c:${color}">
-        <div class="n-top"><span class="ico"><ha-icon icon="${icon}"></ha-icon></span><span class="lbl">${label}</span></div>
+      <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
+        <div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
         <div class="val"><span class="num">—</span><span class="unit"></span></div>
         <div class="tag"></div>${extra}<div class="sub"></div>
       </div>`;
@@ -361,9 +361,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons" data-k="c${i}" data-e="${x.entity || x.secondary || ''}" style="--c:${rgb(x.color || '#a78bfa')}">
-        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${x.icon || 'mdi:power-plug'}"></ha-icon></span>`}
-        <div class="c-txt"><span class="lbl">${x.name || x.entity}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
+      return `<div class="cons" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+        ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
+        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
     const G = c.consumer_groups;
@@ -371,17 +371,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (G.length) {
       grps = G.map((g, i) => {
         if (!sam) links.push('g' + i);
-        return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color || '#a78bfa')}">
-          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${g.icon || 'mdi:door'}"></ha-icon></span>`}<span class="lbl">${g.name || ''}</span></div>
+        return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color, '167,139,250')}">
+          <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`}<span class="lbl">${esc(g.name)}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
-          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${x.entity || x.secondary || ''}"><i></i><span class="in">${x.name || x.entity}</span><b></b></div>`).join('')}</div>
+          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`).join('')}</div>
         </div>`;
       }).join('');
       const showRest = c.rest !== false && !c.hide_rest;
       if (showRest) {
         if (!sam) links.push('grest');
         grps += `<div class="grp rest" data-k="grest" style="--c:${PAL.mut}">
-          <div class="g-hd"><span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span><span class="lbl">${(c.rest && c.rest.name) || T('flow.rest')}</span></div>
+          <div class="g-hd"><span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
           <div class="its"><div class="it"><span class="in rest-t"></span></div></div>
         </div>`;
@@ -404,7 +404,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="pill wst"></div>
         <div class="pill">${T('pill.aut')}<b data-p="aut">—</b></div>
         <div class="pill">${T('pill.self')}<b data-p="self">—</b></div>
-        ${c.nav_path ? `<div class="navbtn" data-nav="${c.nav_path}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
+        ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
       </header>
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
@@ -412,7 +412,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="layout${hasPv2 ? ' has-pv2' : ''}">
           ${nodes}
           <div class="hub-wrap">
-            <div class="hub" data-e="${(c.home && c.home.entity) || ''}">
+            <div class="hub" data-e="${esc(c.home && c.home.entity)}">
               <svg viewBox="0 0 120 120">
                 <circle class="orbit" cx="60" cy="60" r="58.5"/>
                 <circle class="ring-bg" cx="60" cy="60" r="52"/>
@@ -423,7 +423,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
               <div class="core">
                 <ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon>
                 <div class="val"><span class="num">—</span><span class="unit"></span></div>
-                <div class="hub-lbl">${(c.home && c.home.name) || T('flow.home')}</div>
+                <div class="hub-lbl">${esc((c.home && c.home.name) || T('flow.home'))}</div>
               </div>
             </div>
             <div class="mix">
@@ -635,7 +635,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const st = s.entity && h.states[s.entity];
         const running = st && (st.state === 'on' || (parseFloat(st.state) || 0) > 10);
         if (!running && s.power && s.power > x.gExp) return '';
-        return `<span class="chip${running ? ' run' : ''}"><ha-icon icon="${s.icon || 'mdi:power-plug'}"></ha-icon>${running ? '✓ ' + (s.running || T('ban.running', { name: s.name })) : s.name}</span>`;
+        return `<span class="chip${running ? ' run' : ''}"><ha-icon icon="${esc(s.icon || 'mdi:power-plug')}"></ha-icon>${running ? '✓ ' + (s.running ? esc(s.running) : T('ban.running', { name: esc(s.name) })) : esc(s.name)}</span>`;
       }).join('');
     } else {
       icon.setAttribute('icon', 'mdi:transmission-tower-import');
@@ -644,7 +644,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       let why = x.soc !== null && x.soc <= this._limits().reserve + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
       let big = null;
       (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? watt(h, s.entity) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
-      if (big) why = (why ? why + ' · ' : '') + `${big.n}: ${fW(big.w)}`;
+      if (big) why = (why ? why + ' · ' : '') + `${esc(big.n)}: ${fW(big.w)}`;
       sub = (cost === null ? '' : T('ban.cost', { cost: nf(cost, 2), cur: cur() }) + (why ? ' · ' : '')) + why;
     }
     this._set('.b-title', title);
@@ -711,7 +711,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const parts2 = [];
       const u2 = on ? useText(p2Home, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
-      (c.pv2.strings || []).forEach((s) => parts2.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
+      (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${fW(watt(h, s.entity))}</b>`));
       this._set('.pv2 .sub', parts2.join('<br>'), true);
       this._link('pv2', on, true, PAL.pv, pv2);
     }
@@ -726,7 +726,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const u1 = useText(p1Home, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
-      (c.pv.strings || []).forEach((s) => parts.push(`${s.name || s.entity} <b>${fW(watt(h, s.entity))}</b>`));
+      (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${fW(watt(h, s.entity))}</b>`));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
@@ -800,7 +800,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt);
-        this._link('c' + i, on, false, rgb(x.color || '#a78bfa'), p);
+        this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
       } else {
         el.classList.add('on');
         const parts = secTxt ? secTxt.split(' ') : ['—'];
@@ -840,7 +840,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const on = shown && sum > TH;
         el.classList.toggle('on', on);
         this._anim('g' + i, any ? sum : null, el);
-        this._link('g' + i, on, false, rgb(g.color || '#a78bfa'), sum);
+        this._link('g' + i, on, false, rgb(g.color, '167,139,250'), sum);
       });
       const rel = this._$('[data-k="grest"]');
       const restW = Math.max(0, home - known);

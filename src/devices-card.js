@@ -1,6 +1,6 @@
 /* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
 (() => {
-  const { nf, esc, haNavigate, T, setLocale, cur } = WD;
+  const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
   const num = (h, id) => {
     const s = h && id && h.states[id];
     if (!s || ['unavailable', 'unknown', ''].indexOf(s.state) >= 0) return null;
@@ -280,7 +280,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         </div>
         <div class="rooms">${rooms.length ? rooms.map((x, i) => {
           const col = TYPES[(x.d[0] && x.d[0].type) || 'plug'] || TYPES.plug;
-          return `<div class="room" data-r="${x.ri}" style="--rc:${x.r.color || col.c};animation-delay:${i * 70}ms">
+          return `<div class="room" data-r="${x.ri}" style="--rc:${rgb(x.r.color, col.c)};animation-delay:${i * 70}ms">
             <div class="rh">${x.r.image ? `<img class="rlogo" src="${esc(x.r.image)}" alt="">` : `<ha-icon icon="${esc(x.r.icon || 'mdi:door')}"></ha-icon>`}<b>${esc(x.r.name)}</b><span class="rw"></span></div>
             ${x.d.map((d) => this._devHtml(d)).join('')}
           </div>`;
@@ -307,7 +307,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
-      return `<div class="dv t-${d.type || 'plug'}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${d.color || t.c}">
+      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
         <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
         ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
@@ -457,7 +457,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         const t = TYPES[d.type] || TYPES.plug;
         const run = on && (d.run_state ? (h.states[d.run_state] && h.states[d.run_state].state === 'run') : w === null ? true : w > (d.run_w === undefined ? 3 : d.run_w));
         if (on) onCount++;
-        if (w !== null && !d.shared) { sum += w; roomW[d.room] = (roomW[d.room] || 0) + w; if (w > 0.5) segs.push({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, w, c: d.color || t.c }); }
+        if (w !== null && !d.shared) { sum += w; roomW[d.room] = (roomW[d.room] || 0) + w; if (w > 0.5) segs.push({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, w, c: rgb(d.color, t.c) }); }
         if (on) roomOn[d.room] = true;
         el.classList.toggle('on', on);
         el.classList.toggle('run', !!run);
@@ -474,7 +474,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         if (e !== null && e !== undefined) { kwh += e; eur += this._cost[d.energy] || 0; gk += this._gridk[d.energy] || 0; parts.push(`${nf(e, e < 10 ? 2 : 1)} kWh` + (this._hasP ? ` · ${nf(this._cost[d.energy] || 0, 2)} ${CUR}` : '')); }
         if (d.extra && h.states[d.extra]) parts.push(esc(h.states[d.extra].state + (d.extra_unit || '')));
         const ref = d.chans.length ? h.states[d.chans[0].entity] : h.states[d.entity];
-        if (d.type === 'fridge' && w !== null) parts.push(d.alt_w && w > d.alt_w ? (d.alt_label || T('dev.extra')) : run ? '❄ ' + T('dev.cooling') : T('dev.pause'));
+        if (d.type === 'fridge' && w !== null) parts.push(d.alt_w && w > d.alt_w ? (d.alt_label ? esc(d.alt_label) : T('dev.extra')) : run ? '❄ ' + T('dev.cooling') : T('dev.pause'));
         else if (ref && d.type !== 'media') parts.push(on ? T('dev.since') + ' ' + dur(now - new Date(ref.last_changed).getTime()) : T('dev.off'));
         const sb = el.querySelector('.sb'), html = parts.join('  ·  ');
         if (sb.innerHTML !== html) sb.innerHTML = html;
@@ -511,7 +511,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       });
       // Hero: Anteil am Hausverbrauch
       const home = num(h, c.home);
-      const extra = (c.extra_consumers || []).map((x) => ({ n: x.name, w: num(h, x.entity), c: x.color || '167,139,250' })).filter((x) => x.w && x.w > 0.5);
+      const extra = (c.extra_consumers || []).map((x) => ({ n: x.name, w: num(h, x.entity), c: rgb(x.color, '167,139,250') })).filter((x) => x.w && x.w > 0.5);
       extra.forEach((x) => { segs.push(x); });
       const known = sum + extra.reduce((a, x) => a + x.w, 0);
       const total = Math.max(home || 0, known, 1);
@@ -540,8 +540,8 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       this._$('.pk').innerHTML = loaded ? `${fK(kwh)}<u>kWh</u><u class="mx"><span class="sun">☀ ${fK(kwh - gk)}</span> · <span class="grd">⚡ ${fK(gk)}</span></u>` : '…';
       this._$('.pe').innerHTML = loaded ? (this._hasP ? `${nf(eur, 2)}<u>${CUR}</u><u class="mx">Ø ${nf(kwh > 0 ? eur / kwh * 100 : 0, 1)} ${T('dev.cent')} · ${Math.round(gs * 100)} % ${T('dev.grid')}</u>` : '—') : '…';
       this._$('.ph').innerHTML = this._home ? `${fK(this._home)}<u>kWh · ${Math.round(Math.min(1, kwh / this._home) * 100)} % ${T('dev.measured')}</u><u class="mx"><span class="sun">☀ ${Math.round((1 - this._homeGrid / this._home) * 100)} % ${T('dev.selfsup')}</span> · <span class="grd">⚡ ${Math.round(this._homeGrid / this._home * 100)} % ${T('dev.grid')}</span></u>` : '—';
-      const rank = devs.filter((d) => d.energy && this._energy[d.energy]).map((d) => ({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, e: this._energy[d.energy], k: this._cost[d.energy] || 0, c: d.color || (TYPES[d.type] || TYPES.plug).c }))
-        .concat(ex.map((x) => ({ n: x.name, e: this._energy[x.energy], k: this._cost[x.energy] || 0, c: x.color || '167,139,250' }))).sort((a, b) => b.e - a.e).slice(0, 5);
+      const rank = devs.filter((d) => d.energy && this._energy[d.energy]).map((d) => ({ n: /^(licht|light)$/i.test(d.name) ? T('dev.light') + ' ' + c.rooms[d.room].name : d.name, e: this._energy[d.energy], k: this._cost[d.energy] || 0, c: rgb(d.color, (TYPES[d.type] || TYPES.plug).c) }))
+        .concat(ex.map((x) => ({ n: x.name, e: this._energy[x.energy], k: this._cost[x.energy] || 0, c: rgb(x.color, '167,139,250') }))).sort((a, b) => b.e - a.e).slice(0, 5);
       const rk = rank.map((x, i) => `<span class="rk" style="--c:${x.c}"><i>${i + 1}.</i>${esc(x.n)}<b>${fK(x.e)} kWh${this._hasP ? ' · ' + nf(x.k, 2) + ' ' + CUR : ''}</b></span>`).join('');
       const rkEl = this._$('.rows'); if (rkEl.innerHTML !== rk) rkEl.innerHTML = rk;
       const pills = [];

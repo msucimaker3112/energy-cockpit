@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.10.1
+- **Sicherheit:** Namen, Symbole, Entitäten, Navigationspfade und Texte aus der Konfiguration sowie Attribute von Entitäten (zum Beispiel das Monatsarchiv der Raum-Abrechnung) werden vor der Anzeige maskiert. Ein `<`, `'` oder `"` in einem Namen bricht die Karte nicht mehr, und HTML darin wird nicht mehr ausgeführt. Farben (`color`) werden geprüft: Erlaubt sind `#rrggbb`, `#rgb` und `r,g,b`, andere Werte fallen auf die Standardfarbe zurück.
+
 ## 0.10.0
 - **Raum-Abrechnung: Unterposten (`devices[].items`):** Ein Bereich kann einzelne Geräte mit eigenem Zähler ausweisen (zum Beispiel ein Kühlschrank in der "Chillecke"). Die Abrechnung des Bereichs bleibt unverändert, die Unterposten erscheinen als "↳"-Zeilen mit kWh, Quellen (Netz, Batterie, PV) und Kosten, dazu "↳ übrige Geräte". In der Live-Kachel steht die aktuelle Leistung und der Verbrauch heute, im CSV eigene Spalten.
 
