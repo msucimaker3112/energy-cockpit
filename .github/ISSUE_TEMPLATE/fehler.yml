@@ -1,0 +1,55 @@
+name: Fehler melden / Bug report
+description: Etwas wird falsch angezeigt oder funktioniert nicht.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fürs Melden! Mit diesen Angaben kann ich den Fehler meist direkt nachstellen.
+        English is fine, too.
+  - type: dropdown
+    id: karte
+    attributes:
+      label: Welche Karte?
+      options:
+        - Energiefluss (flow-card)
+        - Geräte & Verbrauch (devices-card)
+        - Statistik (stats-card)
+        - Raum-Abrechnung (room-card)
+        - Editor / Assistent
+        - Weiß nicht
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version der Karte
+      description: Steht in HACS bei der Karte, zum Beispiel 0.12.1.
+      placeholder: "0.12.1"
+    validations:
+      required: true
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät und App / Browser
+      description: Zum Beispiel "iPhone 15, Home-Assistant-App" oder "PC, Chrome", "iPad, Safari".
+    validations:
+      required: true
+  - type: textarea
+    id: was
+    attributes:
+      label: Was passiert, und was hättest du erwartet?
+      description: Kurz beschreiben. Wenn möglich, Schritte zum Nachstellen.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Bild hier hineinziehen. Hilft fast immer am meisten.
+  - type: textarea
+    id: yaml
+    attributes:
+      label: Kartenkonfiguration (YAML)
+      description: Karte bearbeiten → Code-Editor → hier einfügen. Private Angaben gern entfernen.
+      render: yaml

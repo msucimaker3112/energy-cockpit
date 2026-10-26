@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Anleitung und alle Optionen
+    url: https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md
+    about: Viele Fragen beantwortet die Konfigurationsanleitung.

@@ -27,6 +27,18 @@
 
 ![Statistik](docs/img/stats.png)
 
+## English
+
+**Energy flow, devices, statistics and room billing cards for Home Assistant.** Free, MIT licensed, with a setup wizard that suggests matching sensors, so no YAML is needed.
+
+- **Energy flow:** animated solar, grid, battery (with discharge limit and forecast), home and consumers, surplus hint, second PV system (e.g. balcony solar).
+- **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
+- **Devices & consumption, statistics** (savings, self-sufficiency, payback) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
+
+**Install:** HACS → ⋮ → *Custom repositories* → `https://github.com/msucimaker3112/energy-cockpit`, category *Dashboard* → download → reload the browser. Then add a card and search for *Energy-Cockpit*.
+
+The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests in English are welcome.
+
 ## Handy und Tablet: eine Karte, zwei Ansichten
 
 Die Energiefluss-Karte erkennt, wie breit der Bildschirm ist, und zeigt automatisch die passende Ansicht. Du brauchst **kein zweites Dashboard**.
@@ -188,7 +200,7 @@ Die meisten Einstellungen erledigt der grafische Editor. Drei optionale Zusatzfu
 - Kosten werden nur angezeigt, wenn ein Strompreis konfiguriert ist.
 - Die Karten skalieren sich auf die sichtbare Bildschirmhöhe (Wandtablet-Betrieb). Abschaltbar mit `fit_screen: false`.
 - Die Raum-Abrechnung braucht ein bis zwei volle Stunden Daten, bevor Betriebszeiten und Grundlast Werte zeigen. Für die Hochrechnung ist mindestens ein ganzer Messtag nötig.
-- Getestet mit Chromium-basierten Browsern und dem Silk-Browser des Echo Show (ältere Browser: keine Container-Queries, kein `color-mix`).
+- Läuft in der Home-Assistant-App auf iPhone, iPad und Android sowie im Browser. Entwickelt und getestet mit Chromium-basierten Browsern (Chrome, Edge) und dem Silk-Browser des Echo Show, im Einsatz auch auf iPhone und iPad. Sehr alte Browser ohne Container-Queries und `color-mix` werden nicht unterstützt.
 
 ## Gefällt dir das Projekt?
 

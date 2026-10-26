@@ -1,0 +1,38 @@
+name: Wunsch / Idee
+description: Eine neue Funktion oder Verbesserung vorschlagen.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Viele Funktionen sind aus Wünschen entstanden, zum Beispiel die Kurzansicht fürs Handy. English is fine, too.
+  - type: dropdown
+    id: karte
+    attributes:
+      label: Welche Karte?
+      options:
+        - Energiefluss (flow-card)
+        - Geräte & Verbrauch (devices-card)
+        - Statistik (stats-card)
+        - Raum-Abrechnung (room-card)
+        - Editor / Assistent
+        - Allgemein
+    validations:
+      required: true
+  - type: textarea
+    id: ziel
+    attributes:
+      label: Was möchtest du erreichen?
+      description: Beschreib das Ziel, nicht nur die Lösung. Zum Beispiel "Am Handy will ich nur kurz sehen, ob alles passt."
+    validations:
+      required: true
+  - type: textarea
+    id: idee
+    attributes:
+      label: Wie könnte es aussehen?
+      description: Idee, Skizze oder Screenshot einer anderen Karte, die es so macht.
+  - type: textarea
+    id: geraet
+    attributes:
+      label: Auf welchen Geräten nutzt du die Karte?
+      description: Zum Beispiel "iPhone zum kurzen Nachsehen, iPad an der Wand".
