@@ -192,7 +192,9 @@ Die meisten Einstellungen erledigt der grafische Editor. Drei optionale Zusatzfu
 
 ## Gefällt dir das Projekt?
 
-Ein ⭐ oben rechts hilft anderen, es zu finden. Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues), viele Funktionen (zweite PV-Anlage, Textgröße, Batteriegrenzen) sind genau so entstanden.
+Ein ⭐ oben rechts hilft anderen, es zu finden. Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues), viele Funktionen (zweite PV-Anlage, Textgröße, Batteriegrenzen, Kurzansicht fürs Handy) sind genau so entstanden.
+
+**Du kannst programmieren und willst mithelfen?** Übersetzung, neue Ideen, Fehlerbehebung: Forks und Pull Requests sind willkommen. Wie du ohne Home Assistant loslegst, steht in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Lizenz
 
