@@ -82,12 +82,13 @@
       };
     }
   }
-  const ts = q.get('textsize'), rm = q.get('restmin');
-  if (ts || rm) {
+  // compact=auto|immer: Kurzansicht
+  const ts = q.get('textsize'), rm = q.get('restmin'), cq = q.get('compact');
+  if (ts || rm || cq) {
     const C = customElements.get('energy-cockpit-flow-card');
     if (C) {
       const o = C.prototype.setConfig;
-      C.prototype.setConfig = function (c) { return o.call(this, Object.assign({}, c, ts ? { text_size: ts } : {}, rm ? { rest_min: +rm } : {})); };
+      C.prototype.setConfig = function (c) { return o.call(this, Object.assign({}, c, ts ? { text_size: ts } : {}, rm ? { rest_min: +rm } : {}, cq ? { compact: cq } : {})); };
     }
   }
   if (!t) return;

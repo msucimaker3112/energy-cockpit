@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.12.0
+- **Energiefluss: Kurzansicht (`compact`).** Eine kompakte Übersicht auf einen Blick, etwa halb so hoch: Solar, Netz und Batterie stehen neben dem Ring, Gruppen zeigen nur Name und Summe, Zusatztexte (Aufteilung, Prognose, Herkunft) entfallen. Mit `compact: auto` gilt das nur auf dem Handy, Tablet und PC zeigen weiter die ausführliche Ansicht. `compact: true` nutzt die Kurzansicht überall. Einstellbar im Assistenten (Schritt *Aussehen*) und im Formular. Standard bleibt die ausführliche Ansicht.
+
 ## 0.11.0
 - **Energiefluss: kein Zucken mehr bei Netzbezug.** Während das Hinweis-Banner ein- oder ausfährt, bleibt die Skalierung stehen und wird danach einmal angepasst. Kleine Schwankungen unter 2 % werden ignoriert.
 - **Geräte & Verbrauch: gleiche Größe in allen Zeiträumen.** Der Wechsel zwischen Heute, Woche, Monat und Jahr verkleinert die Karte nicht mehr. Neu skaliert wird nur, wenn sich Breite oder Bildschirmhöhe ändern.

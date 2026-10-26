@@ -154,6 +154,7 @@ waste:
 |---|---|---|
 | `show_clock` | `true` | Uhr im Kopf |
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren |
+| `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
 | `fit_margin` | `8` | Abstand unten in Pixel |
 | `keep_awake` | `auto` | `true`/`false`/`auto`: Bildschirm wach halten (Echo Show, Silk) |

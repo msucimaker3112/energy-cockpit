@@ -207,6 +207,42 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* groups_columns: breite Gruppen verteilen ihre Einträge auf mehrere Spalten */
 .groups.gc-fixed .its{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));column-gap:16px}
 .narrow .consumers{margin-top:26px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));justify-content:stretch}
+/* compact: Kurzansicht fürs Handy, alles Wichtige auf einen Blick (Erzeuger neben dem Ring, Gruppen ohne Geräteliste) */
+.cmp{padding:14px}
+.cmp header{margin-bottom:10px}
+.cmp .pill{font-size:.66rem;padding:4px 9px}
+.cmp .banner.show{padding:9px 12px;margin-bottom:12px}
+.cmp .b-ico{width:34px;height:34px;border-radius:11px;margin-right:10px}
+.cmp .b-ico ha-icon{--mdc-icon-size:20px}
+.cmp .b-title{font-size:.92rem}
+.wrap.cmp .layout{grid-template-columns:1fr minmax(88px,.8fr) 1fr;grid-template-areas:"pv hub bat" "grid hub bat";gap:10px 12px}
+.wrap.cmp .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
+.cmp .node{padding:10px 11px;border-radius:17px}
+.cmp .n-top{font-size:.58rem;letter-spacing:.06em}
+.cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
+.cmp .ico ha-icon{--mdc-icon-size:14px}
+.cmp .val{margin-top:7px}
+.cmp .num{font-size:1.2rem}
+.cmp .unit{font-size:.68rem;margin-left:3px}
+.cmp .tag{margin-top:6px;font-size:.54rem;padding:2px 7px}
+.cmp .soc{margin-top:8px;height:7px}
+.cmp .soc-row{margin-top:4px;font-size:.66rem}
+.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.cmp .its,.cmp .c-sec{display:none}
+.cmp .hub{max-width:130px}
+.cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
+.cmp .core .num{font-size:1.1rem}
+.cmp .sambox{margin-top:30px;padding:24px 8px 8px;border-radius:20px}
+.cmp .sam{padding:5px 12px}
+.wrap.cmp .consumers,.wrap.cmp .groups{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:8px;justify-content:stretch}
+.cmp .cons{padding:8px 10px;border-radius:14px}
+.cmp .cons .num{font-size:1rem}
+.cmp .grp{padding:8px 10px;border-radius:14px}
+.cmp .grp .val{margin-top:4px}
+.cmp .grp .num{font-size:1.05rem}
+.cmp footer{grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;margin-top:12px;padding-top:12px}
+.cmp .stat{padding:7px 8px;border-radius:12px}
+.cmp .stat span{font-size:.52rem;letter-spacing:.05em;margin-bottom:3px}
+.cmp .stat b{font-size:.9rem}
 .ico.logo,.grp .ico.logo{width:auto;height:auto;min-width:0;background:none;box-shadow:none;border-radius:6px}
 .ico.logo img{display:block;height:28px;max-width:96px;object-fit:contain;border-radius:5px}
 .cons .ico.logo img{height:30px;max-width:80px}
@@ -367,7 +403,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const gc = Math.max(0, parseInt(c.groups_columns, 10) || 0);
     this._gc = gc;
     const nGrp = (c.consumer_groups || []).length + (c.rest !== false && !c.hide_rest && (c.consumer_groups || []).length ? 1 : 0);
-    const sam = (c.groups_lines === 'sammel' || (!c.groups_lines && gc > 0 && gc < nGrp)) && (c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
+    // In der Kurzansicht (compact) brechen Gruppen und Geräte frei um: ebenfalls Sammel-Linie, sofern groups_lines nicht gesetzt ist
+    const cmp = !!this._cmp;
+    const sam = (c.groups_lines === 'sammel' || (!c.groups_lines && ((gc > 0 && gc < nGrp) || cmp))) &&(c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
     this._sam = sam;
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
@@ -411,7 +449,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}">
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -511,6 +549,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (mode) wrap.classList.add(mode);
       this._mode = mode;
     }
+    // compact: true/immer | auto (nur auf schmalen Bildschirmen, z. B. Handy) | false/aus (Standard)
+    const cm = this._c.compact, cmp = cm === true || cm === 'immer' || (cm === 'auto' && mode === 'narrow');
+    if (cmp !== !!this._cmp) {
+      this._cmp = cmp;
+      this._build();
+      if (this._hass) this._update();
+      return;
+    }
     const k0 = this._fit();
     const sr = st.getBoundingClientRect();
     const hr = hub.getBoundingClientRect();
@@ -523,7 +569,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
       // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
-      const sideOnly = this._mode !== 'narrow' && ['pv', 'pv2', 'grid', 'bat'].includes(L.k);
+      const sideOnly = (this._mode !== 'narrow' || this._cmp) &&['pv', 'pv2', 'grid', 'bat'].includes(L.k);
       if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
       else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
