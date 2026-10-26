@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.12.1
+- **Kurzansicht: Gruppe antippen zeigt alle Geräte.** In der Kurzansicht (`compact`) öffnet ein Tipp auf eine Gruppe ein Fenster mit allen Geräten dieser Gruppe, ihren aktuellen Werten und der Summe. Die Werte laufen live mit, ein Tipp auf ein Gerät öffnet dessen Verlauf. Ein Pfeil "›" an der Gruppe zeigt, dass sie sich öffnen lässt.
+- **Behoben: Kurzansicht mit `groups_columns`.** Mit "Gruppen pro Reihe" (zum Beispiel `1`) zeigte die Kurzansicht die Geräteliste trotzdem an, die Einträge ragten über die Kacheln hinaus.
+- **Behoben:** Nach mehrfachem Neuaufbau der Karte (zum Beispiel beim Bearbeiten im Editor) konnte ein Klick den Verlauf mehrfach öffnen.
+
 ## 0.12.0
 - **Energiefluss: Kurzansicht (`compact`).** Eine kompakte Übersicht auf einen Blick, etwa halb so hoch: Solar, Netz und Batterie stehen neben dem Ring, Gruppen zeigen nur Name und Summe, Zusatztexte (Aufteilung, Prognose, Herkunft) entfallen. Mit `compact: auto` gilt das nur auf dem Handy, Tablet und PC zeigen weiter die ausführliche Ansicht. `compact: true` nutzt die Kurzansicht überall. Einstellbar im Assistenten (Schritt *Aussehen*) und im Formular. Standard bleibt die ausführliche Ansicht.
 

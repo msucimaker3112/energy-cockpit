@@ -1,6 +1,6 @@
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute' });
+WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 const { PAL, TH, rgb, num, watt, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
@@ -227,7 +227,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .tag{margin-top:6px;font-size:.54rem;padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
 .cmp .soc-row{margin-top:4px;font-size:.66rem}
-.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.cmp .its,.cmp .c-sec{display:none}
+.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
 .cmp .core .num{font-size:1.1rem}
@@ -237,6 +237,23 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons{padding:8px 10px;border-radius:14px}
 .cmp .cons .num{font-size:1rem}
 .cmp .grp{padding:8px 10px;border-radius:14px}
+.cmp .grp:not(.rest){cursor:pointer}
+.cmp .grp:not(.rest) .g-hd:after{content:'›';margin-left:auto;padding-left:6px;color:rgb(var(--mut));font-size:1.1rem;line-height:1}
+/* Kurzansicht: Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten */
+.gdlg{padding:0;width:min(92vw,440px);max-height:80vh;border-radius:24px;border:1px solid rgba(var(--c),.5);box-shadow:0 0 0 1px rgba(var(--c),.25),0 24px 60px rgba(0,0,0,.5);background:linear-gradient(160deg,rgba(var(--ov),.06),rgba(var(--ov),.012)),var(--panel);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;overflow:hidden}
+.gdlg::backdrop{background:rgba(0,0,0,.55)}
+.d-hd{display:flex;align-items:center;padding:16px 16px 14px 18px;border-bottom:1px solid var(--stroke)}
+.d-name{flex:1;min-width:0;font-weight:700;font-size:1.05rem;overflow-wrap:anywhere}
+.d-sum{margin-left:10px;font-size:1.35rem;font-weight:750;color:rgb(var(--c));font-variant-numeric:tabular-nums;white-space:nowrap}
+.d-x{margin-left:12px;flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--stroke);background:rgba(var(--ov),.06);color:var(--txt);font-size:1.2rem;line-height:1;cursor:pointer}
+.d-its{padding:8px 10px 14px;overflow:auto;max-height:calc(80vh - 72px)}
+.d-it{display:flex;align-items:center;padding:11px 8px;border-radius:12px;font-size:.95rem;color:rgb(var(--mut));cursor:pointer}
+.d-it:active{background:rgba(var(--ov),.07)}
+.d-it i{flex:none;width:8px;height:8px;border-radius:50%;background:rgba(var(--ov),.2);margin-right:10px}
+.d-it.on{color:var(--txt)}
+.d-it.on i{background:rgb(var(--c));box-shadow:0 0 0 2px rgba(var(--c),.3)}
+.d-it .in{flex:1;min-width:0;overflow-wrap:anywhere}
+.d-it b{margin-left:12px;color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cmp .grp .val{margin-top:4px}
 .cmp .grp .num{font-size:1.05rem}
 .cmp footer{grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;margin-top:12px;padding-top:12px}
@@ -489,16 +506,31 @@ class EnergyCockpitFlowCard extends HTMLElement {
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
-    </div></ha-card>`;
+    </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}`;
 
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
-    this.shadowRoot.addEventListener('click', (e) => {
-      const nv = e.target.closest('[data-nav]');
-      if (nv) { haNavigate(nv.dataset.nav); return; }
-      const t = e.target.closest('[data-e]');
-      if (!t || !t.dataset.e) return;
-      this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: t.dataset.e }, bubbles: true, composed: true }));
-    });
+    this._dlg = null;
+    const dl = this._$('.gdlg');
+    if (dl) dl.addEventListener('close', () => { this._dlg = null; });
+    // Nur einmal registrieren: _build läuft bei jeder Konfigurationsänderung erneut
+    if (!this._clk) {
+      this._clk = true;
+      this.shadowRoot.addEventListener('click', (e) => {
+        const dlg = this._$('.gdlg');
+        if (dlg && dlg.open && (e.target === dlg || e.target.closest('.d-x'))) { dlg.close(); return; }
+        const nv = e.target.closest('[data-nav]');
+        if (nv) { haNavigate(nv.dataset.nav); return; }
+        const t = e.target.closest('[data-e]');
+        if (t && t.dataset.e) {
+          // Eigenes Fenster liegt ganz oben: vor dem Verlauf von Home Assistant schließen
+          if (dlg && dlg.open) dlg.close();
+          this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: t.dataset.e }, bubbles: true, composed: true }));
+          return;
+        }
+        const g = this._cmp && e.target.closest('.grp[data-k^="g"]:not(.rest)');
+        if (g) this._openGroup(+g.dataset.k.slice(1));
+      });
+    }
     this._tw = {};
     this._observe();
     this._clock();
@@ -722,6 +754,44 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._set('.b-title', title);
     this._set('.b-sub', sub, true);
     this._set('.b-chips', chips, true);
+  }
+
+  // Kurzansicht: Fenster mit allen Geräten einer Gruppe, Werte laufen live mit
+  _openGroup(i) {
+    const g = (this._c.consumer_groups || [])[i], dl = this._$('.gdlg'), h = this._hass;
+    if (!g || !dl || !h) return;
+    const rows = (g.items || []).map((x, j) => {
+      const st = x.entity ? h.states[x.entity] : null;
+      if (x.entity && (!st || st.state === 'unavailable')) return '';
+      return `<div class="d-it" data-j="${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`;
+    }).join('');
+    const ico = g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`;
+    dl.style.setProperty('--c', rgb(g.color, '167,139,250'));
+    dl.innerHTML = `<div class="d-hd">${ico}<span class="d-name">${esc(g.name)}</span><b class="d-sum"></b><button class="d-x" aria-label="${T('close')}">×</button></div><div class="d-its">${rows}</div>`;
+    this._dlg = i;
+    this._dlgUpd();
+    if (dl.showModal) dl.showModal(); else dl.setAttribute('open', '');
+  }
+  _dlgUpd() {
+    const g = (this._c.consumer_groups || [])[this._dlg], dl = this._$('.gdlg'), h = this._hass;
+    if (!g || !dl || !h) return;
+    let sum = 0, any = false;
+    (g.items || []).forEach((x, j) => {
+      const p = x.entity ? watt(h, x.entity) : null;
+      if (p !== null) { sum += p; any = true; }
+      const it = dl.querySelector(`[data-j="${j}"]`);
+      if (!it) return;
+      let txt = p === null ? '' : this._fW(p);
+      const sec = x.secondary && h.states[x.secondary];
+      if (!txt && sec && !['unavailable', 'unknown'].includes(sec.state)) {
+        txt = `${nf(parseFloat(sec.state) || 0, x.secondary_decimals === undefined ? 1 : x.secondary_decimals)} ${sec.attributes.unit_of_measurement || ''}`.trim();
+      }
+      it.classList.toggle('on', (p || 0) > onW(x));
+      const b = it.querySelector('b');
+      if (b.textContent !== txt) b.textContent = txt;
+    });
+    const s = dl.querySelector('.d-sum');
+    if (s) s.textContent = any ? this._fW(sum) : '';
   }
 
   // Leistung formatieren; watt_only: true zeigt immer Watt statt ab 1000 W kW
@@ -965,6 +1035,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     this._set('[data-s="home"] b', `${fKwh(dHome)}<small>kWh</small>`, true);
     this._set('[data-s="aut"] b', fPct(aut));
+    if (this._dlg !== null && this._dlg !== undefined) this._dlgUpd();
   }
 }
 

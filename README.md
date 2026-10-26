@@ -54,7 +54,7 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
 | **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. Mit `earned_before_eur` zählt auch, was die Anlage vor Beginn der Home-Assistant-Zähler schon erwirtschaftet hat. |
 | **Gruppen pro Reihe** | `groups_columns: 1` stellt jede Gruppe in eine eigene Reihe über die volle Breite. Die Gerätenamen sind dann auch auf dem Handy vollständig lesbar. Standard: alle Gruppen nebeneinander. |
-| **Kurzansicht** | `compact: auto` zeigt auf dem Handy eine kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, keine Zusatztexte. Auf Tablet und PC bleibt die ausführliche Ansicht. `compact: true` nutzt die Kurzansicht überall. |
+| **Kurzansicht** | `compact: auto` zeigt auf dem Handy eine kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, keine Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. Auf Tablet und PC bleibt die ausführliche Ansicht. `compact: true` nutzt die Kurzansicht überall. |
 | **Nur Watt** | `watt_only: true` zeigt alle Leistungen in Watt (zum Beispiel 6.200 W) statt ab 1000 W in kW. |
 | **Aktiv ab** | `on_w` je Verbraucher oder Gruppe: ab welcher Leistung Rahmen und Linie erscheinen (Standard 10 W). Gut für kleine Verbraucher wie eine Zirkulationspumpe. |
 | **Haus heute** | Kachel mit dem Hausverbrauch des Tages in kWh, berechnet oder aus einem eigenen Sensor (`home.daily`). |
@@ -71,9 +71,9 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 |---|---|
 | ![Gruppen nebeneinander](docs/img/gruppen-vorher-handy.png) | ![Eine Gruppe pro Reihe](docs/img/gruppen-reihe-handy.png) |
 
-| Handy: ausführliche Ansicht (Standard) | Handy: `compact: auto` |
-|---|---|
-| ![Ausführliche Ansicht](docs/img/gruppen-vorher-handy.png) | ![Kurzansicht](docs/img/kompakt-handy.png) |
+| Handy: ausführliche Ansicht (Standard) | Handy: `compact: auto` | Kurzansicht: Gruppe angetippt |
+|---|---|---|
+| ![Ausführliche Ansicht](docs/img/gruppen-vorher-handy.png) | ![Kurzansicht](docs/img/kompakt-handy.png) | ![Geräte der Gruppe](docs/img/kompakt-fenster.png) |
 
 | `watt_only: true` und Kachel "Haus heute" | `groups_columns: 1` auf dem Tablet |
 |---|---|

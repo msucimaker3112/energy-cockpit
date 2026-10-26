@@ -91,6 +91,12 @@
       C.prototype.setConfig = function (c) { return o.call(this, Object.assign({}, c, ts ? { text_size: ts } : {}, rm ? { rest_min: +rm } : {}, cq ? { compact: cq } : {})); };
     }
   }
+  // dlg=1: Kurzansicht, Tipp auf die zweite Gruppe öffnet das Geräte-Fenster
+  if (q.get('dlg')) window.addEventListener('load', () => setTimeout(() => {
+    const card = document.querySelector('energy-cockpit-flow-card');
+    const g = card && card.shadowRoot.querySelector(`.grp[data-k="g${+q.get('dlg') || 0}"]`);
+    if (g) g.click();
+  }, 800));
   if (!t) return;
   ['flow', 'devices', 'stats', 'room'].forEach((k) => {
     const C = customElements.get('energy-cockpit-' + k + '-card');
