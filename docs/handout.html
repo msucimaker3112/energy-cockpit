@@ -30,11 +30,13 @@ footer{margin-top:6px;border-top:1px solid #d5dbe6;padding-top:6px;color:#5b6577
 .shot p b{color:#0b7a96}
 .wide{grid-column:1 / span 2}
 .wide img{width:72%;margin:0 auto}
+.three{grid-template-columns:1fr 1fr 1fr}
+.three .shot img{width:88%;max-height:150mm;object-fit:contain;object-position:top}
 </style></head>
 <body>
 <header>
   <h1>Energy-Cockpit<small>Energiefluss, Geräte &amp; Verbrauch, Statistik und Raum-Abrechnung für Home Assistant</small></h1>
-  <span class="badge">Version 0.10.0</span>
+  <span class="badge">Version 0.12.1</span>
 </header>
 
 <div class="cols">
@@ -105,14 +107,32 @@ grid_price: input_number.strompreis</pre>
 
 <div class="pg">
 <header>
-  <h1>Der Einrichtungsassistent<small>Schritt für Schritt, mit Vorschlägen und aktuellem Wert</small></h1>
+  <h1>Handy und Tablet<small>Eine Karte, zwei Ansichten: kompakt auf dem Handy, ausführlich auf dem Tablet</small></h1>
   <span class="badge">Seite 2</span>
+</header>
+<div class="shots three">
+  <div class="shot"><img src="img/kompakt-handy.png"><p><b>Handy: Kurzansicht.</b> Solar, Netz und Batterie neben dem Hausverbrauch, Räume nur mit Summe. Alles auf einen Blick.</p></div>
+  <div class="shot"><img src="img/kompakt-fenster.png"><p><b>Raum antippen.</b> Ein Fenster zeigt alle Geräte des Raums mit aktuellen Werten. Tipp auf ein Gerät: Verlauf.</p></div>
+  <div class="shot"><img src="img/gruppen-vorher-handy.png"><p><b>Zum Vergleich: ausführlich.</b> So sieht dieselbe Karte ohne Kurzansicht auf dem Handy aus, auf dem Tablet immer.</p></div>
+</div>
+<div class="cols" style="margin-top:10px">
+  <div class="card"><b>Einschalten:</b> Assistent → Schritt <i>Aussehen</i> → <i>Kurzansicht</i> → <b>Nur auf dem Handy</b>. Oder im YAML:
+<pre>compact: auto    # nur auf dem Handy (unter 600 px)
+compact: true    # überall</pre></div>
+  <div class="card"><b>Gut zu wissen:</b> Die Umschaltung richtet sich nach der Breite der Karte, nicht nach dem Gerät. Sie klappt also mit iPhone und iPad genauso wie mit Android. Ein Dashboard reicht für alle Geräte.</div>
+</div>
+</div>
+
+<div class="pg">
+<header>
+  <h1>Der Einrichtungsassistent<small>Schritt für Schritt, mit Vorschlägen und aktuellem Wert</small></h1>
+  <span class="badge">Seite 3</span>
 </header>
 <div class="shots">
   <div class="shot"><img src="img/wiz-flow-1-solar.png"><p><b>1. Sensor wählen.</b> Vorschläge stehen oben. Mit <i>Vorschlag übernehmen</i> trägst du den wahrscheinlichsten Sensor mit einem Klick ein. Oben springst du zwischen den Schritten.</p></div>
   <div class="shot"><img src="img/wiz-flow-5-verbraucher.png"><p><b>2. Verbraucher hinzufügen.</b> Wärmepumpe, Wallbox, Trockner: Sensor wählen, Name anpassen. Der aktuelle Wert steht in der Liste.</p></div>
   <div class="shot"><img src="img/wiz-flow-6-preise.png"><p><b>3. Preise.</b> Strompreis und Einspeisevergütung als Sensor oder <code>input_number</code> schalten Kosten und Ersparnis frei.</p></div>
-  <div class="shot"><img src="img/wiz-flow-7-fertig.png"><p><b>4. Zusammenfassung.</b> Alles ist gespeichert. <i>Fertig</i> zeigt alle Felder für Gruppen und Feinheiten.</p></div>
+  <div class="shot"><img src="img/wiz-flow-8-fertig.png"><p><b>4. Zusammenfassung.</b> Alles ist gespeichert. <i>Fertig</i> zeigt alle Felder für Gruppen und Feinheiten.</p></div>
   <div class="shot wide"><img src="img/wiz-devices-assistent.png" style="width:46%"><p><b>Geräte &amp; Verbrauch:</b> <i>Räume und Geräte aus Bereichen vorschlagen</i> legt Räume anhand der Bereiche in Home Assistant an und ordnet alle Geräte mit Leistungssensor zu. Schalter und Energiezähler desselben Geräts werden übernommen.</p></div>
 </div>
 </div>
@@ -120,7 +140,7 @@ grid_price: input_number.strompreis</pre>
 <div class="pg">
 <header>
   <h1>Raum-Abrechnung<small>Strommiete, Hochrechnung, Grundlast und Archiv</small></h1>
-  <span class="badge">Seite 3</span>
+  <span class="badge">Seite 4</span>
 </header>
 <div class="shots">
   <div class="shot wide"><img src="img/room-abrechnung.png"><p><b>Abrechnung und Hochrechnung.</b> Kosten gegen Abschlag, Hochrechnung bis Monatsende, Guthaben oder Nachzahlung, Vergleich mit Vormonat und Vorjahr.</p></div>

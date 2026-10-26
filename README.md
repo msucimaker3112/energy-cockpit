@@ -1,6 +1,6 @@
 # Energy-Cockpit
 
-**Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.** Komplett deutsch, kostenlos, mit Einrichtungsassistent. Du brauchst kein YAML.
+**Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.** Komplett deutsch, kostenlos, mit Einrichtungsassistent. Du brauchst kein YAML. **Neu:** [eine Karte, zwei Ansichten](#handy-und-tablet-eine-karte-zwei-ansichten): kompakt auf dem Handy, ausführlich auf dem Tablet.
 
 [![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=msucimaker3112&repository=energy-cockpit&category=plugin)
 
@@ -26,6 +26,27 @@
 ![Geräte und Verbrauch](docs/img/devices.png)
 
 ![Statistik](docs/img/stats.png)
+
+## Handy und Tablet: eine Karte, zwei Ansichten
+
+Die Energiefluss-Karte erkennt, wie breit der Bildschirm ist, und zeigt automatisch die passende Ansicht. Du brauchst **kein zweites Dashboard**.
+
+- **Handy (z. B. iPhone): Kurzansicht.** Alles auf einen Blick: Solar, Netz und Batterie direkt neben dem Hausverbrauch, die Räume nur mit ihrer Summe, keine Zusatztexte. Die Karte ist etwa halb so hoch.
+- **Raum antippen:** Ein Tipp auf eine Gruppe (Pfeil „›“) öffnet ein Fenster mit allen Geräten des Raums, ihren aktuellen Werten und der Summe. Ein Tipp auf ein Gerät zeigt dessen Verlauf.
+- **Tablet und PC (z. B. iPad): ausführliche Ansicht** mit jedem Gerät, Prognosen und der Aufteilung des Solarstroms.
+
+| Handy: Kurzansicht | Handy: Raum angetippt | Tablet: ausführlich |
+|---|---|---|
+| ![Kurzansicht auf dem Handy](docs/img/kompakt-handy.png) | ![Alle Geräte eines Raums](docs/img/kompakt-fenster.png) | ![Ausführliche Ansicht](docs/img/flow.png) |
+
+**Einschalten:** im Assistenten Schritt *Aussehen* → *Kurzansicht* → **Nur auf dem Handy**, oder im YAML:
+
+```yaml
+compact: auto    # Kurzansicht nur auf dem Handy (unter 600 px Breite)
+# compact: true  # Kurzansicht überall
+```
+
+Die Umschaltung richtet sich nach der Breite, nicht nach dem Gerätetyp. Sie funktioniert also genauso mit Android-Handys und -Tablets. Ohne `compact` bleibt alles wie bisher.
 
 ## Der Einrichtungsassistent
 
@@ -54,7 +75,7 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
 | **Anschaffungskosten** | `investment_eur` (fester Betrag) oder `investment` (Sensor) für die Amortisation in der Statistik. Mit `earned_before_eur` zählt auch, was die Anlage vor Beginn der Home-Assistant-Zähler schon erwirtschaftet hat. |
 | **Gruppen pro Reihe** | `groups_columns: 1` stellt jede Gruppe in eine eigene Reihe über die volle Breite. Die Gerätenamen sind dann auch auf dem Handy vollständig lesbar. Standard: alle Gruppen nebeneinander. |
-| **Kurzansicht** | `compact: auto` zeigt auf dem Handy eine kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, keine Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. Auf Tablet und PC bleibt die ausführliche Ansicht. `compact: true` nutzt die Kurzansicht überall. |
+| **Kurzansicht** | `compact: auto`: kompakt auf dem Handy, ausführlich auf Tablet und PC, Raum antippen zeigt alle Geräte. Siehe [Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten). |
 | **Nur Watt** | `watt_only: true` zeigt alle Leistungen in Watt (zum Beispiel 6.200 W) statt ab 1000 W in kW. |
 | **Aktiv ab** | `on_w` je Verbraucher oder Gruppe: ab welcher Leistung Rahmen und Linie erscheinen (Standard 10 W). Gut für kleine Verbraucher wie eine Zirkulationspumpe. |
 | **Haus heute** | Kachel mit dem Hausverbrauch des Tages in kWh, berechnet oder aus einem eigenen Sensor (`home.daily`). |
@@ -70,10 +91,6 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | Handy: Gruppen nebeneinander (Standard) | Handy: `groups_columns: 1` |
 |---|---|
 | ![Gruppen nebeneinander](docs/img/gruppen-vorher-handy.png) | ![Eine Gruppe pro Reihe](docs/img/gruppen-reihe-handy.png) |
-
-| Handy: ausführliche Ansicht (Standard) | Handy: `compact: auto` | Kurzansicht: Gruppe angetippt |
-|---|---|---|
-| ![Ausführliche Ansicht](docs/img/gruppen-vorher-handy.png) | ![Kurzansicht](docs/img/kompakt-handy.png) | ![Geräte der Gruppe](docs/img/kompakt-fenster.png) |
 
 | `watt_only: true` und Kachel "Haus heute" | `groups_columns: 1` auf dem Tablet |
 |---|---|

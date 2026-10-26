@@ -68,7 +68,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 | 4. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
 | 5. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). Hier wählst du auch, ob jede Gruppe eine eigene Linie bekommt oder eine Sammel-Linie den ganzen Bereich speist. |
 | 6. Preise | Strompreis und Einspeisevergütung für Kosten und Ersparnis. |
-| 7. Aussehen | Farbschema wählen (Kacheln mit Vorschau) und die Textgröße (normal, groß, sehr groß, hilfreich auf Handy und Tablet). |
+| 7. Aussehen | Farbschema wählen (Kacheln mit Vorschau), Leistung immer in Watt, **Kurzansicht** (aus, nur auf dem Handy, immer) und die Textgröße (normal, groß, sehr groß). Mit „Nur auf dem Handy“ zeigt dieselbe Karte auf dem Handy eine kompakte Übersicht und auf dem Tablet alle Details, siehe [Kurzansicht](KONFIGURATION.md#kurzansicht-fürs-handy-compact). |
 | 8. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |
 
 ![Netz](img/wiz-flow-2-netz.png)

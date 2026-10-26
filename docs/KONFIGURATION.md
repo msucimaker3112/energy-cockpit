@@ -326,6 +326,29 @@ Unterhalb der Tabelle zeigt die Karte zum Vergleich immer auch den Betrag für "
 - **Monatsarchiv:** zeigt festgehaltene Monate mit Zählerständen, Mengen, Preisen und Saldo. Das Archiv füllt eine Automation; die Karte liest nur das Attribut `monate` (Liste mit `k` als `JJJJ-MM`, `kwh`, `g`, `b`, `p`, `cost`, `pg`, `pf`, `ab` und `dev` mit `n`, `a`, `e`, `kwh`).
 
 
+### Kurzansicht fürs Handy: `compact`
+
+Eine Karte, zwei Ansichten: Mit `compact: auto` zeigt die Energiefluss-Karte auf dem Handy eine kompakte Übersicht und auf Tablet und PC weiter alle Details. Du brauchst dafür kein zweites Dashboard.
+
+```yaml
+type: custom:energy-cockpit-flow-card
+compact: auto    # nur auf schmalen Bildschirmen (unter 600 px), z. B. iPhone
+# compact: true  # Kurzansicht überall
+```
+
+| Handy: ausführlich (Standard) | Handy: `compact: auto` | Raum angetippt |
+|---|---|---|
+| ![Ausführlich](img/gruppen-vorher-handy.png) | ![Kurzansicht](img/kompakt-handy.png) | ![Alle Geräte eines Raums](img/kompakt-fenster.png) |
+
+Was die Kurzansicht anders macht:
+
+- Solar, Netz und Batterie stehen neben dem Ring statt darunter. Die Karte ist etwa halb so hoch.
+- Gruppen zeigen nur Name und Summe. Ein **Tipp auf eine Gruppe** (Pfeil „›“) öffnet ein Fenster mit allen Geräten, ihren aktuellen Werten und der Summe. Die Werte laufen live mit, ein Tipp auf ein Gerät öffnet dessen Verlauf, „ד oder ein Tipp daneben schließt das Fenster.
+- Zusatztexte entfallen: Aufteilung des Solarstroms, Prognose, Akku-Prognose, Herkunft unter dem Ring.
+- Zu den Verbrauchern führt die Sammel-Linie, sofern `groups_lines` nicht gesetzt ist. `groups_columns` gilt in der Kurzansicht nicht, die Gruppen verteilen sich selbst auf die Breite.
+
+Die Umschaltung richtet sich nach der Breite der Karte, nicht nach dem Gerätetyp. Sie gilt also auch für Android und für ein schmales Browserfenster.
+
 ### Linien zu den Verbrauchern: `groups_lines`
 
 Mit vielen Verbrauchern laufen die einzelnen Linien eng nebeneinander und teils hinter anderen Kacheln. Die Option `groups_lines: sammel` ersetzt sie durch **eine** Linie zum ganzen Verbraucherbereich.
