@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.12.2 - MIT License */
+/*! energy-cockpit v0.12.3 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -257,6 +257,11 @@ const WD = (() => {
     return o;
   };
 
+  // Entität, die nicht zum Filter passt (z. B. im YAML eingetragen), mit Name und Wert
+  const own = (hass, id) => {
+    const s = hass && id && hass.states[id];
+    return s ? { id, name: (s.attributes && s.attributes.friendly_name) || id, state: s.state, unit: (s.attributes && s.attributes.unit_of_measurement) || '' } : null;
+  };
   const fmtState = (e) => (e ? `${e.state}${e.unit ? ' ' + e.unit : ''}` : '');
 
   // Baut den Assistenten. opts: { steps, hass, config, onChange(config), done }
@@ -290,7 +295,13 @@ const WD = (() => {
       const rest = all.filter((e) => sug.indexOf(e) < 0);
       const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
       sel.appendChild(opt('', '— nicht verwenden —'));
-      if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
+      const mine = cur && !all.find((e) => e.id === cur) ? own(hass, cur) : null;
+      if (mine) {
+        const g0 = document.createElement('optgroup'); g0.label = 'Eigene Auswahl';
+        g0.appendChild(opt(cur, `${mine.name} (${fmtState(mine)})`));
+        sel.appendChild(g0);
+      } else if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
+      const pool = mine ? all.concat([mine]) : all;
       if (sug.length) {
         const g = document.createElement('optgroup'); g.label = 'Vorschläge';
         sug.slice(0, 12).forEach((e) => g.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
@@ -301,7 +312,7 @@ const WD = (() => {
       sel.appendChild(g2);
       sel.value = cur;
       const live = el('div', css.help, '');
-      const upd = () => { const e = all.find((x) => x.id === sel.value); live.textContent = e ? `Aktueller Wert: ${fmtState(e)}  ·  ${e.id}` : ''; };
+      const upd = () => { const e = pool.find((x) => x.id === sel.value); live.textContent = e ? `Aktueller Wert: ${fmtState(e)}  ·  ${e.id}` : ''; };
       sel.addEventListener('change', () => { setPath(cfg, f.path, sel.value); upd(); emit(); });
       upd();
       wrap.appendChild(sel);
@@ -390,7 +401,7 @@ const WD = (() => {
       items.forEach((it, i) => {
         const row = el('div', css.box);
         const sel = el('select', css.input);
-        const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || { name: it[KEY] || '—' }).name;
+        const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || own(hass, it[KEY]) || { name: it[KEY] || '—' }).name;
         sel.appendChild(o0);
         all.forEach((e) => { if (e.id !== it[KEY]) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); } });
         sel.value = it[KEY] || '';
@@ -569,11 +580,11 @@ ha-card{background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 6
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(40% 30% at 18% 18%,rgba(var(--pv),.11),transparent 70%),radial-gradient(40% 35% at 85% 40%,rgba(var(--bat),.09),transparent 70%),radial-gradient(35% 30% at 50% 45%,rgba(var(--home),.10),transparent 70%)}
 header{display:flex;align-items:center;flex-wrap:wrap;margin:0 0 22px;position:relative}
 header>*{margin:3px 0 3px 8px}
-.title{font-size:1.05rem;font-weight:650;display:flex;align-items:center;margin:3px auto 3px 0;letter-spacing:.01em}
+.title{font-size:calc(1.05rem*var(--ts,1));font-weight:650;display:flex;align-items:center;margin:3px auto 3px 0;letter-spacing:.01em}
 .live{width:8px;height:8px;border-radius:50%;background:rgb(var(--exp));margin-right:10px;animation:ping 2s infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(var(--exp),.7)}100%{box-shadow:0 0 0 10px rgba(var(--exp),0)}}
 .clock{font-variant-numeric:tabular-nums;color:var(--mut);font-weight:500;margin-left:12px;font-size:.95rem}
-.pill{font-size:.74rem;color:rgb(var(--mut));padding:6px 11px;border-radius:999px;background:var(--glass);border:1px solid var(--stroke)}
+.pill{font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));padding:6px 11px;border-radius:999px;background:var(--glass);border:1px solid var(--stroke)}
 .pill b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;margin-left:4px}
 .ka{display:none}
 .ka.show{display:block}
@@ -585,7 +596,7 @@ header>*{margin:3px 0 3px 8px}
 .wst b{color:rgb(var(--wc));margin-left:0}
 .wst.urgent{animation:wpulse 1.6s ease-in-out infinite}
 @keyframes wpulse{50%{box-shadow:0 0 0 7px rgba(var(--wc),.18)}}
-.navbtn{cursor:pointer;color:var(--txt);font-weight:650;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);padding:8px 14px;border-radius:999px;font-size:.8rem;margin-left:8px;-webkit-tap-highlight-color:transparent;transition:background .3s}
+.navbtn{cursor:pointer;color:var(--txt);font-weight:650;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);padding:8px 14px;border-radius:999px;font-size:calc(.8rem*var(--ts,1));margin-left:8px;-webkit-tap-highlight-color:transparent;transition:background .3s}
 .navbtn:active{background:rgba(var(--ov),.18)}
 .banner{position:relative;display:flex;align-items:center;overflow:hidden;border-radius:20px;max-height:0;opacity:0;margin:0;padding:0 18px;border:1px solid transparent;transition:max-height .6s cubic-bezier(.2,.8,.2,1),opacity .5s,margin .6s,padding .6s}
 .banner.show{max-height:140px;opacity:1;margin:0 0 20px;padding:14px 18px}
@@ -603,7 +614,7 @@ header>*{margin:3px 0 3px 8px}
 .b-txt{display:flex;flex-direction:column;min-width:0;margin-right:auto}
 .b-title{font-size:1.15rem;font-weight:750;letter-spacing:-.01em}
 .sur .b-title{color:rgb(var(--pv))}.imp .b-title{color:rgb(var(--imp))}
-.b-sub{font-size:.78rem;color:rgb(var(--mut));margin-top:3px}
+.b-sub{font-size:calc(.78rem*var(--ts,1));color:rgb(var(--mut));margin-top:3px}
 .b-sub b{color:var(--txt)}
 .b-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;margin-left:12px}
 .chip{display:flex;align-items:center;font-size:.76rem;font-weight:650;padding:7px 12px;border-radius:999px;margin:3px 0 3px 8px;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.12);white-space:nowrap}
@@ -628,7 +639,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .node:not(.on) .val,.node:not(.on) .n-top,.node:not(.on) .sub{opacity:.7}
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
-.n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650}
+.n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:calc(.7rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
 .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -636,9 +647,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .num{font-size:1.95rem;font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1;color:var(--txt);transition:color .5s}
 .node.on .num{color:rgb(var(--c));text-shadow:none}
 .unit{font-size:.85rem;color:rgb(var(--mut));font-weight:650;margin-left:5px}
-.tag{display:inline-flex;margin-top:9px;font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
+.tag{display:inline-flex;margin-top:9px;font-size:calc(.64rem*var(--ts,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
 .tag:empty{display:none}
-.sub{margin-top:9px;font-size:.74rem;color:rgb(var(--mut));line-height:1.55}
+.sub{margin-top:9px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));line-height:1.55}
 .sub:empty{display:none}
 .sub b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .soc{margin-top:13px;position:relative;height:9px;border-radius:999px;background:rgba(var(--ov),.07);overflow:hidden}
@@ -648,7 +659,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .soc-low,.soc-high{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.22) 0 3px,rgba(var(--ov),.06) 3px 6px);pointer-events:none}
 .soc-low{left:0;border-right:1px solid rgba(var(--ov),.5)}
 .soc-high{right:0;border-left:1px solid rgba(var(--ov),.5)}
-.soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:.72rem;color:rgb(var(--mut))}
+.soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut))}
 .soc-row b{color:var(--txt);font-variant-numeric:tabular-nums}
 .hub-wrap{grid-area:hub;display:flex;flex-direction:column;align-items:center}
 .hub{position:relative;width:100%;max-width:250px;cursor:pointer;transition:transform .25s}
@@ -663,8 +674,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .core ha-icon{color:rgb(var(--home));--mdc-icon-size:26px;margin-bottom:6px}
 .core .val{margin:0}
 .core .num{font-size:2.15rem;color:rgb(var(--home));text-shadow:none}
-.hub-lbl{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
-.mix{display:flex;font-size:.7rem;color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
+.hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
+.mix{display:flex;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
 .mix span{display:flex;align-items:center;margin:0 6px}
 .mix i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
 .mix b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600;margin-left:4px}
@@ -676,14 +687,14 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 @keyframes bob{50%{box-shadow:0 0 0 1px rgba(var(--c),.35)}}
 .cons:not(.on){opacity:.55}
 .c-txt{display:flex;flex-direction:column;min-width:0}
-.cons .lbl{font-size:.64rem;color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:650;margin-bottom:3px}
+.cons .lbl{font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:650;margin-bottom:3px}
 .cons .val{margin:0}
 .cons .num{font-size:1.1rem}.cons .unit{font-size:.7rem;margin-left:3px}
 .cons.on .num{color:rgb(var(--c))}
-.c-sec{margin-left:auto;padding-left:6px;font-size:.72rem;color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
+.c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
 .stat{display:flex;flex-direction:column;padding:11px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
-.stat span{font-size:.62rem;color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.09em;font-weight:650;display:flex;align-items:center;margin-bottom:5px}
+.stat span{font-size:calc(.62rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.09em;font-weight:650;display:flex;align-items:center;margin-bottom:5px}
 .stat span i{width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
 .stat b{font-size:1.1rem;font-variant-numeric:tabular-nums;font-weight:700}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
@@ -695,12 +706,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .grp .ico{width:26px;height:26px;border-radius:9px;margin-right:7px}
 .grp .ico ha-icon{--mdc-icon-size:15px}
 .grp.on .ico{animation:bob 2.4s ease-in-out infinite}
-.grp .lbl{font-size:.6rem;color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.grp .lbl{font-size:calc(.6rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .grp .val{margin-top:7px}
 .grp .num{font-size:1.25rem}.grp .unit{font-size:.68rem;margin-left:3px}
 .grp.on .num{color:rgb(var(--c));text-shadow:none}
 .its{margin-top:6px;border-top:1px solid rgba(var(--ov),.06);padding-top:4px}
-.it{display:flex;align-items:center;font-size:.64rem;color:rgb(var(--mut));line-height:1.8;min-width:0;cursor:pointer}
+.it{display:flex;align-items:center;font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));line-height:1.8;min-width:0;cursor:pointer}
 .it i{flex:none;width:5px;height:5px;border-radius:50%;background:rgba(var(--ov),.2);margin-right:5px;transition:background .4s,box-shadow .4s}
 .it.on i{background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35)}
 .it.on{color:var(--txt)}
@@ -712,33 +723,33 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* Tablet / Wandpanel */
 .wide{padding:26px 30px}
 .wide header{margin-bottom:26px}
-.wide .title{font-size:1.25rem}
-.wide .pill{font-size:.85rem;padding:8px 14px}
+.wide .title{font-size:calc(1.25rem*var(--ts,1))}
+.wide .pill{font-size:calc(.85rem*var(--ts,1));padding:8px 14px}
 .wide .layout{grid-template-columns:1fr minmax(260px,1.1fr) 1fr;gap:28px 56px}
 .wide .node{padding:20px 22px;border-radius:26px}
-.wide .n-top{font-size:.8rem}
+.wide .n-top{font-size:calc(.8rem*var(--ts,1))}
 .wide .ico{width:40px;height:40px;border-radius:13px}
 .wide .ico ha-icon{--mdc-icon-size:22px}
 .wide .num{font-size:2.6rem}
 .wide .unit{font-size:1rem}
-.wide .sub{font-size:.86rem}
-.wide .tag{font-size:.72rem;padding:4px 11px}
+.wide .sub{font-size:calc(.86rem*var(--ts,1))}
+.wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
 .wide .core .num{font-size:2.8rem}
 .wide .core ha-icon{--mdc-icon-size:32px}
-.wide .hub-lbl{font-size:.72rem}
-.wide .mix{font-size:.82rem}
+.wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
+.wide .mix{font-size:calc(.82rem*var(--ts,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(200px,260px));gap:14px;margin-top:60px}
 .wide .cons{padding:14px 16px;border-radius:20px}
 .wide .cons .num{font-size:1.35rem}
-.wide .cons .lbl{font-size:.72rem}
+.wide .cons .lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .groups{gap:12px;margin-top:60px}
 .wide .grp{padding:12px 12px 9px;border-radius:19px}
 .wide .grp .num{font-size:1.5rem}
-.wide .grp .lbl{font-size:.66rem}
-.wide .it{font-size:.72rem}
+.wide .grp .lbl{font-size:calc(.66rem*var(--ts,1))}
+.wide .it{font-size:calc(.72rem*var(--ts,1))}
 .wide .stat b{font-size:1.35rem}
-.wide .stat span{font-size:.7rem}
+.wide .stat span{font-size:calc(.7rem*var(--ts,1))}
 /* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
 .sam-on .mix{order:-1;margin:0 0 12px}
 .sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
@@ -749,8 +760,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .sam-t{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650}
 .sam-w{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
 /* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy) */
-.ts-l .pill,.ts-l .tag,.ts-l .sub,.ts-l .mix,.ts-l .n-top,.ts-l .hub-lbl,.ts-l .title,.ts-l .navbtn,.ts-l .it,.ts-l .c-sec,.ts-l .cons .lbl,.ts-l .grp .lbl,.ts-l .b-sub,.ts-l .stat span,.ts-l .soc-row{zoom:1.25}
-.ts-xl .pill,.ts-xl .tag,.ts-xl .sub,.ts-xl .mix,.ts-xl .n-top,.ts-xl .hub-lbl,.ts-xl .title,.ts-xl .navbtn,.ts-xl .it,.ts-xl .c-sec,.ts-xl .cons .lbl,.ts-xl .grp .lbl,.ts-xl .b-sub,.ts-xl .stat span,.ts-xl .soc-row{zoom:1.5}
+.ts-l{--ts:1.25}
+.ts-xl{--ts:1.5}
 .ts-l .soc-row b,.ts-xl .soc-row b{font-size:1.05rem}
 /* Smartphone */
 .narrow{padding:16px}
@@ -768,7 +779,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* compact: Kurzansicht fürs Handy, alles Wichtige auf einen Blick (Erzeuger neben dem Ring, Gruppen ohne Geräteliste) */
 .cmp{padding:14px}
 .cmp header{margin-bottom:10px}
-.cmp .pill{font-size:.66rem;padding:4px 9px}
+.cmp .pill{font-size:calc(.66rem*var(--ts,1));padding:4px 9px}
 .cmp .banner.show{padding:9px 12px;margin-bottom:12px}
 .cmp .b-ico{width:34px;height:34px;border-radius:11px;margin-right:10px}
 .cmp .b-ico ha-icon{--mdc-icon-size:20px}
@@ -776,15 +787,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wrap.cmp .layout{grid-template-columns:1fr minmax(88px,.8fr) 1fr;grid-template-areas:"pv hub bat" "grid hub bat";gap:10px 12px}
 .wrap.cmp .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 .cmp .node{padding:10px 11px;border-radius:17px}
-.cmp .n-top{font-size:.58rem;letter-spacing:.06em}
+.cmp .n-top{font-size:calc(.58rem*var(--ts,1));letter-spacing:.06em}
 .cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
 .cmp .ico ha-icon{--mdc-icon-size:14px}
 .cmp .val{margin-top:7px}
 .cmp .num{font-size:1.2rem}
 .cmp .unit{font-size:.68rem;margin-left:3px}
-.cmp .tag{margin-top:6px;font-size:.54rem;padding:2px 7px}
+.cmp .tag{margin-top:6px;font-size:calc(.54rem*var(--ts,1));padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
-.cmp .soc-row{margin-top:4px;font-size:.66rem}
+.cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
 .cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
@@ -816,12 +827,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .grp .num{font-size:1.05rem}
 .cmp footer{grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;margin-top:12px;padding-top:12px}
 .cmp .stat{padding:7px 8px;border-radius:12px}
-.cmp .stat span{font-size:.52rem;letter-spacing:.05em;margin-bottom:3px}
+.cmp .stat span{font-size:calc(.52rem*var(--ts,1));letter-spacing:.05em;margin-bottom:3px}
 .cmp .stat b{font-size:.9rem}
 .ico.logo,.grp .ico.logo{width:auto;height:auto;min-width:0;background:none;box-shadow:none;border-radius:6px}
 .ico.logo img{display:block;height:28px;max-width:96px;object-fit:contain;border-radius:5px}
 .cons .ico.logo img{height:30px;max-width:80px}
-@media (prefers-reduced-motion:reduce){.flow,.orbit,.core,.node.on,.live,.cons.on .ico{animation-duration:0s!important}}
+/* animations: always (oder immer) animiert auch bei "Bewegung reduzieren" am Gerät */
+@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .flow,.wrap:not(.anim-on) .orbit,.wrap:not(.anim-on) .core,.wrap:not(.anim-on) .node.on,.wrap:not(.anim-on) .live,.wrap:not(.anim-on) .cons.on .ico{animation-duration:0s!important}}
 `;
 
 class EnergyCockpitFlowCard extends HTMLElement {
@@ -1024,7 +1036,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}">
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -1101,8 +1113,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _fit() {
     const wrap = this._$('.wrap'), card = this._$('ha-card');
     if (!wrap || !card) return 1;
-    // Banner fährt gerade ein oder aus: Maßstab halten, danach einmal neu anpassen (sonst zuckt die Karte bei jedem Frame)
-    if (this._scale && Date.now() < (this._bUntil || 0)) return this._scale;
+    // Banner fährt ein oder aus, Zahlen zählen hoch: Maßstab halten, danach einmal neu anpassen (sonst zuckt die Karte bei jedem Frame).
+    // Laufen ständig neue Werte ein, höchstens alle 5 Sekunden neu anpassen.
+    const now = Date.now();
+    if (this._scale && now < (this._bUntil || 0)) {
+      if (now - (this._holdSince || now) < 5000) return this._scale;
+      this._holdSince = now;
+    }
     const prev = this._scale;
     wrap.style.transform = ''; wrap.style.width = ''; card.style.height = '';
     if (this._c.fit_screen === false) return (this._scale = 1);
@@ -1114,16 +1131,28 @@ class EnergyCockpitFlowCard extends HTMLElement {
       s = Math.max(0.55, avail / wrap.offsetHeight);
       wrap.style.width = (cw / s) + 'px';
       s = Math.max(0.55, Math.min(1, avail / wrap.offsetHeight));
-      // Kleine Abweichungen ignorieren: Jede Breitenänderung bricht Kacheln anders um und löst sonst die nächste Anpassung aus
-      if (prev && prev < 1 && cw === this._fitW && Math.abs(s - prev) < 0.02) s = prev;
+    }
+    // Kleine Abweichungen ignorieren: Jede Breitenänderung bricht Kacheln anders um und löst sonst die nächste Anpassung aus.
+    // Vergrößern erst ab 4 %, Verkleinern ab 1,5 % (dann läuft wirklich etwas über).
+    if (prev && cw === this._fitW && avail === this._fitA && ((s > prev && s - prev < 0.04) || (s < prev && prev - s < 0.015))) s = prev;
+    if (s < 1) {
       wrap.style.width = (cw / s) + 'px';
       wrap.style.transform = 'scale(' + s + ')';
       card.style.height = Math.ceil(wrap.offsetHeight * s) + 'px';
-    }
+    } else wrap.style.width = '';
     this._fitW = cw;
+    this._fitA = avail;
     return (this._scale = s);
   }
 
+  // Maßstab für ms Millisekunden festhalten und danach einmal neu einpassen
+  _holdFit(ms) {
+    const now = Date.now();
+    if (now >= (this._bUntil || 0)) this._holdSince = now;
+    this._bUntil = Math.max(this._bUntil || 0, now + ms);
+    clearTimeout(this._bFit);
+    this._bFit = setTimeout(() => this._schedLayout(), this._bUntil - now + 20);
+  }
   _schedLayout() {
     if (this._lr) return;
     this._lr = requestAnimationFrame(() => { this._lr = null; this._layout(); });
@@ -1185,6 +1214,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!t || t.target === null || t.cur === undefined) t = this._tw[key] = { cur: target };
     if (t.target === target && t.numEl === numEl) return;
     Object.assign(t, { from: t.cur, target, t0: performance.now(), numEl, unitEl });
+    this._holdFit(950);
     if (!this._raf) this._raf = requestAnimationFrame((n) => this._tick(n));
   }
   _tick(now) {
@@ -1277,9 +1307,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!mode && (surOn || impOn)) this._bT = setTimeout(() => this._update(), 5000);
     if (!!mode !== el.classList.contains('show')) {
       // Ein- und Ausblenden dauert 0,6 s: so lange nicht neu skalieren, danach einmal
-      this._bUntil = Date.now() + 700;
-      clearTimeout(this._bFit);
-      this._bFit = setTimeout(() => this._schedLayout(), 720);
+      this._holdFit(700);
     }
     this._modeB = mode;
     el.classList.toggle('show', !!mode);
@@ -1623,7 +1651,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    show_clock: 'Uhr anzeigen', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    show_clock: 'Uhr anzeigen', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
   };
@@ -1668,6 +1696,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       numb('rest_min', 0, 100, 1),
       { name: 'compact', selector: { select: { mode: 'dropdown', options: COMPACT } } },
       { name: 'text_size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }] } } },
+      { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
       txt('nav_path'),
@@ -1729,6 +1758,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
+      { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
       { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }], help: 'Vergrößert die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [

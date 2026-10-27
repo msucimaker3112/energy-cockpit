@@ -47,6 +47,11 @@
     return o;
   };
 
+  // Entität, die nicht zum Filter passt (z. B. im YAML eingetragen), mit Name und Wert
+  const own = (hass, id) => {
+    const s = hass && id && hass.states[id];
+    return s ? { id, name: (s.attributes && s.attributes.friendly_name) || id, state: s.state, unit: (s.attributes && s.attributes.unit_of_measurement) || '' } : null;
+  };
   const fmtState = (e) => (e ? `${e.state}${e.unit ? ' ' + e.unit : ''}` : '');
 
   // Baut den Assistenten. opts: { steps, hass, config, onChange(config), done }
@@ -80,7 +85,13 @@
       const rest = all.filter((e) => sug.indexOf(e) < 0);
       const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
       sel.appendChild(opt('', '— nicht verwenden —'));
-      if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
+      const mine = cur && !all.find((e) => e.id === cur) ? own(hass, cur) : null;
+      if (mine) {
+        const g0 = document.createElement('optgroup'); g0.label = 'Eigene Auswahl';
+        g0.appendChild(opt(cur, `${mine.name} (${fmtState(mine)})`));
+        sel.appendChild(g0);
+      } else if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
+      const pool = mine ? all.concat([mine]) : all;
       if (sug.length) {
         const g = document.createElement('optgroup'); g.label = 'Vorschläge';
         sug.slice(0, 12).forEach((e) => g.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
@@ -91,7 +102,7 @@
       sel.appendChild(g2);
       sel.value = cur;
       const live = el('div', css.help, '');
-      const upd = () => { const e = all.find((x) => x.id === sel.value); live.textContent = e ? `Aktueller Wert: ${fmtState(e)}  ·  ${e.id}` : ''; };
+      const upd = () => { const e = pool.find((x) => x.id === sel.value); live.textContent = e ? `Aktueller Wert: ${fmtState(e)}  ·  ${e.id}` : ''; };
       sel.addEventListener('change', () => { setPath(cfg, f.path, sel.value); upd(); emit(); });
       upd();
       wrap.appendChild(sel);
@@ -180,7 +191,7 @@
       items.forEach((it, i) => {
         const row = el('div', css.box);
         const sel = el('select', css.input);
-        const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || { name: it[KEY] || '—' }).name;
+        const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || own(hass, it[KEY]) || { name: it[KEY] || '—' }).name;
         sel.appendChild(o0);
         all.forEach((e) => { if (e.id !== it[KEY]) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; sel.appendChild(o); } });
         sel.value = it[KEY] || '';

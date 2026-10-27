@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.12.3
+- **Energiefluss: kein Zittern mehr beim Hochzählen der Werte.** Solange die Zahlen auf einen neuen Wert hochzählen, hält die Karte ihren Maßstab und passt sich danach einmal an, bei ständig neuen Werten höchstens alle 5 Sekunden. Kleine Größenänderungen werden ignoriert: Vergrößert wird erst ab 4 %, verkleinert ab 1,5 %. Betraf vor allem Safari auf dem iPhone und die Vorschau im Editor bei vergrößerter Schrift.
+- **Textgröße (`text_size`) über echte Schriftgrößen.** "Groß" und "Sehr groß" vergrößern die Schrift jetzt um genau 25 % bzw. 50 % statt über die CSS-Eigenschaft `zoom`, die Browser unterschiedlich messen.
+- **Neu: `animations: always`.** Ist am Gerät "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und der gepunktete Ring um den Hausverbrauch still. Mit `animations: always` animiert die Karte trotzdem. Standard bleibt, die Einstellung des Geräts zu beachten. Einstellbar im Assistenten (Schritt *Aussehen*) und im Formular.
+- **Assistent: eigene Entitäten sichtbar.** Eine Entität, die nicht in der Vorschlagsliste steht (zum Beispiel im YAML eingetragen), erscheint im Auswahlfeld unter "Eigene Auswahl" mit Namen und aktuellem Wert statt als "(nicht gefunden)".
+
 ## 0.12.2
 - **Energiesensoren in Wh oder MWh werden umgerechnet** ([#13](https://github.com/msucimaker3112/energy-cockpit/issues/13)). Die Karten lesen die Einheit jedes Energiesensors und rechnen intern immer in kWh: Wh wird durch 1000 geteilt, MWh mit 1000 malgenommen. Das gilt für die Tageswerte im Energiefluss, die Statistik und die Raum-Abrechnung. Bisher erschienen Wh-Werte 1000-mal zu groß. Bei Sensoren in kWh oder ohne Einheit ändert sich nichts.
 - **Leistung in kW oder MW** wird jetzt in allen Karten gleich umgerechnet, auch in "Geräte & Verbrauch" und der Raum-Abrechnung.
