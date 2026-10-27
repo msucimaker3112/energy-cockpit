@@ -192,7 +192,7 @@ Die meisten Einstellungen erledigt der grafische Editor. Drei optionale Zusatzfu
 ## Voraussetzungen
 
 - Home Assistant mit Lovelace-Dashboards. Die Karten brauchen Platz: Ansichtstyp **Panel** (eine Karte, volle Breite) ist empfohlen. In *Abschnitte*-Ansichten füllt die Karte nur die Breite des Abschnitts.
-- Leistungssensoren in W oder kW, Energiesensoren in kWh.
+- Leistungssensoren in W, kW oder MW, Energiesensoren in Wh, kWh oder MWh. Die Karten erkennen die Einheit und rechnen selbst um. Wer das alte Verhalten braucht (Werte ungeprüft als kWh nehmen), setzt `energy_unit: kwh` in der Karte.
 - Für Verlauf, Kosten und die Raum-Abrechnung: Energiezähler mit Langzeitstatistik (`state_class: total_increasing`).
 
 ## Hinweise

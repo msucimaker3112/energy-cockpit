@@ -1,14 +1,8 @@
 /* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
 (() => {
   const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
-  const num = (h, id) => {
-    const s = h && id && h.states[id];
-    if (!s || ['unavailable', 'unknown', ''].indexOf(s.state) >= 0) return null;
-    const v = parseFloat(s.state);
-    if (isNaN(v)) return null;
-    const u = s.attributes.unit_of_measurement;
-    return u === 'kW' ? v * 1000 : v;
-  };
+  // Leistung in W (kW und MW werden umgerechnet)
+  const num = (h, id) => (h && id ? WD.watt(h, id) : null);
   const fW = (w) => (w === null ? '—' : w >= 1000 ? nf(w / 1000, 2) + ' kW' : nf(w, w < 10 && w % 1 ? 1 : 0) + ' W');
   const dur = (ms) => { const m = Math.max(1, Math.round(ms / 60000)); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 48) return h + ' h' + (m % 60 && h < 10 ? ' ' + (m % 60) + ' min' : ''); return Math.round(h / 24) + ' ' + T('dev.days'); };
   // Gerätetypen: Farbe, Icon, Animation
@@ -409,7 +403,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const per = this._per;
       try {
         const s = perStart(per);
-        const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: s.toISOString(), period: per === 'year' ? 'day' : 'hour', statistic_ids: ids, types: ['change'] });
+        const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: s.toISOString(), period: per === 'year' ? 'day' : 'hour', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) });
         if (per !== this._per) { this._eLoading = false; return; }
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         const pos = (v) => (v > 0 ? v : 0);

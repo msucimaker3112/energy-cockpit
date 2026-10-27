@@ -1,7 +1,7 @@
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
 WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
-const { PAL, TH, rgb, num, watt, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
+const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
 const CSS = `
@@ -1017,17 +1017,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('bundle', on, false, PAL.home, sumAll);
       }
     }
-    let dPv = c.pv ? num(h, c.pv.daily) : null;
-    if (c.pv2 && c.pv2.daily) { const d2 = num(h, c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
-    const dImp = c.grid ? num(h, c.grid.daily_import) : null;
-    const dExp = c.grid ? num(h, c.grid.daily_export) : null;
-    const dChg = c.battery ? num(h, c.battery.daily_charge) : null;
-    const dDis = c.battery ? num(h, c.battery.daily_discharge) : null;
+    const raw = rawUnits(c), en = (id) => kwh(h, id, raw);
+    let dPv = c.pv ? en(c.pv.daily) : null;
+    if (c.pv2 && c.pv2.daily) { const d2 = en(c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
+    const dImp = c.grid ? en(c.grid.daily_import) : null;
+    const dExp = c.grid ? en(c.grid.daily_export) : null;
+    const dChg = c.battery ? en(c.battery.daily_charge) : null;
+    const dDis = c.battery ? en(c.battery.daily_discharge) : null;
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);
-    let aut = null, dHome = c.home && c.home.daily ? num(h, c.home.daily) : null;
+    let aut = null, dHome = c.home && c.home.daily ? en(c.home.daily) : null;
     if (dPv !== null && dImp !== null) {
       const cons = dPv + dImp - (dExp || 0) - (dChg || 0) + (dDis || 0);
       if (cons > 0) aut = 1 - dImp / cons;

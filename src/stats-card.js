@@ -246,9 +246,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const now = new Date();
         const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c.battery_charge_total, c.battery_discharge_total].filter(Boolean);
         const [mon, day, hr] = await Promise.all([
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'] }),
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'] }),
-          c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'] }) : Promise.resolve({}),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'], ...WD.statUnits(c) }),
+          c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'], ...WD.statUnits(c) }) : Promise.resolve({}),
         ]);
         const byMonth = (id) => {
           const out = {};
@@ -306,7 +306,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
       if (this._period === 'day') {
-        return { pv: live(h, c.pv_today), imp: live(h, c.import_today), exp: live(h, c.export_today), chg: live(h, c.charge_today) || 0, dis: live(h, c.discharge_today) || 0, label: T('st.today') };
+        const raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw);
+        return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: en(c.charge_today) || 0, dis: en(c.discharge_today) || 0, label: T('st.today') };
       }
       if (!M) return null;
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
@@ -335,7 +336,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
-      const pvT = live(h, c.pv_total), expT = live(h, c.grid_export_total);
+      const pvT = WD.kwh(h, c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
@@ -390,7 +391,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Footer
       if (this._rec) this._f('rec', `${nf(this._rec.v, 1)}<small>kWh · ${new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' })}</small>`);
-      const chT = live(h, c.battery_charge_total), diT = live(h, c.battery_discharge_total);
+      const chT = WD.kwh(h, c.battery_charge_total, WD.rawUnits(c)), diT = WD.kwh(h, c.battery_discharge_total, WD.rawUnits(c));
       if (chT && diT) this._f('eff', `${nf(diT / chT * 100, 1)}<small>%</small>`);
       if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
       const tmp = live(h, c.battery_temp);

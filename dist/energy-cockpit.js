@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.12.1 - MIT License */
+/*! energy-cockpit v0.12.2 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -46,6 +46,17 @@ const WD = (() => {
     const ul = String(u).toLowerCase();
     return ul === 'kw' ? v * 1000 : ul === 'mw' ? v * 1e6 : v;
   };
+  // Energie in kWh (Wh und MWh werden umgerechnet, ohne Einheit gilt kWh). raw: Wert ungeprüft übernehmen (energy_unit: kwh)
+  const kwh = (h, id, raw) => {
+    if (!h || !id) return null;
+    const v = num(h, id);
+    if (v === null || raw) return v;
+    const ul = String(h.states[id].attributes.unit_of_measurement || '').toLowerCase();
+    return ul === 'wh' ? v / 1000 : ul === 'mwh' ? v * 1000 : v;
+  };
+  const rawUnits = (c) => !!c && String(c.energy_unit || '').toLowerCase() === 'kwh';
+  // Zusatz für recorder/statistics_during_period: Home Assistant liefert Energie in kWh und Leistung in W
+  const statUnits = (c) => (rawUnits(c) ? {} : { units: { energy: 'kWh', power: 'W' } });
   // Zahl oder Entität; sonst Standardwert
   const val = (h, v, def) => {
     if (typeof v === 'number') return v;
@@ -151,7 +162,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
 })();
 
 
@@ -548,7 +559,7 @@ const WD = (() => {
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
 WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
-const { PAL, TH, rgb, num, watt, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
+const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
 const CSS = `
@@ -1564,17 +1575,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('bundle', on, false, PAL.home, sumAll);
       }
     }
-    let dPv = c.pv ? num(h, c.pv.daily) : null;
-    if (c.pv2 && c.pv2.daily) { const d2 = num(h, c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
-    const dImp = c.grid ? num(h, c.grid.daily_import) : null;
-    const dExp = c.grid ? num(h, c.grid.daily_export) : null;
-    const dChg = c.battery ? num(h, c.battery.daily_charge) : null;
-    const dDis = c.battery ? num(h, c.battery.daily_discharge) : null;
+    const raw = rawUnits(c), en = (id) => kwh(h, id, raw);
+    let dPv = c.pv ? en(c.pv.daily) : null;
+    if (c.pv2 && c.pv2.daily) { const d2 = en(c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
+    const dImp = c.grid ? en(c.grid.daily_import) : null;
+    const dExp = c.grid ? en(c.grid.daily_export) : null;
+    const dChg = c.battery ? en(c.battery.daily_charge) : null;
+    const dDis = c.battery ? en(c.battery.daily_discharge) : null;
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);
-    let aut = null, dHome = c.home && c.home.daily ? num(h, c.home.daily) : null;
+    let aut = null, dHome = c.home && c.home.daily ? en(c.home.daily) : null;
     if (dPv !== null && dImp !== null) {
       const cons = dPv + dImp - (dExp || 0) - (dChg || 0) + (dDis || 0);
       if (cons > 0) aut = 1 - dImp / cons;
@@ -1758,14 +1770,8 @@ WD.addStrings({
 /* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
 (() => {
   const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
-  const num = (h, id) => {
-    const s = h && id && h.states[id];
-    if (!s || ['unavailable', 'unknown', ''].indexOf(s.state) >= 0) return null;
-    const v = parseFloat(s.state);
-    if (isNaN(v)) return null;
-    const u = s.attributes.unit_of_measurement;
-    return u === 'kW' ? v * 1000 : v;
-  };
+  // Leistung in W (kW und MW werden umgerechnet)
+  const num = (h, id) => (h && id ? WD.watt(h, id) : null);
   const fW = (w) => (w === null ? '—' : w >= 1000 ? nf(w / 1000, 2) + ' kW' : nf(w, w < 10 && w % 1 ? 1 : 0) + ' W');
   const dur = (ms) => { const m = Math.max(1, Math.round(ms / 60000)); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 48) return h + ' h' + (m % 60 && h < 10 ? ' ' + (m % 60) + ' min' : ''); return Math.round(h / 24) + ' ' + T('dev.days'); };
   // Gerätetypen: Farbe, Icon, Animation
@@ -2166,7 +2172,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const per = this._per;
       try {
         const s = perStart(per);
-        const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: s.toISOString(), period: per === 'year' ? 'day' : 'hour', statistic_ids: ids, types: ['change'] });
+        const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: s.toISOString(), period: per === 'year' ? 'day' : 'hour', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) });
         if (per !== this._per) { this._eLoading = false; return; }
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         const pos = (v) => (v > 0 ? v : 0);
@@ -2790,8 +2796,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _watt(d) {
       const h = this._hass;
       if (!d || !d.power || !h || !h.states[d.power]) return null;
-      const x = parseFloat(h.states[d.power].state);
-      return isNaN(x) ? null : x;
+      return WD.watt(h, d.power);
     }
     _wcls(w) {
       const warn = this._rate(this._c.watt_warn, 300), high = this._rate(this._c.watt_high, 800);
@@ -2850,7 +2855,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
-        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'] });
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'], ...WD.statUnits(c) });
         let firstTs = null;
         ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
@@ -2870,7 +2875,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const from = new Date(firstTs);
           from.setHours(0, 0, 0, 0);
           const all = ids.concat(iids, srcIds);
-          const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'] });
+          const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'], ...WD.statUnits(c) });
           const at = {};
           all.forEach((id, i) => (hr[id] || []).forEach((x) => {
             const t = ts(x);
@@ -3626,9 +3631,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const now = new Date();
         const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c.battery_charge_total, c.battery_discharge_total].filter(Boolean);
         const [mon, day, hr] = await Promise.all([
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'] }),
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'] }),
-          c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'] }) : Promise.resolve({}),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'], ...WD.statUnits(c) }),
+          c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'], ...WD.statUnits(c) }) : Promise.resolve({}),
         ]);
         const byMonth = (id) => {
           const out = {};
@@ -3686,7 +3691,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
       if (this._period === 'day') {
-        return { pv: live(h, c.pv_today), imp: live(h, c.import_today), exp: live(h, c.export_today), chg: live(h, c.charge_today) || 0, dis: live(h, c.discharge_today) || 0, label: T('st.today') };
+        const raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw);
+        return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: en(c.charge_today) || 0, dis: en(c.discharge_today) || 0, label: T('st.today') };
       }
       if (!M) return null;
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
@@ -3715,7 +3721,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
-      const pvT = live(h, c.pv_total), expT = live(h, c.grid_export_total);
+      const pvT = WD.kwh(h, c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
@@ -3770,7 +3776,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Footer
       if (this._rec) this._f('rec', `${nf(this._rec.v, 1)}<small>kWh · ${new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' })}</small>`);
-      const chT = live(h, c.battery_charge_total), diT = live(h, c.battery_discharge_total);
+      const chT = WD.kwh(h, c.battery_charge_total, WD.rawUnits(c)), diT = WD.kwh(h, c.battery_discharge_total, WD.rawUnits(c));
       if (chT && diT) this._f('eff', `${nf(diT / chT * 100, 1)}<small>%</small>`);
       if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
       const tmp = live(h, c.battery_temp);

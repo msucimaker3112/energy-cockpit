@@ -149,8 +149,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _watt(d) {
       const h = this._hass;
       if (!d || !d.power || !h || !h.states[d.power]) return null;
-      const x = parseFloat(h.states[d.power].state);
-      return isNaN(x) ? null : x;
+      return WD.watt(h, d.power);
     }
     _wcls(w) {
       const warn = this._rate(this._c.watt_warn, 300), high = this._rate(this._c.watt_high, 800);
@@ -209,7 +208,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
-        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'] });
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'], ...WD.statUnits(c) });
         let firstTs = null;
         ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
@@ -229,7 +228,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const from = new Date(firstTs);
           from.setHours(0, 0, 0, 0);
           const all = ids.concat(iids, srcIds);
-          const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'] });
+          const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'], ...WD.statUnits(c) });
           const at = {};
           all.forEach((id, i) => (hr[id] || []).forEach((x) => {
             const t = ts(x);

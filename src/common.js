@@ -44,6 +44,17 @@ const WD = (() => {
     const ul = String(u).toLowerCase();
     return ul === 'kw' ? v * 1000 : ul === 'mw' ? v * 1e6 : v;
   };
+  // Energie in kWh (Wh und MWh werden umgerechnet, ohne Einheit gilt kWh). raw: Wert ungeprüft übernehmen (energy_unit: kwh)
+  const kwh = (h, id, raw) => {
+    if (!h || !id) return null;
+    const v = num(h, id);
+    if (v === null || raw) return v;
+    const ul = String(h.states[id].attributes.unit_of_measurement || '').toLowerCase();
+    return ul === 'wh' ? v / 1000 : ul === 'mwh' ? v * 1000 : v;
+  };
+  const rawUnits = (c) => !!c && String(c.energy_unit || '').toLowerCase() === 'kwh';
+  // Zusatz für recorder/statistics_during_period: Home Assistant liefert Energie in kWh und Leistung in W
+  const statUnits = (c) => (rawUnits(c) ? {} : { units: { energy: 'kWh', power: 'W' } });
   // Zahl oder Entität; sonst Standardwert
   const val = (h, v, def) => {
     if (typeof v === 'number') return v;
@@ -149,5 +160,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
 })();

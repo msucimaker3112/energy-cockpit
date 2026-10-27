@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.12.2
+- **Energiesensoren in Wh oder MWh werden umgerechnet** ([#13](https://github.com/msucimaker3112/energy-cockpit/issues/13)). Die Karten lesen die Einheit jedes Energiesensors und rechnen intern immer in kWh: Wh wird durch 1000 geteilt, MWh mit 1000 malgenommen. Das gilt für die Tageswerte im Energiefluss, die Statistik und die Raum-Abrechnung. Bisher erschienen Wh-Werte 1000-mal zu groß. Bei Sensoren in kWh oder ohne Einheit ändert sich nichts.
+- **Leistung in kW oder MW** wird jetzt in allen Karten gleich umgerechnet, auch in "Geräte & Verbrauch" und der Raum-Abrechnung.
+- **Notausschalter:** Mit `energy_unit: kwh` in der Kartenkonfiguration nimmt die Karte die Werte wie bisher ungeprüft als kWh. Standard ist `auto`.
+
 ## 0.12.1
 - **Kurzansicht: Gruppe antippen zeigt alle Geräte.** In der Kurzansicht (`compact`) öffnet ein Tipp auf eine Gruppe ein Fenster mit allen Geräten dieser Gruppe, ihren aktuellen Werten und der Summe. Die Werte laufen live mit, ein Tipp auf ein Gerät öffnet dessen Verlauf. Ein Pfeil "›" an der Gruppe zeigt, dass sie sich öffnen lässt.
 - **Behoben: Kurzansicht mit `groups_columns`.** Mit "Gruppen pro Reihe" (zum Beispiel `1`) zeigte die Kurzansicht die Geräteliste trotzdem an, die Einträge ragten über die Kacheln hinaus.
