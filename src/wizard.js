@@ -53,6 +53,8 @@
     return s ? { id, name: (s.attributes && s.attributes.friendly_name) || id, state: s.state, unit: (s.attributes && s.attributes.unit_of_measurement) || '' } : null;
   };
   const fmtState = (e) => (e ? `${e.state}${e.unit ? ' ' + e.unit : ''}` : '');
+  // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
+  const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
 
   // Baut den Assistenten. opts: { steps, hass, config, onChange(config), done }
   WD.createWizard = (opts) => {
@@ -82,7 +84,9 @@
       const all = list(hass, f.kind || 'power');
       const cur = getPath(cfg, f.path) || '';
       const sug = all.filter((e) => score(e, f.hints) > 0).sort((a, b) => score(b, f.hints) - score(a, f.hints));
-      const rest = all.filter((e) => sug.indexOf(e) < 0);
+      // Nur die ersten 12 Vorschläge stehen oben, alle übrigen Treffer bleiben unten wählbar
+      const top = sug.slice(0, 12);
+      const rest = all.filter((e) => top.indexOf(e) < 0);
       const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
       sel.appendChild(opt('', '— nicht verwenden —'));
       const mine = cur && !all.find((e) => e.id === cur) ? own(hass, cur) : null;
@@ -92,9 +96,9 @@
         sel.appendChild(g0);
       } else if (cur && !all.find((e) => e.id === cur)) sel.appendChild(opt(cur, cur + ' (nicht gefunden)'));
       const pool = mine ? all.concat([mine]) : all;
-      if (sug.length) {
+      if (top.length) {
         const g = document.createElement('optgroup'); g.label = 'Vorschläge';
-        sug.slice(0, 12).forEach((e) => g.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
+        top.forEach((e) => g.appendChild(opt(e.id, `${e.name} (${fmtState(e)})`)));
         sel.appendChild(g);
       }
       const g2 = document.createElement('optgroup'); g2.label = 'Alle passenden Sensoren';
@@ -184,7 +188,7 @@
       if (f.help) wrap.appendChild(el('div', css.help, f.help));
       const KEY = f.itemKey || 'entity';
       const all = list(hass, f.listKind || 'power');
-      const items = Array.isArray(cfg[f.path]) ? cfg[f.path] : [];
+      const items = arr(cfg[f.path]).filter((x) => x && typeof x === 'object');
       const used = items.map((x) => x[KEY]);
       const sugs = all.filter((e) => used.indexOf(e.id) < 0 && getPath(cfg, 'pv.entity') !== e.id && getPath(cfg, 'grid.entity') !== e.id && getPath(cfg, 'battery.power') !== e.id && getPath(cfg, 'home.entity') !== e.id);
       const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY]); emit(); };
@@ -268,5 +272,6 @@
   };
 
   WD.wizardList = list;
+  WD.toList = arr;
   WD.wizardScore = score;
 })();

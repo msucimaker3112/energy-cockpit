@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.12.5
+- **Behoben: Assistent zeigte eingetragene Sensoren nicht an** ([#10](https://github.com/msucimaker3112/energy-cockpit/issues/10)). Oben stehen höchstens 12 Vorschläge. Weitere Treffer fehlten bisher auch in der Liste "Alle passenden Sensoren". Gab es viele passende Sensoren, etwa mehrere Leistungswerte eines Speichers, blieb das Auswahlfeld deshalb leer, obwohl der Sensor eingetragen war. Jetzt stehen alle übrigen Treffer unten in der Liste.
+- **Behoben: Assistent zeigte "Einzelverbraucher: 0".** Das Formular "Alle Felder" speichert Verbraucher als nummerierte Einträge (`'0':`, `'1':` …). Der Assistent erkennt diese Form jetzt, zeigt die Verbraucher an und behält sie beim Hinzufügen weiterer Geräte.
+
 ## 0.12.4
 - **Behoben: Energiefluss erschien auf dem iPad erst klein am linken Rand und zoomte dann auf Seitenbreite** ([#10](https://github.com/msucimaker3112/energy-cockpit/issues/10)). Seit 0.12.3 hielt die Karte ihren Maßstab fest, solange neue Werte einliefen. Ein falscher erster Maßstab, etwa solange Schrift und Seite noch laden, blieb deshalb stehen. Jetzt passt sich die Karte sofort neu an, wenn sich Breite oder verfügbare Höhe ändern, und noch einmal, sobald die Schrift geladen ist. Gegen das Zittern beim Hochzählen hilft weiterhin das Halten des Maßstabs.
 - **Gepunkteter Ring um den Hausverbrauch auf dem iPhone sichtbar.** Der Ring besteht jetzt aus runden Punkten statt aus sehr feinen Strichen. Auf dem Handy und in der Kurzansicht sind die Punkte größer und kräftiger. Vorher waren sie dort kleiner als ein Pixel, und Safari hat sie verschluckt.

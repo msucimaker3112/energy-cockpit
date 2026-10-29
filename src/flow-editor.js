@@ -129,7 +129,7 @@
       `Netz: ${(c.grid && c.grid.entity) || 'nicht gewählt'}${c.grid && c.grid.invert ? ' (umgekehrt)' : ''}`,
       `Batterie: ${(c.battery && c.battery.power) || 'keine'}`,
       `Haus: ${(c.home && c.home.entity) || 'berechnet'}`,
-      `Einzelverbraucher: ${(Array.isArray(c.consumers) ? c.consumers : []).filter((x) => x && x.entity).length}`,
+      `Einzelverbraucher: ${WD.toList(c.consumers).filter((x) => x && x.entity).length}`,
       `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'Bezug gesetzt' : 'keine'}`,
     ] },
   ];

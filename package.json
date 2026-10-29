@@ -1,6 +1,6 @@
 {
   "name": "energy-cockpit",
-  "version": "0.12.4",
+  "version": "0.12.5",
   "private": true,
   "description": "energy-cockpit: Energiefluss-, GerÃ¤te- und Statistik-Karten fÃ¼r Home Assistant",
   "license": "MIT",
