@@ -97,7 +97,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .hub:before{content:'';display:block;padding-top:100%}
 .hub svg{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
 .ring-bg{fill:none;stroke:rgba(var(--ov),.06);stroke-width:6}
-.orbit{fill:none;stroke:rgba(var(--ov),.16);stroke-width:.8;stroke-dasharray:.6 3.4;transform-origin:60px 60px;animation:spin 40s linear infinite}
+/* Punkte aus runden Linienenden (wie bei .flow): bleiben auch klein und auf dem iPhone sichtbar */
+.orbit{fill:none;stroke:rgba(var(--ov),.22);stroke-width:1.1;stroke-linecap:round;stroke-dasharray:0 4;transform-origin:60px 60px;animation:spin 40s linear infinite}
+.narrow .orbit,.cmp .orbit{stroke:rgba(var(--ov),.3);stroke-width:1.9;stroke-dasharray:0 5.2}
 @keyframes spin{to{transform:rotate(360deg)}}
 .seg{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-dasharray:0 100;opacity:0;transition:opacity .6s,stroke-dasharray 1.2s cubic-bezier(.2,.8,.2,1),stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
 .core{position:absolute;top:14%;left:14%;right:14%;bottom:14%;border-radius:50%;background:radial-gradient(circle at 50% 28%,var(--bg2),var(--bg0) 72%);border:1px solid rgba(var(--ov),.08);box-shadow:0 0 0 1px rgba(var(--home),.35),inset 0 1px 0 rgba(var(--ov),.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:pulse 3.2s ease-in-out infinite}
@@ -371,6 +373,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     window.removeEventListener('resize', this._onResize);
     if (this._kaSub) KA.subs.delete(this._kaSub);
     clearInterval(this._clockT);
+    clearTimeout(this._fitT);
   }
   _observe() {
     if (!this._ro || !this.shadowRoot) return;
@@ -398,6 +401,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _build() {
     const c = this._c;
     this._bl = WD.state.lang;
+    // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
+    const refit = () => { this._forceFit = true; this._schedLayout(); };
+    clearTimeout(this._fitT);
+    this._fitT = setTimeout(refit, 2500);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
     const node = (k, cls, icon, label, color, ent, extra = '') => `
       <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
         <div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
@@ -546,8 +554,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!wrap || !card) return 1;
     // Banner fährt ein oder aus, Zahlen zählen hoch: Maßstab halten, danach einmal neu anpassen (sonst zuckt die Karte bei jedem Frame).
     // Laufen ständig neue Werte ein, höchstens alle 5 Sekunden neu anpassen.
+    // Nicht halten, wenn sich Breite oder verfügbare Höhe geändert haben oder die Schrift gerade fertig geladen ist,
+    // sonst bleibt ein falscher erster Maßstab stehen (iPad: erst klein links, dann groß).
     const now = Date.now();
-    if (this._scale && now < (this._bUntil || 0)) {
+    const top0 = Math.max(0, this.getBoundingClientRect().top);
+    const avail0 = window.innerHeight - top0 - (this._c.fit_margin === undefined ? 8 : this._c.fit_margin);
+    const settled = !this._forceFit && card.clientWidth === this._fitW && avail0 === this._fitA;
+    this._forceFit = false;
+    if (this._scale && settled && now < (this._bUntil || 0)) {
       if (now - (this._holdSince || now) < 5000) return this._scale;
       this._holdSince = now;
     }

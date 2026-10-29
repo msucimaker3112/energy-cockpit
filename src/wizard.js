@@ -261,7 +261,8 @@
     render();
     return {
       el: root,
-      setHass(h) { hass = h; },
+      // Kommen die Entitäten erst nach dem Aufbau (Home Assistant setzt oft zuerst die Konfiguration), einmal neu zeichnen
+      setHass(h) { const first = !hass || !hass.states; hass = h; if (first && h && h.states) render(); },
       setConfig(c) { cfg = JSON.parse(JSON.stringify(c || {})); render(); },
     };
   };
