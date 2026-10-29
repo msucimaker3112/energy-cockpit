@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.12.4
+- **Behoben: Energiefluss erschien auf dem iPad erst klein am linken Rand und zoomte dann auf Seitenbreite** ([#10](https://github.com/msucimaker3112/energy-cockpit/issues/10)). Seit 0.12.3 hielt die Karte ihren Maßstab fest, solange neue Werte einliefen. Ein falscher erster Maßstab, etwa solange Schrift und Seite noch laden, blieb deshalb stehen. Jetzt passt sich die Karte sofort neu an, wenn sich Breite oder verfügbare Höhe ändern, und noch einmal, sobald die Schrift geladen ist. Gegen das Zittern beim Hochzählen hilft weiterhin das Halten des Maßstabs.
+- **Gepunkteter Ring um den Hausverbrauch auf dem iPhone sichtbar.** Der Ring besteht jetzt aus runden Punkten statt aus sehr feinen Strichen. Auf dem Handy und in der Kurzansicht sind die Punkte größer und kräftiger. Vorher waren sie dort kleiner als ein Pixel, und Safari hat sie verschluckt.
+- **Assistent:** Kommen die Entitäten von Home Assistant erst nach der Konfiguration an, baut sich der Assistent einmal neu auf. So erscheinen eingetragene Sensoren zuverlässig mit Namen und Wert.
+
 ## 0.12.3
 - **Energiefluss: kein Zittern mehr beim Hochzählen der Werte.** Solange die Zahlen auf einen neuen Wert hochzählen, hält die Karte ihren Maßstab und passt sich danach einmal an, bei ständig neuen Werten höchstens alle 5 Sekunden. Kleine Größenänderungen werden ignoriert: Vergrößert wird erst ab 4 %, verkleinert ab 1,5 %. Betraf vor allem Safari auf dem iPhone und die Vorschau im Editor bei vergrößerter Schrift.
 - **Textgröße (`text_size`) über echte Schriftgrößen.** "Groß" und "Sehr groß" vergrößern die Schrift jetzt um genau 25 % bzw. 50 % statt über die CSS-Eigenschaft `zoom`, die Browser unterschiedlich messen.
