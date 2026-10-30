@@ -152,6 +152,8 @@ Für einen Raum mit eigenen Zählern, zum Beispiel ein vermietetes Büro oder ei
 
 Einrichtung der Raum-Karte, der Mitteilung am Monatsersten und der Standby-Warnung: [docs/ABRECHNUNG.md](docs/ABRECHNUNG.md).
 
+Zwei Zähler in Reihe (zum Beispiel Z1 am Netzanschluss und Z2 für den Haushalt, dazwischen Wärmepumpe oder Wallbox): [docs/ZWEI-ZAEHLER.md](docs/ZWEI-ZAEHLER.md).
+
 ## Schnellstart (mit HACS)
 
 1. HACS öffnen → Menü (⋮) oben rechts → **Benutzerdefinierte Repositories**.

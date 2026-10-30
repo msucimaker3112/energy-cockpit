@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Doku
+- **Neue Anleitung "Zwei Zähler in Reihe"** ([docs/ZWEI-ZAEHLER.md](docs/ZWEI-ZAEHLER.md)): Verbrauch zwischen zwei hintereinander geschalteten Zählern (Z1/Z2) als Differenz bilden und in der Karte anzeigen. Keine neue Funktion, nur Beispiel mit Home-Assistant-Helfern.
+
 ## 0.12.6
 - **Behoben: Statistik wurde auf dem Handy nach Tipp auf "Heute" kleiner.** Die Karte hat sich bei jedem Neuaufbau auf die Bildschirmhöhe eingepasst. Auf dem Handy schrumpfte dadurch der ganze Inhalt auf etwa 55 bis 60 %, sobald man den Zeitraum wechselte. Auf dem Handy (unter 600 px Breite) bleibt die Statistik jetzt immer in voller Größe und lässt sich scrollen. Auf Tablet und PC bleibt der Maßstab beim Wechsel zwischen Heute, Monat und Jahr gleich und wird nur neu berechnet, wenn sich die Breite ändert oder neue Daten geladen sind, wie bei "Geräte & Verbrauch" seit 0.11.0.
 
