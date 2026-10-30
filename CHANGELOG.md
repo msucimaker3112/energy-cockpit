@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.12.6
+- **Behoben: Statistik wurde auf dem Handy nach Tipp auf "Heute" kleiner.** Die Karte hat sich bei jedem Neuaufbau auf die Bildschirmhöhe eingepasst. Auf dem Handy schrumpfte dadurch der ganze Inhalt auf etwa 55 bis 60 %, sobald man den Zeitraum wechselte. Auf dem Handy (unter 600 px Breite) bleibt die Statistik jetzt immer in voller Größe und lässt sich scrollen. Auf Tablet und PC bleibt der Maßstab beim Wechsel zwischen Heute, Monat und Jahr gleich und wird nur neu berechnet, wenn sich die Breite ändert oder neue Daten geladen sind, wie bei "Geräte & Verbrauch" seit 0.11.0.
+
 ## 0.12.5
 - **Behoben: Assistent zeigte eingetragene Sensoren nicht an** ([#10](https://github.com/msucimaker3112/energy-cockpit/issues/10)). Oben stehen höchstens 12 Vorschläge. Weitere Treffer fehlten bisher auch in der Liste "Alle passenden Sensoren". Gab es viele passende Sensoren, etwa mehrere Leistungswerte eines Speichers, blieb das Auswahlfeld deshalb leer, obwohl der Sensor eingetragen war. Jetzt stehen alle übrigen Treffer unten in der Liste.
 - **Behoben: Assistent zeigte "Einzelverbraucher: 0".** Das Formular "Alle Felder" speichert Verbraucher als nummerierte Einträge (`'0':`, `'1':` …). Der Assistent erkennt diese Form jetzt, zeigt die Verbraucher an und behält sie beim Hinzufügen weiterer Geräte.

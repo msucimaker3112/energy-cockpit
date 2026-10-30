@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.12.5 - MIT License */
+/*! energy-cockpit v0.12.6 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -3579,7 +3579,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     getCardSize() { return 10; }
     getGridOptions() { return { columns: 'full', min_columns: 6 }; }
     connectedCallback() {
-      if (!this._ro && window.ResizeObserver) this._ro = new ResizeObserver(() => this._sched());
+      // Nur auf Breitenänderungen reagieren: Die Höhe setzt die Karte selbst (sonst passt sie sich an den Inhalt jedes Zeitraums an)
+      if (!this._ro && window.ResizeObserver) this._ro = new ResizeObserver((en) => {
+        const w = en[0] && en[0].contentRect.width;
+        if (w !== this._roW) { this._roW = w; this._sched(); }
+      });
       if (this._ro) this._ro.observe(this);
       if (!this._onResize) this._onResize = () => this._sched();
       window.addEventListener('resize', this._onResize);
@@ -3602,7 +3606,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const wrap = this._$('.wrap'), card = this._$('ha-card');
       if (!wrap || !card) return 1;
       wrap.style.transform = ''; wrap.style.width = ''; card.style.height = '';
+      this._fs = null;
       if (this._c.fit_screen === false) return 1;
+      // Handy: in voller Größe scrollen, auf eine Bildschirmhöhe verkleinert wäre die Statistik kaum lesbar
+      if (wrap.classList.contains('narrow')) return 1;
       const top = Math.max(0, this.getBoundingClientRect().top);
       const avail = window.innerHeight - top - (this._c.fit_margin === undefined ? 8 : this._c.fit_margin);
       const cw = card.clientWidth;
@@ -3613,9 +3620,17 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         s = Math.max(0.55, Math.min(1, avail / wrap.offsetHeight));
         wrap.style.width = (cw / s) + 'px';
         wrap.style.transform = 'scale(' + s + ')';
-        card.style.height = Math.ceil(wrap.offsetHeight * s) + 'px';
       }
+      this._fs = { s };
+      this._fitH();
       return s;
+    }
+    // Nach einem Wechsel des Zeitraums: Maßstab bleibt, nur die Kartenhöhe folgt dem Inhalt
+    _fitH() {
+      const wrap = this._$('.wrap'), card = this._$('ha-card'), f = this._fs;
+      if (!wrap || !card || !f || f.s === 1) return;
+      const hh = Math.ceil(wrap.offsetHeight * f.s) + 'px';
+      if (card.style.height !== hh) card.style.height = hh;
     }
 
     _build() {
@@ -3714,6 +3729,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._nights = Object.values(nights).sort((a, b) => a.t - b.t).slice(-7);
         this._loaded = Date.now();
         this._render();
+        // Neue Daten (Balken, Grundlast): einmal neu einpassen
+        this._sched();
       } catch (e) {
         console.warn('energy-cockpit-stats-card: load failed', e);
         this._loaded = Date.now() - 28 * 60 * 1000;
@@ -3833,7 +3850,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (tmp !== null) this._f('temp', `${nf(tmp, 1)}<small>°C</small>`);
       if (pvT !== null) this._f('pvAll', `${nf(pvT / 1000, 1)}<small>MWh</small>`);
       this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1) }) : T('st.noprice'));
-      this._sched();
+      if (this._fs) this._fitH(); else this._sched();
     }
 
     _detail() {
