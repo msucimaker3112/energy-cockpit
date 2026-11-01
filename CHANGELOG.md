@@ -1,7 +1,7 @@
 # Änderungsprotokoll
 
 ## 0.13.0
-- **Mehrere Speicher (`batteries`):** Jeder Speicher bekommt eine eigene Kachel rechts (Name, Leistung, Status lädt/entlädt/Standby, Ladebalken, Prognose "voll um / reicht bis", eigene Entladegrenze). Ring (Herkunft), Autarkie, Banner und Tageswerte rechnen mit der Summe: Lädt der eine Speicher, während der andere entlädt, zählt beides. Der Ladestand für Banner und Statistik ist der nach Kapazität gewichtete Mittelwert. Ohne `batteries` bleibt alles wie bisher (`battery`). Für das Handy empfiehlt sich die Kurzansicht (`compact: auto`).
+- **Mehrere Speicher (`batteries`):** `battery` ist der erste Speicher, `batteries` enthält die weiteren. Im Assistenten gibt es dafür den Schritt "Weitere Speicher", im Formular den Bereich "Weitere Speicher". Jeder Speicher bekommt eine eigene Kachel rechts (Name, Leistung, Status lädt/entlädt/Standby, Ladebalken, Prognose "voll um / reicht bis", eigene Entladegrenze). Ring (Herkunft), Autarkie, Banner und Tageswerte rechnen mit der Summe: Lädt der eine Speicher, während der andere entlädt, zählt beides. Der Ladestand für Banner und Statistik ist der nach Kapazität gewichtete Mittelwert. Ohne `batteries` bleibt alles wie bisher (`battery`). Für das Handy empfiehlt sich die Kurzansicht (`compact: auto`).
 - **Statistik-Karte:** `battery_charge_total`, `battery_discharge_total`, `charge_today`, `discharge_today` und `battery_capacity_kwh` dürfen Listen sein und werden summiert.
 
 ## Doku

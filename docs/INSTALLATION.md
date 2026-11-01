@@ -65,13 +65,16 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 | 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
 | 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
-| 4. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
-| 5. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). Hier wählst du auch, ob jede Gruppe eine eigene Linie bekommt oder eine Sammel-Linie den ganzen Bereich speist. |
-| 6. Preise | Strompreis und Einspeisevergütung für Kosten und Ersparnis. |
-| 7. Aussehen | Farbschema wählen (Kacheln mit Vorschau), Leistung immer in Watt, **Kurzansicht** (aus, nur auf dem Handy, immer) und die Textgröße (normal, groß, sehr groß). Mit „Nur auf dem Handy“ zeigt dieselbe Karte auf dem Handy eine kompakte Übersicht und auf dem Tablet alle Details, siehe [Kurzansicht](KONFIGURATION.md#kurzansicht-fürs-handy-compact). |
-| 8. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |
+| 4. Weitere Speicher | Optional. Hast du mehr als einen Speicher, trägst du hier den zweiten und dritten ein, jeder bekommt eine eigene Kachel. |
+| 5. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
+| 6. Verbraucher | Einzelverbraucher mit eigenem Leistungssensor hinzufügen (Wärmepumpe, Wallbox, ...). Hier wählst du auch, ob jede Gruppe eine eigene Linie bekommt oder eine Sammel-Linie den ganzen Bereich speist. |
+| 7. Preise | Strompreis und Einspeisevergütung für Kosten und Ersparnis. |
+| 8. Aussehen | Farbschema wählen (Kacheln mit Vorschau), Leistung immer in Watt, **Kurzansicht** (aus, nur auf dem Handy, immer) und die Textgröße (normal, groß, sehr groß). Mit „Nur auf dem Handy“ zeigt dieselbe Karte auf dem Handy eine kompakte Übersicht und auf dem Tablet alle Details, siehe [Kurzansicht](KONFIGURATION.md#kurzansicht-fürs-handy-compact). |
+| 9. Fertig | Zusammenfassung. Gruppen stehen danach unter *Alle Felder*. |
 
 ![Netz](img/wiz-flow-2-netz.png)
+
+![Weitere Speicher](img/wiz-flow-4-weitere-speicher.png)
 
 ![Verbraucher hinzufügen](img/wiz-flow-5-verbraucher.png)
 

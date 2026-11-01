@@ -301,8 +301,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const used = (x) => x && (x.entity || x.secondary);
     // Speicher: batteries (Liste) hat Vorrang, sonst der einzelne Eintrag battery
     const usedB = (b) => b && (b.power || b.power_charge || b.power_discharge || b.soc);
-    let bl = arr(this._c.batteries).filter(usedB);
-    if (!bl.length && this._c.battery) bl = [this._c.battery];
+    // battery ist der erste Speicher, batteries enthält die weiteren (ohne battery: batteries allein)
+    const more = arr(this._c.batteries).filter(usedB);
+    const first = this._c.battery;
+    const bl = more.length ? (usedB(first) ? [first].concat(more) : more) : (first ? [first] : []);
     this._c.batteries = bl;
     if (bl.length) this._c.battery = bl[0];
     this._c.consumers = arr(this._c.consumers).filter(used);

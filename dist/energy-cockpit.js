@@ -876,8 +876,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const used = (x) => x && (x.entity || x.secondary);
     // Speicher: batteries (Liste) hat Vorrang, sonst der einzelne Eintrag battery
     const usedB = (b) => b && (b.power || b.power_charge || b.power_discharge || b.soc);
-    let bl = arr(this._c.batteries).filter(usedB);
-    if (!bl.length && this._c.battery) bl = [this._c.battery];
+    // battery ist der erste Speicher, batteries enthält die weiteren (ohne battery: batteries allein)
+    const more = arr(this._c.batteries).filter(usedB);
+    const first = this._c.battery;
+    const bl = more.length ? (usedB(first) ? [first].concat(more) : more) : (first ? [first] : []);
     this._c.batteries = bl;
     if (bl.length) this._c.battery = bl[0];
     this._c.consumers = arr(this._c.consumers).filter(used);
@@ -1710,6 +1712,13 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     sec('items', 'Verbraucher der Gruppe', slots(10, (n) => `Verbraucher ${n}`, itemFields)),
   ];
 
+  // Weitere Speicher (ab dem zweiten): jeder mit eigener Kachel
+  const batteryFields = () => [
+    txt('name'), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), bool('invert', false),
+    numb('capacity_kwh', 0, 200, 0.1), numb('reserve_pct', 0, 100, 1), numb('max_pct', 0, 100, 1),
+    ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
+  ];
+
   WD.flowForm = () => ({
     schema: [
       txt('title'),
@@ -1724,6 +1733,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'soc_display', selector: { select: { mode: 'dropdown', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] } } },
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
+      sec('batteries', 'Weitere Speicher (2. bis 5.)', slots(4, (n) => `Speicher ${n + 1}`, batteryFields)),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor'])]),
       sec('consumers', 'Einzelverbraucher (bis zu 12)', slots(12, (n) => `Verbraucher ${n}`, consumerFields)),
       sec('consumer_groups', 'Gruppen (bis zu 10)', slots(10, (n) => `Gruppe ${n}`, groupFields)),
@@ -1780,6 +1790,16 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'battery.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn Laden negativ und Entladen positiv gemeldet wird.' },
       { path: 'battery.capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true, help: 'Für die Prognose "voll um / reicht bis".' },
     ] },
+    { short: 'Speicher', title: 'Weitere Speicher', text: 'Optional. Hast du mehr als einen Speicher, trage hier den zweiten und dritten ein. Jeder bekommt eine eigene Kachel, Ring und Tageswerte rechnen mit der Summe. Der erste Speicher steht im Schritt davor.', fields: [
+      { path: 'batteries.0.name', label: 'Name von Speicher 2', kind: 'text', optional: true },
+      { path: 'batteries.0.power', label: 'Speicher 2: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i), help: 'Hat dein System getrennte Sensoren für Laden und Entladen, trägst du sie unter Alle Felder ein.' },
+      { path: 'batteries.0.soc', label: 'Speicher 2: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
+      { path: 'batteries.0.capacity_kwh', label: 'Speicher 2: Kapazität (kWh)', kind: 'number', optional: true },
+      { path: 'batteries.1.name', label: 'Name von Speicher 3', kind: 'text', optional: true },
+      { path: 'batteries.1.power', label: 'Speicher 3: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i) },
+      { path: 'batteries.1.soc', label: 'Speicher 3: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
+      { path: 'batteries.1.capacity_kwh', label: 'Speicher 3: Kapazität (kWh)', kind: 'number', optional: true },
+    ] },
     { short: 'Haus', title: 'Hausverbrauch', text: 'Optional. Ohne Angabe wird der Verbrauch aus Solar, Netz und Batterie berechnet.', fields: [
       { path: 'home.entity', label: 'Hausverbrauch', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
       { path: 'home.daily', label: 'Hausverbrauch heute (kWh)', kind: 'energy', optional: true, help: 'Optional. Ohne Angabe berechnet die Karte den Wert aus PV-Ertrag, Netzbezug, Einspeisung und Batterie heute.' },
@@ -1807,7 +1827,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
       `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,
       `Netz: ${(c.grid && c.grid.entity) || 'nicht gewählt'}${c.grid && c.grid.invert ? ' (umgekehrt)' : ''}`,
-      `Batterie: ${(c.battery && c.battery.power) || 'keine'}`,
+      `Batterie: ${(c.battery && (c.battery.power || c.battery.power_charge)) || 'keine'}${WD.toList(c.batteries).filter((b) => b && (b.power || b.power_charge || b.soc)).length ? ' und ' + WD.toList(c.batteries).filter((b) => b && (b.power || b.power_charge || b.soc)).length + ' weitere' : ''}`,
       `Haus: ${(c.home && c.home.entity) || 'berechnet'}`,
       `Einzelverbraucher: ${WD.toList(c.consumers).filter((x) => x && x.entity).length}`,
       `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'Bezug gesetzt' : 'keine'}`,
