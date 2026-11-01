@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.13.0
+- **Mehrere Speicher (`batteries`):** Jeder Speicher bekommt eine eigene Kachel rechts (Name, Leistung, Status lädt/entlädt/Standby, Ladebalken, Prognose "voll um / reicht bis", eigene Entladegrenze). Ring (Herkunft), Autarkie, Banner und Tageswerte rechnen mit der Summe: Lädt der eine Speicher, während der andere entlädt, zählt beides. Der Ladestand für Banner und Statistik ist der nach Kapazität gewichtete Mittelwert. Ohne `batteries` bleibt alles wie bisher (`battery`). Für das Handy empfiehlt sich die Kurzansicht (`compact: auto`).
+- **Statistik-Karte:** `battery_charge_total`, `battery_discharge_total`, `charge_today`, `discharge_today` und `battery_capacity_kwh` dürfen Listen sein und werden summiert.
+
 ## Doku
 - **Neue Anleitung "Zwei Zähler in Reihe"** ([docs/ZWEI-ZAEHLER.md](docs/ZWEI-ZAEHLER.md)): Verbrauch zwischen zwei hintereinander geschalteten Zählern (Z1/Z2) als Differenz bilden und in der Karte anzeigen. Keine neue Funktion, nur Beispiel mit Home-Assistant-Helfern.
 

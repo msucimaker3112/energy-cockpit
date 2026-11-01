@@ -82,6 +82,10 @@ JOBS.append(('flow.html', 'pv2-bkw-verbraucher', '?shot=1&scene=bkw&pv2=cons'))
 JOBS.append(('flow.html', 'pv2-bkw', '?shot=1&scene=bkw&pv2=1'))
 JOBS.append(('room-extra.html', 'room-unterposten', '?show=7'))
 JOBS.append(('room-extra.html', 'room-unterposten-live', '?show=1'))
+JOBS.append(('flow.html', 'batterien-zwei', '?shot=1&scene=zwei&batteries=1'))
+JOBS.append(('flow.html', 'batterien-zwei-schmal', '?shot=1&scene=zwei&batteries=1'))
+JOBS.append(('flow.html', 'batterien-drei', '?shot=1&scene=zwei&batteries=3'))
+JOBS.append(('flow.html', 'batterien-zwei-kurz-handy', '?shot=1&scene=zwei&batteries=1&compact=immer'))
 # Farbschemen
 for th in ['hell', 'warm', 'graphit']:
     JOBS.append(('flow.html', f'theme-{th}-flow', f'?theme={th}'))
@@ -102,7 +106,7 @@ only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name == 'sammel-schmal' else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)

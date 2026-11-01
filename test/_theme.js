@@ -83,6 +83,22 @@
     }
   }
   // compact=auto|immer: Kurzansicht
+  if (q.get('batteries')) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) {
+        const n = Object.assign({}, c);
+        delete n.battery;
+        n.batteries = [
+          { name: 'Speicher 1', power: 'sensor.bat', soc: 'sensor.soc', capacity_kwh: 5, daily_charge: 'sensor.bat_c1', daily_discharge: 'sensor.bat_d1', reserve_pct: 10 },
+          { name: 'Speicher 2', power: 'sensor.bat2', soc: 'sensor.soc2', capacity_kwh: 10, daily_charge: 'sensor.bat_c2', daily_discharge: 'sensor.bat_d2', reserve_pct: 20 },
+        ];
+        if (q.get('batteries') === '3') n.batteries.push({ name: 'Speicher 3', power: 'sensor.bat2', soc: 'sensor.soc2', capacity_kwh: 5 });
+        return o.call(this, n);
+      };
+    }
+  }
   const ts = q.get('textsize'), rm = q.get('restmin'), cq = q.get('compact');
   if (ts || rm || cq) {
     const C = customElements.get('energy-cockpit-flow-card');

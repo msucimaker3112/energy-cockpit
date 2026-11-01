@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.12.6 - MIT License */
+/*! energy-cockpit v0.13.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -644,6 +644,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .node:not(.on){border-color:rgba(var(--ov),.05)}
 .node:not(.on) .val,.node:not(.on) .n-top,.node:not(.on) .sub{opacity:.7}
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
+.bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
+.narrow .bats{gap:16px 0}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 .n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:calc(.7rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
@@ -872,6 +874,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
     const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
     const used = (x) => x && (x.entity || x.secondary);
+    // Speicher: batteries (Liste) hat Vorrang, sonst der einzelne Eintrag battery
+    const usedB = (b) => b && (b.power || b.power_charge || b.power_discharge || b.soc);
+    let bl = arr(this._c.batteries).filter(usedB);
+    if (!bl.length && this._c.battery) bl = [this._c.battery];
+    this._c.batteries = bl;
+    if (bl.length) this._c.battery = bl[0];
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
@@ -993,11 +1001,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
-    if (c.battery) {
-      nodes += node('bat', 'bat', c.battery.icon || 'mdi:home-battery-outline', c.battery.name || T('flow.battery'), PAL.bat, (c.battery.tap === 'soc' && c.battery.soc) || c.battery.power || c.battery.power_charge || c.battery.power_discharge,
+    if (c.batteries.length) {
+      const nB = c.batteries.length;
+      const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
-        `<div class="socbox"${c.battery.soc ? ` data-e="${esc(c.battery.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>`);
-      links.push('bat');
+        `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>`)).join('');
+      nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
+      c.batteries.forEach((b, i) => links.push(this._bk(i)));
     }
     // groups_columns: Gruppen pro Reihe (Standard: alle in einer Reihe). Stehen Gruppen untereinander,
     // liefen einzelne Linien durch die oberen Gruppen; ohne ausdrückliches groups_lines gilt dann die Sammel-Linie.
@@ -1044,7 +1054,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
-    if (c.battery && (c.battery.daily_charge || c.battery.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
+    if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
     // Hausverbrauch heute: eigener Sensor (home.daily) oder berechnet wie die Autarkie
     if ((c.home && c.home.daily) || (((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) && c.grid && c.grid.daily_import)) stats += d('home', T('stat.home'), PAL.home);
     stats += d('aut', T('stat.aut'), PAL.home);
@@ -1208,7 +1218,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
       // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
-      const sideOnly = (this._mode !== 'narrow' || this._cmp) &&['pv', 'pv2', 'grid', 'bat'].includes(L.k);
+      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid'].includes(L.k) || /^bat\d*$/.test(L.k));
       if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
       else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
@@ -1264,19 +1274,20 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
 
   // Akku-Prognose: geglättete Leistung (~5 min) -> Uhrzeit "voll um" / "reicht bis"
-  _batForecast(bat, soc) {
-    const c = this._c, h = this._hass, cap = parseFloat(c.battery.capacity_kwh);
+  _batForecast(bat, soc, b, idx) {
+    const c = this._c, h = this._hass, cap = parseFloat((b || c.battery).capacity_kwh);
     const now = Date.now();
+    const S = ((this._emaS = this._emaS || [])[idx || 0] = (this._emaS[idx || 0] || {}));
     if (bat !== null) {
-      const dt = this._emaT ? (now - this._emaT) / 1000 : 0;
+      const dt = S.t ? (now - S.t) / 1000 : 0;
       const a = dt > 0 ? 1 - Math.exp(-dt / 300) : 1;
-      this._ema = this._ema === undefined ? bat : this._ema + a * (bat - this._ema);
-      this._emaT = now;
+      S.v = S.v === undefined ? bat : S.v + a * (bat - S.v);
+      S.t = now;
     }
     if (!cap || soc === null) return '';
-    const { reserve, maxSoc } = this._limits();
+    const { reserve, maxSoc } = this._limits(b);
     // Richtungswechsel oder Glättung noch nicht eingeschwungen -> aktuellen Wert nehmen
-    const e = this._ema || 0;
+    const e = S.v || 0;
     const p = bat !== null && (Math.sign(e) !== Math.sign(bat) || Math.abs(e) < Math.abs(bat) * 0.3) ? bat : e;
     const avail = Math.max(0, (soc - reserve) / 100 * cap);
     if (p > 50 && soc < maxSoc - 0.5) {
@@ -1294,8 +1305,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
 
   // Entladegrenze und Maximalladung der Batterie in Prozent: Sensor, Helfer oder fester Wert
-  _limits() {
-    const h = this._hass, b = (this._c && this._c.battery) || {};
+  _bk(i) { return i ? 'bat' + (i + 1) : 'bat'; }
+  _limits(bb) {
+    const h = this._hass, b = bb || (this._c && this._c.battery) || {};
     const lim = (sensor, fixed, def) => {
       const v = val(h, sensor, null);
       if (v !== null && !isNaN(v)) return Math.max(0, Math.min(100, v));
@@ -1404,8 +1416,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _sw(w) { return splitW(w, !!(this._c && this._c.watt_only)); }
   _fW(w) { return fW(w, !!(this._c && this._c.watt_only)); }
 
-  _set(sel, txt, isHtml) {
-    const el = this._$(sel);
+  _set(sel, txt, isHtml, root) {
+    const el = root ? root.querySelector(sel) : this._$(sel);
     if (!el) return;
     if (isHtml) { if (el.innerHTML !== txt) el.innerHTML = txt; }
     else if (el.textContent !== txt) el.textContent = txt;
@@ -1420,20 +1432,28 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const pv = pv1 === null && pv2 === null ? null : (pv1 || 0) + (pv2 || 0);
     let grid = c.grid ? watt(h, c.grid.entity) : null;
     if (grid !== null && c.grid.invert) grid = -grid;
-    let bat = c.battery ? watt(h, c.battery.power) : null;
-    // Getrennte Sensoren für Laden und Entladen (z. B. SunEnergyXT): Laden positiv, Entladen negativ
-    if (c.battery && !c.battery.power && (c.battery.power_charge || c.battery.power_discharge)) {
-      const pc = c.battery.power_charge ? watt(h, c.battery.power_charge) : null, pd = c.battery.power_discharge ? watt(h, c.battery.power_discharge) : null;
-      bat = pc === null && pd === null ? null : (pc || 0) - (pd || 0);
-    }
-    if (bat !== null && c.battery.invert) bat = -bat;
-    const soc = c.battery ? num(h, c.battery.soc) : null;
+    // Je Speicher Leistung (Laden positiv) und Ladestand; Summe bzw. nach Kapazität gewichteter Mittelwert für Ring und Banner
+    const bats = c.batteries.map((b, i) => {
+      let p = b.power ? watt(h, b.power) : null;
+      // Getrennte Sensoren für Laden und Entladen (z. B. SunEnergyXT): Laden positiv, Entladen negativ
+      if (!b.power && (b.power_charge || b.power_discharge)) {
+        const pc = b.power_charge ? watt(h, b.power_charge) : null, pd = b.power_discharge ? watt(h, b.power_discharge) : null;
+        p = pc === null && pd === null ? null : (pc || 0) - (pd || 0);
+      }
+      if (p !== null && b.invert) p = -p;
+      return { b, i, p, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
+    });
+    const bat = bats.some((x) => x.p !== null) ? bats.reduce((a, x) => a + (x.p || 0), 0) : null;
+    const withSoc = bats.filter((x) => x.soc !== null);
+    const wSum = withSoc.reduce((a, x) => a + (x.cap || 1), 0);
+    const soc = withSoc.length ? withSoc.reduce((a, x) => a + x.soc * (x.cap || 1), 0) / wSum : null;
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
     if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0));
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
     const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
-    const bDis = Math.max(0, -(bat || 0)), bChg = Math.max(0, bat || 0);
+    // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
+    const bDis = bats.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), 0), bChg = bats.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
     const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
     const tot = pvHome + gImp + bDis;
 
@@ -1502,28 +1522,30 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._set('.grid .tag', grid === null ? T('tag.offline') : Math.abs(grid) < 0.5 ? T('tag.balanced') : imp ? T('tag.import') : T('tag.export'));
       this._link('grid', on, imp, col, grid);
     }
-    if (c.battery) {
-      const el = this._$('[data-k="bat"]'), on = Math.abs(bat || 0) > TH, chg = (bat || 0) > 0;
+    bats.forEach((x) => {
+      const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
+      if (!el) return;
+      const bp = x.p, bs = x.soc, on = Math.abs(bp || 0) > TH, chg = (bp || 0) > 0;
       const col = on && chg ? PAL.chg : PAL.bat;
       el.classList.toggle('on', on);
       el.classList.toggle('charging', on && chg);
       el.style.setProperty('--c', col);
-      this._anim('bat', bat === null ? null : Math.abs(bat), el);
-      this._set('.bat .tag', bat === null ? T('tag.offline') : !on ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'));
-      const fill = this._$('.soc-fill');
-      const lm = this._limits();
-      const usable = c.battery.soc_display === 'nutzbar' && lm.maxSoc > lm.reserve;
+      this._anim(key, bp === null ? null : Math.abs(bp), el);
+      this._set('.tag', bp === null ? T('tag.offline') : !on ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
+      const fill = el.querySelector('.soc-fill');
+      const lm = this._limits(x.b);
+      const usable = x.b.soc_display === 'nutzbar' && lm.maxSoc > lm.reserve;
       // nutzbar: 0 % = Entladegrenze, 100 % = Maximalladung
-      const shown = soc === null ? null : usable ? Math.max(0, Math.min(100, (soc - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, soc));
+      const shown = bs === null ? null : usable ? Math.max(0, Math.min(100, (bs - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, bs));
       fill.style.width = (shown === null ? 0 : shown) + '%';
       fill.style.setProperty('--sc', shown !== null && shown < 20 ? PAL.imp : shown !== null && shown < 40 ? PAL.pv : col);
-      this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''));
-      const lo = this._$('.soc-low'), hi = this._$('.soc-high');
+      this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''), false, el);
+      const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
       if (lo) { lo.style.width = (usable ? 0 : lm.reserve) + '%'; lo.style.display = !usable && lm.reserve > 0 ? '' : 'none'; }
       if (hi) { hi.style.width = (usable ? 0 : 100 - lm.maxSoc) + '%'; hi.style.display = !usable && lm.maxSoc < 100 ? '' : 'none'; }
-      this._set('.bat .sub', this._batForecast(bat, soc), true);
-      this._link('bat', on, !chg, col, bat);
-    }
+      this._set('.sub', this._batForecast(bp, bs, x.b, x.i), true, el);
+      this._link(key, on, !chg, col, bp);
+    });
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
@@ -1628,8 +1650,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv2 && c.pv2.daily) { const d2 = en(c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
     const dImp = c.grid ? en(c.grid.daily_import) : null;
     const dExp = c.grid ? en(c.grid.daily_export) : null;
-    const dChg = c.battery ? en(c.battery.daily_charge) : null;
-    const dDis = c.battery ? en(c.battery.daily_discharge) : null;
+    const sumBat = (f) => c.batteries.reduce((a, b) => { const v = en(b[f]); return v === null ? a : (a || 0) + v; }, null);
+    const dChg = sumBat('daily_charge');
+    const dDis = sumBat('daily_discharge');
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
@@ -3561,6 +3584,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         return;
       }
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
+      // Mehrere Speicher: Zähler dürfen als Liste angegeben werden, die Karte summiert sie
+      const lst = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : (v ? [v] : []))).filter(Boolean);
+      this._c._chg = lst(c.battery_charge_total); this._c._dis = lst(c.battery_discharge_total);
+      this._c._chgD = lst(c.charge_today); this._c._disD = lst(c.discharge_today);
+      this._c.battery_capacity_kwh = lst(c.battery_capacity_kwh).reduce((a, v) => a + (parseFloat(v) || 0), 0);
       this._build();
       this._loaded = 0;
       if (this._hass) this._load();
@@ -3694,7 +3722,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._loading = true;
       try {
         const now = new Date();
-        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c.battery_charge_total, c.battery_discharge_total].filter(Boolean);
+        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
         const [mon, day, hr] = await Promise.all([
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'], ...WD.statUnits(c) }),
@@ -3705,7 +3733,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           (mon[id] || []).forEach((r) => { const d = new Date(typeof r.start === 'number' ? r.start : Date.parse(r.start)); if (r.change !== null && r.change !== undefined) out[key(d.getFullYear(), d.getMonth())] = Math.max(0, r.change); });
           return out;
         };
-        this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: c.battery_charge_total ? byMonth(c.battery_charge_total) : {}, dis: c.battery_discharge_total ? byMonth(c.battery_discharge_total) : {} };
+        const sumM = (list) => list.reduce((acc, id) => { const m = byMonth(id); Object.keys(m).forEach((k) => { acc[k] = (acc[k] || 0) + m[k]; }); return acc; }, {});
+        this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: sumM(c._chg), dis: sumM(c._dis) };
         // Rekordtag
         let rec = null;
         // bevorzugt Tagesertrag (setzt täglich zurück); beim Gesamtzähler nur Tage direkt nach einem Vortag werten,
@@ -3759,7 +3788,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const c = this._c, h = this._hass, M = this._m, now = new Date();
       if (this._period === 'day') {
         const raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw);
-        return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: en(c.charge_today) || 0, dis: en(c.discharge_today) || 0, label: T('st.today') };
+        return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: c._chgD.reduce((a, id) => a + (en(id) || 0), 0), dis: c._disD.reduce((a, id) => a + (en(id) || 0), 0), label: T('st.today') };
       }
       if (!M) return null;
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
@@ -3843,7 +3872,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Footer
       if (this._rec) this._f('rec', `${nf(this._rec.v, 1)}<small>kWh · ${new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' })}</small>`);
-      const chT = WD.kwh(h, c.battery_charge_total, WD.rawUnits(c)), diT = WD.kwh(h, c.battery_discharge_total, WD.rawUnits(c));
+      const sumT = (list) => { let t = null; list.forEach((id) => { const v = WD.kwh(h, id, WD.rawUnits(c)); if (v !== null && v !== undefined) t = (t || 0) + v; }); return t; };
+      const chT = sumT(c._chg), diT = sumT(c._dis);
       if (chT && diT) this._f('eff', `${nf(diT / chT * 100, 1)}<small>%</small>`);
       if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
       const tmp = live(h, c.battery_temp);

@@ -25,6 +25,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `grid.entity` | Sensor | Netzleistung (Bezug positiv) |
 | `grid.invert` | Ja/Nein | Vorzeichen umkehren |
 | `grid.daily_import`, `grid.daily_export` | Sensor | Bezug / Einspeisung heute (kWh) |
+| `batteries` | Liste von Speichern | Mehrere Speicher: Jeder Eintrag hat dieselben Felder wie `battery` (`name`, `power` oder `power_charge`/`power_discharge`, `soc`, `capacity_kwh`, `reserve_pct`/`max_pct`, `daily_charge`, `daily_discharge`, `invert`, `tap`, `soc_display`). Es erscheint **eine Kachel je Speicher** mit eigenem Status, Ladebalken und eigener Prognose. Ring, Autarkie, Banner und Tageswerte rechnen mit der Summe (Ladestand als nach Kapazität gewichteter Mittelwert). Ohne `batteries` gilt der einzelne Eintrag `battery` wie bisher. Nur im YAML-Editor. Auf dem Handy: `compact: auto` zeigt die Speicher in der Kurzansicht übersichtlich |
 | `battery.tap` | `power` (Standard) / `soc` | Was ein Klick auf die Kachel öffnet: Verlauf der Leistung oder des Ladestands. Ein Klick auf Balken und Prozentzahl öffnet immer den Ladestand |
 | `battery.power` | Sensor | Laden positiv, Entladen negativ |
 | `battery.power_charge`, `battery.power_discharge` | Sensoren | Statt `power`: zwei getrennte Sensoren für Laden und Entladen (beide positiv). Die Karte rechnet Laden minus Entladen |
@@ -232,7 +233,7 @@ title: Statistik
 pv_total: sensor.pv_gesamt_kwh
 grid_import_total: sensor.netzbezug_gesamt_kwh
 grid_export_total: sensor.einspeisung_gesamt_kwh
-battery_charge_total: sensor.batterie_geladen_kwh
+battery_charge_total: sensor.batterie_geladen_kwh      # bei mehreren Speichern auch als Liste: [sensor.a, sensor.b]
 battery_discharge_total: sensor.batterie_entladen_kwh
 battery_capacity_kwh: 7.5
 battery_temp: sensor.batterie_temperatur
