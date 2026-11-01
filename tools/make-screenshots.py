@@ -103,6 +103,11 @@ JOBS.append(('flow.html', 'gruppen-vorher-handy', '?shot=1&grpdemo=1'))
 JOBS.append(('flow.html', 'gruppen-reihe-handy', '?shot=1&grpdemo=1&gc=1'))
 JOBS.append(('flow.html', 'gruppen-reihe-breit', '?shot=1&grpdemo=1&gc=1'))
 JOBS.append(('flow.html', 'watt-only', '?shot=1&grpdemo=1&watt=1'))
+JOBS.append(('flow.html', 'batterie-vorn-laedt', '?shot=1&scene=via1&viabat=1'))
+JOBS.append(('flow.html', 'batterie-vorn-durchleitung', '?shot=1&scene=via2&viabat=1'))
+JOBS.append(('flow.html', 'batterie-vorn-nachts', '?shot=1&scene=via3&viabat=1'))
+JOBS.append(('flow.html', 'batterie-vorn-handy', '?shot=1&scene=via1&viabat=1'))
+JOBS.append(('flow.html', 'batterie-vorn-kurz-handy', '?shot=1&scene=via1&viabat=1&compact=immer'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:

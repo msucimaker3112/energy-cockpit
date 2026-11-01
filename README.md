@@ -83,6 +83,7 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Linien zu den Verbrauchern** | `groups_lines: direkt` (Standard) zeichnet eine Linie je Gerät oder Gruppe, `groups_lines: sammel` nur eine Linie zum ganzen Verbraucherbereich mit der Summe. |
 | **Zweite Solaranlage** | `pv2` (z. B. Balkonkraftwerk): eigene Kachel und Linie, Autarkie, Eigenverbrauch und Herkunft rechnen mit der Summe. Die zweite Anlage deckt zuerst das Haus, die erste lädt danach die Batterie. |
 | **Mehrere Speicher** | Zwei oder mehr Speicher: **eine Kachel je Speicher** mit eigenem Status, Ladestand und Prognose, Ring und Tageswerte rechnen mit der Summe. Einstellbar im Assistenten (Schritt "Weitere Speicher") und im Formular. `battery` ist der erste Speicher, `batteries` enthält die weiteren. In der Statistik-Karte dürfen die Batteriezähler als Liste angegeben werden. Für das Handy gibt es die Kurzansicht (`compact: auto`). |
+| **Speicher vor dem Wechselrichter** | Für Balkonkraftwerke mit Speicher (z. B. Marstek B2500): `pv_to_battery: direkt` zeichnet den Weg Solar → Speicher → Haus, zeigt Eingang, Ausgang und Durchleitung bei vollem Speicher. Anleitung in der [Konfiguration](docs/KONFIGURATION.md#speicher-vor-dem-wechselrichter). |
 | **Unterposten in der Raum-Abrechnung** | `devices[].items` weist einzelne Geräte innerhalb eines Bereichs aus (zum Beispiel einen Kühlschrank in der Chillecke) mit eigenen kWh, Quellen und Kosten, plus "übrige Geräte". Die Abrechnung des Bereichs bleibt unverändert. |
 | **Textgröße** | `text_size: gross` oder `sehr_gross` vergrößert Ladestand, Kennzahlen oben rechts und Beschriftungen. Gedacht für Handy und Tablet. |
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
@@ -118,6 +119,16 @@ Die Netz-Kachel zeigt **Bezug** oder **Einspeisung** ab 0,5 W. "Ausgeglichen" st
 | Zwei Speicher (Normalansicht) | Zwei Speicher (Kurzansicht fürs Handy) |
 |---|---|
 | ![Zwei Speicher](docs/img/batterien-zwei.png) | ![Zwei Speicher, Kurzansicht](docs/img/batterien-zwei-kurz-handy.png) |
+
+**Speicher vor dem Wechselrichter** (zum Beispiel Marstek B2500): Hängen die Solarmodule direkt am Speicher, läuft der Strom immer durch ihn. Mit `pv_to_battery: direkt` und `battery.power_out` (Ausgangsleistung ins Haus) zeichnet die Karte **Solar → Speicher → Haus**, zeigt am Speicher Eingang und Ausgang und `Durchleitung`, wenn er voll ist und der Strom nur durchgeleitet wird. Die Option ist standardmäßig aus, bestehende Karten ändern sich nicht. Beispiel und Hinweise: [Speicher vor dem Wechselrichter](docs/KONFIGURATION.md#speicher-vor-dem-wechselrichter).
+
+| Speicher lädt | Durchleitung (Speicher voll) | Speicher entlädt |
+|---|---|---|
+| ![Speicher vor dem Wechselrichter, lädt](docs/img/batterie-vorn-laedt.png) | ![Speicher voll, Durchleitung](docs/img/batterie-vorn-durchleitung.png) | ![Speicher entlädt nachts](docs/img/batterie-vorn-nachts.png) |
+
+| Auf dem Handy | Kurzansicht |
+|---|---|
+| ![Speicher vor dem Wechselrichter, Handy](docs/img/batterie-vorn-handy.png) | ![Speicher vor dem Wechselrichter, Kurzansicht](docs/img/batterie-vorn-kurz-handy.png) |
 
 Alle Optionen mit Beispielen: [docs/KONFIGURATION.md](docs/KONFIGURATION.md). Die Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
 

@@ -82,6 +82,16 @@
       };
     }
   }
+  // viabat=1: Speicher vor dem Wechselrichter (pv_to_battery: direkt), Solar läuft durch den Speicher
+  if (q.get('viabat')) {
+    const C = customElements.get('energy-cockpit-flow-card');
+    if (C) {
+      const o = C.prototype.setConfig;
+      C.prototype.setConfig = function (c) {
+        return o.call(this, Object.assign({}, c, { pv_to_battery: 'direkt', battery: { name: 'Marstek B2500', power_out: 'sensor.bat_out', soc: 'sensor.soc', capacity_kwh: 2.24, reserve_pct: 10 } }));
+      };
+    }
+  }
   // compact=auto|immer: Kurzansicht
   if (q.get('batteries')) {
     const C = customElements.get('energy-cockpit-flow-card');

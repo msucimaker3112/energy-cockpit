@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.14.0
+- **Speicher vor dem Wechselrichter (`pv_to_battery: direkt`):** Für Balkonkraftwerke mit Speicher (zum Beispiel Marstek B2500), bei denen der Solarstrom immer durch den Speicher läuft. Die Karte zeichnet Solar → Speicher → Haus (Solar über dem Speicher, das Netz rechts), zeigt am Speicher Eingang und Ausgang und `Durchleitung`, wenn er weder lädt noch entlädt. Neu: `battery.power_out` (Ausgangsleistung ins Haus). Laden und Entladen ergeben sich aus Solar-Eingang minus Ausgang, die Herkunft des Hausstroms zählt als Solar, soweit der Ausgang vom Solar-Eingang gedeckt ist. Einstellbar im Assistenten (Schritt "Batterie") und im Formular. Ohne die Option ändert sich nichts. Anregung von Michael Laske und aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
+
 ## 0.13.0
 - **Mehrere Speicher (`batteries`):** `battery` ist der erste Speicher, `batteries` enthält die weiteren. Im Assistenten gibt es dafür den Schritt "Weitere Speicher", im Formular den Bereich "Weitere Speicher". Jeder Speicher bekommt eine eigene Kachel rechts (Name, Leistung, Status lädt/entlädt/Standby, Ladebalken, Prognose "voll um / reicht bis", eigene Entladegrenze). Ring (Herkunft), Autarkie, Banner und Tageswerte rechnen mit der Summe: Lädt der eine Speicher, während der andere entlädt, zählt beides. Der Ladestand für Banner und Statistik ist der nach Kapazität gewichtete Mittelwert. Ohne `batteries` bleibt alles wie bisher (`battery`). Für das Handy empfiehlt sich die Kurzansicht (`compact: auto`).
 - **Statistik-Karte:** `battery_charge_total`, `battery_discharge_total`, `charge_today`, `discharge_today` und `battery_capacity_kwh` dürfen Listen sein und werden summiert.

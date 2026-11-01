@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.13.0 - MIT License */
+/*! energy-cockpit v0.14.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -178,7 +178,8 @@ const WD = (() => {
       'stat.pv': 'PV heute', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
-      'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Lädt', 'tag.discharging': 'Entlädt',
+      'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Lädt', 'tag.discharging': 'Entlädt', 'tag.passthrough': 'Durchleitung',
+      'bat.io': 'Eingang <b>{in}</b> · Ausgang <b>{out}</b>',
       'forecast': 'Prognose', 'forecast.day': 'Prognose heute', 'offline': 'offline',
       'ka.on': '● Wach', 'ka.wait': '☝ Einmal tippen – Bildschirm bleibt an',
       'waste.today': 'Heute', 'waste.tomorrow': 'Morgen',
@@ -647,6 +648,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
+/* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
+.layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
+.layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
 .n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:calc(.7rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
@@ -778,6 +782,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .narrow header{margin-bottom:14px}
 .narrow .layout{grid-template-columns:1fr 1fr;grid-template-areas:"hub hub" "pv bat" "grid bat";gap:16px 14px}
 .narrow .layout.has-pv2{grid-template-areas:"hub hub" "pv bat" "pv2 bat" "grid bat"}
+/* pv_to_battery: direkt auf dem Handy: Solar und Netz nebeneinander, der Speicher darunter (Solar fließt senkrecht in ihn) */
+.narrow .layout.via-bat{grid-template-areas:"hub hub" "pv grid" "bat bat";row-gap:34px}
+.narrow .layout.via-bat.has-pv2{grid-template-areas:"hub hub" "pv pv2" "bat bat" "grid grid"}
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:1.5rem}
 .narrow .core .num{font-size:1.8rem}
@@ -796,6 +803,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .b-title{font-size:.92rem}
 .wrap.cmp .layout{grid-template-columns:1fr minmax(88px,.8fr) 1fr;grid-template-areas:"pv hub bat" "grid hub bat";gap:10px 12px}
 .wrap.cmp .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
+.wrap.cmp .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid"}
+.wrap.cmp .layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
 .cmp .node{padding:10px 11px;border-radius:17px}
 .cmp .n-top{font-size:calc(.58rem*var(--ts,1));letter-spacing:.06em}
 .cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
@@ -882,6 +891,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const bl = more.length ? (usedB(first) ? [first].concat(more) : more) : (first ? [first] : []);
     this._c.batteries = bl;
     if (bl.length) this._c.battery = bl[0];
+    // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
+    const vb = this._c.pv_to_battery;
+    this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
@@ -999,7 +1011,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       </div>`;
     const links = [];
     let nodes = '';
-    if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity); links.push('pv'); }
+    if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
@@ -1010,6 +1022,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>`)).join('');
       nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
+      if (this._via) links.push('pvbat');
     }
     // groups_columns: Gruppen pro Reihe (Standard: alle in einer Reihe). Stehen Gruppen untereinander,
     // liefen einzelne Linien durch die oberen Gruppen; ohne ausdrückliches groups_lines gilt dann die Sammel-Linie.
@@ -1074,7 +1087,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>
-        <div class="layout${hasPv2 ? ' has-pv2' : ''}">
+        <div class="layout${hasPv2 ? ' has-pv2' : ''}${this._via ? ' via-bat' : ''}">
           ${nodes}
           <div class="hub-wrap">
             <div class="hub" data-e="${esc(c.home && c.home.entity)}">
@@ -1213,6 +1226,22 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const hr = hub.getBoundingClientRect();
     const cx = (hr.left + hr.width / 2 - sr.left) / k0, cy = (hr.top + hr.height / 2 - sr.top) / k0, R = hr.width * 0.465 / k0;
     for (const L of this._links) {
+      if (L.k === 'pvbat') {
+        // Solar -> Speicher: gerade Verbindung zwischen den beiden Kacheln (untereinander oder nebeneinander)
+        const a = this._$('[data-k="pv"]'), b = this._$('[data-k="bat"]');
+        const set = (d) => L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));
+        if (!a || !b || !a.offsetParent || !b.offsetParent) { set(''); continue; }
+        const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        const A = { t: (ra.top - sr.top) / k0, b: (ra.bottom - sr.top) / k0, l: (ra.left - sr.left) / k0, r: (ra.right - sr.left) / k0 };
+        const B = { t: (rb.top - sr.top) / k0, b: (rb.bottom - sr.top) / k0, l: (rb.left - sr.left) / k0, r: (rb.right - sr.left) / k0 };
+        const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l);
+        let d;
+        if (B.t >= A.b - 2 && ox > 20) { const x = (Math.max(A.l, B.l) + Math.min(A.r, B.r)) / 2; d = `M${x.toFixed(1)},${A.b.toFixed(1)} L${x.toFixed(1)},${B.t.toFixed(1)}`; }
+        else if (B.l >= A.r - 2) { const y = Math.max(B.t + 12, Math.min(B.b - 12, (A.t + A.b) / 2)); d = `M${A.r.toFixed(1)},${y.toFixed(1)} L${B.l.toFixed(1)},${y.toFixed(1)}`; }
+        else { set(''); continue; }
+        set(d);
+        continue;
+      }
       if (!L.el) continue;
       if (!L.el.offsetParent) { L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', '')); continue; }
       const r = L.el.getBoundingClientRect();
@@ -1443,7 +1472,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
         p = pc === null && pd === null ? null : (pc || 0) - (pd || 0);
       }
       if (p !== null && b.invert) p = -p;
-      return { b, i, p, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
+      // pv_to_battery: direkt: Ausgang des vorgeschalteten Speichers; ohne eigenen Leistungssensor ergibt sich Laden = PV-Eingang - Ausgang
+      let out = null;
+      if (this._via && i === 0) {
+        out = watt(h, b.power_out);
+        if (out !== null) out = Math.max(0, out);
+        if (p === null && out !== null) p = Math.max(0, pv1 || 0) - out;
+      }
+      return { b, i, p, out, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
     });
     const bat = bats.some((x) => x.p !== null) ? bats.reduce((a, x) => a + (x.p || 0), 0) : null;
     const withSoc = bats.filter((x) => x.soc !== null);
@@ -1527,13 +1563,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
     bats.forEach((x) => {
       const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
       if (!el) return;
-      const bp = x.p, bs = x.soc, on = Math.abs(bp || 0) > TH, chg = (bp || 0) > 0;
-      const col = on && chg ? PAL.chg : PAL.bat;
+      const bp = x.p, bs = x.soc, chg = (bp || 0) > 0;
+      // Vorgeschalteter Speicher (pv_to_battery: direkt): Strom läuft durch ihn, auch wenn er weder lädt noch entlädt (Durchleitung)
+      const via = this._via && x.i === 0 && x.out !== null;
+      const pin = via ? Math.max(0, pv1 || 0) : 0, out = via ? x.out : 0;
+      const net = Math.abs(bp || 0) > TH;
+      const through = via && !net && Math.max(pin, out) > TH;
+      const on = net || through;
+      const col = through ? PAL.pv : on && chg ? PAL.chg : PAL.bat;
       el.classList.toggle('on', on);
-      el.classList.toggle('charging', on && chg);
+      el.classList.toggle('charging', net && chg);
       el.style.setProperty('--c', col);
       this._anim(key, bp === null ? null : Math.abs(bp), el);
-      this._set('.tag', bp === null ? T('tag.offline') : !on ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
+      this._set('.tag', bp === null ? T('tag.offline') : through ? T('tag.passthrough') : !net ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
       const fill = el.querySelector('.soc-fill');
       const lm = this._limits(x.b);
       const usable = x.b.soc_display === 'nutzbar' && lm.maxSoc > lm.reserve;
@@ -1545,8 +1587,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
       if (lo) { lo.style.width = (usable ? 0 : lm.reserve) + '%'; lo.style.display = !usable && lm.reserve > 0 ? '' : 'none'; }
       if (hi) { hi.style.width = (usable ? 0 : 100 - lm.maxSoc) + '%'; hi.style.display = !usable && lm.maxSoc < 100 ? '' : 'none'; }
-      this._set('.sub', this._batForecast(bp, bs, x.b, x.i), true, el);
-      this._link(key, on, !chg, col, bp);
+      const fc = this._batForecast(bp, bs, x.b, x.i);
+      this._set('.sub', via ? T('bat.io', { in: this._fW(pin), out: this._fW(out) }) + (fc ? '<br>' + fc : '') : fc, true, el);
+      if (via) {
+        // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt
+        this._link('pvbat', pin > TH, true, PAL.pv, pin);
+        this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.bat : PAL.pv, out);
+      } else this._link(key, on, !chg, col, bp);
     });
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
@@ -1694,6 +1741,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
+    power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     show_clock: 'Uhr anzeigen', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
@@ -1701,6 +1749,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
   };
 
+  const PV_VIA = [{ value: 'aus', label: 'Aus: Solar speist das Haus (Standard)' }, { value: 'direkt', label: 'Direkt: Solar läuft durch den Speicher (braucht die Ausgangsleistung)' }];
   const COMPACT = [{ value: 'aus', label: 'Aus: ausführliche Ansicht (Standard)' }, { value: 'auto', label: 'Nur auf dem Handy' }, { value: 'immer', label: 'Immer' }];
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
@@ -1726,13 +1775,14 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
       sec('grid', 'Netz', [ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('battery', 'Batterie', [
-        ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
+        ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('power_out', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
         numb('capacity_kwh', 0, 200, 0.1), ent('reserve_soc', ['sensor', 'number', 'input_number']), numb('reserve_pct', 0, 100, 1),
         ent('max_soc', ['sensor', 'number', 'input_number']), numb('max_pct', 0, 100, 1),
         { name: 'tap', selector: { select: { mode: 'dropdown', options: [{ value: 'power', label: 'Verlauf der Lade-/Entladeleistung (Standard)' }, { value: 'soc', label: 'Verlauf des Ladestands in %' }] } } },
       { name: 'soc_display', selector: { select: { mode: 'dropdown', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] } } },
         ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']),
       ]),
+      { name: 'pv_to_battery', selector: { select: { mode: 'dropdown', options: PV_VIA } } },
       sec('batteries', 'Weitere Speicher (2. bis 5.)', slots(4, (n) => `Speicher ${n + 1}`, batteryFields)),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor'])]),
       sec('consumers', 'Einzelverbraucher (bis zu 12)', slots(12, (n) => `Verbraucher ${n}`, consumerFields)),
@@ -1787,6 +1837,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'battery.max_soc', label: 'Maximalladung der Batterie (Sensor oder Helfer, %)', kind: 'percent', optional: true, hints: H(/lade.*ende|max|charge.*(end|cut|limit)|ende/i, /soc|ladestand|ladung/i) },
       { path: 'battery.max_pct', label: 'oder feste Maximalladung (%)', kind: 'number', optional: true, step: '1' },
       { path: 'battery.soc_display', label: 'Ladestand anzeigen als', kind: 'choice', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] },
+      { path: 'battery.power_out', label: 'Nur Speicher mit angeschlossenen Modulen (z. B. Marstek B2500): Ausgangsleistung', kind: 'power', optional: true, hints: H(/ausgang|output|abgabe|ac.?out/i, /batter|akku|speicher|storage|b2500|marstek/i), help: 'Hängen die Solarmodule direkt am Speicher, trägst du hier die Leistung ein, die der Speicher ans Haus abgibt. Danach unten Solar läuft durch den Speicher auf Direkt stellen. Als Solar-Sensor dient die Eingangsleistung der Module.' },
+      { path: 'pv_to_battery', label: 'Solar läuft durch den Speicher', kind: 'choice', options: PV_VIA, help: 'Nur für Speicher vor dem Wechselrichter. Die Karte zeichnet dann Solar -> Speicher -> Haus und zeigt Durchleitung, wenn der Speicher weder lädt noch entlädt.' },
       { path: 'battery.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn Laden negativ und Entladen positiv gemeldet wird.' },
       { path: 'battery.capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true, help: 'Für die Prognose "voll um / reicht bis".' },
     ] },
