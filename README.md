@@ -10,7 +10,7 @@
 
 | Karte | Zeigt |
 |---|---|
-| `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar, Netz, Batterie mit Entladegrenze, Haus, Verbraucher (eine Linie je Gerät oder eine Sammel-Linie), Überschuss-Hinweis, Akku-Prognose |
+| `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar (auch zweite Anlage), Netz, **ein oder mehrere Speicher** mit Entladegrenze, Haus, Verbraucher (eine Linie je Gerät oder eine Sammel-Linie), Überschuss-Hinweis, Akku-Prognose |
 | `energy-cockpit-devices-card` | **Geräte & Verbrauch**: Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät, Standby-Detektiv |
 | `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation (mit Anschaffungskosten), Grundlast, Monatsvergleich, Akku |
 | `energy-cockpit-room-card` | **Raum-Abrechnung**: Verbrauch und Kosten eines Raums mit Abschlag, Hochrechnung, Live-Leistung, Herkunft (Netz, Batterie, PV), Grundlast, Betriebszeiten und Monatsarchiv |
@@ -82,7 +82,7 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Batterie** | Entladegrenze und Maximalladung als Sensor/Helfer oder fester Prozentwert. Die Grenzen erscheinen schraffiert auf dem Ladebalken, die nutzbare Kapazität fließt in die Prognose ein. Optional zeigt `battery.soc_display: nutzbar` den Ladestand relativ zum nutzbaren Bereich. |
 | **Linien zu den Verbrauchern** | `groups_lines: direkt` (Standard) zeichnet eine Linie je Gerät oder Gruppe, `groups_lines: sammel` nur eine Linie zum ganzen Verbraucherbereich mit der Summe. |
 | **Zweite Solaranlage** | `pv2` (z. B. Balkonkraftwerk): eigene Kachel und Linie, Autarkie, Eigenverbrauch und Herkunft rechnen mit der Summe. Die zweite Anlage deckt zuerst das Haus, die erste lädt danach die Batterie. |
-| **Mehrere Speicher** | `batteries` (Liste): eine Kachel je Speicher mit eigenem Status, Ladestand und Prognose, Ring und Tageswerte rechnen mit der Summe. In der Statistik-Karte dürfen die Batteriezähler als Liste angegeben werden. |
+| **Mehrere Speicher** | Zwei oder mehr Speicher: **eine Kachel je Speicher** mit eigenem Status, Ladestand und Prognose, Ring und Tageswerte rechnen mit der Summe. Einstellbar im Assistenten (Schritt "Weitere Speicher") und im Formular. `battery` ist der erste Speicher, `batteries` enthält die weiteren. In der Statistik-Karte dürfen die Batteriezähler als Liste angegeben werden. Für das Handy gibt es die Kurzansicht (`compact: auto`). |
 | **Unterposten in der Raum-Abrechnung** | `devices[].items` weist einzelne Geräte innerhalb eines Bereichs aus (zum Beispiel einen Kühlschrank in der Chillecke) mit eigenen kWh, Quellen und Kosten, plus "übrige Geräte". Die Abrechnung des Bereichs bleibt unverändert. |
 | **Textgröße** | `text_size: gross` oder `sehr_gross` vergrößert Ladestand, Kennzahlen oben rechts und Beschriftungen. Gedacht für Handy und Tablet. |
 | **Kachel "Nicht erfasst"** | `hide_rest: true` blendet sie aus, `rest_min: 10` zeigt sie erst, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind. |
