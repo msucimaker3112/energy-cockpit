@@ -1,0 +1,24 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Energy-Cockpit Raum-Abrechnung: Zählerkaskade</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}pre{font-size:13px;color:#9fb3c8;padding:8px}</style></head>
+<body><div id="host"></div><pre id="out"></pre>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+const S=(state,a)=>({state:String(state),attributes:a||{},last_changed:new Date().toISOString(),last_updated:'x'});
+const states={'input_number.price':S(0.34,{unit_of_measurement:'€/kWh'}),'sensor.z1':S(900,{unit_of_measurement:'kWh'}),'sensor.z2':S(400,{unit_of_measurement:'kWh'})};
+// Beispiel: Z1 (Netzbezug gesamt) 10 kWh pro Tag, Z2 (Haushalt) 4 kWh pro Tag, Wärmepumpe = Z1 - Z2 = 6 kWh pro Tag
+const hass={states,language:'de',config:{currency:'EUR'},callWS:async(m)=>{
+  const r={};const y=new Date().getFullYear();
+  m.statistic_ids.forEach((id)=>{const rows=[];for(let d=new Date(y-1,2,1);d<=new Date();d.setDate(d.getDate()+1)){rows.push({start:d.getTime(),change:id==='sensor.z1'?10:4});}r[id]=rows;});
+  return r;}};
+const kas = new URLSearchParams(location.search).get('ohne') ? false : true;
+const cfg={title:'Zählerkaskade',subtitle:'Wärmepumpe und Haushalt',price:'input_number.price',base_fee:0,
+  devices:[
+    kas ? {energy:'sensor.z1',energy_minus:'sensor.z2',name:'Wärmepumpe (Z1 − Z2)',price_ct:24} : {energy:'sensor.z1',name:'Z1 gesamt'},
+    {energy:'sensor.z2',name:'Haushalt (Z2)'}]};
+const c=document.createElement('energy-cockpit-room-card');c.setConfig(cfg);document.getElementById('host').appendChild(c);c.hass=hass;
+window.card=c;
+setTimeout(()=>{const n=new Date(),from=new Date(n.getFullYear(),n.getMonth(),1),to=new Date(n.getFullYear(),n.getMonth()+1,0);
+  const r=c._calc(from,to,false);const days=to.getDate();
+  document.getElementById('out').textContent='Monat ('+days+' Tage, '+(kas?'mit Differenz':'ohne Differenz')+'):\n'+c._c.devices.map((d,i)=>d.name+': '+(r.dev[i][0]+r.dev[i][1]+r.dev[i][2]).toFixed(1)+' kWh, '+r.devCost[i].toFixed(2)+' EUR').join('\n')+'\nSumme '+r.kwh.toFixed(1)+' kWh, '+r.cost.toFixed(2)+' EUR\nErwartung je Tag: Waermepumpe 6 kWh (24 ct) = 1,44 EUR, Haushalt 4 kWh (34 ct) = 1,36 EUR';},1500);
+</script></body></html>

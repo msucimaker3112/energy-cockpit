@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.14.0 - MIT License */
+/*! energy-cockpit v0.15.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1396,7 +1396,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const cost = price === null ? null : x.gImp / 1000 * price;
       let why = x.soc !== null && x.soc <= this._limits().reserve + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
       let big = null;
-      (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? watt(h, s.entity) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
+      (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? this._cw(s) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
       if (big) why = (why ? why + ' · ' : '') + `${esc(big.n)}: ${this._fW(big.w)}`;
       sub = (cost === null ? '' : T('ban.cost', { cost: nf(cost, 2), cur: cur() }) + (why ? ' · ' : '')) + why;
     }
@@ -1426,7 +1426,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!g || !dl || !h) return;
     let sum = 0, any = false;
     (g.items || []).forEach((x, j) => {
-      const p = x.entity ? watt(h, x.entity) : null;
+      const p = x.entity ? this._cw(x) : null;
       if (p !== null) { sum += p; any = true; }
       const it = dl.querySelector(`[data-j="${j}"]`);
       if (!it) return;
@@ -1441,6 +1441,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
     });
     const s = dl.querySelector('.d-sum');
     if (s) s.textContent = any ? this._fW(sum) : '';
+  }
+
+  // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
+  _cw(x) {
+    if (!x || !x.entity) return null;
+    const h = this._hass;
+    const p = watt(h, x.entity);
+    if (!x.minus || p === null) return p;
+    const m = watt(h, x.minus);
+    if (m === null) return null;
+    return Math.max(0, p - m + (x.plus ? (watt(h, x.plus) || 0) : 0));
   }
 
   // Leistung formatieren; watt_only: true zeigt immer Watt statt ab 1000 W kW
@@ -1618,7 +1629,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
         ? `${nf(parseFloat(secSt.state) || 0, dec)} ${secSt.attributes.unit_of_measurement || ''}`.trim() : '';
       if (x.entity) {
-        const p = watt(h, x.entity), on = (p || 0) > onW(x);
+        const p = this._cw(x), on = (p || 0) > onW(x);
         sumAll += p || 0;
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
@@ -1643,7 +1654,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           if (!it) return;
           const st = x.entity ? h.states[x.entity] : null;
           it.classList.toggle('off', !!x.entity && (!st || st.state === 'unavailable'));
-          const p = x.entity ? watt(h, x.entity) : null;
+          const p = x.entity ? this._cw(x) : null;
           let txt = '';
           if (p !== null) { sum += p; any = true; const sp = this._sw(p); txt = sp[0] + ' ' + sp[1]; }
           const sec = x.secondary && h.states[x.secondary];
@@ -1736,7 +1747,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const LABELS = {
-    title: 'Titel', name: 'Anzeigename', icon: 'Symbol',
+    title: 'Titel', name: 'Anzeigename', icon: 'Symbol', minus: 'Differenz: abziehen (Sensor, W), z. B. Zähler 2 einer Zählerkaskade', plus: 'Differenz: dazurechnen (Sensor, W, optional)',
     entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
@@ -1754,8 +1765,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
-  const consumerFields = () => [ent('entity', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
-  const itemFields = () => [ent('entity', ['sensor']), txt('name'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
+  const consumerFields = () => [ent('entity', ['sensor']), ent('minus', ['sensor']), ent('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
+  const itemFields = () => [ent('entity', ['sensor']), ent('minus', ['sensor']), ent('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
   const groupFields = () => [
     txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), numb('on_w', 0, 100000, 1),
     sec('items', 'Verbraucher der Gruppe', slots(10, (n) => `Verbraucher ${n}`, itemFields)),
@@ -2941,7 +2952,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _watt(d) {
       const h = this._hass;
       if (!d || !d.power || !h || !h.states[d.power]) return null;
-      return WD.watt(h, d.power);
+      const w = WD.watt(h, d.power);
+      // power_minus (Differenz, z. B. Zählerkaskade): power - power_minus (+ power_plus), nie negativ
+      if (!d.power_minus || w === null) return w;
+      const m = WD.watt(h, d.power_minus);
+      return m === null ? null : Math.max(0, w - m + (d.power_plus ? (WD.watt(h, d.power_plus) || 0) : 0));
     }
     _wcls(w) {
       const warn = this._rate(this._c.watt_warn, 300), high = this._rate(this._c.watt_high, 800);
@@ -2996,11 +3011,18 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const nd = ids.length;
         const iids = c.items.map((x) => x.energy);
         const ni = iids.length;
+        // Differenz-Messstellen (z. B. Zählerkaskade): energy_minus / energy_plus werden zusätzlich geladen
+        const allD = c.devices.concat(c.items);
+        const extraIds = [];
+        allD.forEach((d) => [d.energy_minus, d.energy_plus].forEach((e) => { if (e && extraIds.indexOf(e) < 0 && ids.indexOf(e) < 0 && iids.indexOf(e) < 0) extraIds.push(e); }));
+        const hasDiff = allD.some((d) => d.energy_minus);
+        // Wert eines Geräts in einer Zeile: ohne energy_minus unverändert row[energy]; sonst energy - minus + plus, nie negativ
+        const rowVal = (d, row) => (d.energy_minus ? Math.max(0, (row[d.energy] || 0) - (row[d.energy_minus] || 0) + (d.energy_plus ? (row[d.energy_plus] || 0) : 0)) : (row[d.energy] || 0));
         const y = new Date().getFullYear();
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
-        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'], ...WD.statUnits(c) });
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids, extraIds), types: ['change'], ...WD.statUnits(c) });
         let firstTs = null;
         ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
@@ -3010,16 +3032,26 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         if (firstTs === null) {
           this._first = null;
         } else if (!this._hasMix) {
-          ids.concat(iids).forEach((id, di) => (dr[id] || []).forEach((x) => {
-            const k = key(new Date(ts(x)));
-            (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
-          }));
+          if (!hasDiff) {
+            ids.concat(iids).forEach((id, di) => (dr[id] || []).forEach((x) => {
+              const k = key(new Date(ts(x)));
+              (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
+            }));
+          } else {
+            // mit Differenz-Messstellen: erst alle Zähler je Tag sammeln, dann je Gerät rechnen
+            const per = {};
+            ids.concat(iids, extraIds).forEach((id) => (dr[id] || []).forEach((x) => { (per[ts(x)] = per[ts(x)] || {})[id] = x.change > 0 ? x.change : 0; }));
+            Object.keys(per).forEach((tt) => {
+              const k = key(new Date(+tt));
+              allD.forEach((d, di) => { if (per[tt][d.energy] === undefined) return; (days[k] = days[k] || allD.map(() => [0, 0, 0, 0]))[di][0] += rowVal(d, per[tt]); });
+            });
+          }
           this._first = key(new Date(firstTs));
         } else {
           // 2) Stundenwerte: Geräte und Haus-Mix (PV, Bezug, Einspeisung, Batterie laden/entladen)
           const from = new Date(firstTs);
           from.setHours(0, 0, 0, 0);
-          const all = ids.concat(iids, srcIds);
+          const all = ids.concat(iids, srcIds, extraIds);
           const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'], ...WD.statUnits(c) });
           const at = {};
           all.forEach((id, i) => (hr[id] || []).forEach((x) => {
@@ -3031,8 +3063,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const mixFrom = Date.now() - 30 * 864e5;
           Object.keys(at).forEach((t) => {
             const row = at[t];
-            const dev = ids.map((id) => row[id] || 0);
-            const idev = iids.map((id) => row[id] || 0);
+            const dev = c.devices.map((d) => rowVal(d, row));
+            const idev = c.items.map((d) => rowVal(d, row));
             const pv = row[he.pv] || 0, imp = row[he.import] || 0, exp = row[he.export] || 0, chg = row[he.charge] || 0, dis = row[he.discharge] || 0;
             const home = pv + imp - exp - chg + dis;
             let g = 1, b = 0;
@@ -3122,10 +3154,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const P = this._prices(), mode = this._c.valuation || 'opportunity';
       const rawAll = this._sum(from, to), nDev = this._c.devices.length;
       const raw = rawAll.slice(0, nDev), rawI = rawAll.slice(nDev);
-      const price = (d) => {
-        if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * P.grid;
-        if (mode === 'mix') return d[0] * P.grid + d[1] * P.batt + (d[2] + d[3]) * P.pv;
-        return (d[0] + d[1] + d[2]) * P.grid + d[3] * P.feed;
+      // Eigener Netzpreis je Gerät oder Unterposten (price_ct in Cent oder price als Sensor/Helfer, z. B. Wärmepumpentarif); ohne Angabe der allgemeine Bezugspreis
+      const gp = (o) => (o && typeof o.price_ct === 'number' ? o.price_ct / 100 : (o && o.price ? this._rate(o.price, P.grid) : P.grid));
+      const price = (d, pg) => {
+        if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * pg;
+        if (mode === 'mix') return d[0] * pg + d[1] * P.batt + (d[2] + d[3]) * P.pv;
+        return (d[0] + d[1] + d[2]) * pg + d[3] * P.feed;
       };
       const dev = raw.map((d) => [d[0], d[1], d[2] + d[3]]);
       const src = [0, 0, 0];
@@ -3133,11 +3167,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const surplus = raw.reduce((a, d) => a + d[3], 0);
       const kwh = src[0] + src[1] + src[2];
       const fee = withFee ? this._fee(from, to) : 0;
-      const devCost = raw.map(price);
+      const devCost = raw.map((d, i) => price(d, gp(this._c.devices[i])));
       const cost = devCost.reduce((a, v) => a + v, 0) + fee;
       const costFull = kwh * P.grid + fee;
       const items = rawI.map((d) => [d[0], d[1], d[2] + d[3]]);
-      const itemCost = rawI.map(price);
+      const itemCost = rawI.map((d, j) => price(d, gp(this._c.items[j])));
       return { dev, src, kwh, fee, cost, costFull, devCost, surplus, items, itemCost };
     }
     _period(tab) {
@@ -3429,6 +3463,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     base_fee: 'Grundgebühr je Monat (€)', valuation: 'Bewertung (entgangener Nutzen, feste Preise oder alles zum Bezugspreis)',
     pv: 'PV Gesamtertrag (Zähler, kWh)', import: 'Netzbezug gesamt (Zähler, kWh)', export: 'Einspeisung gesamt (Zähler, kWh)',
     charge: 'Batterie geladen gesamt (kWh)', discharge: 'Batterie entladen gesamt (kWh)',
+    energy_minus: 'Differenz: abziehen (Zähler, kWh), z. B. Zähler 2 einer Zählerkaskade', energy_plus: 'Differenz: dazurechnen (Zähler, kWh, optional)', power_minus: 'Differenz live: abziehen (Sensor, W)', power_plus: 'Differenz live: dazurechnen (Sensor, W, optional)',
     power: 'Leistungssensor (W, für die Live-Anzeige)', advance: 'Abschlag je Monat (Zahl in € oder input_number)', archive: 'Monatsarchiv (Sensor, optional)',
     standby_w: 'Standby-Schwelle nachts (W, Zahl oder input_number)', active_w: 'Ab wie viel Watt gilt ein Bereich als aktiv (W)',
     theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 245,158,11 oder #f59e0b)',
@@ -3438,7 +3473,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
   WD.roomForm = () => ({
     schema: [
       txt('title'), txt('subtitle'), txt('image'),
-      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), ent('power', ['sensor']), txt('name'), txt('color')]))),
+      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), ent('power', ['sensor']), txt('name'), txt('color'), ent('energy_minus', ['sensor']), ent('energy_plus', ['sensor']), ent('power_minus', ['sensor']), ent('power_plus', ['sensor']), ent('price', ['sensor', 'input_number']), numb('price_ct', 0, 200, 0.1)]))),
       sec('home_energy', 'Haus-Energiequellen (für Netz / Batterie / PV)', [ent('pv', ['sensor']), ent('import', ['sensor']), ent('export', ['sensor']), ent('charge', ['sensor']), ent('discharge', ['sensor'])]),
       { name: 'valuation', selector: { select: { mode: 'dropdown', options: VAL } } },
       ent('price', ['sensor', 'input_number']),

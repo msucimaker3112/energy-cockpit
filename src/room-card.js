@@ -149,7 +149,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _watt(d) {
       const h = this._hass;
       if (!d || !d.power || !h || !h.states[d.power]) return null;
-      return WD.watt(h, d.power);
+      const w = WD.watt(h, d.power);
+      // power_minus (Differenz, z. B. Zählerkaskade): power - power_minus (+ power_plus), nie negativ
+      if (!d.power_minus || w === null) return w;
+      const m = WD.watt(h, d.power_minus);
+      return m === null ? null : Math.max(0, w - m + (d.power_plus ? (WD.watt(h, d.power_plus) || 0) : 0));
     }
     _wcls(w) {
       const warn = this._rate(this._c.watt_warn, 300), high = this._rate(this._c.watt_high, 800);
@@ -204,11 +208,18 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const nd = ids.length;
         const iids = c.items.map((x) => x.energy);
         const ni = iids.length;
+        // Differenz-Messstellen (z. B. Zählerkaskade): energy_minus / energy_plus werden zusätzlich geladen
+        const allD = c.devices.concat(c.items);
+        const extraIds = [];
+        allD.forEach((d) => [d.energy_minus, d.energy_plus].forEach((e) => { if (e && extraIds.indexOf(e) < 0 && ids.indexOf(e) < 0 && iids.indexOf(e) < 0) extraIds.push(e); }));
+        const hasDiff = allD.some((d) => d.energy_minus);
+        // Wert eines Geräts in einer Zeile: ohne energy_minus unverändert row[energy]; sonst energy - minus + plus, nie negativ
+        const rowVal = (d, row) => (d.energy_minus ? Math.max(0, (row[d.energy] || 0) - (row[d.energy_minus] || 0) + (d.energy_plus ? (row[d.energy_plus] || 0) : 0)) : (row[d.energy] || 0));
         const y = new Date().getFullYear();
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         // 1) Tageswerte der Geräte: erster Messtag, Gesamtverbrauch
-        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids), types: ['change'], ...WD.statUnits(c) });
+        const dr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), period: 'day', statistic_ids: ids.concat(iids, extraIds), types: ['change'], ...WD.statUnits(c) });
         let firstTs = null;
         ids.forEach((id) => (dr[id] || []).forEach((x) => { const t = ts(x); if (x.change !== null && x.change !== undefined && (firstTs === null || t < firstTs)) firstTs = t; }));
         const days = {};
@@ -218,16 +229,26 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         if (firstTs === null) {
           this._first = null;
         } else if (!this._hasMix) {
-          ids.concat(iids).forEach((id, di) => (dr[id] || []).forEach((x) => {
-            const k = key(new Date(ts(x)));
-            (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
-          }));
+          if (!hasDiff) {
+            ids.concat(iids).forEach((id, di) => (dr[id] || []).forEach((x) => {
+              const k = key(new Date(ts(x)));
+              (days[k] = days[k] || ids.concat(iids).map(() => [0, 0, 0, 0]))[di][0] += x.change > 0 ? x.change : 0;
+            }));
+          } else {
+            // mit Differenz-Messstellen: erst alle Zähler je Tag sammeln, dann je Gerät rechnen
+            const per = {};
+            ids.concat(iids, extraIds).forEach((id) => (dr[id] || []).forEach((x) => { (per[ts(x)] = per[ts(x)] || {})[id] = x.change > 0 ? x.change : 0; }));
+            Object.keys(per).forEach((tt) => {
+              const k = key(new Date(+tt));
+              allD.forEach((d, di) => { if (per[tt][d.energy] === undefined) return; (days[k] = days[k] || allD.map(() => [0, 0, 0, 0]))[di][0] += rowVal(d, per[tt]); });
+            });
+          }
           this._first = key(new Date(firstTs));
         } else {
           // 2) Stundenwerte: Geräte und Haus-Mix (PV, Bezug, Einspeisung, Batterie laden/entladen)
           const from = new Date(firstTs);
           from.setHours(0, 0, 0, 0);
-          const all = ids.concat(iids, srcIds);
+          const all = ids.concat(iids, srcIds, extraIds);
           const hr = await h.callWS({ type: 'recorder/statistics_during_period', start_time: from.toISOString(), period: 'hour', statistic_ids: all, types: ['change'], ...WD.statUnits(c) });
           const at = {};
           all.forEach((id, i) => (hr[id] || []).forEach((x) => {
@@ -239,8 +260,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const mixFrom = Date.now() - 30 * 864e5;
           Object.keys(at).forEach((t) => {
             const row = at[t];
-            const dev = ids.map((id) => row[id] || 0);
-            const idev = iids.map((id) => row[id] || 0);
+            const dev = c.devices.map((d) => rowVal(d, row));
+            const idev = c.items.map((d) => rowVal(d, row));
             const pv = row[he.pv] || 0, imp = row[he.import] || 0, exp = row[he.export] || 0, chg = row[he.charge] || 0, dis = row[he.discharge] || 0;
             const home = pv + imp - exp - chg + dis;
             let g = 1, b = 0;
@@ -330,10 +351,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const P = this._prices(), mode = this._c.valuation || 'opportunity';
       const rawAll = this._sum(from, to), nDev = this._c.devices.length;
       const raw = rawAll.slice(0, nDev), rawI = rawAll.slice(nDev);
-      const price = (d) => {
-        if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * P.grid;
-        if (mode === 'mix') return d[0] * P.grid + d[1] * P.batt + (d[2] + d[3]) * P.pv;
-        return (d[0] + d[1] + d[2]) * P.grid + d[3] * P.feed;
+      // Eigener Netzpreis je Gerät oder Unterposten (price_ct in Cent oder price als Sensor/Helfer, z. B. Wärmepumpentarif); ohne Angabe der allgemeine Bezugspreis
+      const gp = (o) => (o && typeof o.price_ct === 'number' ? o.price_ct / 100 : (o && o.price ? this._rate(o.price, P.grid) : P.grid));
+      const price = (d, pg) => {
+        if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * pg;
+        if (mode === 'mix') return d[0] * pg + d[1] * P.batt + (d[2] + d[3]) * P.pv;
+        return (d[0] + d[1] + d[2]) * pg + d[3] * P.feed;
       };
       const dev = raw.map((d) => [d[0], d[1], d[2] + d[3]]);
       const src = [0, 0, 0];
@@ -341,11 +364,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const surplus = raw.reduce((a, d) => a + d[3], 0);
       const kwh = src[0] + src[1] + src[2];
       const fee = withFee ? this._fee(from, to) : 0;
-      const devCost = raw.map(price);
+      const devCost = raw.map((d, i) => price(d, gp(this._c.devices[i])));
       const cost = devCost.reduce((a, v) => a + v, 0) + fee;
       const costFull = kwh * P.grid + fee;
       const items = rawI.map((d) => [d[0], d[1], d[2] + d[3]]);
-      const itemCost = rawI.map(price);
+      const itemCost = rawI.map((d, j) => price(d, gp(this._c.items[j])));
       return { dev, src, kwh, fee, cost, costFull, devCost, surplus, items, itemCost };
     }
     _period(tab) {

@@ -820,7 +820,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const cost = price === null ? null : x.gImp / 1000 * price;
       let why = x.soc !== null && x.soc <= this._limits().reserve + 2 ? T('ban.batempty') : (x.bat !== null && -x.bat > 3000 ? T('ban.batlimit') : '');
       let big = null;
-      (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? watt(h, s.entity) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
+      (c.consumers || []).concat(...(c.consumer_groups || []).map((g) => g.items || [])).forEach((s) => { const w = s.entity ? this._cw(s) : null; if (w && w > 500 && (!big || w > big.w)) big = { n: s.name, w }; });
       if (big) why = (why ? why + ' · ' : '') + `${esc(big.n)}: ${this._fW(big.w)}`;
       sub = (cost === null ? '' : T('ban.cost', { cost: nf(cost, 2), cur: cur() }) + (why ? ' · ' : '')) + why;
     }
@@ -850,7 +850,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!g || !dl || !h) return;
     let sum = 0, any = false;
     (g.items || []).forEach((x, j) => {
-      const p = x.entity ? watt(h, x.entity) : null;
+      const p = x.entity ? this._cw(x) : null;
       if (p !== null) { sum += p; any = true; }
       const it = dl.querySelector(`[data-j="${j}"]`);
       if (!it) return;
@@ -865,6 +865,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
     });
     const s = dl.querySelector('.d-sum');
     if (s) s.textContent = any ? this._fW(sum) : '';
+  }
+
+  // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
+  _cw(x) {
+    if (!x || !x.entity) return null;
+    const h = this._hass;
+    const p = watt(h, x.entity);
+    if (!x.minus || p === null) return p;
+    const m = watt(h, x.minus);
+    if (m === null) return null;
+    return Math.max(0, p - m + (x.plus ? (watt(h, x.plus) || 0) : 0));
   }
 
   // Leistung formatieren; watt_only: true zeigt immer Watt statt ab 1000 W kW
@@ -1042,7 +1053,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
         ? `${nf(parseFloat(secSt.state) || 0, dec)} ${secSt.attributes.unit_of_measurement || ''}`.trim() : '';
       if (x.entity) {
-        const p = watt(h, x.entity), on = (p || 0) > onW(x);
+        const p = this._cw(x), on = (p || 0) > onW(x);
         sumAll += p || 0;
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
@@ -1067,7 +1078,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           if (!it) return;
           const st = x.entity ? h.states[x.entity] : null;
           it.classList.toggle('off', !!x.entity && (!st || st.state === 'unavailable'));
-          const p = x.entity ? watt(h, x.entity) : null;
+          const p = x.entity ? this._cw(x) : null;
           let txt = '';
           if (p !== null) { sum += p; any = true; const sp = this._sw(p); txt = sp[0] + ' ' + sp[1]; }
           const sec = x.secondary && h.states[x.secondary];

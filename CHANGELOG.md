@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.15.0
+- **Zählerkaskade (optional):** Differenz-Verbraucher ohne eigene Helfer. Energiefluss: `consumers[].minus` (und `plus`) rechnen `entity − minus (+ plus)`, auch für Einträge in Gruppen. Raum-Abrechnung: `devices[].energy_minus` / `energy_plus` für Energie (je Stunde aus den Statistik-Änderungen), `power_minus` / `power_plus` für die Live-Leistung. Dazu ein **eigener Bezugspreis je Bereich** (`devices[].price_ct` oder `price`, auch für `items`), zum Beispiel für einen Wärmepumpentarif. Alles ist ohne diese Felder ohne Wirkung: bestehende Karten rechnen unverändert. Beschreibung in [Zähler in Reihe](docs/ZWEI-ZAEHLER.md#direkt-in-der-karte-option). Anregung aus der Facebook-Gruppe (Zähler-Kaskaden, Messkonzept 8) und Issue #9.
+
 ## 0.14.0
 - **Speicher vor dem Wechselrichter (`pv_to_battery: direkt`):** Für Balkonkraftwerke mit Speicher (zum Beispiel Marstek B2500), bei denen der Solarstrom immer durch den Speicher läuft. Die Karte zeichnet Solar → Speicher → Haus (Solar über dem Speicher, das Netz rechts), zeigt am Speicher Eingang und Ausgang und `Durchleitung`, wenn er weder lädt noch entlädt. Neu: `battery.power_out` (Ausgangsleistung ins Haus). Laden und Entladen ergeben sich aus Solar-Eingang minus Ausgang, die Herkunft des Hausstroms zählt als Solar, soweit der Ausgang vom Solar-Eingang gedeckt ist. Einstellbar im Assistenten (Schritt "Batterie") und im Formular. Ohne die Option ändert sich nichts. Anregung von Michael Laske und aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
 

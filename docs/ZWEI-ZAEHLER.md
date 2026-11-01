@@ -86,6 +86,45 @@ Die Kachel "Nicht erfasst" zeigt dann den Teil, der nicht zwischen Z1 und Z2 lie
 
 Im **Energie-Dashboard** von Home Assistant trägst du den Helfer aus Schritt 2 als Gerät ein (zum Beispiel "Wärmepumpe, Wallbox, Klima").
 
+## Direkt in der Karte (Option)
+
+Seit Version 0.15.0 kannst du die Differenz auch ohne eigene Helfer in der Karte eintragen. Das ist **optional**: Ohne `minus`, `energy_minus` und `price_ct` verhalten sich die Karten wie bisher.
+
+**Energiefluss (Live in Watt):**
+
+```yaml
+consumers:
+  - name: Wärmepumpe
+    entity: sensor.z1_wirkleistung     # Z1 (Zweirichtungszähler am Hausanschluss), mit Vorzeichen
+    minus: sensor.z2_wirkleistung      # Z2 (Haushalt), ebenfalls mit Vorzeichen
+    # plus: sensor.pv_leistung          # nur wenn Z2 keinen Rückfluss anzeigt: Z2 = Haushalt - PV
+```
+
+Die Karte zeigt `Z1 − Z2 (+ plus)`, nie negativ. **Wichtig:** Das stimmt nur, wenn beide Werte ein Vorzeichen haben. Zeigt dein Z2 bei PV-Überschuss nur "0", fehlt der Rückfluss, dann gibst du bei `minus` den Hausverbrauch an und bei `plus` die PV-Leistung, oder du bildest Z2 als Helfer (Haushaltsverbrauch minus PV).
+
+**Raum-Abrechnung (Energie, Kosten, eigener Tarif):**
+
+```yaml
+type: custom:energy-cockpit-room-card
+price_ct: 34                       # allgemeiner Bezugspreis
+devices:
+  - name: Wärmepumpe (Netzbezug)
+    energy: sensor.z1_bezug_kwh        # Z1 Bezug
+    energy_minus: sensor.z2_bezug_kwh  # Z2
+    price_ct: 24                       # Wärmepumpentarif
+  - name: Haushalt
+    energy: sensor.z2_bezug_kwh
+```
+
+Gerechnet wird je Stunde aus den Statistik-Änderungen beider Zähler, nie negativ. So gibt es kein Problem, wenn zwei Zähler nicht genau gleichzeitig weiterzählen. Der Wärmepumpen-Netzbezug entspricht der Definition der Netzbetreiber: **Bezug Z1 minus Bezug Z2**.
+
+Hinweise:
+- Die Zähler brauchen Langzeitstatistik (`state_class: total_increasing`).
+- Die Bezeichnungen der Messkonzepte (zum Beispiel "Messkonzept 8") legt jeder Netzbetreiber selbst fest. Die Karte rechnet die Differenz, unabhängig vom Namen.
+- Nicht an einer echten Anlage geprüft. Bitte vergleiche die Werte nach einem Monat mit der Abrechnung deines Netzbetreibers.
+
+![Differenz-Verbraucher im Energiefluss](img/kaskade-differenz.png)
+
 ## Prüfen
 
 - Läuft die Wärmepumpe, soll der Sensor aus Schritt 1 ungefähr ihrer Leistung entsprechen. Steht alles still, ist er nahe 0 W.
