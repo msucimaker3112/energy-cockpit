@@ -225,6 +225,8 @@ Die meisten Einstellungen erledigt der grafische Editor. Drei optionale Zusatzfu
 
 Ein ⭐ oben rechts hilft anderen, es zu finden. Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues), viele Funktionen (zweite PV-Anlage, Textgröße, Batteriegrenzen, Kurzansicht fürs Handy) sind genau so entstanden.
 
+**Unterstützen:** Energy-Cockpit ist kostenlos und bleibt es. Es steckt aber viel Zeit in Entwicklung, Tests, Doku und Antworten auf eure Fragen. Wenn dir die Karten gefallen und du mir ein Dankeschön geben möchtest, freue ich mich sehr: [Mit PayPal spenden](https://www.paypal.com/donate/?hosted_button_id=DTCAKWGEZ23SN). Jeder Beitrag hilft, das Projekt zu pflegen und weiterzuentwickeln. Danke!
+
 **Du kannst programmieren und willst mithelfen?** Übersetzung, neue Ideen, Fehlerbehebung: Forks und Pull Requests sind willkommen. Wie du ohne Home Assistant loslegst, steht in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Lizenz
