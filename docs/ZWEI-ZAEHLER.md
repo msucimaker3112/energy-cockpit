@@ -1,6 +1,6 @@
 # Zwei Zähler in Reihe (zum Beispiel Z1 und Z2)
 
-**Wofür:** Zwei Zähler hängen hintereinander. Z1 sitzt am Netzanschluss, danach hängen Wärmepumpe, Wallbox oder Klimaanlage, dann folgt Z2 für den Haushalt. Was zwischen Z1 und Z2 verbraucht wird, misst kein Zähler direkt, es ergibt sich aus der **Differenz**. Die Karten rechnen nicht selbst mit zwei Zählern. Du bildest die Differenz in Home Assistant und trägst sie als normalen Verbraucher in die Karte ein. Das geht ohne zusätzliche Software.
+**Wofür:** Zwei Zähler hängen hintereinander. Z1 sitzt am Netzanschluss, danach hängen Wärmepumpe, Wallbox oder Klimaanlage, dann folgt Z2 für den Haushalt. Was zwischen Z1 und Z2 verbraucht wird, misst kein Zähler direkt, es ergibt sich aus der **Differenz**. Dafür gibt es zwei Wege: Seit Version 0.15.0 rechnet die Karte die Differenz selbst ([Direkt in der Karte](#direkt-in-der-karte-option)). Oder du bildest sie in Home Assistant und trägst sie als normalen Verbraucher ein (die Schritte 1 bis 5). Beides geht ohne zusätzliche Software.
 
 Diese Anleitung beschreibt ein Beispiel. Sie ist **nicht an einer echten Doppelzähler-Anlage geprüft**. Prüfe die Werte mit deinen Sensoren (Abschnitt "Prüfen"), bevor du dich darauf verlässt.
 
@@ -134,7 +134,7 @@ Hinweise:
 
 - **Nur eine Differenz.** Du siehst nicht, wie sich Wärmepumpe, Wallbox und Klima untereinander aufteilen, es sei denn, jedes Gerät hat einen eigenen Zähler.
 - **Verzögerung:** Aktualisieren sich die beiden Zähler nicht im selben Moment, entstehen kurze Spitzen. Das Integral glättet das. Für die Live-Anzeige hilft ein Filter-Helfer (Tiefpass).
-- **Kein eigener Preis pro Zähler** (zum Beispiel ein Wärmepumpentarif). Die Karten rechnen mit einem Strompreis.
+- **Eigener Preis** (zum Beispiel ein Wärmepumpentarif) nur in der Raum-Abrechnung (`price_ct` je Bereich). Energiefluss und Statistik rechnen mit einem Strompreis.
 - **Keine Historie.** Der Integrations-Helfer beginnt bei null, wenn du ihn anlegst.
 - **Aufteilung der Herkunft** (PV, Batterie, Netz) je Verbraucher berechnet die Karte aus der Gesamtmischung. Bei Anlagen, in denen die Batterie nur den Haushalt versorgt, stimmt diese Annahme nicht für Wärmepumpe und Wallbox.
 
