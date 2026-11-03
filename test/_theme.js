@@ -142,3 +142,5 @@
     C.prototype.setConfig = function (c) { return o.call(this, Object.assign({}, c, { theme: t })); };
   });
 })();
+// Tests prüfen Werte direkt nach dem Setzen: ohne die Begrenzung auf einen Durchlauf je Sekunde
+if (typeof WD !== 'undefined') WD.flowUpdateMs = 0;
