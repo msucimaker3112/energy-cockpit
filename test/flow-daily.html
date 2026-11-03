@@ -1,0 +1,22 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Energy-Cockpit Energiefluss: Tageswerte aus Gesamtzaehlern</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}pre{font-size:13px;color:#9fb3c8;padding:8px}</style></head>
+<body><div id="host"></div><pre id="out"></pre>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+// Gesamtzaehler in Wh (wie die Viessmann-Sensoren aus dem Issue #15): Netzbezug 1.288.800 Wh, Einspeisung 1.526.800 Wh
+// Heute (Statistik): Bezug 0,4 kWh, Einspeisung 2,5 kWh, PV 6,0 kWh
+const S=(state,u)=>({state:String(state),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const states={'sensor.pv':S(1800),'sensor.grid':S(-300),'sensor.bat':S(0),'sensor.soc':S(80,'%'),
+  'sensor.imp_total':S(1288800,'Wh'),'sensor.exp_total':S(1526800,'Wh'),'sensor.pv_total':S(9876543,'Wh')};
+const today={'sensor.imp_total':[0.1,0.2,0.1],'sensor.exp_total':[1.0,1.0,0.5],'sensor.pv_total':[2.0,2.5,1.5]};
+const q=new URLSearchParams(location.search);
+const hass={states,language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+  callWS:async(m)=>{if(q.get('fehler'))throw new Error('keine Statistik');const r={};(m.statistic_ids||[]).forEach(id=>{if(today[id])r[id]=today[id].map((c,i)=>({start:Date.now()-i*3e5,change:c}));});window.lastWS=m;return r;}};
+const cfg={pv:{entity:'sensor.pv',daily:'sensor.pv_total'},grid:{entity:'sensor.grid',daily_import:'sensor.imp_total',daily_export:'sensor.exp_total'},
+  battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},grid_price_ct:29,feed_in_ct:7.6};
+if(q.get('an'))cfg.daily_from_total=true;
+const c=document.createElement('energy-cockpit-flow-card');c.setConfig(cfg);document.getElementById('host').appendChild(c);c.hass=hass;
+setTimeout(()=>{const t=(k)=>c.shadowRoot.querySelector('[data-s="'+k+'"] b');
+  document.getElementById('out').textContent='daily_from_total='+(!!q.get('an'))+(q.get('fehler')?' (Statistik faellt aus)':'')+'\nBezug heute: '+(t('imp')&&t('imp').textContent)+'\nEinspeisung heute: '+(t('exp')&&t('exp').textContent)+'\nPV heute: '+(t('pv')&&t('pv').textContent)+'\nAbfrage: '+(window.lastWS?window.lastWS.period+' '+JSON.stringify(window.lastWS.units):'keine');},1500);
+</script></body></html>

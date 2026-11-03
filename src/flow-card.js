@@ -304,6 +304,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       return;
     }
     this._c = JSON.parse(JSON.stringify(config));
+    this._dTot = null; this._dLoaded = 0; this._dErr = false;
     // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
     const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
     const used = (x) => x && (x.entity || x.secondary);
@@ -332,7 +333,37 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (this._c && this._bl !== WD.state.lang) this._build();
     this._hass = h;
     this._update();
+    this._loadDaily();
     if (this._c && this._c.waste && !this._wLoading && Date.now() - (this._wLoaded || 0) > 30 * 60 * 1000) this._loadWaste();
+  }
+  // daily_from_total (optional): Tageswerte aus Gesamtzählern wie im Energie-Dashboard, Änderung seit Mitternacht aus der Langzeitstatistik
+  _dailyIds() {
+    const c = this._c, ids = [];
+    const add = (id) => { if (id && ids.indexOf(id) < 0) ids.push(id); };
+    if (c.pv) add(c.pv.daily);
+    if (c.pv2) add(c.pv2.daily);
+    if (c.grid) { add(c.grid.daily_import); add(c.grid.daily_export); }
+    c.batteries.forEach((b) => { add(b.daily_charge); add(b.daily_discharge); });
+    if (c.home) add(c.home.daily);
+    return ids;
+  }
+  async _loadDaily() {
+    const c = this._c, h = this._hass;
+    if (!c || !c.daily_from_total || !h || !h.callWS || this._dLoading) return;
+    const now = new Date(), day = now.toDateString();
+    if (this._dDay === day && Date.now() - (this._dLoaded || 0) < 120000) return;
+    const ids = this._dailyIds();
+    if (!ids.length) return;
+    this._dLoading = true;
+    try {
+      const s = new Date(now); s.setHours(0, 0, 0, 0);
+      const r = await h.callWS({ type: 'recorder/statistics_during_period', start_time: s.toISOString(), period: '5minute', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) });
+      const t = {};
+      ids.forEach((id) => { const rows = (r && r[id]) || []; t[id] = rows.length ? rows.reduce((a, x) => a + (x.change > 0 ? x.change : 0), 0) : null; });
+      this._dTot = t; this._dErr = false;
+    } catch (e) { this._dErr = true; }
+    this._dDay = day; this._dLoaded = Date.now(); this._dLoading = false;
+    this._update();
   }
   // Müllabfuhr aus dem Abfallkalender: Hinweis-Chip am Vortag / Abholtag
   async _loadWaste() {
@@ -870,12 +901,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
   // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
   _cw(x) {
     if (!x || !x.entity) return null;
-    const h = this._hass;
-    const p = watt(h, x.entity);
-    if (!x.minus || p === null) return p;
-    const m = watt(h, x.minus);
-    if (m === null) return null;
-    return Math.max(0, p - m + (x.plus ? (watt(h, x.plus) || 0) : 0));
+    const h = this._hass, L = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    const p = watt(h, x.entity), mi = L(x.minus);
+    if (!mi.length || p === null) return p;
+    // mehrere Unterzähler möglich: Hauptzähler minus Summe der Unterzähler (plus Summe der Zusatzwerte)
+    let s = 0;
+    for (let i = 0; i < mi.length; i++) { const m = watt(h, mi[i]); if (m === null) return null; s += m; }
+    return Math.max(0, p - s + L(x.plus).reduce((a, id) => a + (watt(h, id) || 0), 0));
   }
 
   // Leistung formatieren; watt_only: true zeigt immer Watt statt ab 1000 W kW
@@ -1129,7 +1161,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('bundle', on, false, PAL.home, sumAll);
       }
     }
-    const raw = rawUnits(c), en = (id) => kwh(h, id, raw);
+    // daily_from_total: Tageswert aus der Statistik des Gesamtzählers (this._dTot); fällt die Abfrage aus, gilt der Sensorwert wie bisher
+    const raw = rawUnits(c), en = (id) => (c.daily_from_total && !this._dErr && id ? (this._dTot && id in this._dTot ? this._dTot[id] : null) : kwh(h, id, raw));
     let dPv = c.pv ? en(c.pv.daily) : null;
     if (c.pv2 && c.pv2.daily) { const d2 = en(c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
     const dImp = c.grid ? en(c.grid.daily_import) : null;

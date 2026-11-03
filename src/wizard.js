@@ -206,7 +206,27 @@
         nm.addEventListener('change', () => { it.name = nm.value; write(items); });
         const rm = el('button', css.btn, 'Entfernen'); rm.type = 'button';
         rm.addEventListener('click', () => { items.splice(i, 1); write(items); render(); });
-        row.appendChild(sel); row.appendChild(nm); row.appendChild(rm);
+        row.appendChild(sel); row.appendChild(nm);
+        // Optional: Differenz (Hauptzähler minus Unterzähler, z. B. Zählerkaskade) und eigener Preis
+        if (f.minusKey) {
+          row.appendChild(el('div', css.help + ';margin-top:8px', f.minusLabel || 'Davon abziehen (Differenz, optional):'));
+          const ms = el('select', css.input);
+          const m0 = document.createElement('option'); m0.value = ''; m0.textContent = '— nichts abziehen —'; ms.appendChild(m0);
+          const cur = Array.isArray(it[f.minusKey]) ? it[f.minusKey][0] : it[f.minusKey];
+          all.forEach((e) => { if (e.id !== it[KEY]) { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; ms.appendChild(o); } });
+          ms.value = cur || '';
+          ms.addEventListener('change', () => { if (ms.value) it[f.minusKey] = ms.value; else delete it[f.minusKey]; write(items); });
+          row.appendChild(ms);
+        }
+        if (f.priceKey) {
+          const pr = el('input', css.input + ';margin-top:6px');
+          pr.type = 'number'; pr.step = '0.1';
+          pr.placeholder = f.priceLabel || 'Eigener Preis in Cent pro kWh (optional)';
+          pr.value = typeof it[f.priceKey] === 'number' ? it[f.priceKey] : '';
+          pr.addEventListener('change', () => { const v = parseFloat(pr.value); if (isNaN(v)) delete it[f.priceKey]; else it[f.priceKey] = v; write(items); });
+          row.appendChild(pr);
+        }
+        row.appendChild(rm);
         wrap.appendChild(row);
       });
       if (items.length < (f.max || 8)) {

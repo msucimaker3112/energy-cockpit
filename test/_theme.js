@@ -99,6 +99,7 @@
       const o = C.prototype.setConfig;
       C.prototype.setConfig = function (c) {
         const wp = { entity: 'sensor.z1', minus: 'sensor.z2', name: 'Wärmepumpe (Z1 − Z2)', icon: 'mdi:heat-pump' };
+        if (q.get('kaskade') === '3') { wp.minus = ['sensor.z2', 'sensor.z3']; wp.name = 'Wärmepumpe (Z1 − Z2 − Z3)'; }
         if (q.get('kaskade') === '2') { wp.plus = 'sensor.pvlive'; wp.name = 'Wärmepumpe (Z1 − Z2 + PV)'; }
         return o.call(this, Object.assign({}, c, { consumers: [wp] }));
       };

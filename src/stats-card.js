@@ -376,7 +376,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           if (n >= 6) {
             const perYear = (Math.max(0, pv12 - ex12) * price + ex12 * feed) * 12 / n;
             const yrs = (inv - earned) / perYear;
-            eta = T('st.eta', { y: fEur(perYear), yr: now.getFullYear() + Math.ceil(yrs), cur: CUR });
+            // unrealistisch weit weg (oder kein Ertrag): keine Jahreszahl nennen
+            eta = !isFinite(yrs) || yrs > 60 ? T('st.eta.far') : T('st.eta', { y: fEur(perYear), yr: now.getFullYear() + Math.ceil(yrs), cur: CUR });
           }
         } else if (pct >= 1) eta = T('st.paid');
         this._f('amoEta', eta);
@@ -421,7 +422,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const tmp = live(h, c.battery_temp);
       if (tmp !== null) this._f('temp', `${nf(tmp, 1)}<small>°C</small>`);
       if (pvT !== null) this._f('pvAll', `${nf(pvT / 1000, 1)}<small>MWh</small>`);
-      this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1) }) : T('st.noprice'));
+      // Preis unter 1 Cent: vermutlich in Euro statt Cent eingetragen (grid_price_ct erwartet Cent, z. B. 23.88)
+      this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1) }) + (price < 0.01 ? '<br>' + T('st.price.warn', { p: nf(price * 100, 2) }) : '') : T('st.noprice'));
       if (this._fs) this._fitH(); else this._sched();
     }
 

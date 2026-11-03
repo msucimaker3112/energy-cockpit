@@ -110,12 +110,15 @@ JOBS.append(('flow.html', 'batterie-vorn-handy', '?shot=1&scene=via1&viabat=1'))
 JOBS.append(('flow.html', 'batterie-vorn-kurz-handy', '?shot=1&scene=via1&viabat=1&compact=immer'))
 JOBS.append(('flow.html', 'kaskade-differenz', '?shot=1&scene=sun&kaskade=1'))
 JOBS.append(('flow.html', 'kaskade-differenz-plus', '?shot=1&scene=sun&kaskade=2'))
+JOBS.append(('stats.html', 'stats-preisfehler', '?shot=1&preisfehler=1'))
 JOBS.append(('room-kaskade.html', 'room-kaskade', '?shot=1'))
+JOBS.append(('room-kaskade.html', 'room-kaskade-mehrere', '?shot=1&multi=1'))
+JOBS.append(('flow.html', 'kaskade-differenz-mehrere', '?shot=1&scene=sun&kaskade=3'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)

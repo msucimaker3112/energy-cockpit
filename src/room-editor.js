@@ -2,6 +2,8 @@
 (() => {
   const txt = (name) => ({ name, selector: { text: {} } });
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
+  // Mehrere Sensoren (z. B. mehrere Unterzähler zum Abziehen)
+  const entm = (name, domains) => ({ name, selector: { entity: Object.assign({ multiple: true }, domains ? { domain: domains } : {}) } });
   const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
@@ -28,7 +30,7 @@
   WD.roomForm = () => ({
     schema: [
       txt('title'), txt('subtitle'), txt('image'),
-      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), ent('power', ['sensor']), txt('name'), txt('color'), ent('energy_minus', ['sensor']), ent('energy_plus', ['sensor']), ent('power_minus', ['sensor']), ent('power_plus', ['sensor']), ent('price', ['sensor', 'input_number']), numb('price_ct', 0, 200, 0.1)]))),
+      sec('devices', 'Bereiche / Zähler (bis zu 8)', Array.from({ length: 8 }, (_, i) => sec(String(i), `Bereich ${i + 1}`, [ent('energy', ['sensor']), ent('power', ['sensor']), txt('name'), txt('color'), entm('energy_minus', ['sensor']), entm('energy_plus', ['sensor']), entm('power_minus', ['sensor']), entm('power_plus', ['sensor']), ent('price', ['sensor', 'input_number']), numb('price_ct', 0, 200, 0.1)]))),
       sec('home_energy', 'Haus-Energiequellen (für Netz / Batterie / PV)', [ent('pv', ['sensor']), ent('import', ['sensor']), ent('export', ['sensor']), ent('charge', ['sensor']), ent('discharge', ['sensor'])]),
       { name: 'valuation', selector: { select: { mode: 'dropdown', options: VAL } } },
       ent('price', ['sensor', 'input_number']),
@@ -58,7 +60,7 @@
       { path: 'image', label: 'Logo (Bild-URL oder Data-URI)', kind: 'text', optional: true },
     ] },
     { short: 'Zähler', title: 'Energiezähler', text: 'Wähle die Zähler (kWh) der Bereiche oder Stromkreise dieses Raums, zum Beispiel Arbeitsplätze oder Chillecke. Hinter einem Zähler dürfen beliebig viele Geräte hängen. Der Verbrauch wird je Bereich und als Summe ausgewiesen.', fields: [
-      { path: 'devices', label: 'Zähler', kind: 'list', listKind: 'energy', itemKey: 'energy', max: 8 },
+      { path: 'devices', label: 'Zähler', kind: 'list', listKind: 'energy', itemKey: 'energy', max: 8, minusKey: 'energy_minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Zähler 2):', priceKey: 'price_ct', priceLabel: 'Eigener Bezugspreis dieses Bereichs in Cent pro kWh (optional, z. B. Wärmestromtarif)' },
     ] },
     { short: 'Herkunft', title: 'Woher kommt der Strom?', text: 'Mit den Zählern des ganzen Hauses ermittelt die Karte stündlich, welcher Anteil aus Netz, Batterie und PV stammt. Jeder Verbraucher bekommt in jeder Stunde den gleichen Mix wie das Haus.', fields: [
       { path: 'home_energy.pv', label: 'PV Gesamtertrag', kind: 'energy', optional: true, hints: H(/pv|solar|inverter|wechselrichter|ertrag|yield/i, TOTAL) },

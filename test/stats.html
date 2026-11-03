@@ -21,4 +21,6 @@ let card;
 function mount(c){const h=document.getElementById('host');h.innerHTML='';card=document.createElement('energy-cockpit-stats-card');card.setConfig(c);h.appendChild(card);card.hass=hass;}
 function noPrice(){const c=JSON.parse(JSON.stringify(cfg));delete c.grid_price;delete c.feed_in;mount(c);}
 mount(cfg);
+// preisfehler=1: Strompreis versehentlich in Euro statt Cent (0.2388), wie im Issue #16
+if (location.search.indexOf('preisfehler') >= 0) { const c = JSON.parse(JSON.stringify(cfg)); delete c.grid_price; delete c.feed_in; c.grid_price_ct = 0.2388; c.feed_in_ct = 0; c.earned_before_eur = 1210; mount(c); }
 </script></body></html>

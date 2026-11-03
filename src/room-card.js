@@ -151,9 +151,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       if (!d || !d.power || !h || !h.states[d.power]) return null;
       const w = WD.watt(h, d.power);
       // power_minus (Differenz, z. B. Zählerkaskade): power - power_minus (+ power_plus), nie negativ
-      if (!d.power_minus || w === null) return w;
-      const m = WD.watt(h, d.power_minus);
-      return m === null ? null : Math.max(0, w - m + (d.power_plus ? (WD.watt(h, d.power_plus) || 0) : 0));
+      const L = (v) => (Array.isArray(v) ? v : v ? [v] : []), mi = L(d.power_minus);
+      if (!mi.length || w === null) return w;
+      let s = 0;
+      for (let i = 0; i < mi.length; i++) { const m = WD.watt(h, mi[i]); if (m === null) return null; s += m; }
+      return Math.max(0, w - s + L(d.power_plus).reduce((a, id) => a + (WD.watt(h, id) || 0), 0));
     }
     _wcls(w) {
       const warn = this._rate(this._c.watt_warn, 300), high = this._rate(this._c.watt_high, 800);
@@ -210,11 +212,13 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const ni = iids.length;
         // Differenz-Messstellen (z. B. Zählerkaskade): energy_minus / energy_plus werden zusätzlich geladen
         const allD = c.devices.concat(c.items);
+        const L = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+        const sumRow = (row, list) => L(list).reduce((a, id) => a + (row[id] || 0), 0);
         const extraIds = [];
-        allD.forEach((d) => [d.energy_minus, d.energy_plus].forEach((e) => { if (e && extraIds.indexOf(e) < 0 && ids.indexOf(e) < 0 && iids.indexOf(e) < 0) extraIds.push(e); }));
-        const hasDiff = allD.some((d) => d.energy_minus);
-        // Wert eines Geräts in einer Zeile: ohne energy_minus unverändert row[energy]; sonst energy - minus + plus, nie negativ
-        const rowVal = (d, row) => (d.energy_minus ? Math.max(0, (row[d.energy] || 0) - (row[d.energy_minus] || 0) + (d.energy_plus ? (row[d.energy_plus] || 0) : 0)) : (row[d.energy] || 0));
+        allD.forEach((d) => L(d.energy_minus).concat(L(d.energy_plus)).forEach((e) => { if (e && extraIds.indexOf(e) < 0 && ids.indexOf(e) < 0 && iids.indexOf(e) < 0) extraIds.push(e); }));
+        const hasDiff = allD.some((d) => L(d.energy_minus).length);
+        // Wert eines Geräts in einer Zeile: ohne energy_minus unverändert row[energy]; sonst energy - Summe(minus) + Summe(plus), nie negativ
+        const rowVal = (d, row) => (L(d.energy_minus).length ? Math.max(0, (row[d.energy] || 0) - sumRow(row, d.energy_minus) + sumRow(row, d.energy_plus)) : (row[d.energy] || 0));
         const y = new Date().getFullYear();
         const start = new Date(y - 1, 0, 1);
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
@@ -352,7 +356,9 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const rawAll = this._sum(from, to), nDev = this._c.devices.length;
       const raw = rawAll.slice(0, nDev), rawI = rawAll.slice(nDev);
       // Eigener Netzpreis je Gerät oder Unterposten (price_ct in Cent oder price als Sensor/Helfer, z. B. Wärmepumpentarif); ohne Angabe der allgemeine Bezugspreis
-      const gp = (o) => (o && typeof o.price_ct === 'number' ? o.price_ct / 100 : (o && o.price ? this._rate(o.price, P.grid) : P.grid));
+      const own = (o) => (o && typeof o.price_ct === 'number' ? o.price_ct / 100 : (o && o.price ? this._rate(o.price, null) : null));
+      // Unterposten erben den Preis ihres Bereichs, wenn sie keinen eigenen haben
+      const gp = (o, par) => { const a = own(o); if (a !== null) return a; const b = own(par); return b !== null ? b : P.grid; };
       const price = (d, pg) => {
         if (mode === 'grid') return (d[0] + d[1] + d[2] + d[3]) * pg;
         if (mode === 'mix') return d[0] * pg + d[1] * P.batt + (d[2] + d[3]) * P.pv;
@@ -368,7 +374,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const cost = devCost.reduce((a, v) => a + v, 0) + fee;
       const costFull = kwh * P.grid + fee;
       const items = rawI.map((d) => [d[0], d[1], d[2] + d[3]]);
-      const itemCost = rawI.map((d, j) => price(d, gp(this._c.items[j])));
+      const itemCost = rawI.map((d, j) => price(d, gp(this._c.items[j], this._c.devices[this._c.items[j].parent])));
       return { dev, src, kwh, fee, cost, costFull, devCost, surplus, items, itemCost };
     }
     _period(tab) {

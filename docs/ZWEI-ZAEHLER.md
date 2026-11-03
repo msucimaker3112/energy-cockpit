@@ -88,7 +88,27 @@ Im **Energie-Dashboard** von Home Assistant trägst du den Helfer aus Schritt 2 
 
 ## Direkt in der Karte (Option)
 
-Seit Version 0.15.0 kannst du die Differenz auch ohne eigene Helfer in der Karte eintragen. Das ist **optional**: Ohne `minus`, `energy_minus` und `price_ct` verhalten sich die Karten wie bisher.
+Seit Version 0.15.0 kannst du die Differenz auch ohne eigene Helfer in der Karte eintragen. Das ist **optional**: Ohne `minus`, `energy_minus` und `price_ct` verhalten sich die Karten wie bisher. Ab 0.16.0 gibt es das auch im **Assistenten** (Energiefluss: Schritt "Verbraucher", Raum-Abrechnung: Schritt "Zähler", jeweils "Davon abziehen") und `minus` darf eine **Liste** sein, also mehrere Unterzähler.
+
+Die Differenz hat keine festen Namen wie "Z1" oder "Z2". Sie rechnet immer **Hauptzähler minus Unterzähler**. Das passt zu mehreren Aufbauten:
+
+| Aufbau | Eintrag |
+|---|---|
+| Zwei Zähler hintereinander, Verbraucher (Wärmepumpe, Wallbox, Klima) hängen zwischen Z1 und Z2, der Haushalt hinter Z2 | `entity`: Z1, `minus`: Z2 |
+| Ein Hauptzähler und mehrere Unterzähler, gesucht ist der Rest | `entity`: Hauptzähler, `minus`: Liste der Unterzähler |
+| Der Unterzähler meldet bei PV-Rückfluss kein Minus (zum Beispiel PV hinter dem Haushaltszähler) | `minus`: Haushaltsverbrauch, `plus`: PV-Leistung |
+| Eigener Tarif für den Bereich (zum Beispiel Wärmestrom) | `price_ct` oder `price` in der Raum-Abrechnung, Unterposten (`items`) erben ihn |
+
+Für **mehrere Unterzähler** schreibst du in YAML:
+
+```yaml
+consumers:
+  - name: Rest
+    entity: sensor.hauptzaehler_leistung
+    minus:
+      - sensor.unterzaehler_1_leistung
+      - sensor.unterzaehler_2_leistung
+```
 
 **Energiefluss (Live in Watt):**
 
