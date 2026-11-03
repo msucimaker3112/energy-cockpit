@@ -2,6 +2,7 @@
 
 ## 0.18.2
 - **Energiefluss, weniger Rechenlast:** Das Leuchten von Kacheln, Symbolen und Titelpunkt sowie der Glanz im Banner laufen jetzt über Deckkraft und Verschiebung statt über Schatten und Position. Das Gerät muss dafür nicht mehr in jedem Bild neu zeichnen, die Optik bleibt praktisch gleich. Eine Animation im Ring, die nicht zu sehen war, ist entfernt.
+- **Energiefluss, deutlich weniger Rechenlast bei laufenden Sensoren:** Die Karte rechnet höchstens einmal pro Sekunde neu. Zahlen zählen nur noch bei großen Sprüngen hoch, kleine Änderungen stehen sofort da. Das Hochzählen hat bisher bei jeder kleinen Änderung in jedem Bild Text geschrieben, das kann Handys spürbar wärmen.
 - **Energiefluss, "Bewegung reduzieren":** Am Gerät eingestellt, stehen jetzt auch die Symbole in den Gruppen still.
 
 ## 0.18.1

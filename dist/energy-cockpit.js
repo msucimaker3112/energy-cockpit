@@ -1236,7 +1236,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._build();
     if (this._hass) this._update();
   }
+  // Höchstens ein Durchlauf je Sekunde: Sensoren melden oft mehrmals pro Sekunde, die Anzeige gewinnt dadurch nichts
   set hass(h) {
+    this._hNext = h;
+    if (this._hT) return;
+    const wait = (WD.flowUpdateMs === undefined ? 1000 : WD.flowUpdateMs) - (Date.now() - (this._hLast || 0));
+    if (wait > 0) { this._hT = setTimeout(() => { this._hT = null; this._applyHass(this._hNext); }, wait); return; }
+    this._applyHass(h);
+  }
+  _applyHass(h) {
+    this._hLast = Date.now();
       WD.applyTheme(this, null, h);
     setLocale(h);
     // Sprache aus Home Assistant erst jetzt bekannt: statische Texte neu aufbauen
@@ -1331,6 +1340,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._schedLayout();
   }
   disconnectedCallback() {
+    clearTimeout(this._hT); this._hT = null;
     if (this._ro) this._ro.disconnect();
     window.removeEventListener('resize', this._onResize);
     if (this._kaSub) KA.subs.delete(this._kaSub);
@@ -1693,6 +1703,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     if (!t || t.target === null || t.cur === undefined) t = this._tw[key] = { cur: target };
     if (t.target === target && t.numEl === numEl) return;
+    // Nur große Sprünge zählen hoch. Jedes Hochzählen schreibt in jedem Bild Text und zwingt das Gerät, neu zu messen und zu zeichnen
+    const calm = !['always', 'immer'].includes(this._c.animations) && window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (calm || Math.abs(target - t.cur) < Math.max(50, Math.abs(t.cur) * 0.15)) {
+      Object.assign(t, { cur: target, from: undefined, target, numEl, unitEl });
+      const [n, u] = this._sw(target);
+      if (numEl.textContent !== n) numEl.textContent = n;
+      if (unitEl.textContent !== u) unitEl.textContent = u;
+      return;
+    }
     Object.assign(t, { from: t.cur, target, t0: performance.now(), numEl, unitEl });
     this._holdFit(950);
     if (!this._raf) this._raf = requestAnimationFrame((n) => this._tick(n));
