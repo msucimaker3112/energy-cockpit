@@ -1,0 +1,37 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Animationen Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft, dass die Dauer-Animationen nicht in jedem Bild neu zeichnen (keine Schatten, keine Position). Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(o)=>({states:Object.assign({'sensor.pv':S(6000),'sensor.grid':S(-4500),'sensor.bat':S(300),'sensor.soc':S(64,'%'),'sensor.a':S(400),'sensor.b':S(800)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},surplus:{threshold:500,delay:0,suggestions:[{name:'Warmwasser',power:600}]},consumers:[{name:'WP',entity:'sensor.a'}],consumer_groups:[{name:'Küche',items:[{name:'Herd',entity:'sensor.b'}]}]};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const KEEP=['stroke-dashoffset','strokeDashoffset'];
+async function run(){
+  const e=mount(base,hassFor());await wait(800);e.hass=hassFor();await wait(800);
+  const an=e.shadowRoot.getAnimations().filter(a=>a.animationName);
+  const names=[...new Set(an.map(a=>a.animationName))];
+  ok('Animationen laufen',an.length>0,names.join(' '));
+  const props=(a)=>[...new Set(a.effect.getKeyframes().flatMap(k=>Object.keys(k)))].filter(k=>!['offset','computedOffset','easing','composite'].includes(k));
+  const bad=an.filter(a=>props(a).some(p=>p==='boxShadow'||p==='left'||p==='top'||p==='width'||p==='height'));
+  ok('keine Animation von Schatten oder Position',bad.length===0,[...new Set(bad.map(a=>a.animationName))].join(' '));
+  const expensive=an.filter(a=>props(a).some(p=>!['opacity','transform','strokeDashoffset'].includes(p)));
+  ok('nur Deckkraft, Verschiebung und Linien',expensive.length===0,[...new Set(expensive.map(a=>a.animationName+':'+props(a)))].join(' '));
+  ok('Ring im Hub ohne Animation',!an.some(a=>a.animationName==='pulse'));
+  ok('Symbol der Gruppe leuchtet über eigene Ebene',an.some(a=>a.animationName==='bob'&&a.effect.pseudoElement==='::after'&&a.effect.target.closest('.grp')));
+  ok('Symbol des Verbrauchers leuchtet über eigene Ebene',an.some(a=>a.animationName==='bob'&&a.effect.pseudoElement==='::after'&&a.effect.target.closest('.cons')));
+  ok('Kachel atmet über eigene Ebene',an.some(a=>a.animationName==='breathe'&&a.effect.pseudoElement==='::after'));
+  ok('Titelpunkt über eigene Ebene',an.some(a=>a.animationName==='ping'&&a.effect.pseudoElement==='::after'));
+  const node=e.shadowRoot.querySelector('.node.on');
+  const after=getComputedStyle(node,'::after');
+  ok('Ebene der Kachel fängt keine Tipps ab',after.pointerEvents==='none'&&after.position==='absolute');
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run();else mount(base,hassFor());
+</script></body></html>
