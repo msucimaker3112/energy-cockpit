@@ -94,6 +94,8 @@ Die Schritte der einzelnen Karten sind in der [Installationsanleitung](docs/INST
 | **Nur Watt** | `watt_only: true` zeigt alle Leistungen in Watt (zum Beispiel 6.200 W) statt ab 1000 W in kW. |
 | **Aktiv ab** | `on_w` je Verbraucher oder Gruppe: ab welcher Leistung Rahmen und Linie erscheinen (Standard 10 W). Gut für kleine Verbraucher wie eine Zirkulationspumpe. |
 | **Haus heute** | Kachel mit dem Hausverbrauch des Tages in kWh, berechnet oder aus einem eigenen Sensor (`home.daily`). |
+| **Tagesertrag ohne Akku-Ladung** | `pv.daily_ac: true` für Hybrid-Wechselrichter, deren Tagesertrag nur ihre Abgabe zählt. Damit stimmen "PV heute", "Haus heute" und "Autarkie heute". |
+| **Temperatur je Speicher** | `temp` je Speicher mit frei wählbarem Sensor: Der Wert steht unter dem Ladestand, ein Tipp öffnet den Verlauf. |
 
 | Batterie mit Entladegrenze | Sammel-Linie zu den Verbrauchern |
 |---|---|

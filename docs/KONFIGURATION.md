@@ -57,6 +57,40 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
 | `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
 
+### Tagesertrag von Hybrid-Wechselrichtern
+
+Manche Hybrid-Wechselrichter zählen im Tagesertrag nur, was sie abgeben. Was direkt aus den Modulen in den Akku geht, fehlt darin. Standardmäßig zieht die Karte die Akku-Ladung vom Tagesertrag ab, bei diesen Anlagen also doppelt.
+
+So erkennst du den Fall:
+
+- "Autarkie heute" steht bei 0 % oder ist viel zu niedrig, obwohl die Anlage heute viel erzeugt hat.
+- "Haus heute" ist viel zu niedrig, oft sogar kleiner als "Bezug heute", obwohl der Akku nicht aus dem Netz lädt.
+- Der Tagesertrag ist kleiner als "Einspeisung" und "Geladen heute" zusammen.
+
+Dann hilft diese Einstellung, im Assistenten im Schritt "Solar" unter "Tagesertrag zählt ohne Akku-Ladung":
+
+```yaml
+pv:
+  entity: sensor.pv_leistung
+  daily: sensor.pv_tagesertrag
+  daily_ac: true
+battery:
+  daily_charge: sensor.akku_geladen_heute
+  daily_discharge: sensor.akku_entladen_heute
+```
+
+Die Karte rechnet damit so:
+
+| Kachel | Rechnung mit `daily_ac: true` |
+|---|---|
+| PV heute | Tagesertrag + Geladen heute − Entladen heute |
+| Haus heute | Tagesertrag + Bezug heute − Einspeisung heute |
+| Autarkie heute | 1 − Bezug heute / Haus heute |
+
+Beispiel: Tagesertrag 7,2 kWh, Bezug 6,0 kWh, Einspeisung 3,3 kWh, Akku geladen 6,8 kWh. Ohne die Einstellung ergibt das 3,1 kWh im Haus und 0 % Autarkie. Mit ihr sind es 14,0 kWh PV, 9,9 kWh im Haus und 39 % Autarkie.
+
+Die Einstellung gilt für alle Speicher ohne `behind_meter`. Ein weiterer Speicher mit eigenem Wechselrichter wird dabei nicht getrennt betrachtet. Ein eigener Sensor `home.daily` ersetzt nur die Kachel "Haus heute", nicht die Rechnung für die Autarkie.
+
 ### Speicher vor dem Wechselrichter
 
 **Wofür:** Bei Balkonkraftwerken mit Speicher (zum Beispiel Marstek B2500) hängen die Solarmodule direkt am Speicher. Der Solarstrom geht immer zuerst durch den Speicher und von dort ins Haus, auch wenn er voll ist (Durchleitung). Mit `pv_to_battery: direkt` zeichnet die Karte den Weg **Solar → Speicher → Haus**. Ohne die Option bleibt alles wie bisher.
