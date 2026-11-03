@@ -15,6 +15,7 @@ const cases={
   zwei:{...base,pv2:{entity:'sensor.pv2',name:'BKW'},batteries:[{name:'Zweiter',power:'sensor.bat2',soc:'sensor.soc2',capacity_kwh:5}],consumers:[{name:'WP',entity:'sensor.wp'}]},
   stapel:{...base,battery:{name:'Nexa',power_charge:'sensor.ch',power_discharge:'sensor.dis',soc:'sensor.s0',capacity_kwh:2},batteries:[{name:'Noah',power_charge:'sensor.ch',power_discharge:'sensor.dis',soc:'sensor.s1',capacity_kwh:2}]},
   via:{...base,pv_to_battery:'direkt',battery:{name:'B2500',power_out:'sensor.out',soc:'sensor.soc',capacity_kwh:2}},
+  voll:{...base,pv:{entity:'sensor.pv',strings:[{entity:'sensor.s1w',name:'S1'},{entity:'sensor.s2w',name:'S2'}]},consumer_groups:Array.from({length:11},(_,i)=>({name:'Gruppe '+(i+1),items:[{name:'Licht',entity:'sensor.wp'},{name:'Steckdose',entity:'sensor.pv2'}]}))},
   gruppen:{...base,consumer_groups:[{name:'Küche',items:[{name:'Herd',entity:'sensor.wp'}]},{name:'Büro',items:[{name:'PC',entity:'sensor.pv2'}]}],consumers:[{name:'WP',entity:'sensor.wp'}]},
 };
 function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
@@ -90,6 +91,17 @@ async function run(){
   ok('hinter dem Zähler: keine direkte Linie, Haus lädt',!q(e,'g[data-l="r:pv:bat2"]')&&on(e,'bat2'));
   e=mount(off,hassFor());await wait(600);
   ok('ohne Option: keine neuen Linien',!q(e,'g[data-l^="r:"]'));
+  // Linien zu den Verbrauchern laufen nicht hinter den Kacheln neben dem Haus
+  const host=document.getElementById('host');host.style.maxWidth='none';host.style.width='1650px';
+  e=mount(cases.voll,hassFor({'sensor.pv':S(6000),'sensor.grid':S(-4600),'sensor.bat':S(0)}));await wait(800);
+  const sg=q(e,'.stage').getBoundingClientRect(),k=sg.width/q(e,'.stage').offsetWidth;
+  const box=(s)=>{const r=q(e,s).getBoundingClientRect();return{l:(r.left-sg.left)/k,r:(r.right-sg.left)/k,t:(r.top-sg.top)/k,b:(r.bottom-sg.top)/k};};
+  const walls=['[data-k="pv"]','[data-k="grid"]','[data-k="bat"]'].map(box);
+  const gl=qa(e,'g.link').filter(g=>!/^(r:|pv|grid|bat)/.test(g.dataset.l)).map(g=>g.querySelector('path')).filter(p=>p.getAttribute('d'));
+  let hits=0;gl.forEach(p=>{const n=p.getTotalLength();for(let i=0;i<=80;i++){const a=p.getPointAtLength(n*i/80);if(walls.some(w=>a.x>w.l&&a.x<w.r&&a.y>w.t&&a.y<w.b)){hits++;break;}}});
+  ok('Verbraucher-Linien: vorhanden',gl.length>=11,gl.length);
+  ok('Verbraucher-Linien: keine läuft hinter einer Kachel',hits===0,hits+' von '+gl.length);
+  host.style.width='';host.style.maxWidth='';
   const miss=hassFor();delete miss.states['sensor.soc'];delete miss.states['sensor.grid'];
   e=mount(base,miss);await wait(600);
   ok('fehlende Sensoren: kein Absturz',qa(e,'.o3d svg').length===4&&/—/.test(q(e,'[data-o="bat"] svg').textContent));

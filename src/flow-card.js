@@ -700,6 +700,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const cy = this._s3d ? (hr.bottom - sr.top) / k0 - WD.D3.ring.bottom * rs : (hr.top + hr.height / 2 - sr.top) / k0;
     const R = this._s3d ? WD.D3.ring.rx * rs : hr.width * 0.465 / k0;
     const Ry = this._s3d ? WD.D3.ring.ry * rs : R;
+    // 3D: Die Kacheln neben dem Haus reichen unter den Ring, Linien zu den Verbrauchern müssen unter ihnen durch
+    const walls = this._s3d ? [...this.shadowRoot.querySelectorAll('[data-k]')].filter((e) => /^(pv2?|grid|bat\d*)$/.test(e.dataset.k) && e.offsetParent).map((e) => e.getBoundingClientRect()).map((b) => ({ l: (b.left - sr.left) / k0, r: (b.right - sr.left) / k0, b: (b.bottom - sr.top) / k0 })) : [];
     for (const L of this._links) {
       if (L.k === 'pvbat') {
         // Solar -> Speicher: gerade Verbindung zwischen den beiden Kacheln (untereinander oder nebeneinander)
@@ -755,6 +757,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Verbraucher unterhalb: Linie immer aus der Unterseite des Rings führen
       if (ty === -1) ang = Math.max(Math.PI / 2 - 0.6, Math.min(Math.PI / 2 + 0.6, ang));
       const bx = cx + Math.cos(ang) * R, by = cy + Math.sin(ang) * Ry;
+      if (ty === -1 && walls.length && (this._mode !== 'narrow' || this._cmp)) {
+        const lo = Math.min(ax, bx), hi = Math.max(ax, bx), dir = bx > ax ? 1 : -1;
+        const near = walls.filter((w) => w.l < hi && w.r > lo && w.b <= ay), wall = Math.max(-Infinity, ...near.map((w) => w.b));
+        if (wall > by) {
+          // Waagerecht unter der Kachel bis hinter ihre Kante, dann hoch zum Ring. Weiter entfernte Verbraucher laufen etwas höher, so überlagern sich die Linien weniger
+          const rail = wall + (ay - wall) * (0.62 - 0.3 * Math.min(1, (hi - lo) / cx));
+          const qx = (dir > 0 ? Math.max(...near.map((w) => w.r)) : Math.min(...near.map((w) => w.l))) + dir * 8;
+          const mx = ax + dir * Math.min(60, Math.abs(qx - ax)), f = (n) => n.toFixed(1);
+          const d = `M${f(ax)},${f(ay)} C${f(ax)},${f(rail)} ${f(mx - dir * 10)},${f(rail)} ${f(mx)},${f(rail)} L${f(qx)},${f(rail)} C${f(qx + (bx - qx) * 0.5)},${f(rail)} ${f(bx)},${f(by + (rail - by) * 0.6)} ${f(bx)},${f(by)}`;
+          L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));
+          continue;
+        }
+      }
       const k = Math.hypot(ax - bx, ay - by) * 0.45;
       const d = `M${ax.toFixed(1)},${ay.toFixed(1)} C${(ax + tx * k).toFixed(1)},${(ay + ty * k).toFixed(1)} ${(bx + Math.cos(ang) * k).toFixed(1)},${(by + Math.sin(ang) * k).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`;
       L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));
