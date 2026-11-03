@@ -62,7 +62,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 | Schritt | Aufgabe |
 |---|---|
-| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
+| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Zählt der Tagesertrag ohne Akku-Ladung, gibt es dafür einen eigenen Schalter. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
 | 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
 | 4. Weitere Speicher | Optional. Hast du mehr als einen Speicher, trägst du hier den zweiten und dritten ein, jeder bekommt eine eigene Kachel. |
@@ -154,6 +154,7 @@ HACS: Eintrag öffnen → ⋮ → **Entfernen**. Manuell: Ressource löschen und
 
 | Problem | Ursache und Lösung |
 |---|---|
+| "Autarkie heute" steht bei 0 %, "Haus heute" ist viel zu niedrig | Der Tagesertrag deines Wechselrichters zählt vermutlich ohne Akku-Ladung. Schalte im Schritt "Solar" die Einstellung "Tagesertrag zählt ohne Akku-Ladung" ein (`pv.daily_ac`), siehe [Konfiguration](KONFIGURATION.md#tagesertrag-von-hybrid-wechselrichtern). |
 | Karte erscheint nicht in der Auswahl | Ressource fehlt oder Cache. Ressourcen prüfen, Strg + F5, ggf. App neu starten |
 | "Benutzerdefiniertes Element existiert nicht: energy-cockpit-…" | Ressource nicht geladen: Typ muss *JavaScript-Modul* sein, URL exakt prüfen |
 | Karte zeigt "—" statt Werten | Sensor nicht verfügbar oder falsche Einheit. Sensor in den Entwicklerwerkzeugen prüfen |
