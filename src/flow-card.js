@@ -5,7 +5,8 @@ const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
 const CSS = `
-${WD.themeCss()}:host{display:block;--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home}}
+${WD.themeCss()}${WD.D3.css}
+:host{display:block;--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home}}
 ha-card{background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 65%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px;position:relative;transform-origin:0 0;box-sizing:border-box}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(40% 30% at 18% 18%,rgba(var(--pv),.11),transparent 70%),radial-gradient(40% 35% at 85% 40%,rgba(var(--bat),.09),transparent 70%),radial-gradient(35% 30% at 50% 45%,rgba(var(--home),.10),transparent 70%)}
@@ -320,6 +321,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
+    this._s3d = this._c.style === '3d';
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
@@ -461,7 +463,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
     const node = (k, cls, icon, label, color, ent, extra = '') => `
       <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
-        <div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
+        ${this._s3d ? `<div class="o3d" data-o="${k}"></div>` : ''}<div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
         <div class="val"><span class="num">—</span><span class="unit"></span></div>
         <div class="tag"></div>${extra}<div class="sub"></div>
       </div>`;
@@ -531,7 +533,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}">
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}">
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -547,7 +549,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           ${nodes}
           <div class="hub-wrap">
             <div class="hub" data-e="${esc(c.home && c.home.entity)}">
-              <svg viewBox="0 0 120 120">
+              ${this._s3d ? '<div class="o3d" data-o="home"></div>' : ''}<svg viewBox="0 0 120 120">
                 <circle class="orbit" cx="60" cy="60" r="58.5"/>
                 <circle class="ring-bg" cx="60" cy="60" r="52"/>
                 <circle class="seg" data-g="pv" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.pv})"/>
@@ -574,6 +576,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}`;
 
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
+    this._3k = {};
     this._dlg = null;
     const dl = this._$('.gdlg');
     if (dl) dl.addEventListener('close', () => { this._dlg = null; });
@@ -659,7 +662,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._lr = requestAnimationFrame(() => { this._lr = null; this._layout(); });
   }
   _layout() {
-    const wrap = this._$('.wrap'), st = this._$('.stage'), hub = this._$('.hub');
+    // 3D: Die Linien enden am Ring um das Haus, nicht an der ganzen Hub-Fläche mit der Zahl
+    const wrap = this._$('.wrap'), st = this._$('.stage'), hub = this._$(this._s3d ? '.hub .o3d' : '.hub');
     if (!st || !hub) return;
     const w = this.getBoundingClientRect().width;
     if (!w) return;
@@ -713,7 +717,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       let ang = Math.atan2(ay - cy, ax - cx);
       // Verbraucher unterhalb: Linie immer aus der Unterseite des Rings führen
       if (ty === -1) ang = Math.max(Math.PI / 2 - 0.6, Math.min(Math.PI / 2 + 0.6, ang));
-      const bx = cx + Math.cos(ang) * R, by = cy + Math.sin(ang) * R;
+      const bx = cx + Math.cos(ang) * R, by = cy + Math.sin(ang) * R * (this._s3d ? 0.58 : 1);
       const k = Math.hypot(ax - bx, ay - by) * 0.45;
       const d = `M${ax.toFixed(1)},${ay.toFixed(1)} C${(ax + tx * k).toFixed(1)},${(ay + ty * k).toFixed(1)} ${(bx + Math.cos(ang) * k).toFixed(1)},${(by + Math.sin(ang) * k).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`;
       L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));
@@ -793,6 +797,33 @@ class EnergyCockpitFlowCard extends HTMLElement {
 
   // Entladegrenze und Maximalladung der Batterie in Prozent: Sensor, Helfer oder fester Wert
   _bk(i) { return i ? 'bat' + (i + 1) : 'bat'; }
+  // 3D-Objekte: nur neu zeichnen, wenn sich die gerundeten Werte ändern
+  _draw3d(v) {
+    const D3 = WD.D3, c = this._c, large = !this._cmp, q = (w) => (w === null || w === undefined ? 'x' : Math.round(w / (Math.abs(w) < 200 ? 5 : 25)));
+    const put = (k, key, fn) => {
+      const el = this._$(`[data-o="${k}"]`);
+      if (!el || this._3k[k] === key) return;
+      this._3k[k] = key;
+      el.innerHTML = fn();
+    };
+    const solar = (k, cfg, w) => {
+      const list = (cfg.strings || []).map((s) => watt(this._hass, s.entity) || 0);
+      const strs = list.length ? list : [w / 3, w / 3, w / 3];
+      // Ohne peak_w gilt die höchste bisher gesehene Leistung als Maßstab für die Helligkeit
+      this._pvMax = Math.max(this._pvMax || 1000, w);
+      const peak = (parseFloat(cfg.peak_w) || this._pvMax) / strs.length;
+      put(k, [strs.map(q).join(), Math.round(peak), large].join(), () => D3.solar(strs, k, large && !!list.length, peak, cfg.name || T('flow.pv')));
+    };
+    if (c.pv) solar('pv', c.pv, Math.max(0, v.pv1 || 0));
+    if (c.pv2 && c.pv2.entity) solar('pv2', c.pv2, Math.max(0, v.pv2 || 0));
+    if (c.grid) { const g = v.grid || 0; put('grid', [q(g), large].join(), () => D3.meter(g, 'grid', large, this._fW(g), c.grid.name || T('flow.grid'))); }
+    v.bats.forEach((x) => {
+      const k = this._bk(x.i), p = (x.lead || x).p || 0, s = x.soc === null ? null : Math.round(x.soc);
+      put(k, [s, q(p), large].join(), () => D3.stack([s], p, k, large, x.b.name || T('flow.battery')));
+    });
+    const form = c.house_style === 'flach' ? 'modern' : 'sattel', s = v.src;
+    put('home', [q(v.home), q(s.pv), q(s.bat), q(s.imp), form, large].join(), () => D3.house(v.home, s, 'home', form, large, (c.home && c.home.name) || T('flow.home')));
+  }
   _limits(bb) {
     const h = this._hass, b = bb || (this._c && this._c.battery) || {};
     const lim = (sensor, fixed, def) => {
@@ -1085,6 +1116,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.bat : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
+    if (this._s3d) this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };

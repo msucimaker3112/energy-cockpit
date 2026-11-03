@@ -17,12 +17,14 @@
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
   };
 
   const PV_VIA = [{ value: 'aus', label: 'Aus: Solar speist das Haus (Standard)' }, { value: 'direkt', label: 'Direkt: Solar läuft durch den Speicher (braucht die Ausgangsleistung)' }];
+  const STYLE = [{ value: 'flach', label: 'Flach: Kacheln und Ring (Standard)' }, { value: '3d', label: '3D: Haus, Solar, Netz und Speicher als Objekte' }];
+  const HOUSE = [{ value: 'sattel', label: 'Satteldach (Standard)' }, { value: 'flach', label: 'Flachdach' }];
   const COMPACT = [{ value: 'aus', label: 'Aus: ausführliche Ansicht (Standard)' }, { value: 'auto', label: 'Nur auf dem Handy' }, { value: 'immer', label: 'Immer' }];
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
@@ -71,6 +73,8 @@
       bool('hide_rest', false),
       numb('groups_columns', 1, 12, 1),
       numb('rest_min', 0, 100, 1),
+      { name: 'style', selector: { select: { mode: 'dropdown', options: STYLE } } },
+      { name: 'house_style', selector: { select: { mode: 'dropdown', options: HOUSE } } },
       { name: 'compact', selector: { select: { mode: 'dropdown', options: COMPACT } } },
       { name: 'text_size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }] } } },
       { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
@@ -155,6 +159,8 @@
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
+      { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
+      { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
       { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
       { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }], help: 'Vergrößert die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen.' },

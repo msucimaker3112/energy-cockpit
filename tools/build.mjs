@@ -13,6 +13,7 @@ const ORDER = [
   'i18n.js',
   'wizard.js',
   'editor-kit.js',
+  'flow-3d.js',
   'flow-card.js',
   'flow-editor.js',
   'devices-i18n.js',
