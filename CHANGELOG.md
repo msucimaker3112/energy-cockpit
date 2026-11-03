@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.18.0
+- **Energiefluss, Temperatur je Speicher (optional, `temp`):** Jeder Speicher kann einen eigenen Temperatur-Sensor bekommen, im Assistenten (Schritte "Batterie" und "Weitere Speicher"), im Formular oder in YAML. Der Wert steht in der Kachel unter dem Ladestand, ein Tipp öffnet den Verlauf. Ohne Eintrag ändert sich nichts. Wunsch aus [#17](https://github.com/msucimaker3112/energy-cockpit/issues/17).
+
 ## 0.17.0
 - **Statistik: Langzeit-Ansicht (optional, `long_term: true`).** Einschaltbar im Assistenten (Schritt "Langzeit") und im Formular, standardmäßig aus. Ohne die Option bleibt die Karte unverändert. Eingeschaltet liest die Karte alle Jahre aus der Langzeitstatistik von Home Assistant: Jahre blättern mit ‹ ›, neuer Reiter "Gesamt", Hinweis "Daten ab …". Fehlende Monate zählen nicht als 0: Sie sind im Diagramm markiert und werden genannt. Summen für ein Jahr und "Gesamt" enthalten nur Monate mit PV, Bezug und Einspeisung.
 - **Statistik: importierte PV-Historie (`pv_history`, nur mit `long_term`).** Eine Statistik-ID, auch eine extern importierte wie `sensor:deye_ac_historisch`, füllt die Monatsbalken und "PV gesamt". `pv_history_until: 2026-04` legt fest, bis wann die Historie gilt, `pv_history_name` die Bezeichnung in der Legende. Jeder Monat hat genau eine Quelle, nichts zählt doppelt. Geldwerte, Autarkie, Akku und Amortisation rechnen weiter nur mit `pv_total`. Anregung aus [#14](https://github.com/msucimaker3112/energy-cockpit/issues/14).
