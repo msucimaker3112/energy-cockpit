@@ -50,6 +50,16 @@ async function run(){
   ok('gemeinsamer Sensor: zweite Kachel ausgeblendet',q(e,'[data-k="bat2"]').style.display==='none');
   ok('gemeinsamer Sensor: Leistung einmal',q(e,'[data-k="bat"] .num').textContent==='96',q(e,'[data-k="bat"] .num').textContent);
   ok('gemeinsamer Sensor: Name und Ladestände in der Kachel',q(e,'[data-k="bat"] .lbl').textContent==='Nexa · Noah'&&q(e,'[data-k="bat"] .soc-txt').textContent==='4 % / 22 %',q(e,'[data-k="bat"] .soc-txt').textContent);
+  const tt={'sensor.t0':S(24.56,'°C'),'sensor.t1':S(31,'°C')},st=cases.stapel;
+  e=mount({...st,battery:{...st.battery,temp:'sensor.t0'},batteries:[{...st.batteries[0],temp:'sensor.t1'}]},hassFor(tt));await wait(600);
+  ok('Turm: beide Temperaturen in der Kachel',q(e,'[data-k="bat"] .temp-txt').textContent==='24,6 °C / 31,0 °C',q(e,'[data-k="bat"] .temp-txt').textContent);
+  ok('Turm: Tipp öffnet den ersten Sensor',q(e,'[data-k="bat"] .temp-txt').closest('[data-e]').dataset.e==='sensor.t0');
+  e.hass=hassFor({...tt,'sensor.t1':S(33,'°C')});await wait(100);
+  ok('Turm: neuer Wert erscheint und Zeile bleibt einzeln',q(e,'[data-k="bat"] .temp-txt').textContent==='24,6 °C / 33,0 °C'&&qa(e,'[data-k="bat"] .temp-txt').length===1,q(e,'[data-k="bat"] .temp-txt').textContent);
+  e=mount({...st,batteries:[{...st.batteries[0],temp:'sensor.t1'}]},hassFor(tt));await wait(600);
+  ok('Turm: nur der zweite Akku hat einen Sensor',q(e,'[data-k="bat"] .temp-txt').textContent==='— / 31,0 °C'&&q(e,'[data-k="bat"] .temp-txt').closest('[data-e]').dataset.e==='sensor.t1',q(e,'[data-k="bat"] .temp-txt').textContent);
+  e=mount(st,hassFor(tt));await wait(600);
+  ok('Turm ohne temp: keine Zeile',!q(e,'.temp-txt'));
   e=mount(cases.zwei,hassFor());await wait(600);
   ok('zwei Anlagen, zwei Speicher: alle Objekte',qa(e,'.o3d svg').length===6,qa(e,'.o3d svg').length);
   e=mount(cases.via,hassFor());await wait(600);
