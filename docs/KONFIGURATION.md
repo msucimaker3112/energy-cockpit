@@ -324,6 +324,52 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 
 Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
 
+### Kosten je Verbraucher (optional)
+
+Zeigt je Verbraucher die Netzkosten und was Solar und Akku gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Einrichten geht im Assistenten im Schritt *Kosten* (bis zu vier Verbraucher), unter "Alle Felder" oder in YAML. Ohne Eintrag erscheinen weder der Bereich noch der Reiter Woche.
+
+```yaml
+pv_ac: true                     # nur bei Hybrid-Wechselrichtern, siehe unten
+cost_consumers:
+  - name: E-Auto
+    icon: mdi:car-electric
+    color: "#a78bfa"
+    power: sensor.wallbox_leistung     # optional: zeigt die Leistung und die Kosten pro Stunde
+    grid: sensor.ev_energie_netz       # gemessen: je ein Zähler für Netz, Akku und PV
+    battery: sensor.ev_energie_akku
+    pv: sensor.ev_energie_pv
+  - name: Warmwasser
+    icon: mdi:water-boiler
+    color: "#38bdf8"
+    power: sensor.boiler_leistung
+    energy: sensor.boiler_energie      # ein Zähler: Aufteilung nach dem Mix des Hauses
+```
+
+| Feld | Bedeutung |
+|---|---|
+| `energy` | Zähler in kWh. Die Karte teilt den Verbrauch jeder Stunde so auf, wie das Haus in dieser Stunde versorgt wurde. Das ist eine Schätzung: Ein Gerät, das gezielt mit Überschuss läuft, hat in Wahrheit mehr PV-Anteil |
+| `grid`, `battery`, `pv` | Eigene Zähler je Quelle in kWh. Dann misst die Karte statt zu schätzen |
+| `power` | Leistung. Läuft das Gerät, steht dort die Leistung und "bis x €/h": die Kosten pro Stunde, wenn alles aus dem Netz käme |
+| `on_w` | Ab welcher Leistung das Gerät als laufend gilt (Standard 10 W) |
+| `name`, `icon`, `color` | Anzeige. Ohne `icon` und `color` wählt die Karte sie selbst, das Symbol nach dem Namen |
+
+- **Netzkosten** = Anteil aus dem Netz × Strompreis (`grid_price` oder `grid_price_ct`). **Gespart** = Anteil aus Solar und Akku × Strompreis. Entgangene Einspeisevergütung ist darin nicht abgezogen.
+- Der Reiter **Woche** zählt ab Montag. Er zeigt auch die Geldwerte und die Autarkie oben für diese Woche.
+- **Preis je Stunde:** Hat der Sensor `grid_price` eine Langzeitstatistik, etwa bei einem dynamischen Tarif, nimmt die Karte den Mittelwert jeder Stunde. Sonst gilt `grid_price_history`, danach der heutige Preis. Ein Helfer (`input_number`) hat keine Langzeitstatistik:
+
+  ```yaml
+  grid_price_history:
+    - until: 2025-12-31    # bis einschließlich, auch als 2025-12
+      ct: 32.5
+    - until: 2026-06-30
+      ct: 36
+  ```
+
+  Das gilt nur für die Kosten je Verbraucher. Die Geldwerte oben und die Amortisation rechnen weiter mit dem heutigen Preis.
+- Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre erscheint der Bereich nicht.
+
+**`pv_ac`:** Manche Hybrid-Wechselrichter zählen im Gesamtertrag nur ihre Abgabe: ohne die Ladung des Akkus aus den Modulen, dafür mit seiner Entladung. Mit `pv_ac: true` rechnet die Karte den Hausverbrauch als PV + Bezug − Einspeisung. Das gilt für die Autarkie und für die Aufteilung nach Haus-Mix.
+
 ### Langzeit-Ansicht (optional)
 
 **Wofür:** Die Karte zeigt sonst nur das aktuelle Jahr und das Vorjahr. Mit `long_term: true` liest sie alle Jahre, die in der Langzeitstatistik von Home Assistant liegen. Einschalten im Assistenten (Schritt *Langzeit*) oder im YAML. Ohne die Option bleibt die Karte genau wie bisher.

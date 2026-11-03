@@ -101,6 +101,38 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .col.gap:after{content:'';position:absolute;left:32%;right:32%;bottom:0;height:6px;border-radius:2px;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.35) 0 3px,transparent 3px 6px)}
 .cover{margin-top:6px;font-size:.7rem;line-height:1.45;color:rgb(var(--mut));text-align:center}
 .cover:empty{display:none}
+.cc{margin-top:14px}
+.cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.cc-head .lbl{margin-right:auto}
+.cc-sum{font-size:.76rem;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum b{color:rgb(var(--imp));font-weight:700}
+.cc-sum b.s{color:rgb(var(--sav))}
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));grid-gap:12px;gap:12px}
+.ccard{position:relative;min-width:0;padding:14px 15px 13px;border-radius:18px;background:linear-gradient(150deg,rgba(var(--c),.11),rgba(var(--c),.015) 62%);border:1px solid rgba(var(--c),.2);transition:opacity .4s}
+.ccard.idle{opacity:.62}
+.cc-top{display:flex;align-items:center;min-width:0}
+.cc-top .ico{width:36px;height:36px;border-radius:12px;margin-right:10px}
+.cc-name{min-width:0;margin-right:auto}
+.cc-name b{display:block;font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-name small{display:block;white-space:nowrap;font-size:.62rem;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:rgb(var(--mut));margin-top:2px}
+.cc-live{display:none;align-items:center;flex:none;margin-left:8px;padding:4px 9px;border-radius:999px;font-size:.68rem;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:rgb(var(--c));background:rgba(var(--c),.13)}
+.cc-live.on{display:flex}
+.cc-live:before{content:'';width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px;animation:ccdot 2s ease-in-out infinite}
+@keyframes ccdot{50%{opacity:.3}}
+.cc-main{display:flex;align-items:flex-end;justify-content:space-between;margin-top:13px}
+.cc-val{display:flex;align-items:baseline;font-variant-numeric:tabular-nums}
+.cc-val .num{font-size:1.95rem;font-weight:800;letter-spacing:-.025em;line-height:1;color:rgb(var(--imp))}
+.cc-val .unit{font-size:.95rem;font-weight:700;color:rgb(var(--imp));opacity:.8;margin-left:4px}
+.cc-cap{display:block;font-size:.66rem;color:rgb(var(--mut));margin-top:5px}
+.cc-sav{text-align:right;font-variant-numeric:tabular-nums}
+.cc-sav b{font-size:1.02rem;font-weight:750;color:rgb(var(--sav))}
+.cc-bar{display:flex;height:9px;border-radius:999px;overflow:hidden;background:rgba(var(--ov),.07);margin-top:12px}
+.cc-bar i{display:block;width:0;background:rgb(var(--s));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.cc-bar i+i{box-shadow:-1.5px 0 0 var(--panel)}
+.cc-leg{display:flex;flex-wrap:wrap;margin-top:8px;font-size:.7rem;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-leg span{display:flex;align-items:center;margin-right:11px}
+.cc-leg i{width:6px;height:6px;border-radius:50%;background:rgb(var(--s));margin-right:5px}
+.cc-leg b{color:var(--txt);font-weight:600;margin-left:3px}
 .wide{padding:24px 30px}
 .wide .title{font-size:1.25rem}
 .wide .m .num{font-size:2.4rem}
@@ -108,7 +140,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .narrow{padding:16px}
 .narrow .money{grid-template-columns:1fr 1fr}
 .narrow .duo{grid-template-columns:1fr}
-@media (prefers-reduced-motion:reduce){.pfill:after,.col.now .b.cur{animation:none}}
+.narrow .cc-top{flex-wrap:wrap}
+.narrow .cc-live{margin:9px 0 0 46px}
+@media (prefers-reduced-motion:reduce){.pfill:after,.col.now .b.cur,.cc-live:before{animation:none}}
 `;
 
   class EnergyCockpitStatsCard extends HTMLElement {
@@ -142,6 +176,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c.battery_capacity_kwh = lst(c.battery_capacity_kwh).reduce((a, v) => a + (parseFloat(v) || 0), 0);
       // long_term (optional): ganze Historie, Jahre blättern, Reiter "Gesamt", pv_history. Ohne die Option bleibt alles wie bisher
       this._c._lt = c.long_term === true;
+      // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Akku-Ladung und mit Akku-Entladung
+      this._c._ac = c.pv_ac === true;
+      // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
+      const ccIcon = (n) => (/auto|kfz|\bev\b|wallbox|lade/i.test(n) ? 'mdi:car-electric' : /wärmepumpe|waermepumpe|\bwp\b/i.test(n) ? 'mdi:heat-pump-outline' : /wasser|boiler/i.test(n) ? 'mdi:water-boiler' : /heiz/i.test(n) ? 'mdi:radiator' : /klima/i.test(n) ? 'mdi:air-conditioner' : 'mdi:flash');
+      const ccCol = ['#a78bfa', '#38bdf8', '#fb923c', '#34d399', '#f472b6', '#facc15'];
+      this._c._cc = lst(c.cost_consumers).filter((x) => x && (x.energy || x.grid)).map((x, i) => ({ icon: ccIcon(x.name || ''), color: ccCol[i % ccCol.length], ...x }));
+      // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
+      this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
+      this._ccY = null; this._ccV = null;
       this._c._hist = this._c._lt && typeof c.pv_history === 'string' ? c.pv_history.trim().toLowerCase() : '';
       this._c._histUntil = /^\d{4}-\d{2}/.test(String(c.pv_history_until || '')) ? String(c.pv_history_until).slice(0, 7) : '';
       if (!this._c._lt) { this._yr = null; if (this._period === 'all') this._period = 'month'; }
@@ -227,7 +270,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         <header>
           <div class="title"><span class="ico"><ha-icon icon="mdi:chart-box-outline"></ha-icon></span>${esc(c.title || T('st.title'))}</div>
           <div class="tabs">
-            <div class="tab" data-p="day">${T('st.today')}</div><div class="tab" data-p="month">${MON[now.getMonth()]}</div><div class="tab" data-p="year" data-f="yrTab">${now.getFullYear()}</div>${c._lt ? `<div class="tab" data-p="all">${T('st.all')}</div>` : ''}
+            <div class="tab" data-p="day">${T('st.today')}</div>${c._cc.length ? `<div class="tab" data-p="week">${T('st.week')}</div>` : ''}<div class="tab" data-p="month">${MON[now.getMonth()]}</div><div class="tab" data-p="year" data-f="yrTab">${now.getFullYear()}</div>${c._lt ? `<div class="tab" data-p="all">${T('st.all')}</div>` : ''}
           </div>
           ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('st.next'))}</div>` : ''}
         </header>
@@ -249,6 +292,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             <div class="tip" data-f="glTip"></div>
           </div>
         </div>
+        ${c._cc.length ? `<div class="panel cc" style="display:none">
+          <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
+          <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
+            <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid)}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
+            <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><b data-f="ccS${i}">—</b><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
+            <div class="cc-bar">${['--imp', '--bat', '--pv'].map((s) => `<i style="--s:var(${s})"></i>`).join('')}</div>
+            <div class="cc-leg" data-f="ccK${i}"></div>
+          </div>`).join('')}</div>
+        </div>` : ''}
         <div class="panel chart">
           <div class="chart-head"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.monthly')}</span>
             ${c._lt ? '<span class="yrnav"><span class="yb" data-yr="-1" role="button" aria-label="−1">‹</span><span class="yv" data-f="yrNav"></span><span class="yb" data-yr="1" role="button" aria-label="+1">›</span></span>' : ''}
@@ -278,6 +330,92 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const nb = this._$('[data-nav]');
       if (nb) nb.addEventListener('click', () => haNavigate(nb.dataset.nav));
       this._mode();
+    }
+
+    // Kosten je Verbraucher: Stundenwerte des Jahres. Abgeschlossene Monate nur einmal laden, den laufenden bei jeder Aktualisierung
+    async _loadCC() {
+      const c = this._c, h = this._hass;
+      if (!c._cc.length || !h || !h.callWS) return;
+      const now = new Date(), y0 = new Date(now.getFullYear(), 0, 1), m0 = new Date(now.getFullYear(), now.getMonth(), 1), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
+      const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
+      const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : [x.energy]).filter(Boolean);
+      const ids = [...new Set(house.concat(...c._cc.map(mine)))];
+      const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
+      const stat = (period, types, list, start, end) => h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), ...(end ? { end_time: end.toISOString() } : {}), period, statistic_ids: list, types, ...WD.statUnits(c) });
+      const stamp = (r) => (typeof r.start === 'number' ? r.start : Date.parse(r.start));
+      const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      const zero = () => c._cc.map(() => [0, 0, 0, 0, 0]);
+      // Preis einer Stunde: Statistik des Preis-Sensors, sonst grid_price_history, sonst der heutige Preis
+      const rate = (t, means) => {
+        if (means[t] !== undefined) return means[t];
+        const day = ymd(t), hit = c._ph.find((x) => day.slice(0, x.until.length) <= x.until);
+        return hit ? hit.eur : nowEur;
+      };
+      const add = (rows, means, slots, onHour) => {
+        const at = {};
+        ids.forEach((id) => (rows[id] || []).forEach((r) => { if (r.change === null || r.change === undefined) return; const t = stamp(r); (at[t] = at[t] || {})[id] = Math.max(0, r.change); }));
+        Object.keys(at).forEach((k) => {
+          const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp = v[c.grid_import_total] || 0, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
+          if (onHour) onHour(t, { pv, imp, exp, chg, dis });
+          const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr = rate(t, means);
+          const g = home > 0 ? Math.min(1, imp / home) : (imp > 0 ? 1 : 0), b = home > 0 ? Math.min(1 - g, dis / home) : 0;
+          c._cc.forEach((x, i) => {
+            const part = x.grid ? [v[x.grid] || 0, v[x.battery] || 0, v[x.pv] || 0] : [(v[x.energy] || 0) * g, (v[x.energy] || 0) * b, (v[x.energy] || 0) * (1 - g - b)];
+            const line = [part[0], part[1], part[2], part[0] * pr, (part[1] + part[2]) * pr];
+            slots(t).forEach((s) => { for (let n = 0; n < 5; n++) s[i][n] += line[n]; });
+          });
+        });
+      };
+      const means = async (start, end) => {
+        const out = {};
+        if (!priceId) return out;
+        const r = await stat('hour', ['mean'], [priceId], start, end).catch(() => ({}));
+        (r[priceId] || []).forEach((x) => { if (typeof x.mean === 'number') out[stamp(x)] = x.mean; });
+        return out;
+      };
+      try {
+        const mk = key(now.getFullYear(), now.getMonth());
+        let hasStat = false;
+        if (!this._ccY || this._ccY.k !== mk) {
+          const past = zero();
+          if (m0 > y0) { const m = await means(y0, m0); hasStat = Object.keys(m).length > 0; add(await stat('hour', ['change'], ids, y0, m0), m, () => [past]); }
+          this._ccY = { k: mk, past, hasStat };
+        }
+        const day = zero(), week = zero(), month = zero(), wk = { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 };
+        const m = await means(first);
+        add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => { if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; }); });
+        this._ccW = wk;
+        this._ccPriced = nowEur > 0 || c._ph.length > 0 || this._ccY.hasStat || Object.keys(m).length > 0;
+        this._ccV = { day, week, month, year: month.map((x, i) => x.map((v, n) => v + this._ccY.past[i][n])) };
+      } catch (e) {
+        console.warn('energy-cockpit-stats-card: cost_consumers', e);
+      }
+    }
+
+    _renderCC(price) {
+      const c = this._c, el = this._$('.cc'), V = this._ccV;
+      if (!el) return;
+      // Nur das aktuelle Jahr: Für "Gesamt" und frühere Jahre gibt es keine Stundenwerte
+      const set = V && ['day', 'week', 'month', 'year'].includes(this._period) && !(c._lt && this._period === 'year' && this._years().cur !== new Date().getFullYear()) ? V[this._period] : null;
+      el.style.display = set ? '' : 'none';
+      if (!set) return;
+      const CUR = cur(), dec = (v) => (Math.abs(v) < 100 ? 2 : 0), fk = (v) => nf(v, v >= 100 ? 0 : 1), tab = this._$('.tab.on'), priced = this._ccPriced;
+      this._f('ccP', tab ? esc(tab.textContent) : '');
+      let cost = 0, sav = 0;
+      c._cc.forEach((x, i) => {
+        const [g, b, p, cost1, sav1] = set[i], tot = g + b + p, card = this._$(`.ccard[data-c="${i}"]`);
+        cost += cost1; sav += sav1;
+        this._count(`ccC${i}`, priced ? cost1 : null, dec(cost1));
+        this._f(`ccS${i}`, priced ? `${nf(sav1, dec(sav1))} ${CUR}` : '—');
+        card.classList.toggle('idle', tot < 0.05);
+        card.querySelectorAll('.cc-bar i').forEach((s, n) => { s.style.width = tot > 0 ? [g, b, p][n] / tot * 100 + '%' : '0'; });
+        this._f(`ccK${i}`, [['--imp', 'st.cc.grid', g], ['--bat', 'st.cc.bat', b], ['--pv', 'st.cc.pv', p]].map(([s, l, v]) => `<span style="--s:var(${s})"><i></i>${T(l)}<b>${fk(v)}</b></span>`).join('') + '<span>kWh</span>');
+        const w = live(this._hass, x.power), on = w !== null && w > (x.on_w === undefined ? 10 : x.on_w), lv = this._$(`[data-f="ccL${i}"]`);
+        lv.classList.toggle('on', on);
+        if (on) this._f(`ccL${i}`, `${nf(w, 0)} W${price > 0 ? ' · ' + T('st.cc.upto', { x: nf(w / 1000 * price, 2), cur: CUR }) : ''}`);
+      });
+      this._f('ccSum', priced ? `${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b> · ${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b>` : '');
     }
 
     async _load() {
@@ -334,6 +472,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           if (!nights[k] || r.mean < nights[k].v) nights[k] = { v: r.mean, t };
         });
         this._nights = Object.values(nights).sort((a, b) => a.t - b.t).slice(-7);
+        await this._loadCC();
         this._loaded = Date.now();
         this._render();
         // Neue Daten (Balken, Grundlast): einmal neu einpassen
@@ -355,7 +494,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       t.from = t.cur; t.to = target; t.t0 = performance.now();
       const step = (n) => {
         if (t.run !== run) return;
-        const p = Math.min(1, (n - t.t0) / 1300), e = 1 - Math.pow(1 - p, 3);
+        const p = Math.max(0, Math.min(1, (n - t.t0) / 1300)), e = 1 - Math.pow(1 - p, 3);
         t.cur = t.from + (t.to - t.from) * e;
         el.textContent = nf(t.cur, dec);
         if (p < 1) requestAnimationFrame(step);
@@ -412,6 +551,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw);
         return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: c._chgD.reduce((a, id) => a + (en(id) || 0), 0), dis: c._disD.reduce((a, id) => a + (en(id) || 0), 0), label: T('st.today') };
       }
+      if (this._period === 'week') return this._ccW ? { ...this._ccW, label: T('st.week') } : null;
       if (!M) return null;
       if (c._lt && this._period !== 'month') {
         const yr = this._years().cur;
@@ -430,11 +570,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (!h) return;
       const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
+      this._renderCC(price);
       // Geld
       const p = this._periodVals();
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
         const self = Math.max(0, p.pv - p.exp);
-        const cons = p.pv + p.imp - p.exp - p.chg + p.dis;
+        const cons = c._ac ? p.pv + p.imp - p.exp : p.pv + p.imp - p.exp - p.chg + p.dis;
         this._count('pvsav', price > 0 ? self * price : null, self * price < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
         this._count('cost', price > 0 ? p.imp * price : null, p.imp * price < 100 ? 2 : 0);
@@ -542,7 +683,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
       // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
       if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
-      const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (M.chg[k] || 0) + (M.dis[k] || 0);
+      const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
       const d = M.pvC[kp] ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
       el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${fKwh(M.imp[k])} kWh · ${T('st.export')} ${fKwh(M.exp[k])} kWh · ${T('st.aut')} <b>${fPct(aut)}</b>`;
