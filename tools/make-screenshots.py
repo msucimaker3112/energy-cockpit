@@ -55,6 +55,7 @@ JOBS = [
     ('wizard.html', 'wiz-flow-8-fertig', '?card=flow&step=8&cfg=flow&tab=Assistent'),
     ('wizard.html', 'wiz-devices-assistent', '?card=devices'),
     ('wizard.html', 'wiz-stats-1-zaehler', '?card=stats&step=0'),
+    ('wizard.html', 'wiz-stats-2-kosten', '?card=stats&step=4'),
     ('wizard.html', 'wiz-room-1-raum', '?card=room&step=0&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-2-zaehler', '?card=room&step=1&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-3-herkunft', '?card=room&step=2&cfg=room&tab=Assistent'),
@@ -114,13 +115,26 @@ JOBS.append(('stats.html', 'stats-preisfehler', '?shot=1&preisfehler=1'))
 JOBS.append(('room-kaskade.html', 'room-kaskade', '?shot=1'))
 JOBS.append(('room-kaskade.html', 'room-kaskade-mehrere', '?shot=1&multi=1'))
 JOBS.append(('flow.html', 'kaskade-differenz-mehrere', '?shot=1&scene=sun&kaskade=3'))
+# 3D-Ansicht und Kosten je Verbraucher
+JOBS.append(('flow-3d.html', 'flow-3d', '?case=normal'))
+JOBS.append(('flow-3d.html', 'flow-3d-zwei', '?case=zwei'))
+JOBS.append(('flow-3d.html', 'flow-3d-flach', '?case=flach'))
+JOBS.append(('flow-3d.html', 'flow-3d-hell', '?case=zwei&theme=hell'))
+JOBS.append(('flow-3d.html', 'flow-3d-handy', '?case=normal&w=380'))
+JOBS.append(('stats-costs.html', 'kosten', '?scene=demo&tab=day'))
+JOBS.append(('stats-costs.html', 'kosten-woche', '?scene=demo&tab=week'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith('sammel') else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
+    if name in ('kosten', 'kosten-woche'):  # nur Kopf und Bereich "Kosten je Verbraucher"
+        im = Image.open(p); top = im.crop((0, 0, im.width, 78)); mid = im.crop((0, 425, im.width, 862))
+        out_im = Image.new('RGB', (im.width, 78 + mid.height), im.getpixel((im.width - 1, im.height - 1))); out_im.paste(top, (0, 0)); out_im.paste(mid, (0, 78)); out_im.save(p)
+    if name == 'wiz-stats-2-kosten':  # nur die ersten beiden Verbraucher
+        im = Image.open(p); im.crop((0, 0, im.width, 1060)).save(p)
     if name == 'wiz-devices-assistent':  # nur den Assistentenkasten (Formular gibt es im Test nicht)
         im = Image.open(p); im.crop((0, 0, im.width, 318)).save(p)
     print(name)

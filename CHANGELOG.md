@@ -1,5 +1,15 @@
 # Änderungsprotokoll
 
+## 0.19.0
+- **Energiefluss, 3D-Ansicht (optional, `style: 3d`):** Haus, Solar, Netz und Speicher erscheinen als kleine 3D-Objekte statt als Kacheln mit Symbolen. Das Haus steht auf dem Ring mit dem Mix aus Solar, Akku und Netz, der Ladestand steht auf der Front des Speichers, das Netz zeigt die Leistung auf dem Display des Zählerkastens. Die Linien laufen nach den echten Wegen: Solar lädt den Speicher direkt, Solar speist direkt ein, das Netz lädt den Akku, der Speicher speist ein. Das Haus bekommt nur, was dort ankommt. Mehrere Speicher, Balkonkraftwerk, PV-Strings, Gruppen, Kurzansicht, Handy-Layout und alle Farbschemen funktionieren auch in 3D. Das Haus gibt es mit Satteldach oder Flachdach (`house_style`). Ohne `style` ändert sich nichts. Einstellbar im Schritt "Aussehen" des Assistenten.
+- **Statistik, Kosten je Verbraucher (optional, `cost_consumers`):** Zeigt je Gerät, etwa E-Auto, Wärmepumpe oder Warmwasser, die Netzkosten und was Solar und Akku gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Mit je einem Zähler für Netz, Akku und PV misst die Karte, mit nur einem Zähler teilt sie den Verbrauch jeder Stunde nach dem Mix des Hauses auf. Läuft das Gerät, steht die Leistung mit den Kosten pro Stunde dabei. Symbol und Farbe wählt die Karte selbst, das Symbol nach dem Namen. Einrichten im neuen Assistenten-Schritt "Kosten" (bis zu vier Verbraucher, weitere unter "Alle Felder" oder in YAML). Wunsch aus [#19](https://github.com/msucimaker3112/energy-cockpit/issues/19).
+- **Statistik, neuer Reiter "Woche":** Er zählt ab Montag und zeigt auch die Geldwerte und die Autarkie oben für diese Woche. Er erscheint nur, wenn Verbraucher eingetragen sind.
+- **Statistik, Preisverlauf (optional, `grid_price_history`):** Jede Stunde rechnet mit ihrem eigenen Strompreis, aus der Langzeitstatistik des Preis-Sensors (dynamischer Tarif), aus einer Liste früherer Preise oder mit dem heutigen Preis. Gilt für die Kosten je Verbraucher.
+- **Statistik, Hybrid-Wechselrichter (optional, `pv_ac`):** Zählt der Gesamtertrag nur die Abgabe des Wechselrichters, rechnet die Karte den Hausverbrauch als PV + Bezug - Einspeisung. Das gilt für die Autarkie und die Aufteilung nach Haus-Mix.
+- **Statistik, Kosten-Kärtchen:** Das Badge mit Leistung und Kosten pro Stunde rutscht bei langen Namen in die nächste Zeile, statt den Namen abzuschneiden.
+
+Alles Neue ist optional, bestehende Einstellungen bleiben unverändert.
+
 ## 0.18.2
 - **Energiefluss, weniger Rechenlast:** Das Leuchten von Kacheln, Symbolen und Titelpunkt sowie der Glanz im Banner laufen jetzt über Deckkraft und Verschiebung statt über Schatten und Position. Das Gerät muss dafür nicht mehr in jedem Bild neu zeichnen, die Optik bleibt praktisch gleich. Eine Animation im Ring, die nicht zu sehen war, ist entfernt.
 - **Energiefluss, deutlich weniger Rechenlast bei laufenden Sensoren:** Die Karte rechnet höchstens einmal pro Sekunde neu. Zahlen zählen nur noch bei großen Sprüngen hoch, kleine Änderungen stehen sofort da. Das Hochzählen hat bisher bei jeder kleinen Änderung in jedem Bild Text geschrieben, das kann Handys spürbar wärmen.

@@ -87,5 +87,22 @@ async function run(){
   ok('Abfrage fehlgeschlagen: Bereich aus, kein Absturz',q(e,'.cc').style.display==='none');
   document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
 }
-if(new URLSearchParams(location.search).get('test'))run();else mount({...base,pv_ac:true},hassFor());
+if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search);let c={...base,pv_ac:true},st={};
+  if(P.get('scene')==='demo'){ /* Vorschau mit gerechneten Beispielstunden fuer die Bilder der Doku */
+    hrs.length=0;past.t=0;Object.assign(map,{'sensor.cg':'cg','sensor.cb':'cb','sensor.cp':'cp','sensor.wp':'wp','sensor.ww':'ww','sensor.tr':'tr'});
+    for(let d=0;d<=45;d++)for(let h=0;h<24;h++){const t=d0-d*24*H+h*H;if(d===0&&h>now.getHours()-1)break;
+      const sun=h>=7&&h<=17?Math.sin(Math.PI*(h-7)/10):0,pv=+(2.6*sun*(0.55+0.45*(((d*37)%10)/10))).toFixed(2),
+        peak=(h>=6&&h<=8)||(h>=18&&h<=22),car=(d%2===0&&h>=10&&h<=12)?2.2:(d%2===1&&h>=1&&h<=3)?2.2:0,
+        wp=h>=5?+(0.22+0.1*(1-sun)).toFixed(2):0.15,ww=h>=11&&h<=12?0.8:0,tr=(d%3===0&&h===15)?0.9:0,
+        cons=0.4+(peak?0.55:0)+car+wp+ww+tr,chg=(h>=9&&h<=14&&pv>cons)?Math.min(1.2,+(pv-cons).toFixed(2)):0,dis=(h>=18&&h<=23)?0.7:0,
+        imp=Math.max(0,+(cons+chg-pv-dis).toFixed(2)),exp=Math.max(0,+(pv+dis-cons-chg).toFixed(2));
+      const cp=car&&pv>0?Math.min(car,pv):0,cb=car&&!cp&&dis>0?Math.min(car,dis):0,cg=car-cp-cb;
+      const mix=(x)=>{const tot=pv+imp+dis||1;return{g:x*imp/tot,b:x*dis/tot,p:x*pv/tot}};
+      hrs.push({t,pv,imp,exp,chg,dis,e:0,g:0,b:0,p:0,cg,cb,cp,wp,ww,tr});}
+    c={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:34,feed_in_ct:7.6,pv_ac:true,
+      cost_consumers:[{name:'E-Auto',icon:'mdi:car-electric',color:'#a78bfa',grid:'sensor.cg',battery:'sensor.cb',pv:'sensor.cp',power:'sensor.carw'},
+        {name:'Wärmepumpe',icon:'mdi:heat-pump',color:'#fb923c',energy:'sensor.wp',power:'sensor.wpw'},{name:'Warmwasser',icon:'mdi:water-boiler',color:'#38bdf8',energy:'sensor.ww'},{name:'Trockner',icon:'mdi:tumble-dryer',color:'#34d399',energy:'sensor.tr'}]};
+    st={'sensor.carw':S(7200),'sensor.wpw':S(1450)};}
+  else if(P.get('n')==='4')c.cost_consumers=[base.cost_consumers[0],base.cost_consumers[1],{name:'Waermepumpe',energy:'sensor.e',power:'sensor.w'},{name:'Trockner',energy:'sensor.e'}];
+  const e=mount(c,hassFor(st));if(P.get('tab'))wait(900).then(()=>tab(e,P.get('tab')));}
 </script></body></html>

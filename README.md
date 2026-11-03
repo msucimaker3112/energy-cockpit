@@ -39,6 +39,24 @@
 
 The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests in English are welcome.
 
+## Neu in 0.19: 3D-Ansicht und Kosten je Verbraucher
+
+**3D-Ansicht für den Energiefluss.** Mit einer Zeile (`style: 3d`) wird aus Kacheln und Ring ein kleines Haus mit Solar, Zählerkasten und Speicher. Der Ladestand steht auf dem Akku, das Netz zeigt die Leistung auf dem Display, die Linien laufen nach den echten Wegen der Energie. Mehrere Speicher, Balkonkraftwerk, Gruppen, Handy-Ansicht und alle Farbschemen gehen auch in 3D. Ohne die Zeile bleibt alles wie bisher.
+
+![3D-Ansicht des Energieflusses](docs/img/flow-3d.png)
+
+```yaml
+type: custom:energy-cockpit-flow-card
+style: 3d
+house_style: sattel   # oder flach
+```
+
+**Kosten je Verbraucher in der Statistik.** E-Auto, Wärmepumpe, Warmwasser: Die Karte zeigt je Gerät, was der Netzstrom kostet und wie viel Solar und Akku gespart haben, für heute, die Woche, den Monat und das Jahr. Neu ist der Reiter **Woche** (ab Montag) und ein **Preisverlauf**, damit alte Stunden zum alten Preis zählen. Der Assistent hat dafür einen eigenen Schritt "Kosten".
+
+![Kosten je Verbraucher](docs/img/kosten-woche.png)
+
+Alle Einstellungen stehen in der [Konfiguration](docs/KONFIGURATION.md#3d-ansicht-style-3d) und im [Änderungsprotokoll](CHANGELOG.md).
+
 ## Handy und Tablet: eine Karte, zwei Ansichten
 
 Die Energiefluss-Karte erkennt, wie breit der Bildschirm ist, und zeigt automatisch die passende Ansicht. Du brauchst **kein zweites Dashboard**.

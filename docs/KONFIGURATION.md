@@ -40,6 +40,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `battery.reserve_soc`, `battery.max_soc` | Sensor oder Helfer (Zahl-Entität) | Entladegrenze und Maximalladung der Batterie in %. Der Sensor heißt bei jedem Wechselrichter anders, deshalb frei wählbar (zum Beispiel "Entlade-Ende-Ladestand") |
 | `battery.reserve_pct`, `battery.max_pct` | Zahl | Alternative ohne Sensor: fester Wert in %, zum Beispiel `10`, wenn die Batterie nur bis 10 % entladen wird. Ein Sensor hat Vorrang |
 | `animations` | `auto` (Standard), `always` | `auto`: Ist am Gerät "Bewegung reduzieren" eingeschaltet, stehen Linien, Ring und das Leuchten von Kacheln und Symbolen still, und die Zahlen zählen nicht hoch. `always`: immer animieren. Unabhängig davon rechnet die Karte höchstens einmal pro Sekunde neu, und Zahlen zählen nur bei großen Sprüngen hoch |
+| `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
+| `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` | Vergrößert die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern |
@@ -326,7 +328,11 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 ### Kosten je Verbraucher (optional)
 
+![Kosten je Verbraucher: Reiter Woche](img/kosten-woche.png)
+
 Zeigt je Verbraucher die Netzkosten und was Solar und Akku gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Einrichten geht im Assistenten im Schritt *Kosten* (bis zu vier Verbraucher), unter "Alle Felder" oder in YAML. Ohne Eintrag erscheinen weder der Bereich noch der Reiter Woche.
+
+![Assistent: Schritt Kosten](img/wiz-stats-2-kosten.png)
 
 ```yaml
 pv_ac: true                     # nur bei Hybrid-Wechselrichtern, siehe unten
@@ -476,6 +482,29 @@ Unterhalb der Tabelle zeigt die Karte zum Vergleich immer auch den Betrag für "
 - **Betriebszeiten:** aktive Stunden heute, Woche und je Wochentag sowie eine Heatmap Wochentag mal Stunde (letzte 8 Wochen).
 - **Monatsarchiv:** zeigt festgehaltene Monate mit Zählerständen, Mengen, Preisen und Saldo. Das Archiv füllt eine Automation; die Karte liest nur das Attribut `monate` (Liste mit `k` als `JJJJ-MM`, `kwh`, `g`, `b`, `p`, `cost`, `pg`, `pf`, `ab` und `dev` mit `n`, `a`, `e`, `kwh`).
 
+
+### 3D-Ansicht: `style: 3d`
+
+Statt Kacheln und Ring zeigt die Karte Haus, Solar, Netz und Speicher als kleine 3D-Objekte. Alle Zahlen, Kacheln, Gruppen und Einstellungen bleiben, nur die Darstellung ändert sich. Ohne `style` (oder mit `flach`) ändert sich nichts.
+
+```yaml
+type: custom:energy-cockpit-flow-card
+style: 3d
+house_style: sattel   # oder flach (Flachdach)
+```
+
+![3D-Ansicht mit zwei Speichern und Balkonkraftwerk](img/flow-3d-zwei.png)
+
+- **Das Haus** steht auf dem Ring mit dem Mix aus Solar, Akku und Netz. Der Hausverbrauch steht darüber.
+- **Solar:** Die Module sind zu sehen, bei `pv.strings` mit einer Reihe je String. Die Sonne leuchtet mit dem Ertrag.
+- **Netz:** Der Zählerkasten zeigt die Leistung auf dem Display. Ein Bezug leuchtet rot, eine Einspeisung grün.
+- **Speicher:** Der Füllstand steht auf der Front des Speichers. Mehrere Speicher stehen nebeneinander. Gestapelte Akkus mit einem gemeinsamen Sensor erscheinen als ein Turm mit beiden Ladeständen.
+- **Linien nach den echten Wegen:** Die Linien laufen dort, wo die Energie fließt. Solar lädt einen Speicher vor dem Wechselrichter direkt (`pv_to_battery: direkt`), ein Speicher speist ins Netz, das Netz lädt den Akku. Das Haus bekommt nur, was dort ankommt.
+- Die Kurzansicht (`compact`), das Handy-Layout und die Farbschemen funktionieren auch in 3D.
+
+| Dach | Handy | Hell |
+|---|---|---|
+| ![Flachdach](img/flow-3d-flach.png) | ![3D am Handy](img/flow-3d-handy.png) | ![3D im hellen Schema](img/flow-3d-hell.png) |
 
 ### Kurzansicht fürs Handy: `compact`
 

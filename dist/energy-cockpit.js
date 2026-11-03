@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.18.2 - MIT License */
+/*! energy-cockpit v0.19.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -4264,12 +4264,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));grid-gap:12px;gap:12px}
 .ccard{position:relative;min-width:0;padding:14px 15px 13px;border-radius:18px;background:linear-gradient(150deg,rgba(var(--c),.11),rgba(var(--c),.015) 62%);border:1px solid rgba(var(--c),.2);transition:opacity .4s}
 .ccard.idle{opacity:.62}
-.cc-top{display:flex;align-items:center;min-width:0}
+.cc-top{display:flex;flex-wrap:wrap;align-items:center;min-width:0}
 .cc-top .ico{width:36px;height:36px;border-radius:12px;margin-right:10px}
 .cc-name{min-width:0;margin-right:auto}
 .cc-name b{display:block;font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-name small{display:block;white-space:nowrap;font-size:.62rem;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:rgb(var(--mut));margin-top:2px}
-.cc-live{display:none;align-items:center;flex:none;margin-left:8px;padding:4px 9px;border-radius:999px;font-size:.68rem;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:rgb(var(--c));background:rgba(var(--c),.13)}
+.cc-live{display:none;align-items:center;flex:none;margin:4px 0 0 auto;padding:4px 9px;border-radius:999px;font-size:.68rem;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:rgb(var(--c));background:rgba(var(--c),.13)}
 .cc-live.on{display:flex}
 .cc-live:before{content:'';width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px;animation:ccdot 2s ease-in-out infinite}
 @keyframes ccdot{50%{opacity:.3}}
