@@ -1,0 +1,43 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Gemeinsamer Akku-Sensor Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft gestapelte Akkus an einem Sensor mit den Werten aus #17. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(k)=>({states:{'sensor.pv':S(k.pv===undefined?96:k.pv),'sensor.grid':S(974),'sensor.ch':S(k.ch===undefined?96:k.ch),'sensor.dis':S(k.dis||0),'sensor.out':S(k.out||0),'sensor.s0':S(3,'%'),'sensor.s1':S(19,'%'),'sensor.net':S(k.net||0),'sensor.dch':S(2,'kWh'),'sensor.ddis':S(1,'kWh'),'sensor.pvd':S(6,'kWh'),'sensor.imp':S(4,'kWh'),'sensor.exp':S(0,'kWh')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+const two=(extra)=>({pv:{entity:'sensor.pv',daily:'sensor.pvd'},grid:{entity:'sensor.grid',daily_import:'sensor.imp',daily_export:'sensor.exp'},
+  battery:{name:'Nexa 2000',power_charge:'sensor.ch',power_discharge:'sensor.dis',soc:'sensor.s0',capacity_kwh:2.048,daily_charge:'sensor.dch',daily_discharge:'sensor.ddis'},
+  batteries:[{name:'Noah 2000',power_charge:'sensor.ch',power_discharge:'sensor.dis',soc:'sensor.s1',capacity_kwh:2.048,daily_charge:'sensor.dch',daily_discharge:'sensor.ddis'}],...(extra||{})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(c);host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const t=(e,s)=>{const x=e.shadowRoot.querySelector(s);return x?x.textContent.replace(/\s+/g,' ').trim():'';};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const num=(e)=>parseInt(t(e,'.core .num').replace(/\D/g,''),10);
+async function run(){
+  let e=mount(two(),hassFor({}));await wait(900);
+  ok('Erster Akku zeigt die Leistung',t(e,'[data-k="bat"] .num')==='96',t(e,'[data-k="bat"] .num'));
+  ok('Zweiter Akku zeigt keine eigene Leistung',t(e,'[data-k="bat2"] .num')==='—',t(e,'[data-k="bat2"] .num'));
+  ok('Zweiter Akku nicht Offline, sondern Lädt',t(e,'[data-k="bat2"] .tag')==='Lädt',t(e,'[data-k="bat2"] .tag'));
+  ok('Hinweis am ersten Akku',t(e,'[data-k="bat"] .sub').includes('Gemeinsamer Sensor mit Noah 2000'),t(e,'[data-k="bat"] .sub'));
+  ok('Hinweis am zweiten Akku',t(e,'[data-k="bat2"] .sub').includes('Gemeinsamer Sensor mit Nexa 2000'),t(e,'[data-k="bat2"] .sub'));
+  ok('Eigene Ladestände bleiben',t(e,'[data-k="bat"] .soc-txt')==='3 %'&&t(e,'[data-k="bat2"] .soc-txt')==='19 %');
+  // Haus = 96 + 974 - 96 = 974, doppelt gezählt wären es 878
+  ok('Ladung zählt nur einmal',num(e)===974,num(e));
+  ok('Solar lädt 96 W',t(e,'[data-k="pv"] .sub').includes('Batterie 96 W'),t(e,'[data-k="pv"] .sub'));
+  ok('Tageswerte zählen nur einmal',/\+2,0/.test(t(e,'[data-s="bat"] b'))&&/1,0/.test(t(e,'[data-s="bat"] b')),t(e,'[data-s="bat"] b'));
+  e=mount(two(),hassFor({ch:0,dis:300,pv:0}));await wait(900);
+  ok('Entladen: beide Status Entlädt',t(e,'[data-k="bat"] .tag')==='Entlädt'&&t(e,'[data-k="bat2"] .tag')==='Entlädt');
+  ok('Entladen: einmal gezählt',/^1,27/.test(t(e,'.core .num')),t(e,'.core .num'));
+  const c=two();c.batteries[0].power_charge='sensor.net';delete c.batteries[0].power_discharge;
+  e=mount(c,hassFor({net:50}));await wait(900);
+  ok('Eigene Sensoren: jeder Akku eigener Wert',t(e,'[data-k="bat2"] .num')==='50'&&!t(e,'[data-k="bat2"] .sub').includes('Gemeinsamer'),t(e,'[data-k="bat2"] .num'));
+  const v=two({pv_to_battery:'direkt'});v.battery.power_out='sensor.out';
+  e=mount(v,hassFor({out:0}));await wait(900);
+  ok('Mit pv_to_battery: Eingang und Hinweis',t(e,'[data-k="bat"] .sub').includes('Eingang 96 W')&&t(e,'[data-k="bat"] .sub').includes('Gemeinsamer'),t(e,'[data-k="bat"] .sub'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test')){document.getElementById('host').style.height='0';run();}else{const v=two({pv_to_battery:'direkt'});v.battery.power_out='sensor.out';mount(v,hassFor({}));}
+</script></body></html>

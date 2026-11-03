@@ -92,6 +92,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .stat b{display:block;margin-top:5px;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .note{margin-top:10px;font-size:.64rem;color:rgba(139,151,179,.7);text-align:center}
+.yrnav{display:flex;align-items:center;margin-left:12px}
+.yb{cursor:pointer;padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);font-size:.8rem;font-weight:700;line-height:1.2;user-select:none;-webkit-tap-highlight-color:transparent}
+.yb.off{opacity:.3;pointer-events:none}
+.yv{margin:0 8px;font-size:.8rem;font-weight:700;font-variant-numeric:tabular-nums}
+.leg i.hist{background:rgb(var(--bat))}
+.b.cur.hist{background:linear-gradient(180deg,rgb(var(--bat)),rgba(var(--bat),.3));box-shadow:0 0 0 1px rgba(var(--bat),.35)}
+.col.gap:after{content:'';position:absolute;left:32%;right:32%;bottom:0;height:6px;border-radius:2px;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.35) 0 3px,transparent 3px 6px)}
+.cover{margin-top:6px;font-size:.7rem;line-height:1.45;color:rgb(var(--mut));text-align:center}
+.cover:empty{display:none}
 .wide{padding:24px 30px}
 .wide .title{font-size:1.25rem}
 .wide .m .num{font-size:2.4rem}
@@ -131,6 +140,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._chg = lst(c.battery_charge_total); this._c._dis = lst(c.battery_discharge_total);
       this._c._chgD = lst(c.charge_today); this._c._disD = lst(c.discharge_today);
       this._c.battery_capacity_kwh = lst(c.battery_capacity_kwh).reduce((a, v) => a + (parseFloat(v) || 0), 0);
+      // long_term (optional): ganze Historie, Jahre blättern, Reiter "Gesamt", pv_history. Ohne die Option bleibt alles wie bisher
+      this._c._lt = c.long_term === true;
+      this._c._hist = this._c._lt && typeof c.pv_history === 'string' ? c.pv_history.trim().toLowerCase() : '';
+      this._c._histUntil = /^\d{4}-\d{2}/.test(String(c.pv_history_until || '')) ? String(c.pv_history_until).slice(0, 7) : '';
+      if (!this._c._lt) { this._yr = null; if (this._period === 'all') this._period = 'month'; }
       this._build();
       this._loaded = 0;
       if (this._hass) this._load();
@@ -213,7 +227,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         <header>
           <div class="title"><span class="ico"><ha-icon icon="mdi:chart-box-outline"></ha-icon></span>${esc(c.title || T('st.title'))}</div>
           <div class="tabs">
-            <div class="tab" data-p="day">${T('st.today')}</div><div class="tab" data-p="month">${MON[now.getMonth()]}</div><div class="tab" data-p="year">${now.getFullYear()}</div>
+            <div class="tab" data-p="day">${T('st.today')}</div><div class="tab" data-p="month">${MON[now.getMonth()]}</div><div class="tab" data-p="year" data-f="yrTab">${now.getFullYear()}</div>${c._lt ? `<div class="tab" data-p="all">${T('st.all')}</div>` : ''}
           </div>
           ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('st.next'))}</div>` : ''}
         </header>
@@ -237,10 +251,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         </div>
         <div class="panel chart">
           <div class="chart-head"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.monthly')}</span>
-            <span class="leg"><i></i>${now.getFullYear()}</span><span class="leg"><i class="prev"></i>${now.getFullYear() - 1}</span></div>
+            ${c._lt ? '<span class="yrnav"><span class="yb" data-yr="-1" role="button" aria-label="−1">‹</span><span class="yv" data-f="yrNav"></span><span class="yb" data-yr="1" role="button" aria-label="+1">›</span></span>' : ''}
+            <span class="leg"><i></i><span data-f="legCur">${now.getFullYear()}</span></span><span class="leg"><i class="prev"></i><span data-f="legPrev">${now.getFullYear() - 1}</span></span>${c._hist ? `<span class="leg" data-leg="hist" style="display:none"><i class="hist"></i>${esc(c.pv_history_name || T('st.hist'))}</span>` : ''}</div>
           <div class="bars">${MON.map((x, i) => `<div class="col${i === now.getMonth() ? ' now' : ''}" data-m="${i}"><div class="b prev"></div><div class="b cur"></div></div>`).join('')}</div>
           <div class="mlabels">${MON.map((x, i) => `<span class="${i === now.getMonth() ? 'now' : ''}">${x}</span>`).join('')}</div>
           <div class="detail"></div>
+          ${c._lt ? '<div class="cover" data-f="cover"></div>' : ''}
         </div>
         <footer>
           <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.record')} ${now.getFullYear()}</span><b data-f="rec">—</b></div>
@@ -253,6 +269,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       </div></ha-card>`;
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { this._period = t.dataset.p; this._render(); }));
       this.shadowRoot.querySelectorAll('.col').forEach((col) => col.addEventListener('click', () => { this._sel = +col.dataset.m; this._detail(); }));
+      this.shadowRoot.querySelectorAll('.yb').forEach((b) => b.addEventListener('click', () => {
+        const y = this._years();
+        this._yr = Math.max(y.min, Math.min(y.max, y.cur + Number(b.dataset.yr)));
+        this._period = 'year';
+        this._render();
+      }));
       const nb = this._$('[data-nav]');
       if (nb) nb.addEventListener('click', () => haNavigate(nb.dataset.nav));
       this._mode();
@@ -264,19 +286,33 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._loading = true;
       try {
         const now = new Date();
-        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
+        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c._hist].concat(c._chg, c._dis).filter(Boolean);
         const [mon, day, hr] = await Promise.all([
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(c._lt ? 2000 : now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'], ...WD.statUnits(c) }),
           c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'], ...WD.statUnits(c) }) : Promise.resolve({}),
         ]);
         const byMonth = (id) => {
           const out = {};
           (mon[id] || []).forEach((r) => { const d = new Date(typeof r.start === 'number' ? r.start : Date.parse(r.start)); if (r.change !== null && r.change !== undefined) out[key(d.getFullYear(), d.getMonth())] = Math.max(0, r.change); });
+          // long_term: Für die älteste Zeile gibt es keinen Vorwert, Home Assistant rechnet sie gegen 0. Startet ein (importierter) Zähler
+          // nicht bei 0, stünde dort sein ganzer Zählerstand. Den Monat auslassen, wenn er weit über allen abgeschlossenen Monaten liegt
+          if (c._lt) {
+            const nowK = key(now.getFullYear(), now.getMonth()), ks = Object.keys(out).sort(), rest = ks.slice(1).filter((k) => k !== nowK);
+            if (rest.length && out[ks[0]] > 5 * Math.max(...rest.map((k) => out[k]))) delete out[ks[0]];
+          }
           return out;
         };
         const sumM = (list) => list.reduce((acc, id) => { const m = byMonth(id); Object.keys(m).forEach((k) => { acc[k] = (acc[k] || 0) + m[k]; }); return acc; }, {});
         this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: sumM(c._chg), dis: sumM(c._dis) };
+        // Diagramm-Reihe: pv_history füllt nur die Balken und "PV gesamt". Jeder Monat hat genau eine Quelle, Geldwerte und Autarkie bleiben bei pv_total
+        this._m.pvC = this._m.pv; this._m.hist = {};
+        if (c._hist) {
+          const hist = byMonth(c._hist), cs = Object.assign({}, this._m.pv);
+          Object.keys(hist).forEach((k) => { if (c._histUntil ? k <= c._histUntil : this._m.pv[k] === undefined) { cs[k] = hist[k]; this._m.hist[k] = true; } });
+          this._m.pvC = cs;
+          if (Object.keys(this._m.hist).length) this._m.pvAll = Object.keys(cs).reduce((a, k) => a + cs[k], 0);
+        }
         // Rekordtag
         let rec = null;
         // bevorzugt Tagesertrag (setzt täglich zurück); beim Gesamtzähler nur Tage direkt nach einem Vortag werten,
@@ -312,10 +348,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _count(k, target, dec) {
       const el = this._$(`[data-t="${k}"]`);
       if (!el) return;
-      if (target === null || !isFinite(target)) { el.textContent = '—'; return; }
       const t = this._tw[k] || (this._tw[k] = { cur: 0 });
+      // Nur die letzte Animation schreibt, sonst überschreibt eine laufende das "—" eines neuen Zeitraums
+      const run = t.run = (t.run || 0) + 1;
+      if (target === null || !isFinite(target)) { el.textContent = '—'; return; }
       t.from = t.cur; t.to = target; t.t0 = performance.now();
       const step = (n) => {
+        if (t.run !== run) return;
         const p = Math.min(1, (n - t.t0) / 1300), e = 1 - Math.pow(1 - p, 3);
         t.cur = t.from + (t.to - t.from) * e;
         el.textContent = nf(t.cur, dec);
@@ -325,6 +364,47 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     }
     _f(f, txt) { const el = this._$(`[data-f="${f}"]`); if (el && el.innerHTML !== txt) el.innerHTML = txt; }
 
+    // long_term: gewähltes Jahr und blätterbarer Bereich
+    _years() {
+      const max = new Date().getFullYear(), ks = this._m ? Object.keys(this._m.pvC) : [];
+      const min = ks.length ? Math.min(max, ...ks.map((k) => parseInt(k, 10))) : max;
+      return { min, max, cur: Math.max(min, Math.min(max, this._yr || max)) };
+    }
+    // Nur Monate mit PV, Bezug und Einspeisung ergeben stimmige Summen; der Speicher kann später dazugekommen sein
+    _complete() {
+      const M = this._m;
+      return Object.keys(M.pv).filter((k) => M.imp[k] !== undefined && M.exp[k] !== undefined).sort();
+    }
+    // Monate von first bis einschließlich zum aktuellen Monat, die in set fehlen
+    _missing(first, set) {
+      const out = [], now = new Date();
+      let y = parseInt(first, 10), m = parseInt(first.slice(5), 10) - 1;
+      while (y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth())) {
+        if (set[key(y, m)] === undefined) out.push(key(y, m));
+        if (++m > 11) { m = 0; y++; }
+      }
+      return out;
+    }
+    _cover(yr) {
+      const M = this._m, cs = Object.keys(M.pvC).sort(), lines = [];
+      if (!cs.length) return '';
+      const name = (k) => `${MON[parseInt(k.slice(5), 10) - 1]}`;
+      lines.push(T('st.lt.from', { d: `${MONL[parseInt(cs[0].slice(5), 10) - 1]} ${cs[0].slice(0, 4)}` }));
+      const gaps = this._missing(cs[0], M.pvC).filter((k) => k.startsWith(yr + '-'));
+      if (gaps.length) lines.push(T('st.lt.gaps', { m: gaps.map(name).join(', ') }));
+      if (this._period === 'year' || this._period === 'all') {
+        const done = this._complete();
+        if (done.length) {
+          const set = {}; done.forEach((k) => { set[k] = true; });
+          const n = this._missing(done[0], set).filter((k) => this._period === 'all' || k.startsWith(yr + '-')).length;
+          if (n) lines.push(T('st.lt.skip', { n }));
+        }
+      }
+      if (cs.some((k) => M.hist[k] && k.startsWith(yr + '-'))) lines.push(T('st.lt.hist'));
+      if (this._period === 'all' || (this._period === 'year' && yr !== new Date().getFullYear())) lines.push(T('st.lt.price'));
+      return lines.join(' · ');
+    }
+
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
@@ -333,6 +413,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: c._chgD.reduce((a, id) => a + (en(id) || 0), 0), dis: c._disD.reduce((a, id) => a + (en(id) || 0), 0), label: T('st.today') };
       }
       if (!M) return null;
+      if (c._lt && this._period !== 'month') {
+        const yr = this._years().cur;
+        const lks = this._complete().filter((k) => this._period === 'all' || k.startsWith(yr + '-'));
+        if (!lks.length) return null;
+        const lsum = (o) => lks.reduce((a, k) => a + (o[k] || 0), 0);
+        return { pv: lsum(M.pv), imp: lsum(M.imp), exp: lsum(M.exp), chg: lsum(M.chg), dis: lsum(M.dis), label: this._period === 'all' ? T('st.all') : String(yr) };
+      }
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
       const sum = (o) => ks.reduce((a, k) => a + (o[k] || 0), 0);
       return { pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
@@ -356,6 +443,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._f('feedSub', T('st.fed', { kwh: fKwh(p.exp) }));
         this._f('costSub', T('st.drawn', { kwh: fKwh(p.imp) }));
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? fPct(1 - p.exp / p.pv) : '—', cons: fKwh(cons) }));
+      } else if (c._lt && this._m && this._period !== 'day') {
+        // Gewählter Zeitraum ohne vollständige Monate: keine 0 und kein Wert aus dem vorigen Zeitraum stehen lassen
+        ['pvsav', 'feed', 'cost', 'aut'].forEach((k) => { this._count(k, null); this._f(k + 'Sub', T('st.nodata2')); });
       }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
@@ -400,12 +490,27 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       // Monatsbalken
       if (this._m) {
-        const now = new Date(), cy = now.getFullYear();
+        const now = new Date(), M = this._m, cy = c._lt ? this._years().cur : now.getFullYear(), isNow = cy === now.getFullYear();
         let mx = 1;
-        for (let i = 0; i < 12; i++) mx = Math.max(mx, this._m.pv[key(cy, i)] || 0, this._m.pv[key(cy - 1, i)] || 0);
+        for (let i = 0; i < 12; i++) mx = Math.max(mx, M.pvC[key(cy, i)] || 0, M.pvC[key(cy - 1, i)] || 0);
+        if (c._lt) {
+          const y = this._years(), cs = Object.keys(M.pvC).sort(), gaps = cs.length ? this._missing(cs[0], M.pvC) : [];
+          this._f('yrTab', String(cy)); this._f('yrNav', String(cy)); this._f('legCur', String(cy)); this._f('legPrev', String(cy - 1));
+          this.shadowRoot.querySelectorAll('.yb').forEach((b) => b.classList.toggle('off', Number(b.dataset.yr) < 0 ? cy <= y.min : cy >= y.max));
+          this.shadowRoot.querySelectorAll('.col').forEach((col) => {
+            const i = +col.dataset.m;
+            col.classList.toggle('now', isNow && i === now.getMonth());
+            col.classList.toggle('gap', gaps.includes(key(cy, i)));
+          });
+          this.shadowRoot.querySelectorAll('.mlabels span').forEach((l, i) => l.classList.toggle('now', isNow && i === now.getMonth()));
+          const hl = this._$('[data-leg="hist"]');
+          if (hl) hl.style.display = cs.some((k) => M.hist[k]) ? '' : 'none';
+          this._f('cover', this._cover(cy));
+        }
         requestAnimationFrame(() => this.shadowRoot.querySelectorAll('.col').forEach((col) => {
-          const i = +col.dataset.m, a = this._m.pv[key(cy, i)], b = this._m.pv[key(cy - 1, i)];
+          const i = +col.dataset.m, a = M.pvC[key(cy, i)], b = M.pvC[key(cy - 1, i)];
           col.querySelector('.cur').style.height = a ? Math.max(2, a / mx * 92) + '%' : '0';
+          col.querySelector('.cur').classList.toggle('hist', !!M.hist[key(cy, i)]);
           const pb = col.querySelector('.prev');
           pb.style.height = b ? Math.max(2, b / mx * 92) + '%' : '0';
           pb.style.display = b ? '' : 'none';
@@ -421,7 +526,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
       const tmp = live(h, c.battery_temp);
       if (tmp !== null) this._f('temp', `${nf(tmp, 1)}<small>°C</small>`);
-      if (pvT !== null) this._f('pvAll', `${nf(pvT / 1000, 1)}<small>MWh</small>`);
+      const pvAll = this._m && this._m.pvAll !== undefined ? this._m.pvAll : pvT;
+      if (pvAll !== null) this._f('pvAll', `${nf(pvAll / 1000, 1)}<small>MWh</small>`);
       // Preis unter 1 Cent: vermutlich in Euro statt Cent eingetragen (grid_price_ct erwartet Cent, z. B. 23.88)
       this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1) }) + (price < 0.01 ? '<br>' + T('st.price.warn', { p: nf(price * 100, 2) }) : '') : T('st.noprice'));
       if (this._fs) this._fitH(); else this._sched();
@@ -430,13 +536,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _detail() {
       const el = this._$('.detail'), M = this._m;
       if (!el || !M) return;
-      const cy = new Date().getFullYear(), i = this._sel;
+      const cy = this._c._lt ? this._years().cur : new Date().getFullYear(), i = this._sel;
       this.shadowRoot.querySelectorAll('.col').forEach((c) => c.classList.toggle('sel', +c.dataset.m === i));
       const k = key(cy, i), kp = key(cy - 1, i);
-      if (M.pv[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T('st.nodata')}`; return; }
+      if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
+      // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
+      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (M.chg[k] || 0) + (M.dis[k] || 0);
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
-      const d = M.pv[kp] ? (M.pv[k] - M.pv[kp]) / M.pv[kp] : null;
+      const d = M.pvC[kp] ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
       el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${fKwh(M.imp[k])} kWh · ${T('st.export')} ${fKwh(M.exp[k])} kWh · ${T('st.aut')} <b>${fPct(aut)}</b>`;
     }
   }

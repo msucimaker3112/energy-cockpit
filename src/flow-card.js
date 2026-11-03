@@ -209,6 +209,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* pv_to_battery: direkt auf dem Handy: Solar und Netz nebeneinander, der Speicher darunter (Solar fließt senkrecht in ihn) */
 .narrow .layout.via-bat{grid-template-areas:"hub hub" "pv grid" "bat bat";row-gap:34px}
 .narrow .layout.via-bat.has-pv2{grid-template-areas:"hub hub" "pv pv2" "bat bat" "grid grid"}
+.narrow .via-bat .mix{order:-1;margin:0 0 12px}
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:1.5rem}
 .narrow .core .num{font-size:1.8rem}
@@ -948,17 +949,29 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       return { b, i, p, out, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
     });
-    const bat = bats.some((x) => x.p !== null) ? bats.reduce((a, x) => a + (x.p || 0), 0) : null;
+    // Gemeinsamer Leistungssensor (übereinander gestapelte Akkus): zählt nur einmal, beim ersten Speicher mit diesem Sensor
+    const sensorSeen = {};
+    bats.forEach((x) => {
+      const id = x.b.power || (x.b.power_charge || x.b.power_discharge ? `${x.b.power_charge}|${x.b.power_discharge}` : '');
+      if (!id) return;
+      if (sensorSeen[id]) { x.lead = sensorSeen[id]; x.p = null; (x.lead.shared = x.lead.shared || []).push(x); } else sensorSeen[id] = x;
+    });
+    // behind_meter: Speicher hinter dem Zähler zählt wie ein Gerät im Haus, nicht in der Bilanz (eigene Kachel bleibt)
+    const inBal = bats.filter((x) => x.b.behind_meter !== true);
+    const bmChg = bats.reduce((a, x) => (x.b.behind_meter === true ? a + Math.max(0, x.p || 0) : a), 0);
+    const bat = inBal.some((x) => x.p !== null) ? inBal.reduce((a, x) => a + (x.p || 0), 0) : null;
     const withSoc = bats.filter((x) => x.soc !== null);
     const wSum = withSoc.reduce((a, x) => a + (x.cap || 1), 0);
     const soc = withSoc.length ? withSoc.reduce((a, x) => a + x.soc * (x.cap || 1), 0) / wSum : null;
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
+    // Negativer Verbrauch ist nicht möglich, dann gilt die eigene Berechnung
+    if (home !== null && home < 0) home = null;
     if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0));
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
     const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
     // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
-    const bDis = bats.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), 0), bChg = bats.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
+    const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), 0), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
     const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
     const tot = pvHome + gImp + bDis;
 
@@ -1000,7 +1013,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const parts = [];
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
-        const u1 = useText(p1Home, p1Bat, p1Exp);
+        // pv_to_battery: direkt: Der ganze Solarstrom geht in den Speicher, die Aufteilung steht beim Ausgang des Speichers
+        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
@@ -1030,7 +1044,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     bats.forEach((x) => {
       const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
       if (!el) return;
-      const bp = x.p, bs = x.soc, chg = (bp || 0) > 0;
+      const lead = x.lead || x, grp = [lead].concat(lead.shared || []);
+      const bp = lead.p, bs = x.soc, chg = (bp || 0) > 0;
       // Vorgeschalteter Speicher (pv_to_battery: direkt): Strom läuft durch ihn, auch wenn er weder lädt noch entlädt (Durchleitung)
       const via = this._via && x.i === 0 && x.out !== null;
       const pin = via ? Math.max(0, pv1 || 0) : 0, out = via ? x.out : 0;
@@ -1041,7 +1056,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.classList.toggle('on', on);
       el.classList.toggle('charging', net && chg);
       el.style.setProperty('--c', col);
-      this._anim(key, bp === null ? null : Math.abs(bp), el);
+      this._anim(key, bp === null || x.lead ? null : Math.abs(bp), el);
       this._set('.tag', bp === null ? T('tag.offline') : through ? T('tag.passthrough') : !net ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
       const fill = el.querySelector('.soc-fill');
       const lm = this._limits(x.b);
@@ -1054,13 +1069,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
       if (lo) { lo.style.width = (usable ? 0 : lm.reserve) + '%'; lo.style.display = !usable && lm.reserve > 0 ? '' : 'none'; }
       if (hi) { hi.style.width = (usable ? 0 : 100 - lm.maxSoc) + '%'; hi.style.display = !usable && lm.maxSoc < 100 ? '' : 'none'; }
-      const fc = this._batForecast(bp, bs, x.b, x.i);
-      this._set('.sub', via ? T('bat.io', { in: this._fW(pin), out: this._fW(out) }) + (fc ? '<br>' + fc : '') : fc, true, el);
+      // Prognose bei gemeinsamem Sensor: Leistung nach Kapazität aufgeteilt
+      const capSum = grp.reduce((a, o) => a + o.cap, 0);
+      const share = grp.length < 2 ? 1 : capSum > 0 && x.cap > 0 ? x.cap / capSum : 1 / grp.length;
+      const fc = this._batForecast(bp === null ? null : bp * share, bs, x.b, x.i);
+      // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
+      const outExp = via ? Math.min(out, gExp) : 0;
+      const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
+      const subT = via ? T('bat.io', { in: this._fW(pin), out: this._fW(out) }) + split + (fc ? '<br>' + fc : '') : fc;
+      const mates = grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
+      this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subT ? '<br>' + subT : '') : subT, true, el);
       if (via) {
         // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt
         this._link('pvbat', pin > TH, true, PAL.pv, pin);
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.bat : PAL.pv, out);
-      } else this._link(key, on, !chg, col, bp);
+      } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
@@ -1133,7 +1156,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link('g' + i, on, false, rgb(g.color, '167,139,250'), sum);
       });
       const rel = this._$('[data-k="grest"]');
-      const restW = Math.max(0, home - known);
+      const restW = Math.max(0, home - known - bmChg);
       const restMin = parseFloat(c.rest_min) || 0;
       const restShow = !!rel && (restMin <= 0 || (home > TH && restW / home * 100 >= restMin));
       if (rel) { rel.style.display = restShow ? '' : 'none'; if (restShow) vis++; }
@@ -1144,12 +1167,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._schedLayout();
       }
       if (rel) {
-        const rest = Math.max(0, home - known);
+        const rest = Math.max(0, home - known - bmChg);
         const on = rest > TH;
         rel.classList.toggle('on', on);
         this._anim('grest', rest, rel);
         this._link('grest', on, false, PAL.mut, rest);
-        this._set('.rest-t', home > TH ? T('flow.restpct', { n: Math.round(Math.min(1, known / home) * 100) }) : '');
+        this._set('.rest-t', home > TH ? T('flow.restpct', { n: Math.round(Math.min(1, (known + bmChg) / home) * 100) }) : '');
       }
     }
     if (this._sam) {
@@ -1167,16 +1190,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv2 && c.pv2.daily) { const d2 = en(c.pv2.daily); if (d2 !== null) dPv = (dPv || 0) + d2; }
     const dImp = c.grid ? en(c.grid.daily_import) : null;
     const dExp = c.grid ? en(c.grid.daily_export) : null;
-    const sumBat = (f) => c.batteries.reduce((a, b) => { const v = en(b[f]); return v === null ? a : (a || 0) + v; }, null);
+    // Derselbe Sensor bei mehreren Speichern zählt nur einmal
+    const sumBat = (f, list) => [...new Set((list || c.batteries).map((b) => b[f]))].reduce((a, id) => { const v = en(id); return v === null ? a : (a || 0) + v; }, null);
     const dChg = sumBat('daily_charge');
     const dDis = sumBat('daily_discharge');
+    const balB = c.batteries.filter((b) => b.behind_meter !== true);
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);
     let aut = null, dHome = c.home && c.home.daily ? en(c.home.daily) : null;
     if (dPv !== null && dImp !== null) {
-      const cons = dPv + dImp - (dExp || 0) - (dChg || 0) + (dDis || 0);
+      const cons = dPv + dImp - (dExp || 0) - (sumBat('daily_charge', balB) || 0) + (sumBat('daily_discharge', balB) || 0);
       if (cons > 0) aut = 1 - dImp / cons;
       if (dHome === null && !(c.home && c.home.daily)) dHome = Math.max(0, cons);
     }

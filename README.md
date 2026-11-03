@@ -12,7 +12,7 @@
 |---|---|
 | `energy-cockpit-flow-card` | Animierter **Energiefluss**: Solar (auch zweite Anlage), Netz, **ein oder mehrere Speicher** mit Entladegrenze, Haus, Verbraucher (eine Linie je Gerät oder eine Sammel-Linie), Überschuss-Hinweis, Akku-Prognose |
 | `energy-cockpit-devices-card` | **Geräte & Verbrauch**: Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät, Standby-Detektiv |
-| `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation (mit Anschaffungskosten), Grundlast, Monatsvergleich, Akku |
+| `energy-cockpit-stats-card` | **Statistik**: Ersparnis, Einspeiseerlös, Autarkie, Amortisation (mit Anschaffungskosten), Grundlast, Monatsvergleich, Akku, optional [Langzeit-Ansicht](docs/KONFIGURATION.md#langzeit-ansicht-optional) über alle Jahre |
 | `energy-cockpit-room-card` | **Raum-Abrechnung**: Verbrauch und Kosten eines Raums mit Abschlag, Hochrechnung, Live-Leistung, Herkunft (Netz, Batterie, PV), Grundlast, Betriebszeiten und Monatsarchiv |
 
 **Morgens, wenig Sonne** (Beispieldaten): 81 W PV gehen komplett ins Haus, der Rest von 189 W kommt aus dem Netz.

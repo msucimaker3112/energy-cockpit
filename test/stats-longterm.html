@@ -1,0 +1,88 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik Langzeit Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft long_term: Aufruf ohne Parameter zeigt die Karte, ?test=1 führt die Prüfungen aus und schreibt das Ergebnis in #res */
+const S=(state,u)=>({state:String(state),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const states={'sensor.pv':S(15400),'sensor.imp':S(7800),'sensor.exp':S(9100),'sensor.chg':S(3300),'sensor.dis':S(3000)};
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const key=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
+// Monatsreihe ab (y,m) bis heute, skip: ausgelassene Monate, first: Wert der ältesten Zeile
+function rows(y,m,base,skip,first,until){const out=[];let a=y,b=m,i=0;while(a<Y||(a===Y&&b<=M)){if(until&&key(a,b)>until)break;const k=key(a,b);if(!(skip||[]).includes(k)){out.push({start:new Date(a,b,1).getTime(),change:i===0&&first?first:base});i++;}if(++b>11){b=0;a++;}}return out;}
+let lastStart=null,queried=[];
+const data={'sensor.pv':()=>rows(Y-2,0,300,[key(Y-1,2),key(Y-1,3)],90000),'sensor.imp':()=>rows(Y-2,1,100),'sensor.exp':()=>rows(Y-2,1,120),'sensor.chg':()=>rows(Y-1,0,50),'sensor.dis':()=>rows(Y-1,0,45),'sensor:alt':()=>rows(Y-4,4,200,null,null,key(Y-2,5))};
+const hass={states,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async(m)=>{
+  const r={};if(m.period==='month'){lastStart=new Date(m.start_time).getFullYear();queried=m.statistic_ids.slice();}
+  (m.statistic_ids||[]).forEach(id=>{if(m.period==='month')r[id]=(data[id]||(()=>[]))();else if(m.period==='day')r[id]=[];else r[id]=[];});return r;}};
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:30,feed_in_ct:8};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const card=document.createElement('energy-cockpit-stats-card');card.setConfig(c);h.appendChild(card);card.hass=hass;return card;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(c,s)=>c.shadowRoot.querySelector(s),qa=(c,s)=>[...c.shadowRoot.querySelectorAll(s)];
+const txt=(c,s)=>{const e=q(c,s);return e?e.textContent:null;};
+const lines=[];let fail=0;
+const ok=(n,v,extra)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(extra!==undefined?' -> '+extra:''));};
+async function run(){
+  // 1. Aus: alles wie bisher
+  let c=mount(base);await wait(1600);
+  ok('aus: Abfrage ab Vorjahr',lastStart===Y-1,lastStart);
+  ok('aus: drei Reiter',qa(c,'.tab').length===3);
+  ok('aus: kein Blättern',!q(c,'.yb'));
+  ok('aus: kein Hinweistext',!q(c,'.cover'));
+  ok('aus: keine Diagramm-Sonderklassen',!q(c,'.col.gap')&&!q(c,'.b.hist'));
+  ok('aus: pv_history wird ignoriert',(c=mount({...base,pv_history:'sensor:alt'}),await wait(300),!queried.includes('sensor:alt')));
+  // 2. Ein
+  c=mount({...base,long_term:true});await wait(1600);
+  ok('ein: Abfrage ab 2000',lastStart===2000,lastStart);
+  ok('ein: vier Reiter',qa(c,'.tab').length===4);
+  ok('ein: Startwert-Ausreißer entfernt',c._m.pv[key(Y-2,0)]===undefined&&c._m.imp[key(Y-2,1)]===100);
+  ok('ein: ab '+key(Y-2,1),/Daten ab /.test(txt(c,'.cover')),txt(c,'.cover'));
+  ok('ein: Weiter im aktuellen Jahr gesperrt',q(c,'.yb[data-yr="1"]').classList.contains('off'));
+  q(c,'.yb[data-yr="-1"]').click();await wait(1500);
+  ok('blättern: Vorjahr',txt(c,'.yv')===String(Y-1)&&c._period==='year');
+  ok('blättern: Reiter Jahr aktiv',q(c,'.tab.on').dataset.p==='year');
+  ok('blättern: Reitertext folgt',txt(c,'[data-p="year"]')===String(Y-1));
+  ok('Lücke markiert',qa(c,'.col.gap').map(e=>+e.dataset.m).join()==='2,3',qa(c,'.col.gap').map(e=>e.dataset.m).join());
+  ok('Lücke im Hinweis',/Keine Daten für/.test(txt(c,'.cover'))&&/fehlen 2 Monat/.test(txt(c,'.cover')),txt(c,'.cover'));
+  // 10 vollständige Monate: PV 3000, Bezug 1000, Einspeisung 1200 => Kosten 300 €
+  ok('Summe nur aus vollständigen Monaten',txt(c,'[data-f="costSub"]').includes('1.000 kWh'),txt(c,'[data-f="costSub"]'));
+  q(c,'.col[data-m="2"]').click();
+  ok('Detail Lücke',/keine Daten/.test(txt(c,'.detail')),txt(c,'.detail'));
+  q(c,'.yb[data-yr="-1"]').click();await wait(200);
+  ok('Untergrenze',txt(c,'.yv')===String(Y-2)&&q(c,'.yb[data-yr="-1"]').classList.contains('off'));
+  qa(c,'.tab').find(t=>t.dataset.p==='all').click();await wait(1500);
+  ok('Gesamt: Reiter aktiv',q(c,'.tab.on').dataset.p==='all');
+  ok('Gesamt: Preis-Hinweis',/heutigen Preisen/.test(txt(c,'.cover')));
+  // Ein-/Ausschalten am laufenden Reiter
+  c.setConfig(base);await wait(300);
+  ok('ausgeschaltet: zurück auf Monat',c._period==='month'&&qa(c,'.tab').length===3);
+  // 3. pv_history mit Stichtag
+  const until=key(Y-2,5);
+  c=mount({...base,long_term:true,pv_history:'Sensor:ALT',pv_history_until:until,pv_history_name:'AC-Abgabe'});await wait(1600);
+  ok('Historie abgefragt, Kleinschreibung',queried.includes('sensor:alt'));
+  ok('Historie gewinnt bis Stichtag',c._m.pvC[key(Y-2,3)]===200&&c._m.hist[key(Y-2,3)]===true);
+  ok('danach Zähler',c._m.pvC[key(Y-2,6)]===300&&!c._m.hist[key(Y-2,6)]);
+  ok('Geldwerte bleiben bei pv_total',c._m.pv[key(Y-2,3)]===300);
+  ok('Legende',txt(c,'[data-leg="hist"]')==='AC-Abgabe'&&q(c,'[data-leg="hist"]').style.display!=='none');
+  ok('PV gesamt aus Summe',Math.abs(c._m.pvAll-Object.values(c._m.pvC).reduce((a,b)=>a+b,0))<1e-6&&!/15,4/.test(txt(c,'[data-f="pvAll"]')),txt(c,'[data-f="pvAll"]'));
+  while(!q(c,'.yb[data-yr="-1"]').classList.contains('off')){q(c,'.yb[data-yr="-1"]').click();await wait(20);}
+  await wait(1500);
+  ok('ältestes Jahr aus Historie',txt(c,'.yv')===String(Y-4));
+  c._count('cost',5,2);c._count('cost',null);await wait(1500);
+  ok('laufende Animation überschreibt das Strichzeichen nicht',txt(c,'[data-t="cost"]')==='—');
+  ok('Jahr ohne vollständige Monate: keine 0',txt(c,'[data-t="cost"]')==='—'&&txt(c,'[data-f="costSub"]')==='keine Daten',txt(c,'[data-t="cost"]'));
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));ok('Balken folgen dem Jahr',q(c,'.col[data-m="0"] .cur').style.height==='0px'&&parseFloat(q(c,'.col[data-m="11"] .cur').style.height)>0,q(c,'.col[data-m="0"] .cur').style.height);
+  ok('Reiter bleibt beim Blättern auf Jahr',q(c,'.tab.on').dataset.p==='year');
+ok('Historienbalken markiert',!!q(c,'.b.cur.hist'));
+  q(c,'.col[data-m="6"]').click();
+  ok('Detail Historie',/AC-Abgabe/.test(txt(c,'.detail'))&&!/Bezug/.test(txt(c,'.detail')),txt(c,'.detail'));
+  // 4. Junge Anlage: Ausreißerschutz darf nichts wegnehmen
+  data['sensor.pv']=()=>[{start:new Date(Y,M-1,1).getTime(),change:300},{start:new Date(Y,M,1).getTime(),change:10}];
+  c=mount({...base,long_term:true});await wait(600);
+  ok('junge Anlage: erster Monat bleibt',c._m.pv[key(new Date(Y,M-1,1).getFullYear(),new Date(Y,M-1,1).getMonth())]===300);
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(location.search.includes('test=1')){document.getElementById('host').style.height='0';run();}
+else{const c=mount({...base,long_term:true,pv_history:'sensor:alt',pv_history_until:key(Y-2,5),pv_history_name:'AC-Abgabe'});window.__c=c;if(location.search.includes('still')){const st=document.createElement('style');st.textContent='*{transition:none!important}';c.shadowRoot.appendChild(st);}if(location.search.includes('y=')){setTimeout(()=>{c._yr=+new URLSearchParams(location.search).get('y');c._period='year';c._render();},800);}}
+</script></body></html>

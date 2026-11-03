@@ -1,0 +1,36 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Speicher vor dem Wechselrichter Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft pv_to_battery: direkt mit echten Werten aus #15. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?case=0..2) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const cases=[{pv:445,out:331,grid:-16},{pv:360,out:357,grid:15},{pv:455,out:531,grid:1350}];
+const hassFor=(k)=>({states:{'sensor.pv':S(k.pv),'sensor.out':S(k.out),'sensor.grid':S(k.grid),'sensor.soc':S(40,'%'),'sensor.bat':S(k.pv-k.out)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+const via={pv_to_battery:'direkt',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{name:'Anker',power_out:'sensor.out',soc:'sensor.soc',capacity_kwh:7}};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(c);host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const sub=(e,s)=>e.shadowRoot.querySelector(s+' .sub').textContent.replace(/\s+/g,' ').trim();
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(via,hassFor(cases[0]));await wait(600);
+  ok('Einspeisung: Solar geht in den Speicher',sub(e,'.pv').includes('→ Speicher 445 W')&&!sub(e,'.pv').includes('Haus'),sub(e,'.pv'));
+  ok('Einspeisung: Ausgang aufgeteilt',sub(e,'.bat').includes('Ausgang 331 W (Haus 315 W · Netz 16 W)'),sub(e,'.bat'));
+  e=mount(via,hassFor(cases[1]));await wait(600);
+  ok('Bezug: keine Aufteilung',sub(e,'.bat').includes('Ausgang 357 W')&&!sub(e,'.bat').includes('Haus'),sub(e,'.bat'));
+  e=mount(via,hassFor(cases[2]));await wait(600);
+  ok('Entladen: Solar in den Speicher',sub(e,'.pv').includes('→ Speicher 455 W'),sub(e,'.pv'));
+  ok('Entladen: Eingang und Ausgang',sub(e,'.bat').includes('Eingang 455 W · Ausgang 531 W'),sub(e,'.bat'));
+  const noOut=hassFor(cases[0]);noOut.states['sensor.out']=S('unavailable');
+  e=mount(via,noOut);await wait(600);
+  ok('Ausgang nicht verfügbar: alte Solar-Aufteilung',!sub(e,'.pv').includes('Speicher'),sub(e,'.pv'));
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:7}},hassFor(cases[0]));await wait(600);
+  ok('Normale Anlage: Beschriftung unverändert',/Haus/.test(sub(e,'.pv'))&&!/Speicher/.test(sub(e,'.pv')),sub(e,'.pv'));
+  ok('Normale Anlage: keine Aufteilung beim Speicher',!/Ausgang/.test(sub(e,'.bat')),sub(e,'.bat'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else mount(via,hassFor(cases[+(P.get('case')||0)]));
+</script></body></html>

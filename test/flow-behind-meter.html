@@ -1,0 +1,47 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Speicher hinter dem Zaehler Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft behind_meter und den Rückfall bei negativem home.entity mit den Werten aus #15. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+// PV 195 W, Netz 3 W, Viessmann-Batterie entlädt 207 W, Zendure lädt oder gibt ab
+const hassFor=(k)=>({states:{'sensor.pv':S(195),'sensor.grid':S(k.grid===undefined?3:k.grid),'sensor.main':S(-207),'sensor.soc':S(40,'%'),'sensor.zch':S(k.ch||0),'sensor.zdis':S(k.dis||0),'sensor.zsoc':S(50,'%'),'sensor.haus':S(k.home===undefined?0:k.home),'sensor.pvd':S(6,'kWh'),'sensor.imp':S(2,'kWh'),'sensor.exp':S(0,'kWh'),'sensor.mch':S(1,'kWh'),'sensor.mdis':S(3,'kWh'),'sensor.zdch':S(4,'kWh'),'sensor.zddis':S(0,'kWh')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+const cfg=(bm,extra)=>({pv:{entity:'sensor.pv',daily:'sensor.pvd'},grid:{entity:'sensor.grid',daily_import:'sensor.imp',daily_export:'sensor.exp'},battery:{power:'sensor.main',soc:'sensor.soc',capacity_kwh:10,daily_charge:'sensor.mch',daily_discharge:'sensor.mdis'},batteries:[{name:'Zendure',power_charge:'sensor.zch',power_discharge:'sensor.zdis',soc:'sensor.zsoc',capacity_kwh:2,daily_charge:'sensor.zdch',daily_discharge:'sensor.zddis',behind_meter:bm}],consumers:[{name:'Rest',entity:'sensor.grid'}],...(extra||{})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(c);host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const num=(t)=>parseInt(String(t).replace(/\D/g,''),10);
+const homeW=(e)=>num(e.shadowRoot.querySelector('.core .num').textContent);
+const batW=(e,k)=>num(e.shadowRoot.querySelector(`[data-k="${k}"] .num`).textContent);
+const txt=(e,s)=>{const x=e.shadowRoot.querySelector(s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg(false),hassFor({ch:96}));await wait(900);
+  ok('aus: Ladung senkt den Hausverbrauch wie bisher',homeW(e)===309,homeW(e));
+  const offAut=txt(e,'[data-s="aut"] b'),offHome=txt(e,'[data-s="home"] b');
+  e=mount(cfg(true),hassFor({ch:96}));await wait(900);
+  ok('ein: Ladung zählt zum Haus',homeW(e)===405,homeW(e));
+  ok('ein: Kachel zeigt weiter die Ladung',batW(e,'bat2')===96,batW(e,'bat2'));
+  ok('ein: Kachel Status lädt',e.shadowRoot.querySelector('[data-k="bat2"]').classList.contains('charging'));
+  // Tageswerte: 6 + 2 - 0 - 1 + 3 = 10 kWh statt 6 kWh, Autarkie 80 % statt 67 %
+  ok('ein: Haus heute ohne Zendure',/10,0/.test(txt(e,'[data-s="home"] b')),txt(e,'[data-s="home"] b')+' (aus: '+offHome+')');
+  ok('ein: Autarkie heute ohne Zendure',txt(e,'[data-s="aut"] b')==='80 %',txt(e,'[data-s="aut"] b')+' (aus: '+offAut+')');
+  ok('ein: Kachel Batterie heute zeigt alle Speicher',/5,0/.test(txt(e,'[data-s="bat"] b')),txt(e,'[data-s="bat"] b'));
+  // Der Zendure gibt 100 W ab, der Netzzähler sieht 100 W weniger
+  e=mount(cfg(false),hassFor({dis:100,grid:-97}));await wait(900);
+  ok('aus: Abgabe zählt als Speicher, Haus bleibt',homeW(e)===405,homeW(e));
+  e=mount(cfg(true),hassFor({dis:100,grid:-97}));await wait(900);
+  ok('ein: Abgabe senkt den Hausverbrauch',homeW(e)===305,homeW(e));
+  // Negativer Helfer
+  e=mount(cfg(false,{home:{entity:'sensor.haus'}}),hassFor({home:-71}));await wait(900);
+  ok('negativer Sensor: eigene Berechnung statt 71 W',homeW(e)===405,homeW(e));
+  e=mount(cfg(false,{home:{entity:'sensor.haus'}}),hassFor({home:556}));await wait(900);
+  ok('positiver Sensor: Wert bleibt',homeW(e)===556,homeW(e));
+  e=mount(cfg(false,{home:{entity:'sensor.haus'}}),hassFor({home:0}));await wait(900);
+  ok('Sensor 0 W: Wert bleibt',homeW(e)===0,homeW(e));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test')){document.getElementById('host').style.height='0';run();}else mount(cfg(true),hassFor({ch:96}));
+</script></body></html>

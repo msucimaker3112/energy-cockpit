@@ -6,6 +6,7 @@
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const KEYS = ['pv_total', 'grid_import_total', 'grid_export_total', 'battery_charge_total', 'battery_discharge_total', 'battery_temp', 'pv_today', 'import_today', 'export_today',
@@ -22,6 +23,8 @@
       ent('investment', ['sensor', 'input_number']),
       { name: 'earned_before_eur', selector: { number: { min: 0, max: 1000000, step: 1, mode: 'box' } } },
       ent('earned_before', ['sensor', 'input_number']),
+      { name: 'long_term', selector: { boolean: {} } },
+      { name: 'pv_history', selector: { text: {} } }, { name: 'pv_history_until', selector: { text: {} } }, { name: 'pv_history_name', selector: { text: {} } },
       { name: 'fit_screen', default: true, selector: { boolean: {} } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
       { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
@@ -60,6 +63,12 @@
       { path: 'earned_before_eur', label: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', kind: 'number', optional: true, step: '1', help: 'Nur nötig, wenn die Anlage schon lief, bevor Home Assistant die Zähler erfasst hat. Der Betrag wird zur Amortisation addiert.' },
       { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
     ] },
+    { short: 'Langzeit', title: 'Langzeit-Ansicht (optional)', text: 'Standardmäßig aus. Eingeschaltet zeigt die Karte alle Jahre aus der Langzeitstatistik von Home Assistant: Jahre blättern, Reiter "Gesamt" und Hinweise auf fehlende Monate. Ausgeschaltet bleibt die Karte wie bisher.', fields: [
+      { path: 'long_term', label: 'Langzeit-Ansicht einschalten', kind: 'bool' },
+      { path: 'pv_history', label: 'Importierte PV-Historie (nur mit Langzeit-Ansicht)', kind: 'text', optional: true, help: 'Nur für zuvor importierte Altdaten: Statistik-ID eintragen, zum Beispiel sensor:deye_ac_historisch. Die Werte erscheinen nur in den Balken und bei "PV gesamt", Geldwerte und Autarkie bleiben unverändert.' },
+      { path: 'pv_history_until', label: 'Historie gilt bis einschließlich (JJJJ-MM)', kind: 'text', optional: true, help: 'Zum Beispiel 2026-04. Ohne Angabe füllt die Historie nur Monate, für die dein PV-Zähler keine Werte hat.' },
+      { path: 'pv_history_name', label: 'Bezeichnung der Historie', kind: 'text', optional: true, help: 'Steht in der Legende, zum Beispiel "AC-Abgabe". Sonst "Historie".' },
+    ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
     ] },
@@ -69,6 +78,7 @@
       `Einspeisung gesamt: ${c.grid_export_total || 'nicht gewählt'}`,
       `Batterie: ${c.battery_charge_total ? 'ja' : 'nein'}`,
       `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'gesetzt' : 'keine'}`,
+      `Langzeit-Ansicht: ${c.long_term ? 'ein' : 'aus'}`,
     ] },
   ];
 
