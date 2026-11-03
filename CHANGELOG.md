@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.18.1
+- **Energiefluss, Tagesertrag von Hybrid-Wechselrichtern (optional, `pv.daily_ac`):** Manche Wechselrichter zählen im Tagesertrag nur ihre Abgabe, die Ladung des Akkus direkt aus den Modulen fehlt darin. Die Karte zog sie trotzdem ab, deshalb stand "Autarkie heute" bei 0 % und "Haus heute" war viel zu niedrig. Mit der neuen Einstellung stimmen "PV heute", "Haus heute" und "Autarkie heute". Ohne Eintrag ändert sich nichts.
+
 ## 0.18.0
 - **Energiefluss, Temperatur je Speicher (optional, `temp`):** Jeder Speicher kann einen eigenen Temperatur-Sensor bekommen, im Assistenten (Schritte "Batterie" und "Weitere Speicher"), im Formular oder in YAML. Der Wert steht in der Kachel unter dem Ladestand, ein Tipp öffnet den Verlauf. Ohne Eintrag ändert sich nichts. Wunsch aus [#17](https://github.com/msucimaker3112/energy-cockpit/issues/17).
 
