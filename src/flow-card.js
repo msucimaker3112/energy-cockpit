@@ -804,7 +804,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const el = this._$(`[data-o="${k}"]`);
       if (!el || this._3k[k] === key) return;
       this._3k[k] = key;
-      el.innerHTML = fn();
+      D3.draw(el, fn());
     };
     const solar = (k, cfg, w) => {
       const list = (cfg.strings || []).map((s) => watt(this._hass, s.entity) || 0);
@@ -817,9 +817,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv) solar('pv', c.pv, Math.max(0, v.pv1 || 0));
     if (c.pv2 && c.pv2.entity) solar('pv2', c.pv2, Math.max(0, v.pv2 || 0));
     if (c.grid) { const g = v.grid || 0; put('grid', [q(g), large].join(), () => D3.meter(g, 'grid', large, this._fW(g), c.grid.name || T('flow.grid'))); }
-    v.bats.forEach((x) => {
-      const k = this._bk(x.i), p = (x.lead || x).p || 0, s = x.soc === null ? null : Math.round(x.soc);
-      put(k, [s, q(p), large].join(), () => D3.stack([s], p, k, large, x.b.name || T('flow.battery')));
+    v.bats.filter((x) => !x.lead).forEach((x) => {
+      const k = this._bk(x.i), p = x.p || 0, grp = [x].concat(x.shared || []);
+      const socs = grp.map((o) => (o.soc === null ? null : Math.round(o.soc)));
+      const name = grp.map((o, i) => o.b.name || T('flow.battery') + ' ' + (o.i + 1)).join(' · ');
+      put(k, [socs.join(), q(p), large].join(), () => D3.stack(socs, p, k, large, name));
+      if (grp.length > 1) {
+        const el = this._$(`[data-k="${k}"]`);
+        el.querySelector('.lbl').textContent = name;
+        el.querySelector('.soc-txt').textContent = socs.map((s) => (s === null ? '—' : s + ' %')).join(' / ');
+      }
     });
     const form = c.house_style === 'flach' ? 'modern' : 'sattel', s = v.src;
     put('home', [q(v.home), q(s.pv), q(s.bat), q(s.imp), form, large].join(), () => D3.house(v.home, s, 'home', form, large, (c.home && c.home.name) || T('flow.home')));
@@ -1075,6 +1082,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
     bats.forEach((x) => {
       const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
       if (!el) return;
+      // 3D: Akkus an einem gemeinsamen Sensor stehen als Turm in der Kachel des ersten
+      if (this._s3d && x.lead) {
+        if (el.style.display !== 'none') { el.style.display = 'none'; this._schedLayout(); }
+        this._link(key, false, false, PAL.bat, 0);
+        return;
+      }
       const lead = x.lead || x, grp = [lead].concat(lead.shared || []);
       const bp = lead.p, bs = x.soc, chg = (bp || 0) > 0;
       // Vorgeschalteter Speicher (pv_to_battery: direkt): Strom läuft durch ihn, auch wenn er weder lädt noch entlädt (Durchleitung)
@@ -1103,12 +1116,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Prognose bei gemeinsamem Sensor: Leistung nach Kapazität aufgeteilt
       const capSum = grp.reduce((a, o) => a + o.cap, 0);
       const share = grp.length < 2 ? 1 : capSum > 0 && x.cap > 0 ? x.cap / capSum : 1 / grp.length;
-      const fc = this._batForecast(bp === null ? null : bp * share, bs, x.b, x.i);
+      const tower = this._s3d && grp.length > 1;
+      const towerSoc = tower && grp.every((o) => o.soc !== null) ? grp.reduce((a, o) => a + o.soc * (o.cap || 1), 0) / grp.reduce((a, o) => a + (o.cap || 1), 0) : bs;
+      const fc = tower ? this._batForecast(bp, towerSoc, Object.assign({}, x.b, { capacity_kwh: capSum }), x.i) : this._batForecast(bp === null ? null : bp * share, bs, x.b, x.i);
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
       const outExp = via ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
       const subT = via ? T('bat.io', { in: this._fW(pin), out: this._fW(out) }) + split + (fc ? '<br>' + fc : '') : fc;
-      const mates = grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
+      const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subT ? '<br>' + subT : '') : subT, true, el);
       if (via) {
         // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt

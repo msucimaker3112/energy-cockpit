@@ -12,7 +12,7 @@ const glow=(id,col,op)=>`<radialGradient id="${id}"><stop offset="0" style="stop
 /* Speicher: Gehäuse mit Sichtfenster */
 function stack(socs,p,pre,large,label){
   const W=118,D=84,REV=30,MX=13;
-  const n=socs.length,H=n===1?124:n===2?72:54,GAP=3,BASE=6;
+  const n=socs.length,H=n===1?124:n===2?72:n===3?54:44,GAP=3,BASE=6;
   const chg=p>TH,dis=p<-TH,run=chg||dis,accent=chg?PAL.chg:PAL.bat;
   const dur=Math.max(1.2,3.4-Math.abs(p)/800).toFixed(2)+'s';
   const lampCol=run?accent:'139,151,179';
@@ -26,7 +26,7 @@ function stack(socs,p,pre,large,label){
   [[8,D-8],[W-8,D-8],[W-8,8]].forEach((f)=>{body+=poly([[f[0]-5,f[1]+4,0],[f[0]+5,f[1]+4,0],[f[0]+5,f[1]+4,BASE],[f[0]-5,f[1]+4,BASE]],'fill:var(--slot)');});
 
   socs.forEach((soc,k)=>{
-    const z0=BASE+k*(H+GAP),z1=z0+H,wz0=z0+(n===3?7:9),wz1=z1-(n===3?7:9),wH=wz1-wz0;
+    const z0=BASE+k*(H+GAP),z1=z0+H,wz0=z0+(n>=3?7:9),wz1=z1-(n>=3?7:9),wH=wz1-wz0;
     const lvl=soc>0?Math.max(1.5,wH*soc/100):0,top=wz0+lvl,col=soc<20?PAL.imp:soc<40?PAL.pv:accent;
     const x0=MX,x1=W-MX,yB=D-REV;
     // Gehäuse
@@ -63,7 +63,7 @@ function stack(socs,p,pre,large,label){
     // Fuge zum nächsten Akku
     if(k<n-1)body+=poly([[4,D-3,z1],[W-3,D-3,z1],[W-3,D-3,z1+GAP],[4,D-3,z1+GAP]],'fill:var(--slot)')+poly([[W-3,D-3,z1],[W-3,4,z1],[W-3,4,z1+GAP],[W-3,D-3,z1+GAP]],'fill:var(--slot)');
     if(large){
-      const o=P(0,D,z0),fs=n===3?17:n===2?20:22;
+      const o=P(0,D,z0),fs=n>=3?17:n===2?20:22;
       body+=`<g transform="matrix(${C},${S},0,1,${o[0].toFixed(1)},${o[1].toFixed(1)})"><text x="${W/2}" y="${-(H/2)+fs*.35}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#fff" stroke="var(--ink)" stroke-width="3.2" paint-order="stroke" style="font-family:inherit;font-variant-numeric:tabular-nums">${soc===null?'—':Math.round(soc)+' %'}</text></g>`;
     }
   });
@@ -284,5 +284,20 @@ function house(home,src,pre,form,detail,label){
 }
 
 const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,46%) minmax(0,1fr);column-gap:12px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.narrow.s3d .node{grid-template-columns:minmax(0,1fr)}\n.narrow.s3d .node>*,.narrow.s3d .node>.o3d{grid-column:1;grid-row:auto}\n.narrow.s3d .node>.o3d svg{height:112px;margin-bottom:6px}\n.narrow.s3d .via-bat .node.bat{grid-template-columns:minmax(0,46%) minmax(0,1fr)}\n.narrow.s3d .via-bat .node.bat>*{grid-column:2}\n.narrow.s3d .via-bat .node.bat>.o3d{grid-column:1;grid-row:1 / span 7}\n.narrow.s3d .via-bat .node.bat>.o3d svg{height:auto;margin-bottom:0}\n.s3d.cmp .node{grid-template-columns:52px minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
-WD.D3 = { stack, solar, meter, house, css };
+// Überträgt nur die Unterschiede in das vorhandene SVG, damit laufende Animationen nicht neu starten
+const tpl = document.createElement('template');
+const patch = (a, b) => {
+  for (const n of [...a.attributes]) if (!b.hasAttribute(n.name)) a.removeAttribute(n.name);
+  for (const n of [...b.attributes]) if (a.getAttribute(n.name) !== n.value) a.setAttribute(n.name, n.value);
+  const ca = a.children, cb = [...b.children];
+  if (!cb.length && !ca.length) { if (a.textContent !== b.textContent) a.textContent = b.textContent; return; }
+  if (ca.length !== cb.length || cb.some((n, i) => n.tagName !== ca[i].tagName)) { a.replaceChildren(...cb); return; }
+  cb.forEach((n, i) => patch(ca[i], n));
+};
+const draw = (el, html) => {
+  tpl.innerHTML = html;
+  const n = tpl.content.firstElementChild, o = el.firstElementChild;
+  if (o && o.tagName === n.tagName) patch(o, n); else el.replaceChildren(n);
+};
+WD.D3 = { stack, solar, meter, house, css, draw };
 })();
