@@ -1,0 +1,91 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Kosten je Verbraucher Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft cost_consumers und pv_ac mit gerechneten Stunden. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// Heute 00 Uhr: nur Netz. 01 Uhr: nur PV. 02 Uhr: halb Netz, halb PV, Akku lädt (mit pv_ac 50 % Netz, sonst 100 %)
+const hrs=[{t:d0,pv:0,imp:1,exp:0,chg:0,dis:0,e:1,g:0,b:0,p:0},{t:d0+H,pv:2,imp:0,exp:1,chg:0,dis:0,e:1,g:0,b:0,p:2},{t:d0+2*H,pv:1,imp:1,exp:0,chg:1,dis:0,e:1,g:1,b:1,p:1}];
+if(now.getDate()>1)hrs.push({t:d0-24*H,pv:0,imp:2,exp:0,chg:0,dis:0,e:2,g:2,b:0,p:0});
+const past={t:new Date(now.getFullYear(),0,1,12).getTime(),pv:0,imp:4,exp:0,chg:0,dis:0,e:4,g:4,b:0,p:0};
+const map={'sensor.pv':'pv','sensor.imp':'imp','sensor.exp':'exp','sensor.chg':'chg','sensor.dis':'dis','sensor.e':'e','sensor.g':'g','sensor.b':'b','sensor.p':'p'};
+let calls=[];
+const wk0=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7).getTime();let meanOn=false;
+const hassFor=(o)=>({states:Object.assign({'sensor.w':S(630)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  if(m.period!=='hour')return {};
+  if(m.types&&m.types.includes('mean'))return meanOn?{[m.statistic_ids[0]]:hrs.map(x=>({start:x.t,mean:.25}))}:{};
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15;calls.push({from,to});
+  const r={};const rows=hrs.concat(now.getMonth()>0?[past]:[]).filter(x=>x.t>=from&&x.t<to);
+  (m.statistic_ids||[]).forEach(id=>{if(map[id])r[id]=rows.map(x=>({start:x.t,change:x[map[id]]}));});return r;}});
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:50,
+  cost_consumers:[{name:'Gemessen',icon:'mdi:car-electric',color:'#a78bfa',grid:'sensor.g',battery:'sensor.b',pv:'sensor.p',power:'sensor.w'},{name:'Mix <b>',icon:'mdi:water-boiler',color:'#38bdf8',energy:'sensor.e'}]};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1500);};
+async function run(){
+  let e=mount({...base,pv_ac:true},hassFor());await wait(600);await tab(e,'day');
+  ok('Heute, gemessen: Netzkosten',t(e,'[data-t="ccC0"]')==='0,50',t(e,'[data-t="ccC0"]'));
+  ok('Heute, gemessen: gespart',t(e,'[data-f="ccS0"]')==='2,00 €',t(e,'[data-f="ccS0"]'));
+  ok('Heute, Mix mit pv_ac: Netzkosten',t(e,'[data-t="ccC1"]')==='0,75',t(e,'[data-t="ccC1"]'));
+  ok('Heute, Mix mit pv_ac: gespart',t(e,'[data-f="ccS1"]')==='0,75 €',t(e,'[data-f="ccS1"]'));
+  ok('Name wird nicht als HTML gelesen',!q(e,'.ccard[data-c="1"] .cc-name b b'),t(e,'.ccard[data-c="1"] .cc-name b'));
+  ok('Herkunft in der Karte',t(e,'.ccard[data-c="0"] .cc-name small')==='gemessen'&&t(e,'.ccard[data-c="1"] .cc-name small')==='nach Haus-Mix');
+  ok('läuft: Leistung und Kosten pro Stunde',/630 W · bis 0,32 €\/h/.test(t(e,'[data-f="ccL0"]')),t(e,'[data-f="ccL0"]'));
+  ok('läuft nicht: kein Hinweis',getComputedStyle(q(e,'[data-f="ccL1"]')).display==='none');
+  const bar=[...e.shadowRoot.querySelectorAll('.ccard[data-c="0"] .cc-bar i')].map(i=>parseFloat(i.style.width));
+  ok('Balken zeigt die Anteile',Math.abs(bar[0]-20)<.1&&Math.abs(bar[1]-20)<.1&&Math.abs(bar[2]-60)<.1,bar.join(' / '));
+  ok('Summe im Kopf',/1,25 €/.test(t(e,'[data-f="ccSum"]'))&&/2,75 €/.test(t(e,'[data-f="ccSum"]')),t(e,'[data-f="ccSum"]'));
+  if(now.getDate()>1){await tab(e,'month');ok('Monat enthält frühere Tage',t(e,'[data-t="ccC0"]')==='1,50',t(e,'[data-t="ccC0"]'));}
+  if(now.getMonth()>0){await tab(e,'year');ok('Jahr enthält frühere Monate',t(e,'[data-t="ccC0"]')==='3,50'&&calls.length===2,t(e,'[data-t="ccC0"]')+' / Abfragen '+calls.length);}
+  e=mount(base,hassFor());await wait(600);await tab(e,'day');
+  ok('ohne pv_ac: Mix mit der bisherigen Formel',t(e,'[data-t="ccC1"]')==='1,00',t(e,'[data-t="ccC1"]'));
+  e=mount({...base,grid_price_ct:undefined,pv_ac:true},hassFor());await wait(600);await tab(e,'day');
+  ok('ohne Preis: kein Geldwert, aber kWh',t(e,'[data-t="ccC0"]')==='—'&&/Netz1,0/.test(t(e,'[data-f="ccK0"]')),t(e,'[data-f="ccK0"]'));
+  // Woche, Preisverlauf, Statistik des Preis-Sensors, Assistent
+  e=mount({...base,pv_ac:true},hassFor());await wait(600);
+  ok('Reiter Woche vorhanden',!!q(e,'.tab[data-p="week"]'));
+  await tab(e,'week');
+  const wkExp=hrs.filter(x=>x.t>=wk0).reduce((a,x)=>a+x.g,0)*.5;
+  ok('Woche: Netzkosten ab Montag',t(e,'[data-t="ccC0"]')===wkExp.toFixed(2).replace('.',','),t(e,'[data-t="ccC0"]'));
+  ok('Woche: Überschrift',/Woche/.test(t(e,'[data-f="ccP"]')));
+  ok('Woche: Stromkosten oben',t(e,'[data-t="cost"]')!=='—',t(e,'[data-t="cost"]'));
+  if(now.getMonth()>0){
+    const y=now.getFullYear();
+    e=mount({...base,pv_ac:true,grid_price_history:[{until:`${y}-01-31`,ct:10}]},hassFor());await wait(600);await tab(e,'year');
+    const expY=(past.g*.10+hrs.reduce((a,x)=>a+x.g,0)*.5);
+    ok('Preisverlauf: alte Stunden zum alten Preis',t(e,'[data-t="ccC0"]')===expY.toFixed(2).replace('.',','),t(e,'[data-t="ccC0"]')+' statt 3,50');
+    e=mount({...base,grid_price_ct:undefined,pv_ac:true,grid_price_history:[{until:`${y}-12`,ct:20}]},hassFor());await wait(600);await tab(e,'day');
+    ok('Preisverlauf auch als JJJJ-MM und ohne heutigen Preis',t(e,'[data-t="ccC0"]')==='0,20',t(e,'[data-t="ccC0"]'));
+  }
+  meanOn=true;
+  e=mount({...base,grid_price_ct:undefined,grid_price:'sensor.dyn',pv_ac:true},hassFor({'sensor.dyn':S(.4,'EUR/kWh')}));await wait(600);await tab(e,'day');
+  ok('Preis-Sensor mit Statistik: Stundenpreis',t(e,'[data-t="ccC0"]')==='0,25',t(e,'[data-t="ccC0"]'));
+  meanOn=false;
+  e=mount({...base,pv_ac:true,cost_consumers:{0:{name:'E-Auto',energy:'sensor.e'},1:{name:'Wärmepumpe',energy:'sensor.e'},2:{name:'nur Name'}}},hassFor());await wait(600);await tab(e,'day');
+  ok('Assistent: Objekt statt Liste, Eintrag ohne Zähler zählt nicht',e.shadowRoot.querySelectorAll('.ccard').length===2);
+  ok('Symbol nach dem Namen',q(e,'.ccard[data-c="0"] ha-icon').getAttribute('icon')==='mdi:car-electric'&&q(e,'.ccard[data-c="1"] ha-icon').getAttribute('icon')==='mdi:heat-pump-outline');
+  const ed=document.createElement('energy-cockpit-stats-card-editor');
+  let saved=null;ed.addEventListener('config-changed',ev=>{saved=ev.detail.config;});
+  document.body.appendChild(ed);ed.setConfig({pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp'});ed.hass=hassFor();await wait(300);
+  const form=WD.statsForm();
+  ok('Alle Felder kennt Verbraucher und Preisverlauf',form.schema.some(f=>f.name==='cost_consumers')&&form.schema.some(f=>f.name==='grid_price_history'));
+  ed.remove();
+  const {cost_consumers,...off}=base;calls=[];
+  e=mount(off,hassFor());await wait(600);
+  ok('ohne Eintrag: kein Bereich und keine Abfrage',!q(e,'.cc')&&calls.length===0);
+  e=mount({...base,long_term:true,pv_ac:true},hassFor());await wait(700);await tab(e,'all');
+  ok('Gesamt: Bereich ausgeblendet',q(e,'.cc').style.display==='none');
+  const h2=hassFor();h2.callWS=async(m)=>{if(m.period==='hour')throw new Error('keine Statistik');return {};};
+  e=mount({...base,pv_ac:true},h2);await wait(600);
+  ok('Abfrage fehlgeschlagen: Bereich aus, kein Absturz',q(e,'.cc').style.display==='none');
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run();else mount({...base,pv_ac:true},hassFor());
+</script></body></html>
