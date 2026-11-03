@@ -694,7 +694,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const k0 = this._fit();
     const sr = st.getBoundingClientRect();
     const hr = hub.getBoundingClientRect();
-    const cx = (hr.left + hr.width / 2 - sr.left) / k0, cy = (hr.top + hr.height / 2 - sr.top) / k0, R = hr.width * 0.465 / k0;
+    const cx = (hr.left + hr.width / 2 - sr.left) / k0;
+    // 3D: Der Ring liegt als Ellipse am Boden, sein Mittelpunkt sitzt am unteren Rand der Zeichnung (Maße aus WD.D3.ring)
+    const rs = this._s3d ? hr.width / WD.D3.ring.w / k0 : 0;
+    const cy = this._s3d ? (hr.bottom - sr.top) / k0 - WD.D3.ring.bottom * rs : (hr.top + hr.height / 2 - sr.top) / k0;
+    const R = this._s3d ? WD.D3.ring.rx * rs : hr.width * 0.465 / k0;
+    const Ry = this._s3d ? WD.D3.ring.ry * rs : R;
     for (const L of this._links) {
       if (L.k === 'pvbat') {
         // Solar -> Speicher: gerade Verbindung zwischen den beiden Kacheln (untereinander oder nebeneinander)
@@ -726,10 +731,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (ox > 20 && A.t >= B.b - 2) { const x = (Math.max(A.l, B.l) + Math.min(A.r, B.r)) / 2 + shift; set(`M${f(x)},${f(A.t)} L${f(x)},${f(B.b)}`); continue; }
         const dir = A.l < B.l ? 1 : -1, ax = dir > 0 ? A.r : A.l, ex = dir > 0 ? B.l : B.r;
         if (oy > 20 && Math.abs(ex - ax) < 90) { const y = (Math.max(A.t, B.t) + Math.min(A.b, B.b)) / 2 + shift; set(`M${f(ax)},${f(y)} L${f(ex)},${f(y)}`); continue; }
-        // Quer über die Karte: unter dem Haus entlang
-        const y0 = (hr.bottom - sr.top) / k0 + 10, clamp = (v, a, b) => Math.max(a + 14, Math.min(b - 14, v));
-        const ay = clamp(y0, A.t, A.b), ey = clamp(y0, B.t, B.b) + shift;
-        set(`M${f(ax)},${f(ay)} C${f(ax + dir * 60)},${f(ay)} ${f(cx - dir * 110)},${f(y0)} ${f(cx)},${f(y0)} S${f(ex - dir * 60)},${f(ey)} ${f(ex)},${f(ey)}`);
+        // Quer über die Karte: außen um den Ring herum, als Bogen unter dem Haus
+        const clamp = (v, a, b) => Math.max(a + 14, Math.min(b - 14, v));
+        const ay = clamp(cy, A.t, A.b), ey = clamp(cy, B.t, B.b) + shift;
+        const rx = Math.min(R + 14, Math.abs(cx - ax) - 8, Math.abs(ex - cx) - 8), ry = Ry + 14;
+        const lx = cx - dir * rx, hx = cx + dir * rx;
+        set(`M${f(ax)},${f(ay)} C${f(ax + dir * 30)},${f(ay)} ${f(lx)},${f(cy - 30)} ${f(lx)},${f(cy)} A${f(rx)},${f(ry)} 0 0 ${dir > 0 ? 0 : 1} ${f(hx)},${f(cy)} C${f(hx)},${f(cy - 30)} ${f(ex - dir * 30)},${f(ey)} ${f(ex)},${f(ey)}`);
         continue;
       }
       if (!L.el) continue;
@@ -747,7 +754,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       let ang = Math.atan2(ay - cy, ax - cx);
       // Verbraucher unterhalb: Linie immer aus der Unterseite des Rings führen
       if (ty === -1) ang = Math.max(Math.PI / 2 - 0.6, Math.min(Math.PI / 2 + 0.6, ang));
-      const bx = cx + Math.cos(ang) * R, by = cy + Math.sin(ang) * R * (this._s3d ? 0.58 : 1);
+      const bx = cx + Math.cos(ang) * R, by = cy + Math.sin(ang) * Ry;
       const k = Math.hypot(ax - bx, ay - by) * 0.45;
       const d = `M${ax.toFixed(1)},${ay.toFixed(1)} C${(ax + tx * k).toFixed(1)},${(ay + ty * k).toFixed(1)} ${(bx + Math.cos(ang) * k).toFixed(1)},${(by + Math.sin(ang) * k).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`;
       L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));

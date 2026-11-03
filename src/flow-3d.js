@@ -299,5 +299,7 @@ const draw = (el, html) => {
   const n = tpl.content.firstElementChild, o = el.firstElementChild;
   if (o && o.tagName === n.tagName) patch(o, n); else el.replaceChildren(n);
 };
-WD.D3 = { stack, solar, meter, house, css, draw };
+// Maße des Rings aus house() (R = 92): für den Anschluss der Linien in der Karte
+const ring = { w: 2 * (92 * 1.23 + 6), bottom: 92 * 0.71 + 8, rx: 92 * Math.SQRT2 * C, ry: 92 * Math.SQRT2 * S };
+WD.D3 = { stack, solar, meter, house, css, draw, ring };
 })();
