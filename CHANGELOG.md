@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.18.2
+- **Energiefluss, weniger Rechenlast:** Das Leuchten von Kacheln, Symbolen und Titelpunkt sowie der Glanz im Banner laufen jetzt über Deckkraft und Verschiebung statt über Schatten und Position. Das Gerät muss dafür nicht mehr in jedem Bild neu zeichnen, die Optik bleibt praktisch gleich. Eine Animation im Ring, die nicht zu sehen war, ist entfernt.
+- **Energiefluss, "Bewegung reduzieren":** Am Gerät eingestellt, stehen jetzt auch die Symbole in den Gruppen still.
+
 ## 0.18.1
 - **Energiefluss, Tagesertrag von Hybrid-Wechselrichtern (optional, `pv.daily_ac`):** Manche Wechselrichter zählen im Tagesertrag nur ihre Abgabe, die Ladung des Akkus direkt aus den Modulen fehlt darin. Die Karte zog sie trotzdem ab, deshalb stand "Autarkie heute" bei 0 % und "Haus heute" war viel zu niedrig. Mit der neuen Einstellung stimmen "PV heute", "Haus heute" und "Autarkie heute". Ohne Eintrag ändert sich nichts.
 
