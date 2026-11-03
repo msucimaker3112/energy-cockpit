@@ -101,6 +101,7 @@ async function run(){
   let hits=0;gl.forEach(p=>{const n=p.getTotalLength();for(let i=0;i<=80;i++){const a=p.getPointAtLength(n*i/80);if(walls.some(w=>a.x>w.l&&a.x<w.r&&a.y>w.t&&a.y<w.b)){hits++;break;}}});
   ok('Verbraucher-Linien: vorhanden',gl.length>=11,gl.length);
   ok('Verbraucher-Linien: keine läuft hinter einer Kachel',hits===0,hits+' von '+gl.length);
+  ok('Einspeise-Linie: sichtbar lang',q(e,'g[data-l="r:pv:grid"] path').getTotalLength()>=60,Math.round(q(e,'g[data-l="r:pv:grid"] path').getTotalLength()));
   host.style.width='';host.style.maxWidth='';
   const miss=hassFor();delete miss.states['sensor.soc'];delete miss.states['sensor.grid'];
   e=mount(base,miss);await wait(600);
