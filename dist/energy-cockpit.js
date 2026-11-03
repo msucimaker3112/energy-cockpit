@@ -879,7 +879,7 @@ function house(home,src,pre,form,detail,label){
   return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${label}"><defs>${defs}</defs>${body}</svg>`;
 }
 
-const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,46%) minmax(0,1fr);column-gap:12px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.narrow.s3d .node{grid-template-columns:minmax(0,1fr)}\n.narrow.s3d .node>*,.narrow.s3d .node>.o3d{grid-column:1;grid-row:auto}\n.narrow.s3d .node>.o3d svg{height:112px;margin-bottom:6px}\n.narrow.s3d .via-bat .node.bat{grid-template-columns:minmax(0,46%) minmax(0,1fr)}\n.narrow.s3d .via-bat .node.bat>*{grid-column:2}\n.narrow.s3d .via-bat .node.bat>.o3d{grid-column:1;grid-row:1 / span 7}\n.narrow.s3d .via-bat .node.bat>.o3d svg{height:auto;margin-bottom:0}\n.s3d.cmp .node{grid-template-columns:52px minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
+const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,132px) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.narrow.s3d .node{grid-template-columns:minmax(0,1fr)}\n.narrow.s3d .node>*,.narrow.s3d .node>.o3d{grid-column:1;grid-row:auto}\n.narrow.s3d .node>.o3d svg{height:112px;margin-bottom:6px}\n.narrow.s3d .via-bat .node.bat{grid-template-columns:minmax(0,132px) minmax(0,1fr)}\n.narrow.s3d .via-bat .node.bat>*{grid-column:2}\n.narrow.s3d .via-bat .node.bat>.o3d{grid-column:1;grid-row:1 / span 7}\n.narrow.s3d .via-bat .node.bat>.o3d svg{height:auto;margin-bottom:0}\n.s3d.cmp .node{grid-template-columns:52px minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
 // Überträgt nur die Unterschiede in das vorhandene SVG, damit laufende Animationen nicht neu starten
 const tpl = document.createElement('template');
 const patch = (a, b) => {
@@ -1383,7 +1383,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
       nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
+      // 3D: echte Wege zwischen den Geräten, nicht über das Haus (Speicher hinter dem Zähler hängen am Haus)
+      if (this._s3d) c.batteries.forEach((b, i) => {
+        if (b.behind_meter === true) return;
+        const k = this._bk(i);
+        if (c.grid) links.push(`r:${k}:grid`);
+        if (this._via && i === 0) return;
+        if (c.pv) links.push(`r:pv:${k}`);
+        if (c.grid) links.push(`r:grid:${k}`);
+      });
     }
+    if (this._s3d && c.grid) { if (c.pv) links.push('r:pv:grid'); if (hasPv2) links.push('r:pv2:grid'); }
     // groups_columns: Gruppen pro Reihe (Standard: alle in einer Reihe). Stehen Gruppen untereinander,
     // liefen einzelne Linien durch die oberen Gruppen; ohne ausdrückliches groups_lines gilt dann die Sammel-Linie.
     const gc = Math.max(0, parseInt(c.groups_columns, 10) || 0);
@@ -1604,6 +1614,26 @@ class EnergyCockpitFlowCard extends HTMLElement {
         set(d);
         continue;
       }
+      if (L.k.startsWith('r:')) {
+        const [, from, to] = L.k.split(':');
+        const ea = this._$(`[data-k="${from}"]`), eb = this._$(`[data-k="${to}"]`);
+        const set = (d) => L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', d));
+        if (!ea || !eb || !ea.offsetParent || !eb.offsetParent) { set(''); continue; }
+        const box = (e) => { const b = e.getBoundingClientRect(); return { t: (b.top - sr.top) / k0, b: (b.bottom - sr.top) / k0, l: (b.left - sr.left) / k0, r: (b.right - sr.left) / k0 }; };
+        const A = box(ea), B = box(eb), f = (n) => n.toFixed(1);
+        const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l), oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
+        // Zwei Linien zum selben Speicher enden versetzt
+        const shift = from === 'pv' ? -9 : from === 'grid' ? 9 : 0;
+        if (ox > 20 && B.t >= A.b - 2) { const x = (Math.max(A.l, B.l) + Math.min(A.r, B.r)) / 2 + shift; set(`M${f(x)},${f(A.b)} L${f(x)},${f(B.t)}`); continue; }
+        if (ox > 20 && A.t >= B.b - 2) { const x = (Math.max(A.l, B.l) + Math.min(A.r, B.r)) / 2 + shift; set(`M${f(x)},${f(A.t)} L${f(x)},${f(B.b)}`); continue; }
+        const dir = A.l < B.l ? 1 : -1, ax = dir > 0 ? A.r : A.l, ex = dir > 0 ? B.l : B.r;
+        if (oy > 20 && Math.abs(ex - ax) < 90) { const y = (Math.max(A.t, B.t) + Math.min(A.b, B.b)) / 2 + shift; set(`M${f(ax)},${f(y)} L${f(ex)},${f(y)}`); continue; }
+        // Quer über die Karte: unter dem Haus entlang
+        const y0 = (hr.bottom - sr.top) / k0 + 10, clamp = (v, a, b) => Math.max(a + 14, Math.min(b - 14, v));
+        const ay = clamp(y0, A.t, A.b), ey = clamp(y0, B.t, B.b) + shift;
+        set(`M${f(ax)},${f(ay)} C${f(ax + dir * 60)},${f(ay)} ${f(cx - dir * 110)},${f(y0)} ${f(cx)},${f(y0)} S${f(ex - dir * 60)},${f(ey)} ${f(ex)},${f(ey)}`);
+        continue;
+      }
       if (!L.el) continue;
       if (!L.el.offsetParent) { L.g.querySelectorAll('path').forEach((p) => p.setAttribute('d', '')); continue; }
       const r = L.el.getBoundingClientRect();
@@ -1699,6 +1729,38 @@ class EnergyCockpitFlowCard extends HTMLElement {
 
   // Entladegrenze und Maximalladung der Batterie in Prozent: Sensor, Helfer oder fester Wert
   _bk(i) { return i ? 'bat' + (i + 1) : 'bat'; }
+  // 3D: Linien nach den echten Wegen. Das Haus bekommt nur, was dort ankommt; Solar lädt direkt den Speicher und speist direkt ein.
+  _routes3d(v) {
+    const via = this._via && v.bats[0] && v.bats[0].out !== null;
+    let solar = via ? 0 : v.p1Bat + v.pv2Bat, gridLeft = v.gImp;
+    const pvGrid = via ? 0 : v.p1Exp, pv2Grid = via ? 0 : v.p2Exp;
+    let expLeft = Math.max(0, v.gExp - pvGrid - pv2Grid);
+    this._link('pv', v.p1Home > TH, true, PAL.pv, v.p1Home);
+    this._link('pv2', v.p2Home > TH, true, PAL.pv, v.p2Home);
+    this._link('r:pv:grid', pvGrid > TH, true, PAL.pv, pvGrid);
+    this._link('r:pv2:grid', pv2Grid > TH, true, PAL.pv, pv2Grid);
+    v.bats.filter((x) => !x.lead && x.b.behind_meter !== true).forEach((x) => {
+      const k = this._bk(x.i);
+      if (via && x.i === 0) {
+        const d = Math.min(x.out, expLeft);
+        expLeft -= d;
+        this._link(`r:${k}:grid`, d > TH, true, PAL.pv, d);
+        this._link(k, x.out - d > TH, true, x.p !== null && x.p < -TH ? PAL.bat : PAL.pv, x.out - d);
+        return;
+      }
+      const chg = Math.max(0, x.p || 0), dis = Math.max(0, -(x.p || 0));
+      const fromPv = Math.min(chg, solar), fromGrid = Math.min(chg - fromPv, gridLeft), toGrid = Math.min(dis, expLeft);
+      solar -= fromPv; gridLeft -= fromGrid; expLeft -= toGrid;
+      this._link(`r:pv:${k}`, fromPv > TH, true, PAL.pv, fromPv);
+      this._link(`r:grid:${k}`, fromGrid > TH, true, PAL.imp, fromGrid);
+      this._link(`r:${k}:grid`, toGrid > TH, true, PAL.bat, toGrid);
+      this._link(k, dis - toGrid > TH, true, PAL.bat, dis - toGrid);
+    });
+    // Rest der Einspeisung, den kein Gerät erklärt (zum Beispiel zeitversetzte Sensoren), bleibt an der Hauslinie
+    if (gridLeft > TH) this._link('grid', true, true, PAL.imp, gridLeft);
+    else if (expLeft > TH) this._link('grid', true, false, PAL.exp, expLeft);
+    else this._link('grid', false, true, PAL.imp, 0);
+  }
   // 3D-Objekte: nur neu zeichnen, wenn sich die gerundeten Werte ändern
   _draw3d(v) {
     const D3 = WD.D3, c = this._c, large = !this._cmp, q = (w) => (w === null || w === undefined ? 'x' : Math.round(w / (Math.abs(w) < 200 ? 5 : 25)));
@@ -2033,7 +2095,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.bat : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
-    if (this._s3d) this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
+    if (this._s3d) {
+      this._routes3d({ bats, gImp, gExp, p1Home, p2Home, p1Bat, p1Exp, p2Exp, pv2Bat: Math.max(0, p2 - p2Home - p2Exp) });
+      this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
+    }
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };

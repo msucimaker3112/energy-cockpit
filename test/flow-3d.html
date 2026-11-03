@@ -58,6 +58,28 @@ async function run(){
   ok('Flachdach gewählt',/--terrace/.test(q(e,'[data-o="home"] svg').innerHTML));
   e=mount(base,hassFor());await wait(600);
   ok('Satteldach ist Standard',!/--terrace/.test(q(e,'[data-o="home"] svg').innerHTML));
+  // Echte Wege
+  const on=(e,k)=>{const g=q(e,`g[data-l="${k}"]`);return !!g&&g.classList.contains('on');};
+  const hasD=(e,k)=>{const p=q(e,`g[data-l="${k}"] path`);return !!p&&!!p.getAttribute('d');};
+  e=mount(base,hassFor());await wait(800);
+  ok('Solar lädt: Linie Solar zum Speicher',on(e,'r:pv:bat')&&hasD(e,'r:pv:bat'),q(e,'g[data-l="r:pv:bat"] path').getAttribute('d'));
+  ok('Solar lädt: keine Linie Haus zum Speicher',!on(e,'bat'));
+  ok('Solar lädt: Solar und Netz versorgen das Haus',on(e,'pv')&&on(e,'grid'));
+  ok('Solar lädt: keine Einspeise-Linie',!on(e,'r:pv:grid')&&!on(e,'r:grid:bat'));
+  e=mount(base,hassFor({'sensor.pv':S(2000),'sensor.grid':S(-500),'sensor.bat':S(500)}));await wait(800);
+  ok('Einspeisung: Linie Solar zum Netz',on(e,'r:pv:grid')&&hasD(e,'r:pv:grid'));
+  ok('Einspeisung: keine Linie Haus zum Netz',!on(e,'grid'));
+  e=mount(base,hassFor({'sensor.pv':S(0),'sensor.grid':S(1500),'sensor.bat':S(1000)}));await wait(800);
+  ok('Netz lädt: Linie Netz zum Speicher',on(e,'r:grid:bat'));
+  ok('Netz lädt: Netz versorgt auch das Haus',on(e,'grid')&&!on(e,'pv')&&!on(e,'r:pv:bat'));
+  e=mount(base,hassFor({'sensor.pv':S(0),'sensor.grid':S(0),'sensor.bat':S(-800)}));await wait(800);
+  ok('Entladen: Linie Speicher zum Haus',on(e,'bat')&&!on(e,'r:bat:grid')&&!on(e,'grid'));
+  e=mount(base,hassFor({'sensor.pv':S(0),'sensor.grid':S(-300),'sensor.bat':S(-800)}));await wait(800);
+  ok('Speicher speist ein: Linie Speicher zum Netz',on(e,'r:bat:grid')&&on(e,'bat'));
+  e=mount({...base,batteries:[{name:'Zendure',power:'sensor.bat2',soc:'sensor.soc2',capacity_kwh:2,behind_meter:true}]},hassFor({'sensor.bat2':S(96)}));await wait(800);
+  ok('hinter dem Zähler: keine direkte Linie, Haus lädt',!q(e,'g[data-l="r:pv:bat2"]')&&on(e,'bat2'));
+  e=mount(off,hassFor());await wait(600);
+  ok('ohne Option: keine neuen Linien',!q(e,'g[data-l^="r:"]'));
   const miss=hassFor();delete miss.states['sensor.soc'];delete miss.states['sensor.grid'];
   e=mount(base,miss);await wait(600);
   ok('fehlende Sensoren: kein Absturz',qa(e,'.o3d svg').length===4&&/—/.test(q(e,'[data-o="bat"] svg').textContent));
