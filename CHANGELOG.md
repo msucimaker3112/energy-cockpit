@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.19.2
+- **Energiefluss, Speicher hinter dem Zähler (`behind_meter`):** Gibt der Speicher Strom ab, zählt er jetzt als Quelle. Der Hausverbrauch sinkt dadurch nicht mehr, und Ring und "Autarkie jetzt" zeigen seinen Anteil. Beim Laden bleibt alles wie bisher. Die Tageswerte rechnen weiter ohne ihn. Mit eigenem `home.entity` ändert sich nichts. Wunsch aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
+
 ## 0.19.1
 - **Energiefluss, 3D-Ansicht:** In schmalen Kacheln, etwa in der Kurzansicht und auf dem iPad, lief der Text aus der Kachel und Namen wurden abgekürzt. Das Bild steht dort jetzt über dem Text, ist genug Platz da, bleibt es daneben. Ohne `style: 3d` ändert sich nichts. Rückmeldung aus [#20](https://github.com/msucimaker3112/energy-cockpit/issues/20).
 

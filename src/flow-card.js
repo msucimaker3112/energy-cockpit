@@ -1126,7 +1126,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (!id) return;
       if (sensorSeen[id]) { x.lead = sensorSeen[id]; x.p = null; (x.lead.shared = x.lead.shared || []).push(x); } else sensorSeen[id] = x;
     });
-    // behind_meter: Speicher hinter dem Zähler zählt wie ein Gerät im Haus, nicht in der Bilanz (eigene Kachel bleibt)
+    // behind_meter: Speicher hinter dem Zähler steht nicht in der Bilanz (eigene Kachel bleibt). Seine Ladung zählt wie ein Gerät im Haus, seine Abgabe als Quelle
     const inBal = bats.filter((x) => x.b.behind_meter !== true);
     const bmChg = bats.reduce((a, x) => (x.b.behind_meter === true ? a + Math.max(0, x.p || 0) : a), 0);
     const bat = inBal.some((x) => x.p !== null) ? inBal.reduce((a, x) => a + (x.p || 0), 0) : null;
@@ -1136,12 +1136,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let home = c.home && c.home.entity ? watt(h, c.home.entity) : null;
     // Negativer Verbrauch ist nicht möglich, dann gilt die eigene Berechnung
     if (home !== null && home < 0) home = null;
-    if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0));
+    // Mit eigenem Sensor gilt dessen Wert, die Abgabe käme sonst im Ring dazu, nicht aber in der Zahl
+    const bmDis = home === null ? bats.reduce((a, x) => (x.b.behind_meter === true ? a + Math.max(0, -(x.p || 0)) : a), 0) : 0;
+    if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0) + bmDis);
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
     const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
     // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
-    const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), 0), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
+    const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), bmDis), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
     const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
     const tot = pvHome + gImp + bDis;
 

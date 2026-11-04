@@ -33,7 +33,23 @@ async function run(){
   e=mount(cfg(false),hassFor({dis:100,grid:-97}));await wait(900);
   ok('aus: Abgabe zählt als Speicher, Haus bleibt',homeW(e)===405,homeW(e));
   e=mount(cfg(true),hassFor({dis:100,grid:-97}));await wait(900);
-  ok('ein: Abgabe senkt den Hausverbrauch',homeW(e)===305,homeW(e));
+  ok('ein: Abgabe zählt als Quelle, Haus bleibt',homeW(e)===405,homeW(e));
+  // Screenshot aus #15: PV und Viessmann-Batterie still, Netz 138 W, Zendure gibt 262 W ab
+  const fix=(h)=>{h.states['sensor.pv']=S(0);h.states['sensor.main']=S(0);return h;};
+  const mix=(e,k)=>num(txt(e,`[data-m="${k}"]`));
+  e=mount(cfg(true),fix(hassFor({dis:262,grid:138})));await wait(900);
+  ok('#15: Haus 400 W',homeW(e)===400,homeW(e));
+  ok('#15: Ring Netz 35 %',mix(e,'grid')===35,mix(e,'grid'));
+  ok('#15: Ring Akku 66 %',mix(e,'bat')===66,mix(e,'bat'));
+  ok('#15: Ring Solar 0 %',mix(e,'pv')===0,mix(e,'pv'));
+  ok('#15: Autarkie jetzt 66 %',txt(e,'[data-p="aut"]')==='66 %',txt(e,'[data-p="aut"]'));
+  ok('#15: Tageswerte weiter ohne Zendure',/10,0/.test(txt(e,'[data-s="home"] b')),txt(e,'[data-s="home"] b'));
+  e=mount({...cfg(true),style:'3d'},fix(hassFor({dis:262,grid:138})));await wait(900);
+  ok('#15 in 3D: Haus 400 W und Linie vom Speicher',homeW(e)===400&&e.shadowRoot.querySelector('g[data-l="bat2"]').classList.contains('on'),homeW(e));
+  e=mount(cfg(true),fix(hassFor({ch:200,grid:338})));await wait(900);
+  ok('Laden: Haus mit Ladung, Ring nur Netz',homeW(e)===338&&mix(e,'grid')===100&&mix(e,'bat')===0,homeW(e)+' / '+mix(e,'grid')+' %');
+  e=mount(cfg(true,{home:{entity:'sensor.haus'}}),fix(hassFor({dis:262,grid:138,home:138})));await wait(900);
+  ok('eigener Sensor: Wert und Ring bleiben',homeW(e)===138&&mix(e,'grid')===100&&mix(e,'bat')===0,homeW(e)+' / '+mix(e,'grid')+' %');
   // Negativer Helfer
   e=mount(cfg(false,{home:{entity:'sensor.haus'}}),hassFor({home:-71}));await wait(900);
   ok('negativer Sensor: eigene Berechnung statt 71 W',homeW(e)===405,homeW(e));
