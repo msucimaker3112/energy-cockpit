@@ -131,5 +131,5 @@ async function run(){
 }
 const P=new URLSearchParams(location.search);
 if(P.get('test')){document.getElementById('host').style.height='0';run();}
-else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c={...cases[P.get('case')||'normal']};if(P.get('kurz'))c.compact='immer';const t=P.get('theme');if(t)c.theme=t;mount(c,hassFor());}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c={...cases[P.get('case')||'normal']};if(P.get('kurz'))c.compact='immer';const t=P.get('theme');if(t)c.theme=t;if(!P.get('demo'))mount(c,hassFor());else{/* Bilder fuer die Doku: auch die Tageswerte gefuellt */const D=(v)=>S(v,'kWh');c.pv={...c.pv,daily:'sensor.dpv'};c.grid={...c.grid,daily_import:'sensor.dimp',daily_export:'sensor.dexp'};c.battery={...c.battery,daily_charge:'sensor.dchg',daily_discharge:'sensor.ddis'};mount(c,hassFor({'sensor.dpv':D(18.4),'sensor.dimp':D(3.2),'sensor.dexp':D(6.1),'sensor.dchg':D(5),'sensor.ddis':D(3.2)}));}}
 </script></body></html>
