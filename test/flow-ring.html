@@ -1,0 +1,36 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Ring Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft: Jeder Anteil ab 1 % in der Legende ist im Ring sichtbar, die Abschnitte überlappen nicht. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(pv,grid,bat)=>({states:{'sensor.pv':S(pv),'sensor.grid':S(grid),'sensor.bat':S(bat),'sensor.soc':S(50,'%')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const cfg={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:5}};
+function mount(h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(cfg);host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+// Ein Abschnitt je Quelle: Länge, Beginn und ob er sichtbar ist, dazu der Wert aus der Legende
+const segs=(e)=>['pv','bat','grid'].map((k)=>{const s=e.shadowRoot.querySelector(`.seg[data-g="${k}"]`);return{k,len:parseFloat(s.style.strokeDasharray),off:-parseFloat(s.style.strokeDashoffset),on:s.style.opacity==='1',pct:parseInt(e.shadowRoot.querySelector(`[data-m="${k}"]`).textContent,10)};});
+async function run(){
+  // Solar, Netz, Akku entlädt (negativ)
+  for(const[n,pv,grid,bat] of [['#15: 11 W Solar von 356 W',11,345,0],['1 % Solar',4,396,0],['3,4 % Solar',34,966,0],['3,6 % Solar',36,964,0],['1 % Akku',0,396,-4],['1 % Netz',396,4,0],['klein und klein',5,343,-8],['drittel',300,300,-300]]){
+    const e=mount(hassFor(pv,grid,bat));await wait(300);
+    const s=segs(e),vis=s.filter((x)=>x.pct>=1);
+    ok(n+': alles ab 1 % ist sichtbar',vis.every((x)=>x.on&&x.len>0),s.map((x)=>`${x.k} ${x.pct} % ${x.on?x.len.toFixed(2):'aus'}`).join(', '));
+    ok(n+': kein Anteil unter 1 % ist sichtbar',s.filter((x)=>x.pct<1).every((x)=>!x.on));
+    const ord=s.filter((x)=>x.on);
+    ok(n+': Abschnitte überlappen nicht',ord.every((x,i)=>!i||x.off>=ord[i-1].off+ord[i-1].len),ord.map((x)=>x.off.toFixed(2)).join(' / '));
+  }
+  let e=mount(hassFor(0,500,0));await wait(300);
+  const s=segs(e);
+  ok('100 % Netz: geschlossener Ring',s[2].on&&s[2].len>99.5&&!s[0].on&&!s[1].on,s[2].len.toFixed(2));
+  e=mount(hassFor(300,700,0));await wait(300);
+  const t=segs(e);
+  ok('große Anteile: Abstand bleibt wie bisher',Math.abs(t[0].len-27)<0.01&&Math.abs(t[2].len-67)<0.01,t[0].len.toFixed(2)+' / '+t[2].len.toFixed(2));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test')){document.getElementById('host').style.height='0';run();}else mount(hassFor(11,345,0));
+</script></body></html>

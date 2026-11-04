@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.19.3
+- **Energiefluss, Ring:** Anteile unter 3,5 % fehlten im Ring, obwohl sie in der Legende standen. Jetzt erscheint jeder Anteil ab 1 %, sehr kleine als Punkt. Rückmeldung aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
+
 ## 0.19.2
 - **Energiefluss, Speicher hinter dem Zähler (`behind_meter`):** Gibt der Speicher Strom ab, zählt er jetzt als Quelle. Der Hausverbrauch sinkt dadurch nicht mehr, und Ring und "Autarkie jetzt" zeigen seinen Anteil. Beim Laden bleibt alles wie bisher. Die Tageswerte rechnen weiter ohne ihn. Mit eigenem `home.entity` ändert sich nichts. Wunsch aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
 

@@ -1276,11 +1276,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let start = 0;
     ['pv', 'bat', 'grid'].forEach((k) => {
       const seg = this._$(`.seg[data-g="${k}"]`);
-      const len = sh[k] * 100, full = len > 99.5, gap = full || len < 0.5 ? 0 : 3;
+      // Der Abstand zum Nachbarn darf einen kleinen Anteil nicht aufbrauchen: Was in der Legende mit mindestens 1 % steht, bleibt als Punkt sichtbar
+      const len = sh[k] * 100, full = len > 99.5, gap = full || len < 0.5 ? 0 : Math.min(3, len - 0.05);
       const vis = Math.max(0, len - gap);
       seg.style.strokeDasharray = `${vis.toFixed(2)} ${(100 - vis).toFixed(2)}`;
       seg.style.strokeDashoffset = `${(-(start + gap / 2)).toFixed(2)}`;
-      seg.style.opacity = vis < 0.5 ? '0' : '1';
+      seg.style.opacity = len < 0.5 ? '0' : '1';
       start += len;
       this._set(`[data-m="${k}"]`, tot ? Math.round(sh[k] * 100) + ' %' : '—');
     });
