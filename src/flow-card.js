@@ -684,6 +684,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (this._lr) return;
     this._lr = requestAnimationFrame(() => { this._lr = null; this._layout(); });
   }
+  // 3D: Das Bild steht nur neben dem Text, wenn dort genug Platz bleibt, sonst darüber. Gemessen wird in natürlicher Größe und nur bei neuer Breite, sonst springt die Karte
+  _tall3d(wrap, w, mode) {
+    const key = `${w}|${mode}`;
+    if (wrap._d3Key === key) return;
+    wrap._d3Key = key;
+    const sw = wrap.style.width;
+    wrap.style.width = '';
+    const nodes = [...wrap.querySelectorAll('.node[data-k]')];
+    nodes.forEach((n) => n.classList.remove('d3tall'));
+    const ts = parseFloat(getComputedStyle(wrap).getPropertyValue('--ts')) || 1;
+    const need = (this._cmp ? 185 : mode === 'wide' ? 320 : mode === 'narrow' ? 280 : 300) + (ts - 1) * 120;
+    nodes.map((n) => n.offsetWidth).forEach((nw, i) => nodes[i].classList.toggle('d3tall', nw > 0 && nw < need));
+    wrap.style.width = sw;
+    this._forceFit = true;
+  }
   _layout() {
     // 3D: Die Linien enden am Ring um das Haus, nicht an der ganzen Hub-Fläche mit der Zahl
     const wrap = this._$('.wrap'), st = this._$('.stage'), hub = this._$(this._s3d ? '.hub .o3d' : '.hub');
@@ -704,6 +719,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (this._hass) this._update();
       return;
     }
+    if (this._s3d) this._tall3d(wrap, w, mode);
     const k0 = this._fit();
     const sr = st.getBoundingClientRect();
     const hr = hub.getBoundingClientRect();

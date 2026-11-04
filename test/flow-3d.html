@@ -103,6 +103,27 @@ async function run(){
   ok('Verbraucher-Linien: keine läuft hinter einer Kachel',hits===0,hits+' von '+gl.length);
   ok('Einspeise-Linie: sichtbar lang',q(e,'g[data-l="r:pv:grid"] path').getTotalLength()>=60,Math.round(q(e,'g[data-l="r:pv:grid"] path').getTotalLength()));
   host.style.width='';host.style.maxWidth='';
+  // Text bleibt in der Kachel, bei jeder Breite, auch mit Kurzansicht
+  const fits=(n)=>{const b=n.getBoundingClientRect();return [...n.querySelectorAll('.lbl,.val,.num,.unit,.tag,.soc-row')].filter(x=>x.offsetParent).every(x=>{const r=x.getBoundingClientRect();return x.scrollWidth<=x.clientWidth+1&&r.right<=b.right+0.5&&r.left>=b.left-0.5&&(!x.classList.contains('soc-row')||r.height<28);});};
+  for(const[w,kurz] of [[320,1],[360,1],[393,1],[430,1],[600,1],[768,1],[1100,1],[320,0],[393,0],[600,0],[768,0],[820,0],[899,0],[900,0],[1024,0],[1100,0],[1280,0],[1600,0]]){
+    host.style.maxWidth='none';host.style.width=w+'px';
+    e=mount({...cases.zwei,fit_screen:false,compact:kurz?'immer':false},hassFor());await wait(500);
+    const bad=qa(e,'.node[data-k]').filter(n=>n.offsetParent&&!fits(n)).map(n=>n.dataset.k);
+    ok(`Text passt: ${w} px${kurz?' Kurzansicht':''}`,!bad.length,bad.join(',')+' Kachel '+q(e,'[data-k="pv"]').offsetWidth);
+  }
+  for(const[w,kurz,ts] of [[360,1,'gross'],[393,1,'sehr_gross'],[768,0,'gross'],[768,0,'sehr_gross'],[1024,0,'sehr_gross'],[1280,0,'sehr_gross'],[1600,0,'sehr_gross']]){
+    host.style.maxWidth='none';host.style.width=w+'px';
+    e=mount({...base,fit_screen:false,compact:kurz?'immer':false,text_size:ts},hassFor({'sensor.pv':S(12340),'sensor.grid':S(-8765),'sensor.bat':S(-9999)}));await wait(500);
+    const bad=qa(e,'.node[data-k]').filter(n=>n.offsetParent&&!fits(n)).map(n=>n.dataset.k);
+    ok(`Große Werte und Schrift ${ts}: ${w} px${kurz?' Kurzansicht':''}`,!bad.length,bad.join(',')+' Kachel '+q(e,'[data-k="pv"]').offsetWidth);
+  }
+  host.style.width='1600px';e=mount(base,hassFor());await wait(500);
+  ok('große Kachel: Bild bleibt neben dem Text',!q(e,'[data-k="pv"]').classList.contains('d3tall'));
+  e.hass=hassFor({'sensor.pv':S(9000)});await wait(300);
+  ok('Klasse bleibt nach neuen Werten',!q(e,'[data-k="pv"]').classList.contains('d3tall'));
+  host.style.width='768px';e._layout();await wait(100);
+  ok('schmaler gezogen: Bild über dem Text',q(e,'[data-k="pv"]').classList.contains('d3tall'));
+  host.style.width='';host.style.maxWidth='';
   const miss=hassFor();delete miss.states['sensor.soc'];delete miss.states['sensor.grid'];
   e=mount(base,miss);await wait(600);
   ok('fehlende Sensoren: kein Absturz',qa(e,'.o3d svg').length===4&&/—/.test(q(e,'[data-o="bat"] svg').textContent));
