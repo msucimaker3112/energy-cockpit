@@ -17,7 +17,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
-**[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -25,11 +25,17 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <table>
 <tr>
-<td width="33%" valign="top"><b>Sofort verstanden</b><br>Du siehst, woher dein Strom gerade kommt und wohin er fließt: Solar, Akku, Netz, Haus und jedes Gerät.</td>
+<td width="33%" valign="top"><b>Jeder Raum, jedes Gerät</b><br>Nicht nur Solar, Netz und Akku: Du siehst live, wohin dein Strom wirklich fließt, bis zum einzelnen Gerät.</td>
 <td width="33%" valign="top"><b>In Minuten eingerichtet</b><br>Der Assistent schlägt passende Sensoren vor und zeigt ihre aktuellen Werte. Feste Gerätenamen gibt es nicht.</td>
 <td width="33%" valign="top"><b>Passt zu deiner Anlage</b><br>Balkonkraftwerk, mehrere Speicher, Hybrid-Wechselrichter, Handy oder Wandtablet: Vieles davon kam direkt von Nutzern.</td>
 </tr>
 </table>
+
+## Jeder Raum, jedes Gerät, live
+
+Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räumen oder Gruppen zusammen: Jede bekommt ihre eigene Linie, die aktuelle Leistung und die Liste ihrer Geräte. Was keiner Gruppe zugeordnet ist, steht auf Wunsch als "Nicht erfasst" daneben. Ein Tipp auf ein Gerät zeigt seinen Verlauf. Das geht in der klassischen Ansicht, in 3D und auf dem Handy.
+
+![Energiefluss mit sieben Räumen und ihren Geräten](docs/img/flow-haus.png)
 
 ## Die vier Karten
 
