@@ -375,6 +375,7 @@ cost_consumers:
   ```
 
   Das gilt nur für die Kosten je Verbraucher. Die Geldwerte oben und die Amortisation rechnen weiter mit dem heutigen Preis.
+- **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 
 **`pv_ac`:** Manche Hybrid-Wechselrichter zählen im Gesamtertrag nur ihre Abgabe: ohne die Ladung des Akkus aus den Modulen, dafür mit seiner Entladung. Mit `pv_ac: true` rechnet die Karte den Hausverbrauch als PV + Bezug − Einspeisung. Das gilt für die Autarkie und für die Aufteilung nach Haus-Mix.
@@ -527,7 +528,7 @@ Was die Kurzansicht anders macht:
 
 - Solar, Netz und Batterie stehen neben dem Ring statt darunter. Die Karte ist etwa halb so hoch.
 - Gruppen zeigen nur Name und Summe. Ein **Tipp auf eine Gruppe** (Pfeil „›“) öffnet ein Fenster mit allen Geräten, ihren aktuellen Werten und der Summe. Die Werte laufen live mit, ein Tipp auf ein Gerät öffnet dessen Verlauf, „ד oder ein Tipp daneben schließt das Fenster.
-- Zusatztexte entfallen: Aufteilung des Solarstroms, Prognose, Akku-Prognose, Herkunft unter dem Ring.
+- Zusatztexte entfallen: Aufteilung des Solarstroms, Prognose, Akku-Prognose, Herkunft über dem Ring.
 - Zu den Verbrauchern führt die Sammel-Linie, sofern `groups_lines` nicht gesetzt ist. `groups_columns` gilt in der Kurzansicht nicht, die Gruppen verteilen sich selbst auf die Breite.
 
 Die Umschaltung richtet sich nach der Breite der Karte, nicht nach dem Gerätetyp. Sie gilt also auch für Android und für ein schmales Browserfenster.

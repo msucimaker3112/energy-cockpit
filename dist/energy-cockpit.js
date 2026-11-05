@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.19.4 - MIT License */
+/*! energy-cockpit v0.19.5 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1098,6 +1098,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .stat span{font-size:calc(.7rem*var(--ts,1))}
 /* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
 .sam-on .mix{order:-1;margin:0 0 12px}
+/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Akku) */
+.wrap:not(.s3d) .mix{order:-1;margin:0 0 12px}
 .sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
 .wrap .sambox .consumers,.wrap .sambox .groups{margin-top:0}
 .wrap .sambox .consumers+.groups{margin-top:12px}
@@ -4163,7 +4165,7 @@ WD.addStrings({
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für das aktuelle Jahr verfügbar', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h',
+  'st.week': 'Woche', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für das aktuelle Jahr verfügbar', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
   'st.lt.hist': 'Historie: nur PV-Ertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
@@ -4307,6 +4309,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-leg span{display:flex;align-items:center;margin-right:11px}
 .cc-leg i{width:6px;height:6px;border-radius:50%;background:rgb(var(--s));margin-right:5px}
 .cc-leg b{color:var(--txt);font-weight:600;margin-left:3px}
+.ccard.bad{border-color:rgba(251,191,36,.45)}
+.cc-leg .cc-warn{display:block;margin:0;color:#fbbf24;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.cc-warn ha-icon{--mdc-icon-size:14px;width:14px;height:14px;vertical-align:-2px;margin-right:5px}
 .wide{padding:24px 30px}
 .wide .title{font-size:1.25rem}
 .wide .m .num{font-size:2.4rem}
@@ -4529,8 +4534,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const day = ymd(t), hit = c._ph.find((x) => day.slice(0, x.until.length) <= x.until);
         return hit ? hit.eur : nowEur;
       };
+      const seen = new Set();
       const add = (rows, means, slots, onHour) => {
         const at = {};
+        ids.forEach((id) => { if ((rows[id] || []).length) seen.add(id); });
         ids.forEach((id) => (rows[id] || []).forEach((r) => { if (r.change === null || r.change === undefined) return; const t = stamp(r); (at[t] = at[t] || {})[id] = Math.max(0, r.change); }));
         Object.keys(at).forEach((k) => {
           const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp = v[c.grid_import_total] || 0, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
@@ -4563,6 +4570,19 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const m = await means(first);
         add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => { if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; }); });
         this._ccW = wk;
+        // Typische Einrichtungsfehler sichtbar machen, statt still 0 € zu zeigen: Leistungssensor statt Zähler, Sensor ohne Statistik
+        // "Keine Statistik" nur melden, wenn die Zähler des Hauses Werte haben. Kurz nach Monats- oder Wochenbeginn gibt es sonst noch gar keine Stunde
+        const anyHouse = house.some((id) => seen.has(id));
+        this._ccBad = c._cc.map((x) => {
+          for (const id of mine(x)) {
+            const st = h.states && h.states[id], u = st && st.attributes ? String(st.attributes.unit_of_measurement || '') : '';
+            if (/^[kMG]?W$/.test(u)) return { k: 'st.cc.unitW', id, u };
+            if (seen.has(id)) continue;
+            if (!st && h.states) return { k: 'st.cc.missing', id, u };
+            if (anyHouse) return { k: 'st.cc.nostat', id, u };
+          }
+          return null;
+        });
         this._ccPriced = nowEur > 0 || c._ph.length > 0 || this._ccY.hasStat || Object.keys(m).length > 0;
         this._ccV = { day, week, month, year: month.map((x, i) => x.map((v, n) => v + this._ccY.past[i][n])) };
       } catch (e) {
@@ -4583,10 +4603,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       let cost = 0, sav = 0;
       c._cc.forEach((x, i) => {
         const [g, b, p, cost1, sav1] = set ? set[i] : [0, 0, 0, 0, 0], tot = g + b + p, card = this._$(`.ccard[data-c="${i}"]`);
-        cost += cost1; sav += sav1;
-        this._count(`ccC${i}`, priced ? cost1 : null, dec(cost1));
-        this._f(`ccS${i}`, priced ? `${nf(sav1, dec(sav1))} ${CUR}` : '—');
-        card.classList.toggle('idle', tot < 0.05);
+        const bad = this._ccBad && this._ccBad[i];
+        if (!bad) { cost += cost1; sav += sav1; }
+        this._count(`ccC${i}`, priced && !bad ? cost1 : null, dec(cost1));
+        this._f(`ccS${i}`, priced && !bad ? `${nf(sav1, dec(sav1))} ${CUR}` : '—');
+        card.classList.toggle('idle', tot < 0.05 && !bad);
+        card.classList.toggle('bad', !!bad);
+        if (bad) {
+          card.querySelectorAll('.cc-bar i').forEach((s) => { s.style.width = '0'; });
+          this._f(`ccK${i}`, `<span class="cc-warn" title="${esc(bad.id)}"><ha-icon icon="mdi:alert-outline"></ha-icon>${T(bad.k, { id: esc(bad.id), u: esc(bad.u) })}</span>`);
+          this._$(`[data-f="ccL${i}"]`).classList.remove('on');
+          return;
+        }
         card.querySelectorAll('.cc-bar i').forEach((s, n) => { s.style.width = tot > 0 ? [g, b, p][n] / tot * 100 + '%' : '0'; });
         this._f(`ccK${i}`, [['--imp', 'st.cc.grid', g], ['--bat', 'st.cc.bat', b], ['--pv', 'st.cc.pv', p]].map(([s, l, v]) => `<span style="--s:var(${s})"><i></i>${T(l)}<b>${fk(v)}</b></span>`).join('') + '<span>kWh</span>');
         const w = live(this._hass, x.power), on = w !== null && w > (x.on_w === undefined ? 10 : x.on_w), lv = this._$(`[data-f="ccL${i}"]`);

@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.19.5
+- **Statistik, Kosten je Verbraucher: Hinweis statt 0 €:** Ist für einen Verbraucher ein Leistungssensor (W) eingetragen, gibt es zu seinem Zähler keine kWh-Statistik oder den Sensor gar nicht, zeigte das Kärtchen bisher ohne Erklärung 0 €. Jetzt steht dort in Gelb der Grund und welcher Sensor gemeint ist. Die Summe oben rechnet nur mit den richtigen Sensoren. Rückmeldung aus [#21](https://github.com/msucimaker3112/energy-cockpit/issues/21).
+- **Energiefluss, Legende am Ring:** In der klassischen Ansicht stand die Legende (Solar, Akku, Netz in Prozent) unter dem Ring, und die Linien zu den Verbrauchern, auf dem Handy auch zu Solar, Netz und Akku, liefen durch die Schrift. Sie steht jetzt über dem Ring, wie schon in der 3D-Ansicht.
+- **Doku:** Die Installation über die HACS-Suche steht jetzt auch in der Ansicht, die HACS zur Karte zeigt.
+
 ## 0.19.4
 - **Energiefluss, 3D-Ansicht:** Namen mit Anführungszeichen oder spitzen Klammern konnten die Zeichnung brechen, und Markup darin wurde als HTML gelesen. Sie werden jetzt geschützt ausgegeben.
 - **Statistik, Kachel "Einspeiseerlös" wählbar (optional, `feed_in_card`):** Für Anlagen ohne Vergütung zeigt `pv_self_consumption` stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag ändert sich nichts. Wunsch aus [#14](https://github.com/msucimaker3112/energy-cockpit/issues/14).

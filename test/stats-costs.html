@@ -77,6 +77,16 @@ async function run(){
   const form=WD.statsForm();
   ok('Alle Felder kennt Verbraucher und Preisverlauf',form.schema.some(f=>f.name==='cost_consumers')&&form.schema.some(f=>f.name==='grid_price_history'));
   ed.remove();
+  // Typische Einrichtungsfehler: Hinweis statt still 0 € (#21)
+  e=mount({...base,pv_ac:true,cost_consumers:[base.cost_consumers[0],{name:'WP Watt',energy:'sensor.wpw'},{name:'Ohne Statistik',energy:'sensor.ns'},{name:'Tippfehler',energy:'sensor.gibtsnicht'}]},hassFor({'sensor.wpw':S(1200),'sensor.ns':S(12.5,'kWh')}));await wait(600);await tab(e,'day');
+  ok('Hinweis: Leistungssensor statt Zähler',q(e,'.ccard[data-c="1"]').classList.contains('bad')&&/misst Leistung \(W\)/.test(t(e,'[data-f="ccK1"]'))&&t(e,'[data-t="ccC1"]')==='—',t(e,'[data-f="ccK1"]')+' / '+t(e,'[data-t="ccC1"]'));
+  ok('Hinweis: Sensor ohne Statistik',/Keine kWh-Statistik für sensor\.ns/.test(t(e,'[data-f="ccK2"]'))&&t(e,'[data-f="ccS2"]')==='—',t(e,'[data-f="ccK2"]'));
+  ok('Hinweis: Sensor gibt es nicht',/sensor\.gibtsnicht gibt es nicht/.test(t(e,'[data-f="ccK3"]')),t(e,'[data-f="ccK3"]'));
+  ok('richtiger Sensor: kein Hinweis, Werte wie bisher',!q(e,'.ccard[data-c="0"]').classList.contains('bad')&&t(e,'[data-t="ccC0"]')==='0,50',t(e,'[data-t="ccC0"]'));
+  ok('Summe im Kopf nur aus richtigen Sensoren',/0,50 €/.test(t(e,'[data-f="ccSum"]')),t(e,'[data-f="ccSum"]'));
+  const h3=hassFor({'sensor.ns':S(1,'kWh')});h3.callWS=async()=>({});
+  e=mount({...base,pv_ac:true,cost_consumers:[{name:'Neu',energy:'sensor.ns'}]},h3);await wait(600);await tab(e,'day');
+  ok('Monatsbeginn ohne jede Stunde: kein falscher Hinweis',!q(e,'.ccard[data-c="0"]').classList.contains('bad'));
   const {cost_consumers,...off}=base;calls=[];
   e=mount(off,hassFor());await wait(600);
   ok('ohne Eintrag: kein Bereich und keine Abfrage',!q(e,'.cc')&&calls.length===0);

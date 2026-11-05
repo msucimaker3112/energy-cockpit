@@ -194,6 +194,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .stat span{font-size:calc(.7rem*var(--ts,1))}
 /* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
 .sam-on .mix{order:-1;margin:0 0 12px}
+/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Akku) */
+.wrap:not(.s3d) .mix{order:-1;margin:0 0 12px}
 .sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
 .wrap .sambox .consumers,.wrap .sambox .groups{margin-top:0}
 .wrap .sambox .consumers+.groups{margin-top:12px}

@@ -30,6 +30,9 @@ async function run(){
   e=mount(hassFor(300,700,0));await wait(300);
   const t=segs(e);
   ok('große Anteile: Abstand bleibt wie bisher',Math.abs(t[0].len-27)<0.01&&Math.abs(t[2].len-67)<0.01,t[0].len.toFixed(2)+' / '+t[2].len.toFixed(2));
+  // Legende über dem Ring: unten und seitlich kommen die Linien an (0.19.5)
+  const mx=e.shadowRoot.querySelector('.mix').getBoundingClientRect(),rg=e.shadowRoot.querySelector('.ring-bg').closest('svg').getBoundingClientRect();
+  ok('Legende steht über dem Ring',mx.height>0&&mx.bottom<=rg.top+1,Math.round(mx.bottom)+' / '+Math.round(rg.top));
   document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
 }
 if(new URLSearchParams(location.search).get('test')){document.getElementById('host').style.height='0';run();}else mount(hassFor(11,345,0));
