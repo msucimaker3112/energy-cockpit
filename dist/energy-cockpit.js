@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.19.6 - MIT License */
+/*! energy-cockpit v0.20.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -175,7 +175,7 @@ const WD = (() => {
       'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand', 'flow.temp': 'Temperatur',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
       'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz', 'pv.use.store': 'Speicher',
-      'stat.pv': 'PV heute', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
+      'stat.pv': 'PV heute', 'stat.fc1': 'PV morgen', 'stat.fc2': 'PV übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
       'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Lädt', 'tag.discharging': 'Entlädt', 'tag.passthrough': 'Durchleitung',
@@ -1042,7 +1042,10 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
 .stat{display:flex;flex-direction:column;padding:11px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
 .stat span{font-size:calc(.62rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.09em;font-weight:650;display:flex;align-items:center;margin-bottom:5px}
-.stat span i{width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
+.stat span i{flex:none;width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
+.stat span{min-width:0;overflow-wrap:anywhere}
+.stat.fc{cursor:pointer}
+.stat.fc span i{background:none;box-shadow:inset 0 0 0 1.5px rgb(var(--c))}
 .stat b{font-size:1.1rem;font-variant-numeric:tabular-nums;font-weight:700}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .groups{position:relative;z-index:1;display:grid;grid-gap:10px;gap:10px;margin-top:54px}
@@ -1451,9 +1454,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const nCol = G.length + (showRest ? 1 : 0);
       grps = `<div class="groups${gc ? ' gc-fixed' : ''}" style="grid-template-columns:repeat(${gc ? Math.min(gc, nCol) : nCol},minmax(0,1fr))">${grps}</div>`;
     }
-    const d = (k, lbl, color) => `<div class="stat" data-s="${k}" style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
+    const d = (k, lbl, color, e) => `<div class="stat${e ? ' fc' : ''}" data-s="${k}"${e ? ` data-e="${esc(e)}" role="button"` : ''} style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
     let stats = '';
     if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
+    // PV-Prognose für morgen und übermorgen (optional, z. B. Forecast.Solar oder Solcast). Antippen öffnet den Verlauf. Wunsch aus #22
+    if (c.pv && c.pv.forecast_tomorrow) stats += d('fc1', T('stat.fc1'), PAL.pv, c.pv.forecast_tomorrow);
+    if (c.pv && c.pv.forecast_day_after) stats += d('fc2', T('stat.fc2'), PAL.pv, c.pv.forecast_day_after);
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
@@ -2064,6 +2070,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const p1Bat = Math.min(bChg, Math.max(0, p1 - p1Home));
     const p1Exp = Math.min(gExp, Math.max(0, p1 - p1Home - p1Bat));
     const p2Exp = Math.min(Math.max(0, gExp - p1Exp), Math.max(0, p2 - p2Home));
+    const p2Bat = Math.min(Math.max(0, p2 - p2Home - p2Exp), Math.max(0, bChg - p1Bat));
+    // Rest ohne Ziel: Hausverbrauch-Sensor, Netz und PV passen kurz nicht zusammen (zeitversetzte Werte). Er bleibt beim Haus, wie der Netz-Rest in 3D (#23)
+    const viaOn = this._via && bats[0] && bats[0].out !== null;
+    const p1Rest = viaOn ? 0 : Math.max(0, p1 - p1Home - p1Bat - p1Exp), p2Rest = Math.max(0, p2 - p2Home - p2Exp - p2Bat);
     const useText = (home_, bat_, exp_) => {
       const use = [];
       if (home_ > TH) use.push(`${T('pv.use.home')} <b>${this._fW(home_)}</b>`);
@@ -2077,7 +2087,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._anim('pv2', pv2, el);
       this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts2 = [];
-      const u2 = on ? useText(p2Home, 0, p2Exp) : '';
+      const u2 = on ? useText(p2Home + p2Rest, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
       (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
       this._set('.pv2 .sub', parts2.join('<br>'), true);
@@ -2092,7 +2102,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
         // pv_to_battery: direkt: Der ganze Solarstrom geht in den Speicher, die Aufteilung steht beim Ausgang des Speichers
-        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home, p1Bat, p1Exp);
+        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home + p1Rest, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
@@ -2173,7 +2183,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     if (this._s3d) {
-      this._routes3d({ bats, gImp, gExp, p1Home, p2Home, p1Bat, p1Exp, p2Exp, pv2Bat: Math.max(0, p2 - p2Home - p2Exp) });
+      this._routes3d({ bats, gImp, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
       this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
     }
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
@@ -2290,6 +2300,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Akku-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${fKwh(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${fKwh(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);
@@ -2326,7 +2338,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   const LABELS = {
     title: 'Titel', name: 'Anzeigename', icon: 'Symbol', minus: 'Differenz: abziehen (Sensor, W), z. B. Zähler 2 einer Zählerkaskade', plus: 'Differenz: dazurechnen (Sensor, W, optional)',
-    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)',
+    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
@@ -2362,7 +2374,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   WD.flowForm = () => ({
     schema: [
       txt('title'),
-      sec('pv', 'Solar', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor'])]),
+      sec('pv', 'Solar', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
       sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
       sec('grid', 'Netz', [ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('battery', 'Batterie', [
@@ -2411,6 +2423,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'pv.daily', label: 'Tagesertrag (kWh)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute|yield|ertrag/i, /pv|solar|inverter/i) },
       { path: 'pv.daily_ac', label: 'Tagesertrag zählt ohne Akku-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt. Zeichen dafür: "Autarkie heute" steht bei 0 %, und "Haus heute" ist viel zu niedrig. Braucht "Geladen heute" und "Entladen heute" beim Speicher.' },
       { path: 'pv.forecast', label: 'Prognose (z. B. Solcast, Leistung in W/kW)', kind: 'power', optional: true, hints: H(/forecast|prognose|solcast/i), help: 'Eine Tagesprognose in kWh (Solcast "Prognose heute") wählst du im Formular, sie wird als kWh angezeigt.' },
+      { path: 'pv.forecast_tomorrow', label: 'Prognose morgen (kWh)', kind: 'energy', optional: true, hints: H(/tomorrow|morgen/i, /forecast|prognose|solcast|production|produktion|ertrag/i), help: 'Erwartete Produktion für morgen, zum Beispiel von Forecast.Solar oder Solcast. Erscheint als Kachel "PV morgen" unten in der Karte.' },
+      { path: 'pv.forecast_day_after', label: 'Prognose übermorgen (kWh)', kind: 'energy', optional: true, hints: H(/day.?after|d2|uebermorgen|übermorgen|day_3|day3/i), help: 'Nicht jede Integration hat diesen Wert, Forecast.Solar zum Beispiel nicht.' },
       { path: 'pv2.entity', label: 'Zweite Anlage, z. B. Balkonkraftwerk (Leistung)', kind: 'power', optional: true, hints: H(/bkw|balkon|pv2|solar2|plug|steckdose|shelly/i), help: 'Eigene Kachel und Linie. Die Bilanz (Autarkie, Eigenverbrauch, Herkunft) rechnet mit der Summe beider Anlagen.' },
       { path: 'pv2.name', label: 'Name der zweiten Anlage', kind: 'text', optional: true },
       { path: 'pv2.daily', label: 'Tagesertrag der zweiten Anlage (kWh)', kind: 'energy', optional: true },
@@ -4893,7 +4907,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
-      const d = M.pvC[kp] ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
+      // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
+      const running = k === key(new Date().getFullYear(), new Date().getMonth());
+      const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
       el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${fKwh(M.imp[k])} kWh · ${T('st.export')} ${fKwh(M.exp[k])} kWh · ${T('st.aut')} <b>${fPct(aut)}</b>`;
     }
   }

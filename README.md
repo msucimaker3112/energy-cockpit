@@ -174,6 +174,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen | `hide_rest: true`, `rest_min: 10` |
 | **Aktiv ab:** ab welcher Leistung Rahmen und Linie erscheinen | `on_w` |
 | **Batterie:** Entladegrenze und Maximalladung, Ladestand im nutzbaren Bereich, Temperatur | `reserve_soc`, `max_soc`, `soc_display: nutzbar`, `temp` |
+| **PV-Prognose** für morgen und übermorgen, zum Beispiel von Forecast.Solar oder Solcast | `pv.forecast_tomorrow`, `pv.forecast_day_after` |
 | **Haus heute** aus einem eigenen Sensor | `home.daily` |
 | **Unterposten** in der Raum-Abrechnung | `devices[].items` |
 

@@ -27,6 +27,9 @@ async function run(){
   // 1. Aus: alles wie bisher
   let c=mount(base);await wait(1600);
   ok('aus: Abfrage ab Vorjahr',lastStart===Y-1,lastStart);
+  // #14: Im laufenden Monat kein Vergleich mit dem ganzen Vorjahresmonat
+  q(c,`.col[data-m="${M}"]`).click();ok('laufender Monat: kein ggü. Vorjahr',!/Vorjahr/.test(txt(c,'.detail'))&&/PV/.test(txt(c,'.detail')),txt(c,'.detail'));
+  if(M>0&&![2,3].includes(M-1)){q(c,`.col[data-m="${M-1}"]`).click();ok('abgeschlossener Monat: mit ggü. Vorjahr',/Vorjahr/.test(txt(c,'.detail')),txt(c,'.detail'));}
   ok('aus: drei Reiter',qa(c,'.tab').length===3);
   ok('aus: kein Blättern',!q(c,'.yb'));
   ok('aus: kein Hinweistext',!q(c,'.cover'));

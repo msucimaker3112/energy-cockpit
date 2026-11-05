@@ -138,7 +138,10 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
 .stat{display:flex;flex-direction:column;padding:11px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
 .stat span{font-size:calc(.62rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.09em;font-weight:650;display:flex;align-items:center;margin-bottom:5px}
-.stat span i{width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
+.stat span i{flex:none;width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
+.stat span{min-width:0;overflow-wrap:anywhere}
+.stat.fc{cursor:pointer}
+.stat.fc span i{background:none;box-shadow:inset 0 0 0 1.5px rgb(var(--c))}
 .stat b{font-size:1.1rem;font-variant-numeric:tabular-nums;font-weight:700}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .groups{position:relative;z-index:1;display:grid;grid-gap:10px;gap:10px;margin-top:54px}
@@ -547,9 +550,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const nCol = G.length + (showRest ? 1 : 0);
       grps = `<div class="groups${gc ? ' gc-fixed' : ''}" style="grid-template-columns:repeat(${gc ? Math.min(gc, nCol) : nCol},minmax(0,1fr))">${grps}</div>`;
     }
-    const d = (k, lbl, color) => `<div class="stat" data-s="${k}" style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
+    const d = (k, lbl, color, e) => `<div class="stat${e ? ' fc' : ''}" data-s="${k}"${e ? ` data-e="${esc(e)}" role="button"` : ''} style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
     let stats = '';
     if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
+    // PV-Prognose für morgen und übermorgen (optional, z. B. Forecast.Solar oder Solcast). Antippen öffnet den Verlauf. Wunsch aus #22
+    if (c.pv && c.pv.forecast_tomorrow) stats += d('fc1', T('stat.fc1'), PAL.pv, c.pv.forecast_tomorrow);
+    if (c.pv && c.pv.forecast_day_after) stats += d('fc2', T('stat.fc2'), PAL.pv, c.pv.forecast_day_after);
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
@@ -1160,6 +1166,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const p1Bat = Math.min(bChg, Math.max(0, p1 - p1Home));
     const p1Exp = Math.min(gExp, Math.max(0, p1 - p1Home - p1Bat));
     const p2Exp = Math.min(Math.max(0, gExp - p1Exp), Math.max(0, p2 - p2Home));
+    const p2Bat = Math.min(Math.max(0, p2 - p2Home - p2Exp), Math.max(0, bChg - p1Bat));
+    // Rest ohne Ziel: Hausverbrauch-Sensor, Netz und PV passen kurz nicht zusammen (zeitversetzte Werte). Er bleibt beim Haus, wie der Netz-Rest in 3D (#23)
+    const viaOn = this._via && bats[0] && bats[0].out !== null;
+    const p1Rest = viaOn ? 0 : Math.max(0, p1 - p1Home - p1Bat - p1Exp), p2Rest = Math.max(0, p2 - p2Home - p2Exp - p2Bat);
     const useText = (home_, bat_, exp_) => {
       const use = [];
       if (home_ > TH) use.push(`${T('pv.use.home')} <b>${this._fW(home_)}</b>`);
@@ -1173,7 +1183,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._anim('pv2', pv2, el);
       this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts2 = [];
-      const u2 = on ? useText(p2Home, 0, p2Exp) : '';
+      const u2 = on ? useText(p2Home + p2Rest, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
       (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
       this._set('.pv2 .sub', parts2.join('<br>'), true);
@@ -1188,7 +1198,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
         // pv_to_battery: direkt: Der ganze Solarstrom geht in den Speicher, die Aufteilung steht beim Ausgang des Speichers
-        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home, p1Bat, p1Exp);
+        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home + p1Rest, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
       (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
@@ -1269,7 +1279,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     if (this._s3d) {
-      this._routes3d({ bats, gImp, gExp, p1Home, p2Home, p1Bat, p1Exp, p2Exp, pv2Bat: Math.max(0, p2 - p2Home - p2Exp) });
+      this._routes3d({ bats, gImp, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
       this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
     }
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
@@ -1386,6 +1396,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Akku-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${fKwh(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${fKwh(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);

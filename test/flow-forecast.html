@@ -1,0 +1,63 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit PV-Prognose, Solar-Rest und Fußzeile</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft PV-Prognose morgen/übermorgen (#22), Solarstrom ohne Ziel (#23) und die Fußzeile bei sehr großer Schrift. Aufruf: ?test=1&still=1
+   Ohne test zeigt die Seite die Karte: &style=3d, &w=Breite, &kurz=1, &ts=sehr_gross */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const D=(v,u)=>S(v,u||'kWh');
+const base={pv:{entity:'sensor.pv',name:'PV-Anlage',daily:'sensor.dpv',forecast_tomorrow:'sensor.fc1',forecast_day_after:'sensor.fc2'},grid:{entity:'sensor.grid',daily_import:'sensor.dimp',daily_export:'sensor.dexp'},
+  battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10,daily_charge:'sensor.dchg',daily_discharge:'sensor.ddis'},home:{daily:'sensor.dhome'},fit_screen:false};
+const st0={'sensor.pv':S(2100),'sensor.grid':S(380),'sensor.bat':S(-640),'sensor.soc':S(64,'%'),'sensor.dpv':D(24.6),'sensor.dimp':D(1.2),'sensor.dexp':D(9.8),'sensor.dchg':D(6.1),'sensor.ddis':D(4.2),'sensor.dhome':D(14.1),'sensor.fc1':D(18.4),'sensor.fc2':D(21700,'Wh')};
+const hassFor=(o)=>({states:Object.assign({},st0,o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const on=(e,k)=>{const g=q(e,`g[data-l="${k}"]`);return g?g.classList.contains('on'):null;};
+async function run(){
+  // #22: Prognose
+  let e=mount(base,hassFor());await wait(400);
+  ok('Prognose morgen: Kachel mit kWh',/PV morgen/i.test(t(e,'[data-s="fc1"] span'))&&t(e,'[data-s="fc1"] b')==='18,4kWh',t(e,'[data-s="fc1"]'));
+  ok('Prognose übermorgen: Wh werden zu kWh',t(e,'[data-s="fc2"] b')==='21,7kWh',t(e,'[data-s="fc2"] b'));
+  ok('Prognose steht direkt nach PV heute',q(e,'[data-s="pv"]').nextElementSibling===q(e,'[data-s="fc1"]'));
+  ok('Antippen öffnet den Verlauf',q(e,'[data-s="fc1"]').dataset.e==='sensor.fc1');
+  let opened=null;e.addEventListener('hass-more-info',(ev)=>{opened=ev.detail.entityId;});q(e,'[data-s="fc2"] b').click();
+  ok('Klick meldet den Sensor',opened==='sensor.fc2',opened);
+  e=mount(base,hassFor({'sensor.fc1':S('unavailable','kWh')}));await wait(400);
+  ok('Prognose nicht verfügbar: Strich',/^—/.test(t(e,'[data-s="fc1"] b')),t(e,'[data-s="fc1"] b'));
+  const {forecast_tomorrow,forecast_day_after,...pv0}=base.pv;
+  e=mount({...base,pv:pv0},hassFor());await wait(400);
+  ok('ohne Eintrag: keine Prognose-Kachel',!q(e,'[data-s="fc1"]')&&!q(e,'[data-s="fc2"]'));
+  e=mount({...base,pv:{...pv0,forecast_tomorrow:'sensor.fc1'}},hassFor());await wait(400);
+  ok('nur morgen: eine Kachel',!!q(e,'[data-s="fc1"]')&&!q(e,'[data-s="fc2"]'));
+  // #23: Solarstrom ohne Ziel (Hausverbrauch-Sensor passt kurz nicht zu Netz und PV)
+  const m={pv:{entity:'sensor.p1',name:'PV 1'},pv2:{entity:'sensor.p2',name:'PV 2'},grid:{entity:'sensor.g'},battery:{power:'sensor.b',soc:'sensor.bs',behind_meter:true,invert:true,capacity_kwh:5.12},home:{entity:'sensor.h'},watt_only:true,fit_screen:false};
+  for(const style of ['3d','flach'])for(const[n,p1,p2,g,h,exp1,exp2] of [['PV 1 60 W, Bezug = Haus',60,0,300,300,true,false],['PV 1 und 2 je 60 W, Bezug passt nur für eine',60,60,240,300,true,true],['PV 1 60 W, Bezug passt',60,0,240,300,true,false],['PV 1 400 W, ohne Bezug',400,0,0,400,true,false]]){
+    e=mount({...m,style},hassFor({'sensor.p1':S(p1),'sensor.p2':S(p2),'sensor.g':S(g),'sensor.b':S(0),'sensor.bs':S(51,'%'),'sensor.h':S(h)}));await wait(400);
+    ok(`${style}, ${n}: Linie PV 1`,on(e,'pv')===exp1,on(e,'pv'));
+    ok(`${style}, ${n}: Linie PV 2`,on(e,'pv2')===exp2,on(e,'pv2'));
+    ok(`${style}, ${n}: PV 1 sagt, wohin der Strom geht`,/Haus/.test(t(e,'.pv .sub')||''),t(e,'.pv .sub'));
+  }
+  // passt alles zusammen, ändert sich nichts: Solar lädt den Akku und speist ein
+  e=mount({...base,style:'3d'},hassFor({'sensor.pv':S(3000),'sensor.grid':S(-1000),'sensor.bat':S(800),'sensor.dhome':D(1)}));await wait(400);
+  ok('3D, Werte passen: Aufteilung wie bisher',/Haus 1,20 kW · Batterie 800 W · Netz 1,00 kW/.test(t(e,'.pv .sub')),t(e,'.pv .sub'));
+  ok('3D, Werte passen: Solar → Akku und Solar → Netz',on(e,'r:pv:bat')&&on(e,'r:pv:grid'));
+  // Fußzeile: Punkt vor jedem Titel, kein Titel läuft über den Rand (sehr große Schrift, schmale Karte)
+  for(const w of [320,360,390,430,600,820]){
+    document.getElementById('host').style.maxWidth=w+'px';
+    e=mount({...base,text_size:'sehr_gross'},hassFor());await wait(400);
+    const bad=[...e.shadowRoot.querySelectorAll('.stat')].filter(x=>{const s=x.querySelector('span'),i=s.querySelector('i'),b=x.getBoundingClientRect();return i.getBoundingClientRect().width<5||s.scrollWidth>s.clientWidth+1||[...s.getClientRects()].some(r=>r.right>b.right+1);}).map(x=>x.dataset.s);
+    ok(`sehr große Schrift, ${w} px: Punkt da, Titel bleibt in der Kachel`,bad.length===0,bad.join(',')||'alle gut');
+  }
+  document.getElementById('host').style.maxWidth='';
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search);if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';
+  const c={...base};if(P.get('style'))c.style=P.get('style');if(P.get('kurz'))c.compact='immer';if(P.get('ts'))c.text_size=P.get('ts');if(P.get('nur1'))delete c.pv.forecast_day_after;
+  if(P.get('case')==='rest'){/* #23: 60 W Solar, Hausverbrauch-Sensor und Bezug gleich */mount({pv:{entity:'sensor.p1',name:'PV-Anlage'},grid:{entity:'sensor.g'},battery:{power:'sensor.b',soc:'sensor.bs',capacity_kwh:5.12},home:{entity:'sensor.h'},style:'3d',watt_only:true,fit_screen:false},hassFor({'sensor.p1':S(60),'sensor.g':S(300),'sensor.b':S(0),'sensor.bs':S(51,'%'),'sensor.h':S(300)}));}else mount(c,hassFor());}
+</script></body></html>

@@ -22,6 +22,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv.daily` | Sensor | Tagesertrag in kWh |
 | `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Akku geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
 | `pv.forecast` | Sensor | Prognose-Leistung (z. B. Solcast) |
+| `pv.forecast_tomorrow`, `pv.forecast_day_after` | Sensor (kWh) | Erwartete Produktion für morgen und übermorgen, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `pv.strings` | Liste | Teilstränge `{entity, name}` |
 | `grid.entity` | Sensor | Netzleistung (Bezug positiv) |
 | `grid.invert` | Ja/Nein | Vorzeichen umkehren |
@@ -58,6 +59,22 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `theme` | Text | Farbschema: `dunkel` (Standard), `graphit`, `hell`, `warm`, `auto` (folgt dem Home-Assistant-Design hell/dunkel) oder `ha` (Farben des HA-Designs). Gilt für alle vier Karten |
 | `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
 | `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
+
+### PV-Prognose für morgen und übermorgen
+
+Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, direkt neben "PV heute". Ein hohler Punkt kennzeichnet sie als Prognose, ein Tipp öffnet den Verlauf des Sensors.
+
+```yaml
+pv:
+  entity: sensor.pv_leistung
+  forecast_tomorrow: sensor.energy_production_tomorrow     # z. B. Forecast.Solar
+  forecast_day_after: sensor.solcast_prognose_uebermorgen  # optional, z. B. Solcast
+```
+
+- Die Sensoren liefern kWh, Wh oder MWh. Die Karte rechnet in kWh um.
+- **Forecast.Solar** hat einen Sensor für morgen, aber keinen für übermorgen. **Solcast** liefert auch weitere Tage. Die genaue Sensor-ID steht bei der Integration unter den Entitäten.
+- Einstellbar im Assistenten (Schritt *Solar*) und unter "Alle Felder". Ohne Eintrag erscheinen die Kacheln nicht.
+- `pv.forecast` bleibt wie bisher: die Prognose für jetzt oder für heute in der Solar-Kachel.
 
 ### Tagesertrag von Hybrid-Wechselrichtern
 
@@ -503,7 +520,7 @@ house_style: sattel   # oder flach (Flachdach)
 - **Solar:** Die Module sind zu sehen, bei `pv.strings` mit einer Reihe je String. Die Sonne leuchtet mit dem Ertrag.
 - **Netz:** Der Zählerkasten zeigt die Leistung auf dem Display. Ein Bezug leuchtet rot, eine Einspeisung grün.
 - **Speicher:** Der Füllstand steht auf der Front des Speichers. Mehrere Speicher stehen nebeneinander. Gestapelte Akkus mit einem gemeinsamen Sensor erscheinen als ein Turm mit beiden Ladeständen.
-- **Linien nach den echten Wegen:** Die Linien laufen dort, wo die Energie fließt. Solar lädt einen Speicher vor dem Wechselrichter direkt (`pv_to_battery: direkt`), ein Speicher speist ins Netz, das Netz lädt den Akku. Das Haus bekommt nur, was dort ankommt.
+- **Linien nach den echten Wegen:** Die Linien laufen dort, wo die Energie fließt. Solar lädt einen Speicher vor dem Wechselrichter direkt (`pv_to_battery: direkt`), ein Speicher speist ins Netz, das Netz lädt den Akku. Das Haus bekommt nur, was dort ankommt. Kann die Karte Solarstrom keinem Weg zuordnen, etwa weil Hausverbrauch-Sensor, Netz und PV zeitversetzt melden, zählt er zum Haus. So fehlt die Solar-Linie nicht.
 - Die Kurzansicht (`compact`), das Handy-Layout und die Farbschemen funktionieren auch in 3D.
 
 | Dach | Handy | Hell |

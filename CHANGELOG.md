@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.20.0
+- **Energiefluss, PV-Prognose für morgen und übermorgen (optional, `pv.forecast_tomorrow`, `pv.forecast_day_after`):** Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, zum Beispiel von Forecast.Solar oder Solcast. Ein Tipp öffnet den Verlauf. Einstellbar im Assistenten (Schritt *Solar*). Ohne Eintrag ändert sich nichts. Wunsch aus [#22](https://github.com/msucimaker3112/energy-cockpit/issues/22).
+- **Energiefluss, Solar-Linie fehlte:** Passten Hausverbrauch-Sensor, Netz und PV kurz nicht zusammen, etwa weil sie zeitversetzt melden, zeigte die 3D-Ansicht keine Solar-Linie, und die Solar-Kachel sagte nicht, wohin der Strom geht. Dieser Rest zählt jetzt zum Haus, in 3D und in der klassischen Ansicht. Passen die Werte zusammen, ändert sich nichts. Rückmeldung aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).
+- **Energiefluss, Kacheln unten bei sehr großer Schrift:** Lange Titel wie "Einspeisung" liefen in schmalen Karten über den Rand, und der farbige Punkt davor verschwand. Jetzt bricht der Titel um, und der Punkt bleibt.
+- **Statistik, laufender Monat:** "ggü. Vorjahr" entfällt im laufenden Monat, weil dort angefangene Tage gegen den ganzen Vorjahresmonat stünden. Abgeschlossene Monate zeigen den Vergleich wie bisher. Rückmeldung aus [#14](https://github.com/msucimaker3112/energy-cockpit/issues/14).
+
 ## 0.19.6
 - **Nur die Anleitung:** In HACS fehlten in der Beschreibung einige Bilder, darunter das Titelbild. Bilder und Links der README stehen jetzt mit voller Adresse drin. An den Karten ändert sich nichts, das Update hat also keine Eile.
 

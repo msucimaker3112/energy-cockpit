@@ -718,7 +718,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
-      const d = M.pvC[kp] ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
+      // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
+      const running = k === key(new Date().getFullYear(), new Date().getMonth());
+      const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
       el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${fKwh(M.imp[k])} kWh · ${T('st.export')} ${fKwh(M.exp[k])} kWh · ${T('st.aut')} <b>${fPct(aut)}</b>`;
     }
   }
