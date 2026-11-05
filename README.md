@@ -7,7 +7,7 @@ Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.<br>
 Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kein YAML.</p>
 
 [![Version](https://img.shields.io/github/v/release/msucimaker3112/energy-cockpit?label=Version&color=22d3ee)](https://github.com/msucimaker3112/energy-cockpit/releases/latest)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5)](https://hacs.xyz/)
+[![In HACS](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz/)
 [![Lizenz MIT](https://img.shields.io/badge/Lizenz-MIT-22c55e)](LICENSE)
 [![Sprache Deutsch](https://img.shields.io/badge/Sprache-Deutsch-facc15)](#english)
 
@@ -52,11 +52,11 @@ Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räu
 
 ## Installation
 
-Du brauchst Home Assistant mit [HACS](https://hacs.xyz/). Am schnellsten geht es über den Knopf oben. Sonst so:
+Energy-Cockpit ist im offiziellen HACS-Store. Du brauchst Home Assistant mit [HACS](https://hacs.xyz/). Am schnellsten geht es über den Knopf oben. Sonst so:
 
-1. HACS öffnen → Menü (⋮) oben rechts → **Benutzerdefinierte Repositories**.
-2. `https://github.com/msucimaker3112/energy-cockpit` eintragen, Kategorie **Dashboard** wählen, **Hinzufügen**.
-3. "Energy-Cockpit" in HACS suchen, **Herunterladen**, Browser-Cache leeren (Strg+F5).
+1. HACS öffnen und nach **energy-cockpit** suchen.
+2. Eintrag öffnen, **Herunterladen** und bestätigen.
+3. Browser-Cache leeren (Strg+F5), in der Home-Assistant-App die App einmal ganz neu starten.
 4. Im Dashboard eine Karte hinzufügen: **Energy-Cockpit Energiefluss**, **… Geräte & Verbrauch**, **… Statistik** oder **… Raum-Abrechnung**. Der Assistent führt dich durch die Einrichtung.
 
 Mit manueller Installation und Fehlerbehebung: [Installationsanleitung](docs/INSTALLATION.md).
@@ -277,7 +277,7 @@ Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder p
 - **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 
-**Install:** HACS → ⋮ → *Custom repositories* → `https://github.com/msucimaker3112/energy-cockpit`, category *Dashboard* → download → reload the browser. Then add a card and search for *Energy-Cockpit*.
+**Install:** Energy-Cockpit is in the default HACS store. Open HACS, search for *energy-cockpit*, download it and reload the browser. Then add a card and search for *Energy-Cockpit*.
 
 The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests in English are welcome.
 

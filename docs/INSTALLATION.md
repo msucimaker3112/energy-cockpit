@@ -10,15 +10,14 @@ Dauer: etwa 10 Minuten. Du brauchst Administratorrechte in Home Assistant.
 
 ## 2. Installation mit HACS (empfohlen)
 
+Energy-Cockpit ist seit November 2026 im offiziellen HACS-Store.
+
 1. In Home Assistant **HACS** öffnen.
-2. Oben rechts auf die drei Punkte (⋮) → **Benutzerdefinierte Repositories**.
-3. Eintragen:
-   - **Repository:** `https://github.com/msucimaker3112/energy-cockpit`
-   - **Kategorie:** `Dashboard` (in älteren HACS-Versionen "Lovelace")
-4. **Hinzufügen** klicken.
-5. In der HACS-Suche nach **Energy-Cockpit** suchen und öffnen.
-6. **Herunterladen** (unten rechts) und bestätigen.
-7. Browser-Cache leeren: **Strg + F5** (Mac: Cmd + Shift + R). Bei der Home-Assistant-App: App-Einstellungen → Cache leeren oder App neu starten.
+2. In der Suche **energy-cockpit** eingeben und den Eintrag öffnen.
+3. **Herunterladen** (unten rechts) und bestätigen.
+4. Browser-Cache leeren: **Strg + F5** (Mac: Cmd + Shift + R). Bei der Home-Assistant-App: App-Einstellungen → Cache leeren oder App neu starten.
+
+Findet die Suche die Karte nicht, ist die Liste deines HACS noch nicht aktuell. Dann hilft es, kurz zu warten, oder du trägst sie einmalig von Hand ein: oben rechts auf die drei Punkte (⋮) → **Benutzerdefinierte Repositories** → Repository `https://github.com/msucimaker3112/energy-cockpit`, Kategorie `Dashboard` → **Hinzufügen**.
 
 HACS legt die Ressource automatisch an. Du kannst sie prüfen unter *Einstellungen → Dashboards → ⋮ → Ressourcen*. Dort steht `/hacsfiles/energy-cockpit/energy-cockpit.js` als **JavaScript-Modul**.
 
