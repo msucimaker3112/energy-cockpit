@@ -1,0 +1,59 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik ohne Sprünge Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft: Beim Wechsel von Reiter und Jahr bleiben Höhe und Maßstab der Karte gleich. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth(),d0=new Date(Y,M,now.getDate()).getTime();
+// Monatswerte seit August vor zwei Jahren, im Sommer mehr PV, im Winter mehr Bezug
+const sun=[.1,.2,.6,.9,1,1,.95,.9,.6,.3,.15,.1];
+function rows(f){const out=[];let a=Y-2,b=7;while(a<Y||(a===Y&&b<=M)){out.push({start:new Date(a,b,1).getTime(),change:f(sun[b])});if(++b>11){b=0;a++;}}return out;}
+const month={'sensor.pv':rows(s=>1600*s),'sensor.imp':rows(s=>500*(1.1-s)),'sensor.exp':rows(s=>1000*s),'sensor.chg':rows(s=>240*s),'sensor.dis':rows(s=>230*s)};
+const hour={'sensor.pv':2,'sensor.imp':1,'sensor.exp':1,'sensor.chg':.5,'sensor.dis':.4,'sensor.g':.2,'sensor.b':.1,'sensor.p':.3,'sensor.e':.5};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.chg':S(4700),'sensor.dis':S(4500),'sensor.w':S(630,'W')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  const r={};(m.statistic_ids||[]).forEach(id=>{
+    if(m.period==='month')r[id]=month[id]||[];
+    else if(m.period==='hour'&&hour[id]!==undefined)r[id]=[{start:d0,change:hour[id]}];
+    else r[id]=[];});return r;}};
+const cfg={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',battery_capacity_kwh:7.5,grid_price_ct:34,feed_in_ct:6,long_term:true,
+  cost_consumers:[{name:'E-Auto',grid:'sensor.g',battery:'sensor.b',pv:'sensor.p',power:'sensor.w'},{name:'Warmwasser',energy:'sensor.e'},{name:'Heizung',energy:'sensor.e'}]};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const host=document.getElementById('host');
+  for(const w of [1000,1280,1600]){
+    host.style.maxWidth=w+'px';
+    const e=mount(cfg);await wait(1500);
+    const q=(s)=>e.shadowRoot.querySelector(s);
+    const tab=(p)=>q(`.tab[data-p="${p}"]`).click();
+    const seen={};
+    const look=async(n)=>{await wait(200);e._fit();seen[n]={h:q('.wrap').offsetHeight,s:(q('.wrap').style.transform.match(/[\d.]+/)||['1'])[0]};};
+    tab('day');await look('Heute');tab('week');await look('Woche');tab('month');await look('Monat');tab('year');await look(String(Y));
+    q('.yb[data-yr="-1"]').click();await look(String(Y-1));
+    q('.yb[data-yr="-1"]').click();await look(String(Y-2));
+    q('.yb[data-yr="1"]').click();await look('zurück '+(Y-1));
+    q('.yb[data-yr="1"]').click();await look('zurück '+Y);
+    tab('all');await look('Gesamt');
+    const hs=Object.values(seen).map(x=>x.h),ss=Object.values(seen).map(x=>x.s);
+    const txt=Object.entries(seen).map(([k,v])=>`${k} ${v.h}`).join(', ');
+    ok(`${w} px: Höhe bleibt gleich`,Math.max(...hs)-Math.min(...hs)<=2,txt);
+    ok(`${w} px: Maßstab bleibt gleich`,new Set(ss).size===1,[...new Set(ss)].join(' / '));
+    // Frühere Jahre und Gesamt: Bereich bleibt stehen und sagt, warum keine Werte da sind
+    tab('all');await wait(100);
+    ok(`${w} px: Gesamt zeigt den Kosten-Bereich mit Hinweis`,q('.cc').style.display!=='none'&&/aktuelle Jahr/.test(q('[data-f="ccSum"]').textContent),q('[data-f="ccSum"]').textContent);
+    ok(`${w} px: Gesamt zeigt keine erfundenen Kosten`,[...e.shadowRoot.querySelectorAll('[data-f^="ccS"]')].filter(x=>/^ccS\d/.test(x.dataset.f)).every(x=>x.textContent==='—'));
+    tab('day');await wait(100);
+    ok(`${w} px: Heute zeigt wieder Kosten`,/gespart/.test(q('[data-f="ccSum"]').textContent),q('[data-f="ccSum"]').textContent);
+  }
+  host.style.maxWidth='';
+  const off={...cfg};delete off.cost_consumers;
+  const e=mount(off);await wait(1200);
+  ok('ohne Verbraucher: kein Kosten-Bereich',!e.shadowRoot.querySelector('.cc')||e.shadowRoot.querySelector('.cc').style.display==='none');
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test')){run();}else mount(cfg);
+</script></body></html>

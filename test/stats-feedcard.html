@@ -1,0 +1,44 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Kachel Einspeiseerlös Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft feed_in_card. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?card=pv_self_consumption|hidden, &w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const one=(v)=>[{start:new Date(Y,M,1).getTime(),change:v}];
+// Monat: PV 100 kWh, davon 25 eingespeist => 75 selbst genutzt, 75 %
+const month={'sensor.pv':one(100),'sensor.imp':one(40),'sensor.exp':one(25),'sensor.chg':one(0),'sensor.dis':one(0)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.chg':S(4700),'sensor.dis':S(4500),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0),'sensor.chgd':S(0),'sensor.disd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{const r={};(m.statistic_ids||[]).forEach(id=>{r[id]=m.period==='month'?(month[id]||[]):[];});return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',charge_today:'sensor.chgd',discharge_today:'sensor.disd',grid_price_ct:34,feed_in_ct:0};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+  let e=mount(base);await wait(1600);
+  ok('ohne Option: Kachel Einspeiseerlös da',!!q(e,'.m.feed')&&!q(e,'.m.selfc'));
+  ok('ohne Option: vier Kacheln, vier Spalten',qa(e,'.money .m').length===4&&!q(e,'.money.three'));
+  ok('ohne Option: Vergütung 0 zeigt Strich',q(e,'[data-t="feed"]').textContent==='—');
+  e=mount({...base,feed_in_card:'standard'});await wait(1600);
+  ok('standard: wie ohne Option',!!q(e,'.m.feed')&&qa(e,'.money .m').length===4);
+  e=mount({...base,feed_in_card:'pv_self_consumption'});await wait(1600);
+  ok('Eigenverbrauch: ersetzt die Kachel',!q(e,'.m.feed')&&!!q(e,'.m.selfc')&&qa(e,'.money .m').length===4);
+  ok('Eigenverbrauch: Titel',/PV-Eigenverbrauch/.test(q(e,'.m.selfc .lbl').textContent));
+  ok('Eigenverbrauch: Quote 75 %',q(e,'[data-t="selfc"]').textContent==='75'&&q(e,'.m.selfc .unit').textContent==='%',q(e,'[data-t="selfc"]').textContent);
+  ok('Eigenverbrauch: 75 kWh selbst genutzt',/75,0 kWh/.test(q(e,'[data-f="selfcSub"]').textContent),q(e,'[data-f="selfcSub"]').textContent);
+  q(e,'.tab[data-p="day"]').click();await wait(1500);
+  ok('Eigenverbrauch heute: 8 kWh ohne Einspeisung = 100 %',q(e,'[data-t="selfc"]').textContent==='100',q(e,'[data-t="selfc"]').textContent);
+  e=mount({...base,feed_in_card:'hidden'});await wait(1600);
+  ok('ausgeblendet: drei Kacheln, drei Spalten',qa(e,'.money .m').length===3&&!!q(e,'.money.three')&&!q(e,'.m.feed'));
+  ok('ausgeblendet: Spalten gleich breit',new Set(qa(e,'.money .m').map(x=>x.offsetWidth)).size===1,qa(e,'.money .m').map(x=>x.offsetWidth).join());
+  ok('ausgeblendet: Rest rechnet weiter',q(e,'[data-t="cost"]').textContent!=='—'&&q(e,'[data-t="aut"]').textContent!=='—');
+  e=mount({...base,feed_in_card:'quatsch'});await wait(600);
+  ok('unbekannter Wert: wie ohne Option',!!q(e,'.m.feed'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,feed_in_card:P.get('card')||undefined,feed_in_ct:0});}
+</script></body></html>

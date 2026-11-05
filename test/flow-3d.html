@@ -126,6 +126,13 @@ async function run(){
   host.style.width='768px';e._layout();await wait(100);
   ok('schmaler gezogen: Bild über dem Text',q(e,'[data-k="pv"]').classList.contains('d3tall'));
   host.style.width='';host.style.maxWidth='';
+  // Namen aus der Konfiguration: Anführungszeichen und Markup dürfen die Zeichnung nicht brechen
+  const bad='A"B<img src=x onerror="window.__x3d=1">';
+  e=mount({...base,home:{name:bad},pv:{entity:'sensor.pv',name:bad},grid:{entity:'sensor.grid',name:bad},battery:{...base.battery,name:bad},pv2:{entity:'sensor.pv2',name:bad},batteries:[{name:bad,power:'sensor.bat2',soc:'sensor.soc2',capacity_kwh:5}]},hassFor());await wait(800);
+  const svgs=qa(e,'.o3d svg');
+  ok('Name mit Sonderzeichen: alle Zeichnungen da',svgs.length===6,svgs.length);
+  ok('Name mit Sonderzeichen: steht unverändert im aria-label',svgs.every(s=>s.getAttribute('aria-label')===bad),svgs.filter(s=>s.getAttribute('aria-label')!==bad).length+' abweichend');
+  ok('Name mit Sonderzeichen: kein Element daraus',!e.shadowRoot.querySelector('.o3d img')&&!window.__x3d);
   const miss=hassFor();delete miss.states['sensor.soc'];delete miss.states['sensor.grid'];
   e=mount(base,miss);await wait(600);
   ok('fehlende Sensoren: kein Absturz',qa(e,'.o3d svg').length===4&&/—/.test(q(e,'[data-o="bat"] svg').textContent));

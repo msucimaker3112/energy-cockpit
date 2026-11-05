@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.19.4
+- **Energiefluss, 3D-Ansicht:** Namen mit Anführungszeichen oder spitzen Klammern konnten die Zeichnung brechen, und Markup darin wurde als HTML gelesen. Sie werden jetzt geschützt ausgegeben.
+- **Statistik, Kachel "Einspeiseerlös" wählbar (optional, `feed_in_card`):** Für Anlagen ohne Vergütung zeigt `pv_self_consumption` stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag ändert sich nichts. Wunsch aus [#14](https://github.com/msucimaker3112/energy-cockpit/issues/14).
+- **Statistik, keine Sprünge beim Blättern:** Mit Langzeit-Ansicht und Kosten je Verbraucher verschwand der Kosten-Bereich in früheren Jahren und unter "Gesamt". Dadurch änderten sich Höhe und Größe der ganzen Karte. Der Bereich bleibt jetzt stehen und zeigt, dass die Kosten nur für das aktuelle Jahr verfügbar sind.
+
 ## 0.19.3
 - **Energiefluss, Ring:** Anteile unter 3,5 % fehlten im Ring, obwohl sie in der Legende standen. Jetzt erscheint jeder Anteil ab 1 %, sehr kleine als Punkt. Rückmeldung aus [#15](https://github.com/msucimaker3112/energy-cockpit/issues/15).
 

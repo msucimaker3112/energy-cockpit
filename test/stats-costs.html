@@ -81,7 +81,7 @@ async function run(){
   e=mount(off,hassFor());await wait(600);
   ok('ohne Eintrag: kein Bereich und keine Abfrage',!q(e,'.cc')&&calls.length===0);
   e=mount({...base,long_term:true,pv_ac:true},hassFor());await wait(700);await tab(e,'all');
-  ok('Gesamt: Bereich ausgeblendet',q(e,'.cc').style.display==='none');
+  ok('Gesamt: Bereich bleibt und nennt den Grund',q(e,'.cc').style.display!=='none'&&/aktuelle Jahr/.test(q(e,'[data-f="ccSum"]').textContent),q(e,'[data-f="ccSum"]').textContent);
   const h2=hassFor();h2.callWS=async(m)=>{if(m.period==='hour')throw new Error('keine Statistik');return {};};
   e=mount({...base,pv_ac:true},h2);await wait(600);
   ok('Abfrage fehlgeschlagen: Bereich aus, kein Absturz',q(e,'.cc').style.display==='none');

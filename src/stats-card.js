@@ -41,12 +41,14 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut));display:flex;align-items:center}
 .lbl i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:7px}
 .money{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:14px;gap:14px}
+.money.three{grid-template-columns:repeat(3,1fr)}
 .m .v{display:flex;align-items:baseline;margin-top:10px}
 .m .num{font-size:2rem;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:rgb(var(--c));text-shadow:none}
 .m .unit{font-size:.95rem;font-weight:700;color:rgb(var(--c));opacity:.8;margin-left:5px}
 .m .sub{font-size:.74rem;color:rgb(var(--mut));margin-top:7px}
 .m .sub b{color:var(--txt);font-weight:600}
 .m.aut .num{color:rgb(var(--home))}
+.m.selfc .num{color:rgb(var(--sav))}
 .ring2{display:flex;margin-top:8px}
 .ring2 div{flex:1}
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
@@ -99,8 +101,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .leg i.hist{background:rgb(var(--bat))}
 .b.cur.hist{background:linear-gradient(180deg,rgb(var(--bat)),rgba(var(--bat),.3));box-shadow:0 0 0 1px rgba(var(--bat),.35)}
 .col.gap:after{content:'';position:absolute;left:32%;right:32%;bottom:0;height:6px;border-radius:2px;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.35) 0 3px,transparent 3px 6px)}
-.cover{margin-top:6px;font-size:.7rem;line-height:1.45;color:rgb(var(--mut));text-align:center}
-.cover:empty{display:none}
+.cover{margin-top:6px;font-size:.7rem;line-height:1.45;min-height:2.9em;color:rgb(var(--mut));text-align:center}
 .cc{margin-top:14px}
 .cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cc-head .lbl{margin-right:auto}
@@ -139,6 +140,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .wide .bars{height:140px}
 .narrow{padding:16px}
 .narrow .money{grid-template-columns:1fr 1fr}
+.narrow .money.three .m:last-child{grid-column:1 / -1}
 .narrow .duo{grid-template-columns:1fr}
 .narrow .cc-top{flex-wrap:wrap}
 .narrow .cc-live{margin:9px 0 0 46px}
@@ -178,6 +180,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._lt = c.long_term === true;
       // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Akku-Ladung und mit Akku-Entladung
       this._c._ac = c.pv_ac === true;
+      // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
+      this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
       const ccIcon = (n) => (/auto|kfz|\bev\b|wallbox|lade/i.test(n) ? 'mdi:car-electric' : /wärmepumpe|waermepumpe|\bwp\b/i.test(n) ? 'mdi:heat-pump-outline' : /wasser|boiler/i.test(n) ? 'mdi:water-boiler' : /heiz/i.test(n) ? 'mdi:radiator' : /klima/i.test(n) ? 'mdi:air-conditioner' : 'mdi:flash');
       const ccCol = ['#a78bfa', '#38bdf8', '#fb923c', '#34d399', '#f472b6', '#facc15'];
@@ -264,7 +268,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const c = this._c, now = new Date();
       this._bl = WD.state.lang;
       fillMon();
-      const m = (k, lbl, col, extra = '') => `<div class="panel m ${k}" style="--c:${col}"><span class="lbl"><i></i>${lbl}</span><div class="v"><span class="num" data-t="${k}">—</span><span class="unit">${k === 'aut' ? '%' : cur()}</span></div><div class="sub" data-f="${k}Sub"></div>${extra}</div>`;
+      const m = (k, lbl, col, extra = '') => `<div class="panel m ${k}" style="--c:${col}"><span class="lbl"><i></i>${lbl}</span><div class="v"><span class="num" data-t="${k}">—</span><span class="unit">${k === 'aut' || k === 'selfc' ? '%' : cur()}</span></div><div class="sub" data-f="${k}Sub"></div>${extra}</div>`;
       this.shadowRoot.innerHTML = `<style>${CSS}</style>
       <ha-card><div class="wrap">
         <header>
@@ -274,9 +278,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           </div>
           ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('st.next'))}</div>` : ''}
         </header>
-        <div class="money">
+        <div class="money${c._feedCard === 'hidden' ? ' three' : ''}">
           ${m('pvsav', T('st.pvsav'), 'var(--pv)')}
-          ${m('feed', T('st.feed'), 'var(--exp)')}
+          ${c._feedCard === 'hidden' ? '' : c._feedCard === 'pv_self_consumption' ? m('selfc', T('st.selfc'), 'var(--sav)') : m('feed', T('st.feed'), 'var(--exp)')}
           ${m('cost', T('st.cost'), 'var(--imp)')}
           ${m('aut', T('st.aut'), 'var(--home)')}
         </div>
@@ -398,13 +402,14 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (!el) return;
       // Nur das aktuelle Jahr: Für "Gesamt" und frühere Jahre gibt es keine Stundenwerte
       const set = V && ['day', 'week', 'month', 'year'].includes(this._period) && !(c._lt && this._period === 'year' && this._years().cur !== new Date().getFullYear()) ? V[this._period] : null;
-      el.style.display = set ? '' : 'none';
-      if (!set) return;
-      const CUR = cur(), dec = (v) => (Math.abs(v) < 100 ? 2 : 0), fk = (v) => nf(v, v >= 100 ? 0 : 1), tab = this._$('.tab.on'), priced = this._ccPriced;
+      // Ohne Stundenwerte bleibt der Bereich stehen und nennt den Grund: Verschwindet er, springen Höhe und Maßstab der ganzen Karte
+      el.style.display = V ? '' : 'none';
+      if (!V) return;
+      const CUR = cur(), dec = (v) => (Math.abs(v) < 100 ? 2 : 0), fk = (v) => (set ? nf(v, v >= 100 ? 0 : 1) : '—'), tab = this._$('.tab.on'), priced = set && this._ccPriced;
       this._f('ccP', tab ? esc(tab.textContent) : '');
       let cost = 0, sav = 0;
       c._cc.forEach((x, i) => {
-        const [g, b, p, cost1, sav1] = set[i], tot = g + b + p, card = this._$(`.ccard[data-c="${i}"]`);
+        const [g, b, p, cost1, sav1] = set ? set[i] : [0, 0, 0, 0, 0], tot = g + b + p, card = this._$(`.ccard[data-c="${i}"]`);
         cost += cost1; sav += sav1;
         this._count(`ccC${i}`, priced ? cost1 : null, dec(cost1));
         this._f(`ccS${i}`, priced ? `${nf(sav1, dec(sav1))} ${CUR}` : '—');
@@ -415,7 +420,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         lv.classList.toggle('on', on);
         if (on) this._f(`ccL${i}`, `${nf(w, 0)} W${price > 0 ? ' · ' + T('st.cc.upto', { x: nf(w / 1000 * price, 2), cur: CUR }) : ''}`);
       });
-      this._f('ccSum', priced ? `${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b> · ${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b>` : '');
+      this._f('ccSum', !set ? T('st.cc.nohist') : priced ? `${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b> · ${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b>` : '');
     }
 
     async _load() {
@@ -582,11 +587,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - p.imp / cons)) * 100 : null, 0);
         this._f('pvsavSub', T('st.self', { kwh: fKwh(self) }));
         this._f('feedSub', T('st.fed', { kwh: fKwh(p.exp) }));
+        this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, 0);
+        this._f('selfcSub', T('st.self', { kwh: fKwh(self) }));
         this._f('costSub', T('st.drawn', { kwh: fKwh(p.imp) }));
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? fPct(1 - p.exp / p.pv) : '—', cons: fKwh(cons) }));
       } else if (c._lt && this._m && this._period !== 'day') {
         // Gewählter Zeitraum ohne vollständige Monate: keine 0 und kein Wert aus dem vorigen Zeitraum stehen lassen
-        ['pvsav', 'feed', 'cost', 'aut'].forEach((k) => { this._count(k, null); this._f(k + 'Sub', T('st.nodata2')); });
+        ['pvsav', 'feed', 'selfc', 'cost', 'aut'].forEach((k) => { this._count(k, null); this._f(k + 'Sub', T('st.nodata2')); });
       }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
