@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.19.6
+- **Nur die Anleitung:** In HACS fehlten in der Beschreibung einige Bilder, darunter das Titelbild. Bilder und Links der README stehen jetzt mit voller Adresse drin. An den Karten ändert sich nichts, das Update hat also keine Eile.
+
 ## 0.19.5
 - **Statistik, Kosten je Verbraucher: Hinweis statt 0 €:** Ist für einen Verbraucher ein Leistungssensor (W) eingetragen, gibt es zu seinem Zähler keine kWh-Statistik oder den Sensor gar nicht, zeigte das Kärtchen bisher ohne Erklärung 0 €. Jetzt steht dort in Gelb der Grund und welcher Sensor gemeint ist. Die Summe oben rechnet nur mit den richtigen Sensoren. Rückmeldung aus [#21](https://github.com/msucimaker3112/energy-cockpit/issues/21).
 - **Energiefluss, Legende am Ring:** In der klassischen Ansicht stand die Legende (Solar, Akku, Netz in Prozent) unter dem Ring, und die Linien zu den Verbrauchern, auf dem Handy auch zu Solar, Netz und Akku, liefen durch die Schrift. Sie steht jetzt über dem Ring, wie schon in der 3D-Ansicht.
