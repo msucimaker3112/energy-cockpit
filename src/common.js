@@ -1,11 +1,20 @@
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
-  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
+  const state = { loc: 'en', lang: 'en', currency: 'EUR' };
 
-  // Währung aus Home Assistant übernehmen (Sprache ist fest Deutsch)
+  // Zahlenformat-Einstellung aus dem HA-Profil auf eine passende Locale abbilden
+  const NUM_FMT = { comma_decimal: 'en-US', decimal_comma: 'de-DE', space_comma: 'fr-FR' };
+
+  // Sprache, Zahlenformat und Währung aus Home Assistant übernehmen
   const setLocale = (hass) => {
     if (!hass) return;
-    // Entscheidung: komplett deutsch (Texte und Zahlenformat), nur die Währung kommt aus Home Assistant
+    const hl = (hass.locale && hass.locale.language) || hass.language || 'en';
+    WD.setLang(hl);          // Texte: de / en / nl, sonst Englisch
+    state.lang = WD.lang;
+    const nfmt = hass.locale && hass.locale.number_format;
+    let loc = NUM_FMT[nfmt] || (nfmt === 'system' ? navigator.language : hl);
+    try { new Intl.NumberFormat(loc); } catch (e) { loc = 'en'; }
+    state.loc = loc;
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 

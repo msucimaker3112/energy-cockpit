@@ -2,12 +2,21 @@
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
-  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
+  const state = { loc: 'en', lang: 'en', currency: 'EUR' };
 
-  // Währung aus Home Assistant übernehmen (Sprache ist fest Deutsch)
+  // Zahlenformat-Einstellung aus dem HA-Profil auf eine passende Locale abbilden
+  const NUM_FMT = { comma_decimal: 'en-US', decimal_comma: 'de-DE', space_comma: 'fr-FR' };
+
+  // Sprache, Zahlenformat und Währung aus Home Assistant übernehmen
   const setLocale = (hass) => {
     if (!hass) return;
-    // Entscheidung: komplett deutsch (Texte und Zahlenformat), nur die Währung kommt aus Home Assistant
+    const hl = (hass.locale && hass.locale.language) || hass.language || 'en';
+    WD.setLang(hl);          // Texte: de / en / nl, sonst Englisch
+    state.lang = WD.lang;
+    const nfmt = hass.locale && hass.locale.number_format;
+    let loc = NUM_FMT[nfmt] || (nfmt === 'system' ? navigator.language : hl);
+    try { new Intl.NumberFormat(loc); } catch (e) { loc = 'en'; }
+    state.loc = loc;
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
@@ -191,21 +200,74 @@ const WD = (() => {
       'ban.running': '{name} läuft', 'ban.fromgrid': '{w} aus dem Netz', 'ban.cost': 'kostet gerade <b>{cost} {cur}/h</b>',
       'ban.batempty': 'Akku leer', 'ban.batlimit': 'Akku am Limit',
     },
+    en: {
+      'flow.title': 'Energy flow', 'flow.pv': 'PV system', 'flow.pv2': 'PV 2', 'flow.grid': 'Grid', 'flow.battery': 'Battery', 'flow.home': 'Home consumption',
+      'flow.cons_total': 'Consumers', 'flow.rest': 'Unmeasured', 'flow.restpct': '{n}% measured', 'flow.soc': 'State of charge', 'flow.temp': 'Temperature',
+      'flow.next': 'Next →', 'flow.error': 'Configure at least pv or grid',
+      'pill.aut': 'Self-sufficiency now', 'pill.self': 'Self-consumption now', 'pv.use.home': 'Home', 'pv.use.bat': 'Battery', 'pv.use.grid': 'Grid', 'pv.use.store': 'Storage',
+      'stat.pv': 'PV today', 'stat.fc1': 'PV tomorrow', 'stat.fc2': 'PV day after tomorrow', 'stat.imp': 'Import today', 'stat.exp': 'Export', 'stat.bat': 'Battery ± today', 'stat.aut': 'Self-sufficiency today',
+      'mix.pv': 'Solar', 'mix.bat': 'Battery', 'mix.grid': 'Grid',
+      'tag.offline': 'Offline', 'tag.producing': 'Producing', 'tag.idle': 'Idle', 'tag.balanced': 'Balanced',
+      'tag.import': 'Importing', 'tag.export': 'Exporting', 'tag.standby': 'Standby', 'tag.charging': 'Charging', 'tag.discharging': 'Discharging', 'tag.passthrough': 'Pass-through',
+      'bat.io': 'In <b>{in}</b> · Out <b>{out}</b>', 'bat.split': ' (Home <b>{home}</b> · Grid <b>{grid}</b>)', 'bat.shared': 'Shared sensor with <b>{name}</b>',
+      'forecast': 'Forecast', 'forecast.day': 'Forecast today', 'offline': 'offline',
+      'ka.on': '● Awake', 'ka.wait': '☝ Tap once – screen stays on',
+      'waste.today': 'Today', 'waste.tomorrow': 'Tomorrow',
+      'bat.usable_pct': 'usable', 'bat.usable_slow': '<b>{kwh} kWh</b> usable · charging slowly', 'bat.full_at': 'Full at <b>{time}</b> · in {dur}',
+      'bat.last_24': 'Lasts <b>over 24 h</b> · {kwh} kWh usable', 'bat.last_until': 'Lasts until <b>{time}</b> · {dur} left',
+      'bat.full': 'Full · <b>{kwh} kWh</b> usable', 'bat.usable': '<b>{kwh} kWh</b> usable (down to {res}%)',
+      'dur.2days': '> 2 days',
+      'ban.surplus': '{w} surplus', 'ban.batfull': 'Battery full – ', 'ban.tonet': 'Power is flowing to the grid · using it yourself saves <b>{gain} {cur}/h</b>',
+      'ban.running': '{name} running', 'ban.fromgrid': '{w} from the grid', 'ban.cost': 'currently costs <b>{cost} {cur}/h</b>',
+      'ban.batempty': 'Battery empty', 'ban.batlimit': 'Battery at limit',
+    },
+    nl: {
+      'flow.title': 'Energiestroom', 'flow.pv': 'PV-installatie', 'flow.pv2': 'PV 2', 'flow.grid': 'Net', 'flow.battery': 'Batterij', 'flow.home': 'Huisverbruik',
+      'flow.cons_total': 'Verbruikers', 'flow.rest': 'Niet gemeten', 'flow.restpct': '{n}% gemeten', 'flow.soc': 'Laadniveau', 'flow.temp': 'Temperatuur',
+      'flow.next': 'Volgende →', 'flow.error': 'Configureer minimaal pv of grid',
+      'pill.aut': 'Zelfvoorziening nu', 'pill.self': 'Eigen verbruik nu', 'pv.use.home': 'Huis', 'pv.use.bat': 'Batterij', 'pv.use.grid': 'Net', 'pv.use.store': 'Opslag',
+      'stat.pv': 'PV vandaag', 'stat.fc1': 'PV morgen', 'stat.fc2': 'PV overmorgen', 'stat.imp': 'Afname vandaag', 'stat.exp': 'Teruglevering', 'stat.bat': 'Batterij ± vandaag', 'stat.aut': 'Zelfvoorziening vandaag',
+      'mix.pv': 'Zon', 'mix.bat': 'Accu', 'mix.grid': 'Net',
+      'tag.offline': 'Offline', 'tag.producing': 'Produceert', 'tag.idle': 'Inactief', 'tag.balanced': 'In balans',
+      'tag.import': 'Afname', 'tag.export': 'Teruglevering', 'tag.standby': 'Stand-by', 'tag.charging': 'Laadt', 'tag.discharging': 'Ontlaadt', 'tag.passthrough': 'Doorvoer',
+      'bat.io': 'In <b>{in}</b> · Uit <b>{out}</b>', 'bat.split': ' (Huis <b>{home}</b> · Net <b>{grid}</b>)', 'bat.shared': 'Gedeelde sensor met <b>{name}</b>',
+      'forecast': 'Verwachting', 'forecast.day': 'Verwachting vandaag', 'offline': 'offline',
+      'ka.on': '● Wakker', 'ka.wait': '☝ Tik één keer – scherm blijft aan',
+      'waste.today': 'Vandaag', 'waste.tomorrow': 'Morgen',
+      'bat.usable_pct': 'bruikbaar', 'bat.usable_slow': '<b>{kwh} kWh</b> bruikbaar · laadt langzaam', 'bat.full_at': 'Vol om <b>{time}</b> · over {dur}',
+      'bat.last_24': 'Gaat <b>ruim 24 u</b> mee · {kwh} kWh bruikbaar', 'bat.last_until': 'Gaat mee tot <b>{time}</b> · nog {dur}',
+      'bat.full': 'Vol · <b>{kwh} kWh</b> bruikbaar', 'bat.usable': '<b>{kwh} kWh</b> bruikbaar (tot {res}%)',
+      'dur.2days': '> 2 dagen',
+      'ban.surplus': '{w} overschot', 'ban.batfull': 'Accu vol – ', 'ban.tonet': 'Stroom gaat naar het net · zelf gebruiken bespaart <b>{gain} {cur}/u</b>',
+      'ban.running': '{name} draait', 'ban.fromgrid': '{w} uit het net', 'ban.cost': 'kost nu <b>{cost} {cur}/u</b>',
+      'ban.batempty': 'Accu leeg', 'ban.batlimit': 'Accu op limiet',
+    },
   };
+  
+  WD.lang = 'en';
+  WD.setLang = (lang) => {
+    const l = String(lang || '').toLowerCase().split(/[-_]/)[0];
+    WD.lang = L[l] ? l : 'en';
+  };
+
   // T('key', { n: 5 }) ersetzt {n}; fehlende Schlüssel fallen auf Englisch, dann auf den Schlüssel zurück
   WD.T = (k, vars) => {
-    let s = L.de[k] || k;
+    let s = (L[WD.lang] && L[WD.lang][k]) ?? L.en[k] ?? k;
     if (vars) Object.keys(vars).forEach((v) => { s = s.split('{' + v + '}').join(vars[v]); });
     return s;
   };
-  WD.addStrings = (de) => { Object.assign(L.de, de); };
+  
+  WD.addStrings = (strings, lang = 'de') => { L[lang] = Object.assign(L[lang] || {}, strings); };
+
   WD.fDur = (hrs) => {
     if (!isFinite(hrs) || hrs <= 0) return '';
     if (hrs > 48) return WD.T('dur.2days');
     const m = Math.round(hrs * 60), hh = Math.floor(m / 60), mm = m % 60;
-    return hh ? `${hh} h ${String(mm).padStart(2, '0')} min` : `${mm} min`;
+    const h = WD.T('dur.h'), min = WD.T('dur.min');
+    return hh ? `${hh} ${h} ${String(mm).padStart(2, '0')} ${min}` : `${mm} ${min}`;
   };
 })();
+
 
 
 /* ---- wizard.js ---- */
@@ -904,7 +966,9 @@ WD.D3 = { stack, solar, meter, house, css, draw, ring };
 /* ---- flow-card.js ---- */
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' }, 'de');
+WD.addStrings({ 'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'close': 'Close' }, 'en');
+WD.addStrings({ 'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'close': 'Sluiten' }, 'nl');
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
@@ -2531,7 +2595,35 @@ WD.addStrings({
   'dev.playing': 'läuft',
   'dev.st.ready': 'bereit', 'dev.st.brewing': 'brüht', 'dev.st.inactive': 'inaktiv', 'dev.st.finished': 'fertig', 'dev.st.pause': 'Pause',
   'dev.st.action': 'Aktion nötig', 'dev.st.error': 'Fehler', 'dev.st.playing': 'spielt', 'dev.st.standby': 'Standby',
-});
+}, 'de');
+
+WD.addStrings({
+  'dev.title': 'Devices & consumption', 'dev.room': 'Room', 'dev.err': 'rooms missing: configure at least one room', 'dev.next': 'Next →',
+  'dev.days': 'days', 'dev.p.day': 'Today', 'dev.p.week': 'Week', 'dev.p.month': 'Month', 'dev.p.year': 'Year',
+  'dev.l.day': 'Today', 'dev.l.week': 'This week', 'dev.l.month': 'This month', 'dev.l.year': 'This year', 'dev.measured': 'measured',
+  'dev.cost': 'Cost', 'dev.home_total': 'Home total', 'dev.none': 'No reachable devices', 'dev.locked': 'protected – view only', 'dev.now': 'NOW',
+  'dev.ambilight': 'Ambilight', 'dev.music': 'Music', 'dev.mute': 'Mute', 'dev.light': 'Light',
+  'dev.on': 'on', 'dev.off': 'off', 'dev.tv_on': 'TV on', 'dev.tv_off': 'TV off', 'dev.extra': 'Extra device', 'dev.cooling': 'cooling', 'dev.pause': 'Paused', 'dev.since': 'since',
+  'dev.unmeasured': 'unmeasured', 'dev.live': 'Now · <b>{n}%</b> of it measured', 'dev.sub': '{on} of {all} devices on · {w} measured',
+  'dev.cent': 'ct/kWh', 'dev.grid': 'Grid', 'dev.selfsup': 'PV/Battery', 'dev.standby': 'Standby', 'dev.year': 'Year', 'dev.tap_off': 'tap = off', 'dev.surplus': 'Surplus',
+  'dev.playing': 'playing',
+  'dev.st.ready': 'ready', 'dev.st.brewing': 'brewing', 'dev.st.inactive': 'inactive', 'dev.st.finished': 'finished', 'dev.st.pause': 'paused',
+  'dev.st.action': 'action needed', 'dev.st.error': 'error', 'dev.st.playing': 'playing', 'dev.st.standby': 'standby',
+}, 'en');
+
+WD.addStrings({
+  'dev.title': 'Apparaten & verbruik', 'dev.room': 'Ruimte', 'dev.err': 'rooms ontbreekt: configureer minimaal één ruimte', 'dev.next': 'Volgende →',
+  'dev.days': 'dagen', 'dev.p.day': 'Vandaag', 'dev.p.week': 'Week', 'dev.p.month': 'Maand', 'dev.p.year': 'Jaar',
+  'dev.l.day': 'Vandaag', 'dev.l.week': 'Deze week', 'dev.l.month': 'Deze maand', 'dev.l.year': 'Dit jaar', 'dev.measured': 'gemeten',
+  'dev.cost': 'Kosten', 'dev.home_total': 'Huis totaal', 'dev.none': 'Geen bereikbare apparaten', 'dev.locked': 'beveiligd – alleen weergave', 'dev.now': 'NU',
+  'dev.ambilight': 'Ambilight', 'dev.music': 'Muziek', 'dev.mute': 'Geluid uit', 'dev.light': 'Licht',
+  'dev.on': 'aan', 'dev.off': 'uit', 'dev.tv_on': 'TV aan', 'dev.tv_off': 'TV uit', 'dev.extra': 'Extra apparaat', 'dev.cooling': 'koelt', 'dev.pause': 'Pauze', 'dev.since': 'sinds',
+  'dev.unmeasured': 'niet gemeten', 'dev.live': 'Nu · daarvan <b>{n}%</b> gemeten', 'dev.sub': '{on} van {all} apparaten aan · {w} gemeten',
+  'dev.cent': 'ct/kWh', 'dev.grid': 'Net', 'dev.selfsup': 'PV/Accu', 'dev.standby': 'Stand-by', 'dev.year': 'Jaar', 'dev.tap_off': 'tikken = uit', 'dev.surplus': 'Overschot',
+  'dev.playing': 'speelt',
+  'dev.st.ready': 'gereed', 'dev.st.brewing': 'zet koffie', 'dev.st.inactive': 'inactief', 'dev.st.finished': 'klaar', 'dev.st.pause': 'pauze',
+  'dev.st.action': 'actie vereist', 'dev.st.error': 'fout', 'dev.st.playing': 'speelt', 'dev.st.standby': 'stand-by',
+}, 'nl');
 
 
 /* ---- devices-card.js ---- */
@@ -3173,7 +3265,33 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     'ed.d.hint': 'Kanäle, Ambilight, Zusatzverbraucher und Statistikquellen (home_energy) stellst du im YAML-Editor ein.',
     'ed.d.t.light': 'Licht', 'ed.d.t.pump': 'Pumpe', 'ed.d.t.fridge': 'Kühlschrank', 'ed.d.t.dryer': 'Trockner', 'ed.d.t.ac': 'Klimaanlage', 'ed.d.t.strip': 'Steckdosenleiste',
     'ed.d.t.tv': 'Fernseher', 'ed.d.t.media': 'Mediencenter', 'ed.d.t.console': 'Spielkonsole', 'ed.d.t.coffee': 'Kaffeemaschine', 'ed.d.t.heat': 'Heizung', 'ed.d.t.plug': 'Steckdose',
-  });
+  }, 'de');
+
+  WD.addStrings({
+    'ed.d.title': 'Title', 'ed.d.home': 'Home consumption (power)', 'ed.d.price': 'Import electricity price (sensor, per kWh)', 'ed.d.feed': 'Feed-in tariff (sensor, per kWh)', 'ed.d.theme': 'Color scheme', 'ed.d.price_ct': 'or fixed electricity price (cents per kWh)', 'ed.d.feed_ct': 'or fixed feed-in tariff (cents per kWh)',
+    'ed.d.surplus': 'PV surplus (power)', 'ed.d.standby': 'Standby threshold (W)', 'ed.d.fit': 'Scale to screen height',
+    'ed.d.nav_path': 'Next button: path', 'ed.d.nav_label': 'Next button: text',
+    'ed.d.room': 'Room', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Icon', 'ed.d.color': 'Color (e.g. 248,113,113)', 'ed.d.image': 'Logo (image URL, replaces the icon)',
+    'ed.d.dev': 'Device', 'ed.d.dev_name': 'Name', 'ed.d.type': 'Type', 'ed.d.entity': 'Switch (to turn on and off)', 'ed.d.power': 'Power (sensor)',
+    'ed.d.energy': 'Energy (meter in kWh)', 'ed.d.max_w': 'Maximum power for bar (W)', 'ed.d.run_w': 'Running from power (W)', 'ed.d.lock': 'Locked (view only)',
+    'ed.d.add_room': '+ Add room', 'ed.d.add_dev': '+ Add device', 'ed.d.del': 'Remove', 'ed.d.up': '▲', 'ed.d.down': '▼',
+    'ed.d.hint': 'Channels, Ambilight, extra consumers and statistics sources (home_energy) are configured in the YAML editor.',
+    'ed.d.t.light': 'Light', 'ed.d.t.pump': 'Pump', 'ed.d.t.fridge': 'Fridge', 'ed.d.t.dryer': 'Dryer', 'ed.d.t.ac': 'Air conditioner', 'ed.d.t.strip': 'Power strip',
+    'ed.d.t.tv': 'TV', 'ed.d.t.media': 'Media center', 'ed.d.t.console': 'Game console', 'ed.d.t.coffee': 'Coffee machine', 'ed.d.t.heat': 'Heating', 'ed.d.t.plug': 'Plug',
+  }, 'en');
+
+  WD.addStrings({
+    'ed.d.title': 'Titel', 'ed.d.home': 'Huisverbruik (vermogen)', 'ed.d.price': 'Stroomprijs afname (sensor, per kWh)', 'ed.d.feed': 'Terugleververgoeding (sensor, per kWh)', 'ed.d.theme': 'Kleurenschema', 'ed.d.price_ct': 'of vaste stroomprijs (cent per kWh)', 'ed.d.feed_ct': 'of vaste terugleververgoeding (cent per kWh)',
+    'ed.d.surplus': 'PV-overschot (vermogen)', 'ed.d.standby': 'Stand-bydrempel (W)', 'ed.d.fit': 'Schalen naar schermhoogte',
+    'ed.d.nav_path': 'Volgende-knop: pad', 'ed.d.nav_label': 'Volgende-knop: tekst',
+    'ed.d.room': 'Ruimte', 'ed.d.room_name': 'Naam', 'ed.d.icon': 'Pictogram', 'ed.d.color': 'Kleur (bijv. 248,113,113)', 'ed.d.image': 'Logo (afbeeldings-URL, vervangt het pictogram)',
+    'ed.d.dev': 'Apparaat', 'ed.d.dev_name': 'Naam', 'ed.d.type': 'Type', 'ed.d.entity': 'Schakelaar (om aan en uit te zetten)', 'ed.d.power': 'Vermogen (sensor)',
+    'ed.d.energy': 'Energie (meter in kWh)', 'ed.d.max_w': 'Maximaal vermogen voor balk (W)', 'ed.d.run_w': 'Actief vanaf vermogen (W)', 'ed.d.lock': 'Vergrendeld (alleen weergave)',
+    'ed.d.add_room': '+ Ruimte toevoegen', 'ed.d.add_dev': '+ Apparaat toevoegen', 'ed.d.del': 'Verwijderen', 'ed.d.up': '▲', 'ed.d.down': '▼',
+    'ed.d.hint': 'Kanalen, Ambilight, extra verbruikers en statistiekbronnen (home_energy) stel je in via de YAML-editor.',
+    'ed.d.t.light': 'Licht', 'ed.d.t.pump': 'Pomp', 'ed.d.t.fridge': 'Koelkast', 'ed.d.t.dryer': 'Droger', 'ed.d.t.ac': 'Airco', 'ed.d.t.strip': 'Stekkerdoos',
+    'ed.d.t.tv': 'Televisie', 'ed.d.t.media': 'Mediacenter', 'ed.d.t.console': 'Spelcomputer', 'ed.d.t.coffee': 'Koffiezetapparaat', 'ed.d.t.heat': 'Verwarming', 'ed.d.t.plug': 'Stopcontact',
+  }, 'nl');
 
   // ha-form ist in Home Assistant nicht immer geladen: über die Karten-Helfer nachladen
   const ensureForm = async () => {
@@ -4183,7 +4301,43 @@ WD.addStrings({
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
   'st.lt.hist': 'Historie: nur PV-Ertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
-});
+}, 'de');
+
+WD.addStrings({
+  'st.title': 'Statistics', 'st.err': 'pv_total, grid_import_total and grid_export_total are required', 'st.today': 'Today', 'st.next': 'Next →',
+  'st.pvsav': 'PV savings', 'st.feed': 'Feed-in revenue', 'st.selfc': 'PV self-consumption', 'st.cost': 'Grid electricity cost', 'st.aut': 'Self-sufficiency',
+  'st.amo': 'PV system payback', 'st.base': 'Base load (night)', 'st.monthly': 'PV yield per month', 'st.record': 'Record day',
+  'st.eff': 'Battery efficiency', 'st.cycles': 'Full cycles', 'st.temp': 'Battery temperature', 'st.pvall': 'PV total',
+  'st.self': '<b>{kwh} kWh</b> PV self-consumed', 'st.fed': '<b>{kwh} kWh</b> exported', 'st.drawn': '<b>{kwh} kWh</b> imported',
+  'st.autsub': 'Self-consumption <b>{self}</b> · Consumption <b>{cons} kWh</b>',
+  'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>The system has paid for itself 🎉</b>', 'st.eta.far': 'Forecast not yet meaningful', 'st.price.warn': '⚠ Electricity price is only {p} ct/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
+  'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
+  'st.full': '× full', 'st.note': 'Grid power {p} ct/kWh · Feed-in {f} ct/kWh · energy costs only, excluding standing charges · payback estimated at current prices',
+  'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
+  'st.import': 'Import', 'st.export': 'Export',
+  'st.week': 'Week', 'st.cc.title': 'Cost per consumer', 'st.cc.meas': 'measured', 'st.cc.est': 'by home mix', 'st.cc.cost': 'Grid cost', 'st.cc.saved': 'saved', 'st.cc.nohist': 'Only available for the current year', 'st.cc.grid': 'Grid', 'st.cc.bat': 'Battery', 'st.cc.pv': 'PV', 'st.cc.upto': 'up to {x} {cur}/h', 'st.cc.unitW': '{id} measures power ({u}). An energy meter in kWh is required.', 'st.cc.nostat': 'No kWh statistics for {id}. A meter with state_class total_increasing is required.', 'st.cc.missing': '{id} does not exist.',
+  'st.all': 'Total', 'st.hist': 'History', 'st.nodata2': 'no data',
+  'st.lt.from': 'Data from {d}', 'st.lt.gaps': 'No data for: {m}', 'st.lt.skip': 'Totals exclude {n} month(s) without complete data',
+  'st.lt.hist': 'History: PV yield only, without grid and storage values', 'st.lt.price': 'Monetary values calculated at current prices',
+}, 'en');
+
+WD.addStrings({
+  'st.title': 'Statistieken', 'st.err': 'pv_total, grid_import_total en grid_export_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
+  'st.pvsav': 'PV-besparing', 'st.feed': 'Terugleveropbrengst', 'st.selfc': 'PV-eigen verbruik', 'st.cost': 'Stroomkosten net', 'st.aut': 'Zelfvoorziening',
+  'st.amo': 'Terugverdientijd PV-installatie', 'st.base': 'Basislast (nacht)', 'st.monthly': 'PV-opbrengst per maand', 'st.record': 'Recorddag',
+  'st.eff': 'Accurendement', 'st.cycles': 'Volledige cycli', 'st.temp': 'Accutemperatuur', 'st.pvall': 'PV totaal',
+  'st.self': '<b>{kwh} kWh</b> PV zelf gebruikt', 'st.fed': '<b>{kwh} kWh</b> teruggeleverd', 'st.drawn': '<b>{kwh} kWh</b> afgenomen',
+  'st.autsub': 'Eigen verbruik <b>{self}</b> · Verbruik <b>{cons} kWh</b>',
+  'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>De installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Prognose nog niet betrouwbaar', 'st.price.warn': '⚠ Stroomprijs is maar {p} ct/kWh: dit veld verwacht <b>cent</b> (bijvoorbeeld 23.88), geen euro.',
+  'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 0 en 5 uur, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
+  'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · Teruglevering {f} ct/kWh · alleen energiekosten, zonder vaste kosten · terugverdientijd geschat met huidige prijzen',
+  'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparing te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
+  'st.import': 'Afname', 'st.export': 'Teruglevering',
+  'st.week': 'Week', 'st.cc.title': 'Kosten per verbruiker', 'st.cc.meas': 'gemeten', 'st.cc.est': 'volgens huismix', 'st.cc.cost': 'Netkosten', 'st.cc.saved': 'bespaard', 'st.cc.nohist': 'Alleen beschikbaar voor het huidige jaar', 'st.cc.grid': 'Net', 'st.cc.bat': 'Accu', 'st.cc.pv': 'PV', 'st.cc.upto': 'tot {x} {cur}/u', 'st.cc.unitW': '{id} meet vermogen ({u}). Er is een energiemeter in kWh nodig.', 'st.cc.nostat': 'Geen kWh-statistieken voor {id}. Er is een meter met state_class total_increasing nodig.', 'st.cc.missing': '{id} bestaat niet.',
+  'st.all': 'Totaal', 'st.hist': 'Geschiedenis', 'st.nodata2': 'geen gegevens',
+  'st.lt.from': 'Gegevens vanaf {d}', 'st.lt.gaps': 'Geen gegevens voor: {m}', 'st.lt.skip': 'In de totalen ontbreken {n} maand(en) zonder volledige gegevens',
+  'st.lt.hist': 'Geschiedenis: alleen PV-opbrengst, zonder net- en opslagwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen',
+}, 'nl');
 
 
 /* ---- stats-card.js ---- */

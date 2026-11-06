@@ -14,7 +14,33 @@
     'ed.d.hint': 'Kanäle, Ambilight, Zusatzverbraucher und Statistikquellen (home_energy) stellst du im YAML-Editor ein.',
     'ed.d.t.light': 'Licht', 'ed.d.t.pump': 'Pumpe', 'ed.d.t.fridge': 'Kühlschrank', 'ed.d.t.dryer': 'Trockner', 'ed.d.t.ac': 'Klimaanlage', 'ed.d.t.strip': 'Steckdosenleiste',
     'ed.d.t.tv': 'Fernseher', 'ed.d.t.media': 'Mediencenter', 'ed.d.t.console': 'Spielkonsole', 'ed.d.t.coffee': 'Kaffeemaschine', 'ed.d.t.heat': 'Heizung', 'ed.d.t.plug': 'Steckdose',
-  });
+  }, 'de');
+
+  WD.addStrings({
+    'ed.d.title': 'Title', 'ed.d.home': 'Home consumption (power)', 'ed.d.price': 'Import electricity price (sensor, per kWh)', 'ed.d.feed': 'Feed-in tariff (sensor, per kWh)', 'ed.d.theme': 'Color scheme', 'ed.d.price_ct': 'or fixed electricity price (cents per kWh)', 'ed.d.feed_ct': 'or fixed feed-in tariff (cents per kWh)',
+    'ed.d.surplus': 'PV surplus (power)', 'ed.d.standby': 'Standby threshold (W)', 'ed.d.fit': 'Scale to screen height',
+    'ed.d.nav_path': 'Next button: path', 'ed.d.nav_label': 'Next button: text',
+    'ed.d.room': 'Room', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Icon', 'ed.d.color': 'Color (e.g. 248,113,113)', 'ed.d.image': 'Logo (image URL, replaces the icon)',
+    'ed.d.dev': 'Device', 'ed.d.dev_name': 'Name', 'ed.d.type': 'Type', 'ed.d.entity': 'Switch (to turn on and off)', 'ed.d.power': 'Power (sensor)',
+    'ed.d.energy': 'Energy (meter in kWh)', 'ed.d.max_w': 'Maximum power for bar (W)', 'ed.d.run_w': 'Running from power (W)', 'ed.d.lock': 'Locked (view only)',
+    'ed.d.add_room': '+ Add room', 'ed.d.add_dev': '+ Add device', 'ed.d.del': 'Remove', 'ed.d.up': '▲', 'ed.d.down': '▼',
+    'ed.d.hint': 'Channels, Ambilight, extra consumers and statistics sources (home_energy) are configured in the YAML editor.',
+    'ed.d.t.light': 'Light', 'ed.d.t.pump': 'Pump', 'ed.d.t.fridge': 'Fridge', 'ed.d.t.dryer': 'Dryer', 'ed.d.t.ac': 'Air conditioner', 'ed.d.t.strip': 'Power strip',
+    'ed.d.t.tv': 'TV', 'ed.d.t.media': 'Media center', 'ed.d.t.console': 'Game console', 'ed.d.t.coffee': 'Coffee machine', 'ed.d.t.heat': 'Heating', 'ed.d.t.plug': 'Plug',
+  }, 'en');
+
+  WD.addStrings({
+    'ed.d.title': 'Titel', 'ed.d.home': 'Huisverbruik (vermogen)', 'ed.d.price': 'Stroomprijs afname (sensor, per kWh)', 'ed.d.feed': 'Terugleververgoeding (sensor, per kWh)', 'ed.d.theme': 'Kleurenschema', 'ed.d.price_ct': 'of vaste stroomprijs (cent per kWh)', 'ed.d.feed_ct': 'of vaste terugleververgoeding (cent per kWh)',
+    'ed.d.surplus': 'PV-overschot (vermogen)', 'ed.d.standby': 'Stand-bydrempel (W)', 'ed.d.fit': 'Schalen naar schermhoogte',
+    'ed.d.nav_path': 'Volgende-knop: pad', 'ed.d.nav_label': 'Volgende-knop: tekst',
+    'ed.d.room': 'Ruimte', 'ed.d.room_name': 'Naam', 'ed.d.icon': 'Pictogram', 'ed.d.color': 'Kleur (bijv. 248,113,113)', 'ed.d.image': 'Logo (afbeeldings-URL, vervangt het pictogram)',
+    'ed.d.dev': 'Apparaat', 'ed.d.dev_name': 'Naam', 'ed.d.type': 'Type', 'ed.d.entity': 'Schakelaar (om aan en uit te zetten)', 'ed.d.power': 'Vermogen (sensor)',
+    'ed.d.energy': 'Energie (meter in kWh)', 'ed.d.max_w': 'Maximaal vermogen voor balk (W)', 'ed.d.run_w': 'Actief vanaf vermogen (W)', 'ed.d.lock': 'Vergrendeld (alleen weergave)',
+    'ed.d.add_room': '+ Ruimte toevoegen', 'ed.d.add_dev': '+ Apparaat toevoegen', 'ed.d.del': 'Verwijderen', 'ed.d.up': '▲', 'ed.d.down': '▼',
+    'ed.d.hint': 'Kanalen, Ambilight, extra verbruikers en statistiekbronnen (home_energy) stel je in via de YAML-editor.',
+    'ed.d.t.light': 'Licht', 'ed.d.t.pump': 'Pomp', 'ed.d.t.fridge': 'Koelkast', 'ed.d.t.dryer': 'Droger', 'ed.d.t.ac': 'Airco', 'ed.d.t.strip': 'Stekkerdoos',
+    'ed.d.t.tv': 'Televisie', 'ed.d.t.media': 'Mediacenter', 'ed.d.t.console': 'Spelcomputer', 'ed.d.t.coffee': 'Koffiezetapparaat', 'ed.d.t.heat': 'Verwarming', 'ed.d.t.plug': 'Stopcontact',
+  }, 'nl');
 
   // ha-form ist in Home Assistant nicht immer geladen: über die Karten-Helfer nachladen
   const ensureForm = async () => {
