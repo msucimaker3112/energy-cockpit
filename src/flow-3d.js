@@ -299,7 +299,21 @@ const draw = (el, html) => {
   const n = tpl.content.firstElementChild, o = el.firstElementChild;
   if (o && o.tagName === n.tagName) patch(o, n); else el.replaceChildren(n);
 };
+// roof_color (#28): Dachfarbe der 3D-Ansicht. Name oder "#hex"; liefert die CSS-Variablen für die Dachfläche (hell, dunkel), sonst ''
+const ROOF = { rot: ['#8a4a3c', '#54291f'], anthrazit: ['#4b5059', '#2a2d33'], schwarz: ['#33363c', '#17191d'], grau: ['#7a7f87', '#4c5057'], braun: ['#6e4a33', '#43291b'], gruen: ['#4f6b4a', '#2e4029'], grün: ['#4f6b4a', '#2e4029'], blau: ['#4a5d7a', '#2a3850'] };
+const roof = (v) => {
+  if (typeof v !== 'string' || !v.trim()) return '';
+  const k = v.trim().toLowerCase();
+  let pair = ROOF[k];
+  if (!pair) {
+    const m = /^#([0-9a-f]{6})$/i.exec(k);
+    if (!m) return '';
+    const n = parseInt(m[1], 16), dk = (s) => Math.round(((n >> s) & 255) * 0.6);
+    pair = ['#' + m[1], `rgb(${dk(16)},${dk(8)},${dk(0)})`];
+  }
+  return `--rf0:${pair[0]};--rf1:${pair[1]}`;
+};
 // Maße des Rings aus house() (R = 92): für den Anschluss der Linien in der Karte
 const ring = { w: 2 * (92 * 1.23 + 6), bottom: 92 * 0.71 + 8, rx: 92 * Math.SQRT2 * C, ry: 92 * Math.SQRT2 * S };
-WD.D3 = { stack, solar, meter, house, css, draw, ring };
+WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
 })();

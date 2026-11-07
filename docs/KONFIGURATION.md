@@ -154,6 +154,12 @@ consumers:
 
 `on_w` gibt es auch für Gruppen und ihre Einträge. Damit bekommt zum Beispiel eine Zirkulationspumpe mit 6 W einen Rahmen.
 
+**Geräte in Gruppen nach Leistung sortieren (optional, `consumer_groups_sort: leistung`):** Die gerade aktiven Geräte stehen oben, das stärkste zuerst. Geräte unter `on_w` folgen in der eingetragenen Reihenfolge. Damit die Liste bei schwankenden Werten nicht springt, ordnet die Karte höchstens alle 10 Sekunden neu, und ein Gerät überholt ein anderes erst mit deutlich mehr Leistung (mehr als 10 % und 20 W). Das Fenster der Kurzansicht zeigt dieselbe Reihenfolge. Ohne Eintrag (oder mit `konfiguriert`) bleibt alles wie eingetragen. Die Gruppen selbst behalten ihren Platz.
+
+```yaml
+consumer_groups_sort: leistung
+```
+
 **Differenz-Verbraucher (optional, z. B. Zählerkaskade):** Mit `minus` rechnet die Karte `entity − minus`, nie negativ. `minus` darf auch eine **Liste** sein (mehrere Unterzähler). Mit `plus` (ebenfalls Sensor oder Liste) wird noch etwas dazugerechnet. `minus` und `plus` gibt es für Einzelverbraucher und für Einträge in Gruppen, im Assistenten als "Davon abziehen". Ohne `minus` ändert sich nichts. Beschreibung mit Aufbauten und Beispiel: [Zähler in Reihe](ZWEI-ZAEHLER.md#direkt-in-der-karte-option).
 
 Zweite Solaranlage, zum Beispiel ein Balkonkraftwerk mit eigenem Sensor:
@@ -249,6 +255,7 @@ waste:
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
+| `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |
 | `fit_margin` | `8` | Abstand unten in Pixel |
 | `keep_awake` | `auto` | `true`/`false`/`auto`: Bildschirm wach halten (Echo Show, Silk) |
 | `nav_path`, `nav_label` | | Schaltfläche zur nächsten Ansicht |
@@ -340,9 +347,17 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # earned_before: input_number.pv_vorher     # ... oder aus einem Sensor oder Helfer
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
+# pv_lifetime: sensor.pv_zaehler_dauerhaft  # nur nötig, wenn pv_total täglich auf 0 geht, siehe unten
+# decimals: 2                               # feste Nachkommastellen bei kWh, siehe Darstellung
 ```
 
 Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
+
+**"Heute":** Die Karte nimmt die Tagessensoren (`pv_today`, `import_today`, `export_today`, `charge_today`, `discharge_today`). Fehlt einer oder liefert er gerade keinen Wert, rechnet sie den Wert aus dem Gesamtzähler seit Mitternacht, so wie Monat und Jahr. Die Tagessensoren sind damit optional. Unter den Kacheln steht dann ein gelber Hinweis, welcher Sensor fehlt. Ebenso warnt die Karte, wenn in einem Tagesfeld offenbar ein Gesamtzähler steckt (der Wert ist viel größer als der Zuwachs des Gesamtzählers seit Mitternacht) oder wenn heute mehr eingespeist als erzeugt wurde. Ohne Statistik und ohne Tagessensor zeigt die Kachel einen Strich, nie die Werte eines anderen Zeitraums.
+
+**Rekordtag:** Die Karte sucht den besten Tag des Jahres in der Statistik von `pv_today` und von `pv_total` und zeigt den höheren Wert. Ein neu angelegter Tagessensor mit erst wenigen Tagen Verlauf verfälscht den Rekord so nicht mehr.
+
+**`pv_lifetime` (optional):** Geht dein PV-Zähler täglich auf 0 und gibt es keinen durchlaufenden, bleibt er bei `pv_total` (Verlauf, Monatsbalken, Autarkie funktionieren damit). Amortisation und "PV gesamt" brauchen aber den ganzen Ertrag. Dafür trägst du bei `pv_lifetime` einen Zähler ohne Zurücksetzen ein, zum Beispiel einen Helfer "Verbrauchszähler" ohne Zyklus, der deinen Tageszähler aufsummiert. Ohne Eintrag gilt `pv_total` wie bisher.
 
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
@@ -512,6 +527,7 @@ Statt Kacheln und Ring zeigt die Karte Haus, Solar, Netz und Speicher als kleine
 type: custom:energy-cockpit-flow-card
 style: 3d
 house_style: sattel   # oder flach (Flachdach)
+roof_color: anthrazit # optional: rot (Standard), anthrazit, schwarz, grau, braun, gruen, blau oder "#hex"
 ```
 
 ![3D-Ansicht mit zwei Speichern und Balkonkraftwerk](img/flow-3d-zwei.png)

@@ -1,0 +1,76 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Gruppen sortieren, Dachfarbe, Nachkommastellen</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft consumer_groups_sort (#24), roof_color (#28) und decimals (#25) im Energiefluss. Aufruf: ?test=1&still=1
+   Ohne test zeigt die Seite die Karte: &dach=anthrazit, &sort=1, &dec=2 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const D=(v)=>S(v,'kWh');
+const items=[['Licht','sensor.l'],['Fernseher','sensor.tv'],['Kühlschrank','sensor.k'],['Waschmaschine','sensor.w'],['Trockner','sensor.t']].map(([name,entity])=>({name,entity}));
+const base={pv:{entity:'sensor.pv',daily:'sensor.dpv'},grid:{entity:'sensor.grid',daily_import:'sensor.dimp',daily_export:'sensor.dexp'},home:{entity:'sensor.home',daily:'sensor.dhome'},
+  battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},consumer_groups:[{name:'Küche',icon:'mdi:stove',items}],fit_screen:false};
+const st0={'sensor.pv':S(2345),'sensor.grid':S(200),'sensor.home':S(2545),'sensor.bat':S(0),'sensor.soc':S(60,'%'),'sensor.dpv':D(18.4),'sensor.dimp':D(1.25),'sensor.dexp':D(0),'sensor.dhome':D(19.65),
+  'sensor.l':S(40),'sensor.tv':S(0),'sensor.k':S(90),'sensor.w':S(1800),'sensor.t':S(0)};
+const hassFor=(o)=>({states:Object.assign({},st0,o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+// sichtbare Reihenfolge nach der Bildschirmposition
+const order=(e)=>[...e.shadowRoot.querySelectorAll('.grp[data-k="g0"] .it')].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top).map(x=>x.querySelector('.in').textContent).join(',');
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // Ohne Option: Reihenfolge wie eingetragen
+  let e=mount(base,hassFor());await wait(600);
+  ok('ohne Option: wie eingetragen',order(e)==='Licht,Fernseher,Kühlschrank,Waschmaschine,Trockner',order(e));
+  // Nach Leistung: aktive oben (absteigend), inaktive darunter in eingetragener Reihenfolge
+  e=mount({...base,consumer_groups_sort:'leistung'},hassFor());await wait(600);
+  ok('leistung: aktive nach Leistung, Rest wie eingetragen',order(e)==='Waschmaschine,Kühlschrank,Licht,Fernseher,Trockner',order(e));
+  // Kleine Schwankung innerhalb von 10 s: nichts springt
+  e.hass=hassFor({'sensor.l':S(95)});await wait(1500);
+  ok('Schwankung innerhalb von 10 s: keine Änderung',order(e)==='Waschmaschine,Kühlschrank,Licht,Fernseher,Trockner',order(e));
+  // Nach 10 s: Licht mit 95 W gegen Kühlschrank 90 W ist kein deutlicher Unterschied (unter 10 % und 20 W), bleibt stehen
+  await wait(10500);e.hass=hassFor({'sensor.l':S(95)});await wait(1500);
+  ok('knapp mehr Leistung: kein Platztausch (Hysterese)',order(e)==='Waschmaschine,Kühlschrank,Licht,Fernseher,Trockner',order(e));
+  // Trockner geht an, Waschmaschine aus: deutliche Änderung nach Ablauf der Wartezeit
+  await wait(10500);e.hass=hassFor({'sensor.l':S(95),'sensor.t':S(2400),'sensor.w':S(3)});await wait(1500);
+  ok('Trockner an, Waschmaschine aus: neue Reihenfolge',order(e)==='Trockner,Kühlschrank,Licht,Fernseher,Waschmaschine',order(e));
+  // Englischer Wert power gilt auch
+  e=mount({...base,consumer_groups_sort:'power'},hassFor());await wait(600);
+  ok('power wirkt wie leistung',order(e).startsWith('Waschmaschine,Kühlschrank'),order(e));
+  // Kurzansicht: Antippen der Gruppe öffnet ihr Fenster, Geräte in derselben Reihenfolge
+  e=mount({...base,consumer_groups_sort:'leistung',compact:'immer'},hassFor());await wait(600);
+  q(e,'.grp[data-k="g0"] .g-hd').click();await wait(400);
+  const dl=[...e.shadowRoot.querySelectorAll('.gdlg .d-it')].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top).map(x=>x.querySelector('.in').textContent).join(',');
+  ok('Fenster der Gruppe: gleiche Reihenfolge',dl==='Waschmaschine,Kühlschrank,Licht,Fernseher,Trockner',dl||'(kein Fenster)');
+  // roof_color
+  e=mount({...base,style:'3d',roof_color:'anthrazit'},hassFor());await wait(600);
+  ok('roof_color anthrazit: Dachfarbe gesetzt',(q(e,'.wrap').getAttribute('style')||'').includes('--rf0:#4b5059'),q(e,'.wrap').getAttribute('style'));
+  ok('roof_color: Dach nutzt die Farbe',getComputedStyle(q(e,'.wrap')).getPropertyValue('--rf0').trim()==='#4b5059');
+  e=mount({...base,style:'3d',roof_color:'#336699'},hassFor());await wait(600);
+  ok('roof_color #hex: helle und dunkle Fläche',/--rf0:#336699;--rf1:rgb\(31,61,92\)/.test(q(e,'.wrap').getAttribute('style')||''),q(e,'.wrap').getAttribute('style'));
+  e=mount({...base,style:'3d',roof_color:'url(x)'},hassFor());await wait(600);
+  ok('roof_color ungültig: Standard',!q(e,'.wrap').getAttribute('style'),q(e,'.wrap').getAttribute('style'));
+  e=mount({...base,roof_color:'anthrazit'},hassFor());await wait(600);
+  ok('roof_color ohne 3D: keine Wirkung',!q(e,'.wrap').getAttribute('style'));
+  // decimals
+  e=mount({...base,decimals:2},hassFor());await wait(600);
+  ok('decimals 2: PV heute 18,40 kWh',t(e,'[data-s="pv"] b')==='18,40kWh',t(e,'[data-s="pv"] b'));
+  ok('decimals 2: Bezug 1,25 kWh',t(e,'[data-s="imp"] b')==='1,25kWh',t(e,'[data-s="imp"] b'));
+  ok('decimals 2: 0 wird 0,00',t(e,'[data-s="exp"] b')==='0,00kWh',t(e,'[data-s="exp"] b'));
+  ok('decimals als Zahl: Leistung unverändert (2,35 kW)',/2,35/.test(t(e,'.pv .val')||t(e,'[data-k="pv"]')||''),t(e,'.pv .val'));
+  e=mount({...base,decimals:{energy:0,power:1,percentage:1}},hassFor());await wait(600);
+  ok('decimals.energy 0: 18 kWh',t(e,'[data-s="pv"] b')==='18kWh',t(e,'[data-s="pv"] b'));
+  ok('decimals.power 1: 2,3 kW',/2,3 ?kW/.test(t(e,'.pv .val')||''),t(e,'.pv .val'));
+  ok('decimals.power: Watt bleiben ganzzahlig',/^200 ?W/.test(t(e,'.grid .val')||''),t(e,'.grid .val'));
+  ok('decimals.percentage 1: Autarkie mit Komma',/^\d+,\d %$/.test(t(e,'[data-s="aut"] b')||''),t(e,'[data-s="aut"] b'));
+  e=mount(base,hassFor());await wait(600);
+  ok('ohne decimals: wie bisher',t(e,'[data-s="pv"] b')==='18,4kWh'&&t(e,'[data-s="exp"] b')==='0,0kWh',t(e,'[data-s="pv"] b')+' / '+t(e,'[data-s="exp"] b'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search);const c={...base};
+  if(P.get('dach')){c.style='3d';c.roof_color=P.get('dach');}if(P.get('sort'))c.consumer_groups_sort='leistung';if(P.get('dec'))c.decimals=+P.get('dec');if(P.get('style'))c.style=P.get('style');mount(c,hassFor());}
+</script></body></html>

@@ -171,6 +171,9 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |
 | **Gruppen pro Reihe,** damit Gerätenamen auch auf dem Handy lesbar sind | `groups_columns: 1` |
 | **Alles in Watt** statt ab 1000 W in kW | `watt_only: true` |
+| **Feste Nachkommastellen,** zum Beispiel immer `10,80 kWh` | `decimals: 2` |
+| **Geräte in Gruppen nach Leistung,** die aktiven oben | `consumer_groups_sort: leistung` |
+| **Dachfarbe** in der 3D-Ansicht | `roof_color: anthrazit` |
 | **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen | `hide_rest: true`, `rest_min: 10` |
 | **Aktiv ab:** ab welcher Leistung Rahmen und Linie erscheinen | `on_w` |
 | **Batterie:** Entladegrenze und Maximalladung, Ladestand im nutzbaren Bereich, Temperatur | `reserve_soc`, `max_soc`, `soc_display: nutzbar`, `temp` |

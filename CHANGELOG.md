@@ -1,5 +1,17 @@
 # Änderungsprotokoll
 
+## 0.21.0
+- **Statistik, "Heute" zeigte den Monat:** Lieferte einer der Tagessensoren (PV, Bezug, Einspeisung heute) keinen Wert, blieben unter "Heute" die Zahlen des vorher gezeigten Zeitraums stehen, meist die des Monats. Jetzt steht dort ein Strich, und ein gelber Hinweis nennt den Sensor. Fehler aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Statistik, "Heute" aus den Gesamtzählern:** Fehlt ein Tagessensor oder liefert er gerade nichts, rechnet die Karte den Tageswert aus dem Gesamtzähler seit Mitternacht, wie Monat und Jahr. Die Tagessensoren sind damit optional. Mit funktionierenden Tagessensoren ändert sich nichts.
+- **Statistik, Hinweise bei unpassenden Sensoren:** Die Karte warnt unter den Kacheln, wenn in einem Tagesfeld offenbar ein Gesamtzähler steckt oder heute mehr eingespeist als erzeugt wurde. Anlass waren [#26](https://github.com/msucimaker3112/energy-cockpit/issues/26), [#27](https://github.com/msucimaker3112/energy-cockpit/issues/27) und [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Statistik, Rekordtag:** Er kam nur aus dem Tagessensor. War der erst seit Kurzem angelegt, stand dort ein viel zu kleiner Rekord. Jetzt wertet die Karte auch den Gesamtzähler und zeigt den höheren Wert. Rückmeldung aus [#26](https://github.com/msucimaker3112/energy-cockpit/issues/26).
+- **Statistik, `pv_lifetime` (optional):** Ein durchlaufender PV-Zähler nur für Amortisation und "PV gesamt", wenn `pv_total` täglich auf 0 geht. Wunsch aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Energiefluss, Geräte in Gruppen nach Leistung (optional, `consumer_groups_sort: leistung`):** Aktive Geräte stehen oben, das stärkste zuerst. Die Liste ordnet sich höchstens alle 10 Sekunden neu und springt bei kleinen Schwankungen nicht. Wunsch aus [#24](https://github.com/msucimaker3112/energy-cockpit/issues/24).
+- **Energiefluss, Dachfarbe in 3D (optional, `roof_color`):** zum Beispiel `anthrazit`, `schwarz`, `grau`, `braun` oder eine eigene Farbe als `#hex`. Wunsch aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Energiefluss und Statistik, feste Nachkommastellen (optional, `decimals`):** `decimals: 2` zeigt Energie immer mit zwei Stellen, also `10,80 kWh` und `0,00 kWh`. Einzeln für Energie, Leistung in kW und Prozent: `decimals: { energy: 2, power: 1, percentage: 1 }`. Wunsch aus [#25](https://github.com/msucimaker3112/energy-cockpit/issues/25).
+
+Alles Neue ist optional, ohne Eintrag bleibt die Anzeige wie bisher.
+
 ## 0.20.0
 - **Energiefluss, PV-Prognose für morgen und übermorgen (optional, `pv.forecast_tomorrow`, `pv.forecast_day_after`):** Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, zum Beispiel von Forecast.Solar oder Solcast. Ein Tipp öffnet den Verlauf. Einstellbar im Assistenten (Schritt *Solar*). Ohne Eintrag ändert sich nichts. Wunsch aus [#22](https://github.com/msucimaker3112/energy-cockpit/issues/22).
 - **Energiefluss, Solar-Linie fehlte:** Passten Hausverbrauch-Sensor, Netz und PV kurz nicht zusammen, etwa weil sie zeitversetzt melden, zeigte die 3D-Ansicht keine Solar-Linie, und die Solar-Kachel sagte nicht, wohin der Strom geht. Dieser Rest zählt jetzt zum Haus, in 3D und in der klassischen Ansicht. Passen die Werte zusammen, ändert sich nichts. Rückmeldung aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).

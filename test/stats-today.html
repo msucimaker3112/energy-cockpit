@@ -1,0 +1,88 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik: Heute, Rekordtag, pv_lifetime, Nachkommastellen</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft "Heute" (#28: keine Werte des Monats stehen lassen, Rückfall auf die Gesamtzähler, Hinweise), Rekordtag aus beiden Quellen (#26),
+   pv_lifetime (#28) und decimals (#25). Aufruf: ?test=1&still=1. Ohne test zeigt die Seite die Karte, &fall=fehlt|gross|mehr */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// Monat: PV 20, Bezug 73,2, Einspeisung 3,1. Heute laut Gesamtzähler: Stunden seit Mitternacht + Zuwachs seit der letzten Stunde
+const MON={'sensor.pv':20,'sensor.imp':73.2,'sensor.exp':3.1};
+// Stunden: 23 Uhr gestern (Zählerstand zum Tagesbeginn) und zwei Stunden heute
+const HR={'sensor.pv':[[d0-H,0,1000],[d0,1,1001],[d0+H,1.5,1002.5]],'sensor.imp':[[d0-H,.3,5000],[d0,.5,5000.5],[d0+H,.5,5001]],'sensor.exp':[[d0-H,0,800],[d0,.2,800.2],[d0+H,.3,800.5]]};
+let DAY={};
+function hassFor(st,opt){opt=opt||{};return {states:Object.assign({'sensor.pv':S(1003),'sensor.imp':S(5001.4),'sensor.exp':S(800.5)},st||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+  callWS:async(m)=>{const r={};(m.statistic_ids||[]).forEach(id=>{
+    if(m.period==='month')r[id]=MON[id]!==undefined?[{start:new Date(now.getFullYear(),now.getMonth(),1).getTime(),change:MON[id]}]:[];
+    else if(m.period==='day')r[id]=DAY[id]||[];
+    else if(m.period==='hour'&&m.types.includes('state'))r[id]=opt.noHours?[]:(HR[id]||[]).map(([t,c,s])=>({start:t,change:c,state:s}));
+    else r[id]=[];});return r;}};}
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',grid_price_ct:30,feed_in_ct:8};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1600);};
+const hint=(e)=>{const x=q(e,'[data-f="dHint"]');return x&&x.style.display!=='none'?x.textContent.replace(/\s+/g,' ').trim():'';};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // 1. #28: Tagessensor nicht verfügbar, keine Statistik von heute: Strich statt Monatswert, Hinweis nennt den Sensor
+  let e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(1.2),'sensor.di':S(3),'sensor.de':S('unavailable')},{noHours:true}));await wait(1800);
+  ok('Monat: 73,2 kWh bezogen',/73,2 kWh/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('Monat: kein Hinweis',hint(e)==='',hint(e));
+  await tab(e,'day');
+  ok('#28 Heute: keine Werte des Monats',!/73,2/.test(t(e,'[data-f="costSub"]'))&&t(e,'[data-t="cost"]')==='—',t(e,'[data-t="cost"]')+' / '+t(e,'[data-f="costSub"]'));
+  ok('#28 Heute: Hinweis nennt Einspeisung und Sensor',/Einspeisung heute: sensor\.de liefert gerade keinen Wert/.test(hint(e)),hint(e));
+  await tab(e,'month');
+  ok('zurück im Monat: Werte wieder da, Hinweis weg',/73,2 kWh/.test(t(e,'[data-f="costSub"]'))&&hint(e)==='',t(e,'[data-f="costSub"]'));
+  // 2. Sensor fehlt, Statistik von heute vorhanden: Wert aus dem Gesamtzähler (0,2+0,3 + 0 Zuwachs = 0,5 kWh), Hinweis sagt das
+  e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(2.5),'sensor.di':S(1.4),'sensor.de':S('unavailable')}));await wait(1800);await tab(e,'day');
+  ok('Rückfall: Einspeisung aus dem Gesamtzähler',/0,5 kWh eingespeist/.test(t(e,'[data-f="feedSub"]')),t(e,'[data-f="feedSub"]'));
+  ok('Rückfall: Hinweis sagt, woher der Wert kommt',/rechnet ihn aus dem Gesamtzähler/.test(hint(e)),hint(e));
+  // 3. Ohne Tagessensoren: alles aus den Gesamtzählern. Bezug 0,5+0,5 + (5001,4−5001) = 1,4; PV 1+1,5 + (1003−1002,5) = 3,0
+  e=mount(base,hassFor());await wait(1800);await tab(e,'day');
+  ok('ohne Tagessensoren: Bezug 1,4 kWh',/1,4 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('ohne Tagessensoren: PV selbst genutzt 2,5 kWh',/2,5 kWh PV selbst genutzt/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
+  ok('ohne Tagessensoren: kein Hinweis',hint(e)==='',hint(e));
+  // 4. #26: Gesamtzähler im Tagesfeld (53.419 kWh)
+  e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(3),'sensor.di':S(1.4),'sensor.de':S(53419)}));await wait(1800);await tab(e,'day');
+  ok('#26 Gesamtzähler im Tagesfeld: Hinweis',/Einspeisung heute: sensor\.de zeigt 53\.419 kWh.*Gesamtzähler statt eines Tageswerts/.test(hint(e)),hint(e));
+  ok('#26 nur ein Hinweis zur Einspeisung',(hint(e).match(/Einspeisung/g)||[]).length===1,hint(e));
+  // 5. Mehr eingespeist als erzeugt, ohne Vergleich mit dem Gesamtzähler
+  e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(2),'sensor.di':S(1),'sensor.de':S(4)},{noHours:true}));await wait(1800);await tab(e,'day');
+  ok('mehr eingespeist als erzeugt: Hinweis',/mehr eingespeist \(4,0 kWh\) als erzeugt \(2,0 kWh\)/.test(hint(e)),hint(e));
+  // 6. #26 Rekordtag: neuer Tagessensor mit einem halben Tag, Gesamtzähler mit vollem Verlauf
+  const day=(i)=>d0-i*864e5;
+  DAY={'sensor.dpv':[{start:day(1),change:.9}],'sensor.pv':[{start:day(4),change:3.1},{start:day(3),change:5.2},{start:day(2),change:4},{start:day(1),change:2.1}]};
+  e=mount({...base,pv_today:'sensor.dpv'},hassFor({'sensor.dpv':S(.1)}));await wait(1800);
+  ok('#26 Rekordtag aus dem Gesamtzähler',/^5,2 ?kWh/.test(t(e,'[data-f="rec"]')),t(e,'[data-f="rec"]'));
+  // Lücke im Gesamtzähler: ein Tag nach einer Lücke zählt nicht (sonst stünde dort mehrtägiger Ertrag)
+  DAY={'sensor.pv':[{start:day(6),change:2},{start:day(3),change:9}]};
+  e=mount(base,hassFor());await wait(1800);
+  ok('Rekordtag: Tag nach einer Lücke zählt nicht',/^—$/.test(t(e,'[data-f="rec"]')),t(e,'[data-f="rec"]'));
+  DAY={};
+  // 7. pv_lifetime: Amortisation und PV gesamt aus dem durchlaufenden Zähler
+  e=mount({...base,pv_total:'sensor.dpv',investment_eur:1000,pv_lifetime:'sensor.life'},hassFor({'sensor.dpv':S(3),'sensor.life':S(2400),'sensor.exp':S(400)}));await wait(1800);
+  ok('pv_lifetime: PV gesamt 2,4 MWh',/^2,4 ?MWh/.test(t(e,'[data-f="pvAll"]')),t(e,'[data-f="pvAll"]'));
+  ok('pv_lifetime: Amortisation aus dem Zähler (2000·0,30+400·0,08 = 632 €)',/632/.test(t(e,'[data-f="amoEarned"]')),t(e,'[data-f="amoEarned"]'));
+  e=mount({...base,pv_total:'sensor.dpv',investment_eur:1000},hassFor({'sensor.dpv':S(3),'sensor.exp':S(400)}));await wait(1800);
+  ok('ohne pv_lifetime: wie bisher aus pv_total',/0,003 ?MWh|0,0 ?MWh/.test(t(e,'[data-f="pvAll"]')),t(e,'[data-f="pvAll"]'));
+  // 8. decimals (#25)
+  e=mount({...base,decimals:2},hassFor());await wait(1800);
+  ok('decimals: 2 → 73,20 kWh bezogen',/73,20 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('decimals: 2 → Monatszeile mit zwei Stellen',/PV 20,00 kWh/.test(t(e,'.detail')),t(e,'.detail'));
+  e=mount({...base,decimals:{energy:0,percentage:1}},hassFor());await wait(2600);
+  ok('decimals.energy 0 → 73 kWh',/^73 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('decimals.percentage 1 → Autarkie mit einer Stelle',/^\d+,\d$/.test(t(e,'[data-t="aut"]')),t(e,'[data-t="aut"]'));
+  e=mount(base,hassFor());await wait(1800);
+  ok('ohne decimals: wie bisher',/^73,2 kWh/.test(t(e,'[data-f="costSub"]'))&&/^\d+$/.test(t(e,'[data-t="aut"]')),t(e,'[data-f="costSub"]')+' / '+t(e,'[data-t="aut"]'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search),f=P.get('fall');
+  const c={...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de',battery_capacity_kwh:5};
+  const st=f==='gross'?{'sensor.dpv':S(3),'sensor.di':S(1.4),'sensor.de':S(53419)}:f==='mehr'?{'sensor.dpv':S(2),'sensor.di':S(1),'sensor.de':S(4)}:{'sensor.dpv':S(2.5),'sensor.di':S(1.4),'sensor.de':S('unavailable')};
+  const e=mount(c,hassFor(st,{noHours:f==='mehr'}));setTimeout(()=>{e.shadowRoot.querySelector('.tab[data-p="day"]').click();},1500);}
+</script></body></html>

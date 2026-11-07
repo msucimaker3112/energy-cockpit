@@ -2,8 +2,8 @@
 (() => {
   const { nf, haNavigate, T, setLocale, cur, esc } = WD;
   const fEur = (v) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, Math.abs(v) < 100 ? 2 : 0));
-  const fKwh = (v) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, Math.abs(v) >= 100 ? 0 : 1));
-  const fPct = (v) => (v === null || !isFinite(v) ? '—' : Math.round(Math.max(0, Math.min(1, v)) * 100) + ' %');
+  const fKwh = (v, d) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, typeof d === 'number' ? d : Math.abs(v) >= 100 ? 0 : 1));
+  const fPct = (v, d) => (v === null || !isFinite(v) ? '—' : (typeof d === 'number' ? nf(Math.max(0, Math.min(1, v)) * 100, d) : Math.round(Math.max(0, Math.min(1, v)) * 100)) + ' %');
   const MON = [], MONL = [];
   const fillMon = () => {
     for (let i = 0; i < 12; i++) {
@@ -94,6 +94,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .stat b{display:block;margin-top:5px;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .note{margin-top:10px;font-size:.64rem;color:rgba(139,151,179,.7);text-align:center}
+.dhint{display:flex;flex-direction:column;gap:4px;margin:-6px 0 14px;font-size:.72rem;color:#fbbf24;position:relative}
+.dhint span{display:flex;align-items:flex-start;gap:6px;line-height:1.35}
+.dhint ha-icon{--mdc-icon-size:15px;flex:none;margin-top:1px}
 .yrnav{display:flex;align-items:center;margin-left:12px}
 .yb{cursor:pointer;padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);font-size:.8rem;font-weight:700;line-height:1.2;user-select:none;-webkit-tap-highlight-color:transparent}
 .yb.off{opacity:.3;pointer-events:none}
@@ -155,6 +158,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       super();
       this.attachShadow({ mode: 'open' });
       this._period = 'month';
+      this._dec = {};
       this._sel = null;
       this._tw = {};
     }
@@ -174,6 +178,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         return;
       }
       this._c = Object.assign({ battery_capacity_kwh: 0 }, c);
+      this._dec = WD.decOf(c);
       // Mehrere Speicher: Zähler dürfen als Liste angegeben werden, die Karte summiert sie
       const lst = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : (v ? [v] : []))).filter(Boolean);
       this._c._chg = lst(c.battery_charge_total); this._c._dis = lst(c.battery_discharge_total);
@@ -207,7 +212,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
       if (this._c && this._bl !== WD.state.lang) { this._bl = WD.state.lang; fillMon(); this._build(); }
       this._hass = h;
-      if (!this._loading && Date.now() - (this._loaded || 0) > 30 * 60 * 1000) { this._load(); return; }
+      // Neuer Tag: Stunden seit Mitternacht neu laden, sonst fehlt "Heute" aus den Gesamtzählern bis zum nächsten Laden
+      const dn = new Date(), today = new Date(dn.getFullYear(), dn.getMonth(), dn.getDate()).getTime();
+      if (!this._loading && (Date.now() - (this._loaded || 0) > 30 * 60 * 1000 || (this._loaded && this._tdDay !== today))) { this._tdDay = today; this._load(); return; }
       if (first || Date.now() - (this._lastR || 0) > 30000) { this._lastR = Date.now(); this._render(); }
     }
     getCardSize() { return 10; }
@@ -287,6 +294,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           ${m('cost', T('st.cost'), 'var(--imp)')}
           ${m('aut', T('st.aut'), 'var(--home)')}
         </div>
+        <div class="dhint" data-f="dHint" style="display:none"></div>
         <div class="duo">
           <div class="panel amo"><span class="lbl" style="--c:var(--sav)"><i></i>${T('st.amo')}</span>
             <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span></div>
@@ -423,7 +431,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // Ohne Stundenwerte bleibt der Bereich stehen und nennt den Grund: Verschwindet er, springen Höhe und Maßstab der ganzen Karte
       el.style.display = V ? '' : 'none';
       if (!V) return;
-      const CUR = cur(), dec = (v) => (Math.abs(v) < 100 ? 2 : 0), fk = (v) => (set ? nf(v, v >= 100 ? 0 : 1) : '—'), tab = this._$('.tab.on'), priced = set && this._ccPriced;
+      const CUR = cur(), dec = (v) => (Math.abs(v) < 100 ? 2 : 0), fk = (v) => (set ? this._fk(v) : '—'), tab = this._$('.tab.on'), priced = set && this._ccPriced;
       this._f('ccP', tab ? esc(tab.textContent) : '');
       let cost = 0, sav = 0;
       c._cc.forEach((x, i) => {
@@ -456,11 +464,28 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       try {
         const now = new Date();
         const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c._hist].concat(c._chg, c._dis).filter(Boolean);
-        const [mon, day, hr] = await Promise.all([
+        const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()), recIds = [...new Set([c.pv_today, c.pv_total].filter(Boolean))];
+        const totIds = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
+        const [mon, day, hr, tdy] = await Promise.all([
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(c._lt ? 2000 : now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [c.pv_today || c.pv_total], types: ['change'], ...WD.statUnits(c) }),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: recIds, types: ['change'], ...WD.statUnits(c) }),
           c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'], ...WD.statUnits(c) }) : Promise.resolve({}),
+          // ab 23 Uhr gestern: die letzte Stunde vor Mitternacht liefert den Zählerstand zum Tagesbeginn
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(d0.getTime() - 36e5).toISOString(), period: 'hour', statistic_ids: totIds, types: ['change', 'state'], ...WD.statUnits(c) }).catch(() => ({})),
         ]);
+        // "Heute" aus den Gesamtzählern: Summe der Stunden seit Mitternacht und Zählerstand am Ende der letzten Stunde (dazu kommt beim Anzeigen der Live-Wert)
+        this._td = {}; this._tdDay = d0.getTime();
+        totIds.forEach((id) => {
+          const rows = (tdy && tdy[id]) || [];
+          if (!rows.length) return;
+          let sum = 0, last = null;
+          rows.forEach((r) => {
+            const t = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+            if (t >= d0.getTime() && typeof r.change === 'number') sum += Math.max(0, r.change);
+            if (typeof r.state === 'number') last = r.state;
+          });
+          this._td[id] = { sum, last, day: d0.getTime() };
+        });
         const byMonth = (id) => {
           const out = {};
           (mon[id] || []).forEach((r) => { const d = new Date(typeof r.start === 'number' ? r.start : Date.parse(r.start)); if (r.change !== null && r.change !== undefined) out[key(d.getFullYear(), d.getMonth())] = Math.max(0, r.change); });
@@ -486,12 +511,16 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         let rec = null;
         // bevorzugt Tagesertrag (setzt täglich zurück); beim Gesamtzähler nur Tage direkt nach einem Vortag werten,
         // sonst sammelt sich nach Datenlücken mehrtägiger Ertrag auf einem Tag
-        let prevT = null;
-        (day[c.pv_today || c.pv_total] || []).forEach((r) => {
-          const t = typeof r.start === 'number' ? r.start : Date.parse(r.start);
-          const ok = c.pv_today || (prevT !== null && Math.abs(t - prevT - 864e5) < 3 * 36e5);
-          prevT = t;
-          if (ok && r.change > 0 && r.change < 500 && (!rec || r.change > rec.v)) rec = { v: r.change, t };
+        // Beide Quellen werten, der höhere Wert gewinnt: Ein neuer Tagessensor hat oft erst wenige Tage Verlauf, der Gesamtzähler reicht weiter zurück (#26)
+        recIds.forEach((id) => {
+          let prevT = null;
+          const daily = id === c.pv_today;
+          (day[id] || []).forEach((r) => {
+            const t = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+            const ok = daily || (prevT !== null && Math.abs(t - prevT - 864e5) < 3 * 36e5);
+            prevT = t;
+            if (ok && r.change > 0 && r.change < 500 && (!rec || r.change > rec.v)) rec = { v: r.change, t };
+          });
         });
         this._rec = rec;
         // Grundlast: niedrigster Stundenmittelwert zwischen 0 und 5 Uhr je Nacht
@@ -532,6 +561,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       };
       requestAnimationFrame(step);
     }
+    _fk(v) { return fKwh(v, this._dec.e); }
+    _fp(v) { return fPct(v, this._dec.q); }
     _f(f, txt) { const el = this._$(`[data-f="${f}"]`); if (el && el.innerHTML !== txt) el.innerHTML = txt; }
 
     // long_term: gewähltes Jahr und blätterbarer Bereich
@@ -575,13 +606,45 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       return lines.join(' · ');
     }
 
+    // Seit Mitternacht laut Gesamtzähler: Stunden aus der Statistik plus Zuwachs seit der letzten Stunde (Live-Wert). null ohne Statistik von heute
+    _tot(id) {
+      const x = this._td && this._td[id], n = new Date();
+      if (!id || !x || x.day !== new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()) return null;
+      const v = WD.kwh(this._hass, id, WD.rawUnits(this._c));
+      let extra = 0;
+      if (v !== null && x.last !== null) extra = v >= x.last ? v - x.last : v; // kleiner als zuletzt: Zähler wurde zurückgesetzt
+      return x.sum + extra;
+    }
+    // "Heute": Tagessensor, wenn eingetragen und mit Wert, sonst aus dem Gesamtzähler gerechnet. this._dHints nennt fehlende oder unpassende Sensoren
+    _dayVals() {
+      const c = this._c, h = this._hass, raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw), hints = [];
+      const sumL = (l, f) => { let t = null; for (const id of l) { const v = f(id); if (v === null) return null; t = (t || 0) + v; } return t; };
+      const one = (k, daily, totals) => {
+        const dl = daily.filter(Boolean), tl = totals.filter(Boolean);
+        const tv = tl.length ? sumL(tl, (id) => this._tot(id)) : null;
+        if (!dl.length) return tv;
+        const dv = sumL(dl, en);
+        if (dv === null) {
+          const bad = dl.find((id) => en(id) === null);
+          hints.push(T(tv === null ? 'st.d.none' : 'st.d.nonefb', { n: T('st.n.' + k), id: esc(bad) }));
+          return tv;
+        }
+        // Tageswert viel größer als der Zuwachs des Gesamtzählers seit Mitternacht, oder ohne Vergleich unmöglich groß: vermutlich ein Gesamtzähler
+        if ((tv !== null && dv > tv + Math.max(5, tv * 2)) || (tv === null && dv > 1000)) hints.push(T('st.d.big', { n: T('st.n.' + k), id: esc(dl.join(', ')), v: fKwh(dv) }));
+        return dv;
+      };
+      const v = {
+        pv: one('pv', [c.pv_today], [c.pv_total]), imp: one('imp', [c.import_today], [c.grid_import_total]), exp: one('exp', [c.export_today], [c.grid_export_total]),
+        chg: one('chg', c._chgD, c._chg) || 0, dis: one('dis', c._disD, c._dis) || 0, label: T('st.today'),
+      };
+      if (v.pv !== null && v.exp !== null && v.exp > v.pv + v.dis + 0.5 && !hints.some((x) => x.includes(T('st.n.exp')))) hints.push(T('st.d.exp', { e: fKwh(v.exp), p: fKwh(v.pv) }));
+      this._dHints = hints;
+      return v;
+    }
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
-      if (this._period === 'day') {
-        const raw = WD.rawUnits(c), en = (id) => WD.kwh(h, id, raw);
-        return { pv: en(c.pv_today), imp: en(c.import_today), exp: en(c.export_today), chg: c._chgD.reduce((a, id) => a + (en(id) || 0), 0), dis: c._disD.reduce((a, id) => a + (en(id) || 0), 0), label: T('st.today') };
-      }
+      if (this._period === 'day') return this._dayVals();
       if (this._period === 'week') return this._ccW ? { ...this._ccW, label: T('st.week') } : null;
       if (!M) return null;
       if (c._lt && this._period !== 'month') {
@@ -610,20 +673,23 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('pvsav', price > 0 ? self * price : null, self * price < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
         this._count('cost', price > 0 ? p.imp * price : null, p.imp * price < 100 ? 2 : 0);
-        this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - p.imp / cons)) * 100 : null, 0);
-        this._f('pvsavSub', T('st.self', { kwh: fKwh(self) }));
-        this._f('feedSub', T('st.fed', { kwh: fKwh(p.exp) }));
-        this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, 0);
-        this._f('selfcSub', T('st.self', { kwh: fKwh(self) }));
-        this._f('costSub', T('st.drawn', { kwh: fKwh(p.imp) }));
-        this._f('autSub', T('st.autsub', { self: p.pv > 0 ? fPct(1 - p.exp / p.pv) : '—', cons: fKwh(cons) }));
-      } else if (c._lt && this._m && this._period !== 'day') {
-        // Gewählter Zeitraum ohne vollständige Monate: keine 0 und kein Wert aus dem vorigen Zeitraum stehen lassen
+        this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - p.imp / cons)) * 100 : null, this._dec.q || 0);
+        this._f('pvsavSub', T('st.self', { kwh: this._fk(self) }));
+        this._f('feedSub', T('st.fed', { kwh: this._fk(p.exp) }));
+        this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
+        this._f('selfcSub', T('st.self', { kwh: this._fk(self) }));
+        this._f('costSub', T('st.drawn', { kwh: this._fk(p.imp) }));
+        this._f('autSub', T('st.autsub', { self: p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—', cons: this._fk(cons) }));
+      } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
+        // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)
         ['pvsav', 'feed', 'selfc', 'cost', 'aut'].forEach((k) => { this._count(k, null); this._f(k + 'Sub', T('st.nodata2')); });
       }
+      const hn = this._$('[data-f="dHint"]'), hl = this._period === 'day' ? this._dHints || [] : [];
+      if (hn) { hn.style.display = hl.length ? '' : 'none'; this._f('dHint', hl.map((x) => `<span><ha-icon icon="mdi:alert-outline"></ha-icon>${x}</span>`).join('')); }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
-      const pvT = WD.kwh(h, c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
+      // pv_lifetime (optional, #28): durchlaufender Zähler für Amortisation und "PV gesamt", wenn pv_total täglich auf 0 geht
+      const pvT = WD.kwh(h, c.pv_lifetime || c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
@@ -715,13 +781,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const k = key(cy, i), kp = key(cy - 1, i);
       if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
       // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
-      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
+      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
       // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
       const running = k === key(new Date().getFullYear(), new Date().getMonth());
       const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
-      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${fKwh(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${fKwh(M.imp[k])} kWh · ${T('st.export')} ${fKwh(M.exp[k])} kWh · ${T('st.aut')} <b>${fPct(aut)}</b>`;
+      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
     }
   }
 
