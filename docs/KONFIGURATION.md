@@ -349,6 +349,8 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
+# budget_kwh: 8000                         # Jahresziel für den Netzbezug in kWh (Zahl oder Sensor), siehe unten
+# budget_profile: history                   # Soll gleichmäßig (linear, Standard) oder nach dem Verlauf des Vorjahres
 # pv_lifetime: sensor.pv_zaehler_dauerhaft  # nur nötig, wenn pv_total täglich auf 0 geht, siehe unten
 # decimals: 2                               # feste Nachkommastellen bei kWh, siehe Darstellung
 ```
@@ -364,6 +366,30 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
 **`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+### Jahresbudget (optional): `budget_kwh`
+
+Wer sich für das Jahr ein Ziel für den Netzbezug setzt, zum Beispiel 8.000 kWh, sieht auf einen Blick, wie weit er damit ist. Die Kachel „Jahresbudget Netzbezug“ erscheint nur, wenn `budget_kwh` eingetragen ist, und gilt immer für das laufende Jahr, egal welcher Reiter offen ist.
+
+```yaml
+budget_kwh: 8000          # Jahresziel für den Netzbezug (kWh), auch als Sensor oder Helfer möglich
+budget_profile: history   # optional: linear (Standard) oder history
+```
+
+![Jahresbudget mit gleichmäßigem Soll](img/budget-linear.png)
+
+| Wert | Bedeutung |
+|---|---|
+| Prozent und Balken | Netzbezug seit 1. Januar im Verhältnis zum Jahresziel. Der Strich im Balken zeigt das Soll bis heute |
+| Soll bis heute | Wie viel du bis heute verbrauchen dürftest, um im Ziel zu bleiben |
+| Abweichung Ist − Soll | Ist minus Soll in kWh und, wenn ein Strompreis eingetragen ist, in Euro. Negativ heißt: du liegst unter dem Soll |
+| Hochrechnung | Netzbezug bis heute, auf das ganze Jahr hochgerechnet (Ist geteilt durch den Anteil des Jahres, der vergangen ist) |
+| Abweichung zum Ziel | Hochrechnung minus Jahresziel in kWh und Euro |
+
+- **Farbe:** Im Soll grün, bis 10 % darüber gelb, darüber rot.
+- **`budget_profile: linear`** (Standard): Das Soll läuft gleichmäßig übers Jahr, am 1. Juli sind es etwa die Hälfte des Ziels.
+- **`budget_profile: history`:** Das Soll folgt dem Verlauf deines Netzbezugs im letzten vollen Jahr. Wer im Winter viel aus dem Netz bezieht und im Sommer wenig (mit PV-Anlage), bekommt im Winter ein höheres Soll. Dafür braucht die Karte die Monatswerte aller 12 Monate des Vorjahres. Fehlen sie, rechnet sie gleichmäßig. Welche Rechnung gilt, steht unter der Kachel.
+- Grundlage ist `grid_import_total`. Der Wert hinkt wie die anderen Monatswerte bis zu einer Stunde hinterher.
 
 **Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel „Amortisation“ aus, die Grundlast nimmt dann die ganze Breite.
 

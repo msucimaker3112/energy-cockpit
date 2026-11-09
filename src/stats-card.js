@@ -62,6 +62,22 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 @keyframes stripes{from{background-position:0 0}to{background-position:28px 0}}
 .amo .meta{display:flex;justify-content:space-between;flex-wrap:wrap;font-size:.76rem;color:rgb(var(--mut));margin-top:9px}
 .amo .meta b{color:var(--txt);font-weight:600}
+.bud{margin-top:14px;--q:var(--exp)}
+.bud.s-warn{--q:var(--pv)}
+.bud.s-bad{--q:var(--imp)}
+.bud .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
+.bud .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--q));text-shadow:none;font-variant-numeric:tabular-nums}
+.bud .big .unit{font-size:1rem;color:rgb(var(--q));font-weight:700;margin-left:6px}
+.bud .big small{font-size:.78rem;color:rgb(var(--mut));margin-left:12px}
+.bud .pfill{background:linear-gradient(90deg,rgba(var(--q),.5),rgb(var(--q)));box-shadow:0 0 0 1px rgba(var(--q),.35)}
+.bud .mk{position:absolute;top:0;bottom:0;left:0;width:3px;margin-left:-1px;background:var(--txt);opacity:.85;border-radius:2px;transition:left 1.6s cubic-bezier(.2,.8,.2,1)}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:12px;gap:12px;margin-top:14px}
+.bgrid small{display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));margin-bottom:3px}
+.bgrid b{font-size:1.05rem;font-weight:750;font-variant-numeric:tabular-nums}
+.bgrid em{display:block;font-style:normal;font-size:.7rem;color:rgb(var(--mut));margin-top:2px}
+.c-ok{color:rgb(var(--exp))}.c-warn{color:rgb(var(--pv))}.c-bad{color:rgb(var(--imp))}
+.bud .hint{font-size:.72rem;color:rgb(var(--mut));margin-top:10px}
+.narrow .bgrid{grid-template-columns:1fr 1fr}
 .gl .big{display:flex;align-items:baseline;margin-top:10px}
 .gl .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
 .gl .big .unit{font-size:1rem;color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
@@ -198,6 +214,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
+      // budget_kwh (optional): Jahresziel für den Netzbezug in kWh (Zahl oder Sensor). budget_profile: linear (Standard) oder history (Soll folgt dem Verlauf des Vorjahres)
+      this._c._bud = typeof c.budget_kwh === 'number' ? c.budget_kwh : typeof c.budget_kwh === 'string' && c.budget_kwh.trim() ? c.budget_kwh.trim() : null;
+      this._c._budHist = c.budget_profile === 'history';
       // start_period (optional): Reiter beim Öffnen. Standard ist der Monat
       this._c._start = ['day', 'week', 'month', 'year'].includes(c.start_period) ? c.start_period : '';
       if (this._c._start && this._startSet !== this._c._start) { this._startSet = this._c._start; this._period = this._c._start === 'week' && !this._c._cc.length ? 'month' : this._c._start; }
@@ -311,6 +330,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             <div class="tip" data-f="glTip"></div>
           </div>
         </div>
+        ${c._bud ? `<div class="panel bud s-ok" style="display:none">
+          <span class="lbl" style="--c:var(--imp)"><i></i>${T('st.bud.title')}</span>
+          <div class="big"><span class="num" data-t="bud">—</span><span class="unit">%</span><small data-f="budOf"></small></div>
+          <div class="pbar"><div class="pfill" data-f="budFill"></div><div class="mk" data-f="budMk"></div></div>
+          <div class="bgrid">
+            <div><small>${T('st.bud.soll')}</small><b data-f="budSoll">—</b></div>
+            <div><small>${T('st.bud.abw')}</small><b data-f="budAbw">—</b><em data-f="budAbwE"></em></div>
+            <div><small>${T('st.bud.fc')}</small><b data-f="budFc">—</b></div>
+            <div><small>${T('st.bud.fcabw')}</small><b data-f="budFcAbw">—</b><em data-f="budFcAbwE"></em></div>
+          </div>
+          <div class="hint" data-f="budHint"></div>
+        </div>` : ''}
         ${c._cc.length ? `<div class="panel cc" style="display:none">
           <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
           <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
@@ -425,6 +456,49 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       } catch (e) {
         console.warn('energy-cockpit-stats-card: cost_consumers', e);
       }
+    }
+
+    // Jahresbudget (budget_kwh): Netzbezug seit 1. Januar gegen das Jahresziel, Soll bis heute, Hochrechnung
+    _renderBud(price) {
+      const c = this._c, el = this._$('.bud');
+      if (!el) return;
+      const M = this._m, goal = val(this._hass, c._bud, 0);
+      if (!(goal > 0) || !M || !M.imp) { el.style.display = 'none'; return; }
+      const now = new Date(), y = now.getFullYear(), CUR = cur();
+      const months = Array.from({ length: now.getMonth() + 1 }, (x, i) => M.imp[key(y, i)]);
+      if (months.every((v) => v === undefined)) { el.style.display = 'none'; return; }
+      const ist = months.reduce((a, v) => a + (v || 0), 0);
+      // Anteil des Jahres, der bis jetzt vergangen ist: gleichmäßig oder nach dem Verlauf des Vorjahres
+      const y0 = new Date(y, 0, 1).getTime(), lin = (now.getTime() - y0) / (new Date(y + 1, 0, 1).getTime() - y0);
+      let share = lin, mode = 'lin';
+      if (c._budHist) {
+        const prev = Array.from({ length: 12 }, (x, i) => M.imp[key(y - 1, i)]), tot = prev.reduce((a, v) => a + (v || 0), 0);
+        if (prev.every((v) => typeof v === 'number') && tot > 0) {
+          const m = now.getMonth(), m0 = new Date(y, m, 1).getTime(), mf = (now.getTime() - m0) / (new Date(y, m + 1, 1).getTime() - m0);
+          share = (prev.slice(0, m).reduce((a, v) => a + v, 0) + prev[m] * mf) / tot; mode = 'hist';
+        }
+      }
+      const soll = goal * share, abw = ist - soll, fc = share > 0.03 ? ist / share : null, fcAbw = fc === null ? null : fc - goal;
+      // Farbe: im Soll grün, bis 10 % darüber gelb, darüber rot
+      const cls = (d, ref) => (d <= 0 ? 'ok' : ref > 0 && d / ref <= 0.1 ? 'warn' : 'bad');
+      const sgn = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + this._fk(Math.abs(v));
+      const eur = (v) => (price > 0 ? (v > 0 ? '+' : v < 0 ? '−' : '') + fEur(Math.abs(v * price)) + ' ' + CUR : '');
+      el.style.display = '';
+      el.className = 'panel bud s-' + cls(abw, soll);
+      this._count('bud', ist / goal * 100, 0);
+      this._f('budOf', T('st.bud.of', { ist: this._fk(ist), goal: this._fk(goal) }));
+      this._f('budSoll', this._fk(soll) + ' kWh');
+      this._f('budAbw', `<span class="c-${cls(abw, soll)}">${sgn(abw)} kWh</span>`);
+      this._f('budAbwE', eur(abw));
+      this._f('budFc', fc === null ? '—' : this._fk(fc) + ' kWh');
+      this._f('budFcAbw', fcAbw === null ? '—' : `<span class="c-${cls(fcAbw, goal)}">${sgn(fcAbw)} kWh</span>`);
+      this._f('budFcAbwE', fcAbw === null ? '' : eur(fcAbw));
+      this._f('budHint', mode === 'hist' ? T('st.bud.hist', { y: y - 1 }) : T('st.bud.lin'));
+      requestAnimationFrame(() => {
+        const f = this._$('[data-f="budFill"]'), k = this._$('[data-f="budMk"]');
+        if (f) f.style.width = Math.min(100, ist / goal * 100) + '%';
+        if (k) k.style.left = Math.min(100, soll / goal * 100) + '%';
+      });
     }
 
     _renderCC(price) {
@@ -669,6 +743,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
       this._renderCC(price);
+      this._renderBud(price);
       // Geld
       const p = this._periodVals();
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {

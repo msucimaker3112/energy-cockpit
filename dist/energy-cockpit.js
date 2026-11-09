@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.23.0 - MIT License */
+/*! energy-cockpit v0.24.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -4254,7 +4254,7 @@ WD.addStrings({
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für das aktuelle Jahr verfügbar', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.week': 'Woche', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
   'st.n.pv': 'PV heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Akku geladen heute', 'st.n.dis': 'Akku entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
@@ -4330,6 +4330,22 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 @keyframes stripes{from{background-position:0 0}to{background-position:28px 0}}
 .amo .meta{display:flex;justify-content:space-between;flex-wrap:wrap;font-size:.76rem;color:rgb(var(--mut));margin-top:9px}
 .amo .meta b{color:var(--txt);font-weight:600}
+.bud{margin-top:14px;--q:var(--exp)}
+.bud.s-warn{--q:var(--pv)}
+.bud.s-bad{--q:var(--imp)}
+.bud .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
+.bud .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--q));text-shadow:none;font-variant-numeric:tabular-nums}
+.bud .big .unit{font-size:1rem;color:rgb(var(--q));font-weight:700;margin-left:6px}
+.bud .big small{font-size:.78rem;color:rgb(var(--mut));margin-left:12px}
+.bud .pfill{background:linear-gradient(90deg,rgba(var(--q),.5),rgb(var(--q)));box-shadow:0 0 0 1px rgba(var(--q),.35)}
+.bud .mk{position:absolute;top:0;bottom:0;left:0;width:3px;margin-left:-1px;background:var(--txt);opacity:.85;border-radius:2px;transition:left 1.6s cubic-bezier(.2,.8,.2,1)}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:12px;gap:12px;margin-top:14px}
+.bgrid small{display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));margin-bottom:3px}
+.bgrid b{font-size:1.05rem;font-weight:750;font-variant-numeric:tabular-nums}
+.bgrid em{display:block;font-style:normal;font-size:.7rem;color:rgb(var(--mut));margin-top:2px}
+.c-ok{color:rgb(var(--exp))}.c-warn{color:rgb(var(--pv))}.c-bad{color:rgb(var(--imp))}
+.bud .hint{font-size:.72rem;color:rgb(var(--mut));margin-top:10px}
+.narrow .bgrid{grid-template-columns:1fr 1fr}
 .gl .big{display:flex;align-items:baseline;margin-top:10px}
 .gl .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
 .gl .big .unit{font-size:1rem;color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
@@ -4466,6 +4482,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
+      // budget_kwh (optional): Jahresziel für den Netzbezug in kWh (Zahl oder Sensor). budget_profile: linear (Standard) oder history (Soll folgt dem Verlauf des Vorjahres)
+      this._c._bud = typeof c.budget_kwh === 'number' ? c.budget_kwh : typeof c.budget_kwh === 'string' && c.budget_kwh.trim() ? c.budget_kwh.trim() : null;
+      this._c._budHist = c.budget_profile === 'history';
       // start_period (optional): Reiter beim Öffnen. Standard ist der Monat
       this._c._start = ['day', 'week', 'month', 'year'].includes(c.start_period) ? c.start_period : '';
       if (this._c._start && this._startSet !== this._c._start) { this._startSet = this._c._start; this._period = this._c._start === 'week' && !this._c._cc.length ? 'month' : this._c._start; }
@@ -4579,6 +4598,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             <div class="tip" data-f="glTip"></div>
           </div>
         </div>
+        ${c._bud ? `<div class="panel bud s-ok" style="display:none">
+          <span class="lbl" style="--c:var(--imp)"><i></i>${T('st.bud.title')}</span>
+          <div class="big"><span class="num" data-t="bud">—</span><span class="unit">%</span><small data-f="budOf"></small></div>
+          <div class="pbar"><div class="pfill" data-f="budFill"></div><div class="mk" data-f="budMk"></div></div>
+          <div class="bgrid">
+            <div><small>${T('st.bud.soll')}</small><b data-f="budSoll">—</b></div>
+            <div><small>${T('st.bud.abw')}</small><b data-f="budAbw">—</b><em data-f="budAbwE"></em></div>
+            <div><small>${T('st.bud.fc')}</small><b data-f="budFc">—</b></div>
+            <div><small>${T('st.bud.fcabw')}</small><b data-f="budFcAbw">—</b><em data-f="budFcAbwE"></em></div>
+          </div>
+          <div class="hint" data-f="budHint"></div>
+        </div>` : ''}
         ${c._cc.length ? `<div class="panel cc" style="display:none">
           <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
           <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
@@ -4693,6 +4724,49 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       } catch (e) {
         console.warn('energy-cockpit-stats-card: cost_consumers', e);
       }
+    }
+
+    // Jahresbudget (budget_kwh): Netzbezug seit 1. Januar gegen das Jahresziel, Soll bis heute, Hochrechnung
+    _renderBud(price) {
+      const c = this._c, el = this._$('.bud');
+      if (!el) return;
+      const M = this._m, goal = val(this._hass, c._bud, 0);
+      if (!(goal > 0) || !M || !M.imp) { el.style.display = 'none'; return; }
+      const now = new Date(), y = now.getFullYear(), CUR = cur();
+      const months = Array.from({ length: now.getMonth() + 1 }, (x, i) => M.imp[key(y, i)]);
+      if (months.every((v) => v === undefined)) { el.style.display = 'none'; return; }
+      const ist = months.reduce((a, v) => a + (v || 0), 0);
+      // Anteil des Jahres, der bis jetzt vergangen ist: gleichmäßig oder nach dem Verlauf des Vorjahres
+      const y0 = new Date(y, 0, 1).getTime(), lin = (now.getTime() - y0) / (new Date(y + 1, 0, 1).getTime() - y0);
+      let share = lin, mode = 'lin';
+      if (c._budHist) {
+        const prev = Array.from({ length: 12 }, (x, i) => M.imp[key(y - 1, i)]), tot = prev.reduce((a, v) => a + (v || 0), 0);
+        if (prev.every((v) => typeof v === 'number') && tot > 0) {
+          const m = now.getMonth(), m0 = new Date(y, m, 1).getTime(), mf = (now.getTime() - m0) / (new Date(y, m + 1, 1).getTime() - m0);
+          share = (prev.slice(0, m).reduce((a, v) => a + v, 0) + prev[m] * mf) / tot; mode = 'hist';
+        }
+      }
+      const soll = goal * share, abw = ist - soll, fc = share > 0.03 ? ist / share : null, fcAbw = fc === null ? null : fc - goal;
+      // Farbe: im Soll grün, bis 10 % darüber gelb, darüber rot
+      const cls = (d, ref) => (d <= 0 ? 'ok' : ref > 0 && d / ref <= 0.1 ? 'warn' : 'bad');
+      const sgn = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + this._fk(Math.abs(v));
+      const eur = (v) => (price > 0 ? (v > 0 ? '+' : v < 0 ? '−' : '') + fEur(Math.abs(v * price)) + ' ' + CUR : '');
+      el.style.display = '';
+      el.className = 'panel bud s-' + cls(abw, soll);
+      this._count('bud', ist / goal * 100, 0);
+      this._f('budOf', T('st.bud.of', { ist: this._fk(ist), goal: this._fk(goal) }));
+      this._f('budSoll', this._fk(soll) + ' kWh');
+      this._f('budAbw', `<span class="c-${cls(abw, soll)}">${sgn(abw)} kWh</span>`);
+      this._f('budAbwE', eur(abw));
+      this._f('budFc', fc === null ? '—' : this._fk(fc) + ' kWh');
+      this._f('budFcAbw', fcAbw === null ? '—' : `<span class="c-${cls(fcAbw, goal)}">${sgn(fcAbw)} kWh</span>`);
+      this._f('budFcAbwE', fcAbw === null ? '' : eur(fcAbw));
+      this._f('budHint', mode === 'hist' ? T('st.bud.hist', { y: y - 1 }) : T('st.bud.lin'));
+      requestAnimationFrame(() => {
+        const f = this._$('[data-f="budFill"]'), k = this._$('[data-f="budMk"]');
+        if (f) f.style.width = Math.min(100, ist / goal * 100) + '%';
+        if (k) k.style.left = Math.min(100, soll / goal * 100) + '%';
+      });
     }
 
     _renderCC(price) {
@@ -4937,6 +5011,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
       this._renderCC(price);
+      this._renderBud(price);
       // Geld
       const p = this._periodVals();
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
@@ -5083,7 +5158,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', pv_lifetime: 'PV-Zähler ohne Zurücksetzen für Amortisation (optional, wenn der PV-Zähler täglich auf 0 geht)', decimals: 'Nachkommastellen bei kWh (leer = automatisch)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
-    feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
+    feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
     cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
@@ -5098,6 +5173,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
       ent('grid_price', ['sensor', 'input_number']), { name: 'grid_price_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
       ent('feed_in', ['sensor', 'input_number']), { name: 'feed_in_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      { name: 'budget_kwh', selector: { number: { min: 0, step: 100, mode: 'box', unit_of_measurement: 'kWh' } } },
+      { name: 'budget_profile', selector: { select: { mode: 'dropdown', options: [{ value: 'linear', label: 'Gleichmäßig übers Jahr (Standard)' }, { value: 'history', label: 'Nach dem Verlauf des Vorjahres' }] } } },
       { name: 'start_period', selector: { select: { mode: 'dropdown', options: [{ value: 'month', label: 'Monat (Standard)' }, { value: 'day', label: 'Heute' }, { value: 'week', label: 'Woche (mit Verbrauchern)' }, { value: 'year', label: 'Jahr' }] } } },
       { name: 'feed_in_card', selector: { select: { mode: 'dropdown', options: [{ value: 'standard', label: 'Einspeiseerlös (Standard)' }, { value: 'pv_self_consumption', label: 'PV-Eigenverbrauch stattdessen' }, { value: 'hidden', label: 'Ausblenden' }] } } },
       { name: 'investment_eur', selector: { number: { min: 0, max: 1000000, step: 50, mode: 'box' } } },
@@ -5152,6 +5229,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { path: 'feed_in_ct', label: 'oder feste Einspeisevergütung (Cent pro kWh)', kind: 'number', optional: true, step: '0.1' },
       { path: 'investment_eur', label: 'Anschaffungskosten der PV-Anlage (Euro)', kind: 'number', optional: true, step: '50', help: 'Gesamtpreis der Anlage laut Rechnung, zum Beispiel 18000. Damit berechnet die Karte die Amortisation.' },
       { path: 'investment', label: 'oder Anschaffungskosten aus einem Sensor oder Helfer', kind: 'money', optional: true, hints: H(/anschaff|invest|kosten|cost/i) },
+      { path: 'budget_kwh', label: 'Jahresziel für den Netzbezug (kWh)', kind: 'number', optional: true, step: '100', help: 'Optional, zum Beispiel 8000. Die Karte zeigt dann, wie viel vom Jahresziel verbraucht ist, das Soll bis heute und die Hochrechnung.' },
+      { path: 'budget_profile', label: 'Soll im Jahresbudget', kind: 'choice', optional: true, options: [{ value: 'linear', label: 'Gleichmäßig übers Jahr (Standard)' }, { value: 'history', label: 'Nach dem Verlauf des Vorjahres' }], help: 'Mit dem Verlauf des Vorjahres steigt das Soll im Winter schneller als im Sommer. Fehlt ein volles Vorjahr, rechnet die Karte gleichmäßig.' },
       { path: 'earned_before_eur', label: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', kind: 'number', optional: true, step: '1', help: 'Nur nötig, wenn die Anlage schon lief, bevor Home Assistant die Zähler erfasst hat. Der Betrag wird zur Amortisation addiert.' },
       { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
     ] },

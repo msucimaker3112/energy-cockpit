@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.24.0
+- **Statistik, Jahresbudget (optional, `budget_kwh`):** Du setzt dir ein Jahresziel für den Netzbezug, zum Beispiel 8.000 kWh. Die Karte zeigt, wie viel davon verbraucht ist (Prozent und Balken), das Soll bis heute, die Abweichung in kWh und Euro, die Hochrechnung zum Jahresende und die Abweichung zum Ziel, farbig grün, gelb oder rot. Mit `budget_profile: history` folgt das Soll dem Verlauf deines Netzbezugs im Vorjahr, im Winter ist es dann höher als im Sommer. Ohne `budget_kwh` ändert sich nichts. Im Assistenten im Schritt "Preise" einstellbar. Wunsch aus der Facebook-Gruppe "Home Assistant Tipps und Tricks".
+- **Statistik, Kosten je Verbraucher:** Der Hinweis bei "Gesamt" ist verständlicher: "Nur für Heute, Woche, Monat und das laufende Jahr. Für 'Gesamt' gibt es hier keine Werte". Anlass: [#27](https://github.com/msucimaker3112/energy-cockpit/issues/27).
+
 ## 0.23.0
 - **Energiefluss, Farbe der Zahl beim Haus (optional, `home_color: source`):** Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an: gelb bei PV, blau beim Speicher, rot beim Netz. Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt. Ohne Angabe bleibt die Zahl türkis. Im Assistenten im Schritt "Aussehen" einstellbar. Wunsch aus [#32](https://github.com/msucimaker3112/energy-cockpit/issues/32).
 

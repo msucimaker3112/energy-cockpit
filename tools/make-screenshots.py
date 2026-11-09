@@ -125,13 +125,17 @@ JOBS.append(('stats-costs.html', 'kosten', '?scene=demo&tab=day'))
 JOBS.append(('stats-costs.html', 'kosten-woche', '?scene=demo&tab=week'))
 JOBS.append(('flow-homecolor.html', 'farbe-quelle-pv', '?pv=1300&grid=100&bat=0&style=3d'))
 JOBS.append(('flow-homecolor.html', 'farbe-quelle-netz', '?pv=0&grid=900&bat=0&style=3d'))
+JOBS.append(('stats-budget.html', 'budget-linear', '?goal=8000&cur=480'))
+JOBS.append(('stats-budget.html', 'budget-history', '?goal=8000&cur=480&profile=history'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten', 'farbe-quelle')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten', 'farbe-quelle', 'budget')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
+    if name in ('budget-linear', 'budget-history'):  # nur die Kachel Jahresbudget
+        im = Image.open(p); im.crop((0, 428, im.width, 668)).save(p)
     if name in ('kosten', 'kosten-woche'):  # nur Kopf und Bereich "Kosten je Verbraucher"
         im = Image.open(p); top = im.crop((0, 0, im.width, 78)); mid = im.crop((0, 425, im.width, 862))
         out_im = Image.new('RGB', (im.width, 78 + mid.height), im.getpixel((im.width - 1, im.height - 1))); out_im.paste(top, (0, 0)); out_im.paste(mid, (0, 78)); out_im.save(p)
