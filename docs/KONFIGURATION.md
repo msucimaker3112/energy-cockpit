@@ -43,6 +43,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `animations` | `auto` (Standard), `always` | `auto`: Ist am Gerät "Bewegung reduzieren" eingeschaltet, stehen Linien, Ring und das Leuchten von Kacheln und Symbolen still, und die Zahlen zählen nicht hoch. `always`: immer animieren. Unabhängig davon rechnet die Karte höchstens einmal pro Sekunde neu, und Zahlen zählen nur bei großen Sprüngen hoch |
 | `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
+| `home_color` | `standard` (Standard), `source` | `source`: Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an (PV gelb, Speicher blau, Netz rot). Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` | Vergrößert die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern |
@@ -547,6 +548,18 @@ roof_color: anthrazit # optional: rot (Standard), anthrazit, schwarz, grau, brau
 | Dach | Handy | Hell |
 |---|---|---|
 | ![Flachdach](img/flow-3d-flach.png) | ![3D am Handy](img/flow-3d-handy.png) | ![3D im hellen Schema](img/flow-3d-hell.png) |
+
+### Farbe der Zahl beim Haus: `home_color: source`
+
+Standardmäßig ist die Zahl über dem Haus türkis. Mit `home_color: source` bekommt sie die Farbe der Quelle, die im Ring gerade den größten Anteil hat: gelb bei PV, blau beim Speicher, rot beim Netz. So siehst du auf einen Blick, woher der Strom gerade überwiegend kommt. Damit die Farbe nicht flackert, wechselt sie erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt. Das gilt in der flachen und in der 3D-Ansicht.
+
+```yaml
+home_color: source
+```
+
+| PV überwiegt | Netz überwiegt |
+|---|---|
+| ![Zahl in Gelb](img/farbe-quelle-pv.png) | ![Zahl in Rot](img/farbe-quelle-netz.png) |
 
 ### Kurzansicht fürs Handy: `compact`
 

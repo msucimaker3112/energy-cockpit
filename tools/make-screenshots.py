@@ -123,11 +123,13 @@ JOBS.append(('flow-3d.html', 'flow-3d-hell', '?case=zwei&theme=hell&demo=1'))
 JOBS.append(('flow-3d.html', 'flow-3d-handy', '?case=normal&w=380&demo=1'))
 JOBS.append(('stats-costs.html', 'kosten', '?scene=demo&tab=day'))
 JOBS.append(('stats-costs.html', 'kosten-woche', '?scene=demo&tab=week'))
+JOBS.append(('flow-homecolor.html', 'farbe-quelle-pv', '?pv=1300&grid=100&bat=0&style=3d'))
+JOBS.append(('flow-homecolor.html', 'farbe-quelle-netz', '?pv=0&grid=900&bat=0&style=3d'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten', 'farbe-quelle')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name in ('kosten', 'kosten-woche'):  # nur Kopf und Bereich "Kosten je Verbraucher"

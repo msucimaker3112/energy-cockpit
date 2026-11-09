@@ -1316,6 +1316,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._banner({ pv, grid, bat, soc, home, gImp, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
+    // home_color: source (optional): Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil. Erst ab 5 Punkten Vorsprung wechselt die Farbe
+    const hn = this._$('.core .num');
+    if (hn) {
+      let col = '';
+      if (c.home_color === 'source' && tot > 0) {
+        const lead = ['pv', 'bat', 'grid'].reduce((a, k) => (sh[k] > sh[a] ? k : a), 'pv');
+        const keep = this._hc && sh[this._hc] >= sh[lead] - 0.05 ? this._hc : lead;
+        this._hc = keep;
+        col = `rgb(${keep === 'pv' ? PAL.pv : keep === 'bat' ? PAL.bat : PAL.imp})`;
+      } else this._hc = null;
+      if (hn.style.color !== col) hn.style.color = col;
+    }
     let start = 0;
     ['pv', 'bat', 'grid'].forEach((k) => {
       const seg = this._$(`.seg[data-g="${k}"]`);

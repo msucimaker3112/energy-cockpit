@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.23.0
+- **Energiefluss, Farbe der Zahl beim Haus (optional, `home_color: source`):** Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an: gelb bei PV, blau beim Speicher, rot beim Netz. Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt. Ohne Angabe bleibt die Zahl türkis. Im Assistenten im Schritt "Aussehen" einstellbar. Wunsch aus [#32](https://github.com/msucimaker3112/energy-cockpit/issues/32).
+
 ## 0.22.0
 - **Energiefluss, 3D-Ansicht, Speicher-Turm:** Bei zwei oder mehr gestapelten Akkus mit gemeinsamem Sensor stand der erste Akku unten und der zweite oben, in der Zeile "Ladestand" daneben aber "erster / zweiter". Jetzt steht der erste Akku oben, die Grafik passt zum Text. Gemeldet in [#33](https://github.com/msucimaker3112/energy-cockpit/issues/33).
 - **Statistik, Reiter beim Öffnen (optional, `start_period`):** Mit `day`, `week`, `month` oder `year` bestimmst du, welchen Reiter die Karte beim Öffnen zeigt. Ohne Angabe bleibt es der Monat. Auch im Assistenten einstellbar. Wunsch aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).
