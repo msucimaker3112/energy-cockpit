@@ -1,0 +1,45 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Nicht erfasst bei einzelnen Verbrauchern Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft die Kachel "Nicht erfasst" bei consumers ohne Gruppen (hide_rest: false). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite&compact=immer) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(1000),'sensor.grid':S(200),'sensor.a':S(300),'sensor.b':S(200),'sensor.c':S(50)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},consumers:[{name:'A',entity:'sensor.a'},{name:'B',entity:'sensor.b'}]};
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+  let e=mount(base);await wait(1600);
+  ok('ohne hide_rest: keine Kachel (wie bisher)',!q(e,'[data-k="crest"]'));
+  e=mount({...base,hide_rest:true});await wait(1600);
+  ok('hide_rest true: keine Kachel',!q(e,'[data-k="crest"]'));
+  e=mount({...base,hide_rest:false});await wait(1600);
+  ok('hide_rest false: Kachel da',!!q(e,'[data-k="crest"]')&&q(e,'[data-k="crest"]').style.display!=='none');
+  ok('Name "Nicht erfasst"',/Nicht erfasst/.test(t(e,'[data-k="crest"] .lbl')),t(e,'[data-k="crest"] .lbl'));
+  ok('Wert = Haus 1.200 − 500 = 700 W',/700/.test(t(e,'[data-k="crest"] .num')),t(e,'[data-k="crest"] .num')+' '+t(e,'[data-k="crest"] .unit'));
+  ok('Linie läuft',!!q(e,'.link[data-l="crest"].on'));
+  ok('Kachel steht nach den Verbrauchern',q(e,'.consumers').lastElementChild.dataset.k==='crest');
+  e=mount({...base,hide_rest:false,rest_min:70});await wait(1600);
+  ok('rest_min 70: 58 % Rest, Kachel ausgeblendet',q(e,'[data-k="crest"]').style.display==='none');
+  e=mount({...base,hide_rest:false,rest_min:50});await wait(1600);
+  ok('rest_min 50: 58 % Rest, Kachel sichtbar',q(e,'[data-k="crest"]').style.display!=='none');
+  e=mount({...base,hide_rest:false,rest:{name:'Übrig'}});await wait(1600);
+  ok('rest.name',/Übrig/.test(t(e,'[data-k="crest"] .lbl')),t(e,'[data-k="crest"] .lbl'));
+  e=mount({...base,hide_rest:false,rest:false});await wait(1600);
+  ok('rest false: keine Kachel',!q(e,'[data-k="crest"]'));
+  e=mount({...base,hide_rest:false,consumer_groups:[{name:'G',items:[{name:'C',entity:'sensor.c'}]}]});await wait(1600);
+  ok('mit Gruppen gilt die Gruppen-Kachel, keine zweite',!q(e,'[data-k="crest"]')&&!!q(e,'[data-k="grest"]'));
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},hide_rest:false});await wait(1600);
+  ok('ohne Verbraucher: keine Kachel',!q(e,'[data-k="crest"]'));
+  e=mount({...base,hide_rest:false,compact:'immer'});await wait(1600);
+  ok('Kurzansicht: kein Absturz, Kachel da',!!q(e,'[data-k="crest"]'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,hide_rest:false,compact:P.get('compact')||undefined});}
+</script></body></html>

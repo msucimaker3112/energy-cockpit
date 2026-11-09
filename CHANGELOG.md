@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.25.1
+- **Energiefluss, "Nicht erfasst" auch bei einzelnen Verbrauchern:** Wer Verbraucher unter `consumers` ohne Gruppen eingetragen hat, bekam die Kachel "Nicht erfasst" bisher nicht, sie gab es nur bei Gruppen. Mit `hide_rest: false` erscheint sie jetzt auch dort und zeigt den Hausverbrauch minus Summe der Verbraucher. `rest_min` und `rest.name` gelten ebenfalls. Ohne diese ausdrückliche Einstellung ändert sich nichts. Gemeldet in [#34](https://github.com/msucimaker3112/energy-cockpit/issues/34).
+
 ## 0.25.0
 - **Zweiter Netzzähler (optional, `grid2`):** Für Haushalte mit einem zweiten Zähler und eigenem Tarif, zum Beispiel für die Wärmepumpe. Im Energiefluss erscheint der Zähler als Kachel bei den Verbrauchern, mit eigener Linie zum Haus und den Kosten pro Stunde zu seinem Preis (`price` aus einem Sensor oder Helfer, oder `price_ct` fest in Cent). Sein Bezug zählt zum Hausverbrauch und im Ring zum Netz. In der Statistik gibt es `grid2_total` (kWh-Zähler), `grid2_name`, `grid2_price` und `grid2_price_ct`: Der Bezug geht mit seinem Preis in die Stromkosten, in die Autarkie und in das Jahresbudget ein, unter „Stromkosten Netz“ steht der Anteil des zweiten Zählers. Im Assistenten gibt es dafür ein Feld im Schritt „Netz“ des Energieflusses und den neuen Schritt „Zähler 2“ in der Statistik. Ohne Eintrag ändert sich nichts. Wunsch aus [#29](https://github.com/msucimaker3112/energy-cockpit/issues/29).
 

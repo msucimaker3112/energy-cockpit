@@ -537,6 +537,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
+    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn hide_rest: false ausdrücklich gesetzt ist (#34)
+    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && c.hide_rest === false && c.rest !== false;
+    if (restC && !sam) links.push('crest');
+    const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
+        <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
+        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div></div>` : '';
     const G = c.consumer_groups;
     let grps = '';
     if (G.length) {
@@ -610,7 +616,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
           </div>
         </div>
-        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}</div>` : ''}
+        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}${consRest}</div>` : ''}
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
@@ -1372,6 +1378,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._set(`[data-k="c${i}"] .unit`, parts.slice(1).join(' '));
       }
     });
+    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (hide_rest: false): Hausverbrauch minus Summe der Verbraucher
+    const crel = this._$('[data-k="crest"]');
+    if (crel) {
+      const restW = Math.max(0, home - sumAll - bmChg), restMin = parseFloat(c.rest_min) || 0;
+      const show = restMin <= 0 || (home > TH && restW / home * 100 >= restMin), on = show && restW > TH;
+      crel.style.display = show ? '' : 'none';
+      crel.classList.toggle('on', on);
+      this._anim('crest', restW, crel);
+      this._link('crest', on, false, PAL.mut, restW);
+    }
     const G = c.consumer_groups || [];
     if (G.length) {
       let known = 0, vis = 0;
