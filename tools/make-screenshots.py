@@ -55,7 +55,7 @@ JOBS = [
     ('wizard.html', 'wiz-flow-8-fertig', '?card=flow&step=8&cfg=flow&tab=Assistent'),
     ('wizard.html', 'wiz-devices-assistent', '?card=devices'),
     ('wizard.html', 'wiz-stats-1-zaehler', '?card=stats&step=0'),
-    ('wizard.html', 'wiz-stats-2-kosten', '?card=stats&step=4'),
+    ('wizard.html', 'wiz-stats-2-kosten', '?card=stats&step=5'),
     ('wizard.html', 'wiz-room-1-raum', '?card=room&step=0&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-2-zaehler', '?card=room&step=1&cfg=room&tab=Assistent'),
     ('wizard.html', 'wiz-room-3-herkunft', '?card=room&step=2&cfg=room&tab=Assistent'),
@@ -127,11 +127,12 @@ JOBS.append(('flow-homecolor.html', 'farbe-quelle-pv', '?pv=1300&grid=100&bat=0&
 JOBS.append(('flow-homecolor.html', 'farbe-quelle-netz', '?pv=0&grid=900&bat=0&style=3d'))
 JOBS.append(('stats-budget.html', 'budget-linear', '?goal=8000&cur=480'))
 JOBS.append(('stats-budget.html', 'budget-history', '?goal=8000&cur=480&profile=history'))
+JOBS.append(('flow-grid2.html', 'grid2-flow', '?style=3d&wp=1500'))
 only = sys.argv[1:]
 for page, name, q in JOBS:
     if only and name not in only:
         continue
-    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten', 'farbe-quelle', 'budget')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
+    w, h = (560, 2000) if name.endswith('-handy') else (1100, 1400) if name in ('gruppen-reihe-breit', 'watt-only') else (560, 1500) if name in ('sammel-schmal', 'batterien-zwei-schmal') else (1100, 1400) if name.startswith(('sammel', 'flow-3d', 'kosten', 'farbe-quelle', 'budget', 'grid2')) else (1100, 3200) if page.startswith('room') else ((1100, 1400) if (page.startswith('theme') or name.startswith('theme') or name.startswith('batterie') or name in ('flow', 'devices', 'stats', 'stats-preisfehler', 'flow-watt', 'rest-an', 'rest-aus', 'rest-ab-10', 'pv2-bkw', 'pv2-bkw-verbraucher', 'text-normal', 'text-gross', 'text-sehr-gross')) else (560, 1100))
     p = shot(page, name, w, h, 1.5 if w < 1000 else 1, q)
     trim(p, pad=6)
     if name in ('budget-linear', 'budget-history'):  # nur die Kachel Jahresbudget

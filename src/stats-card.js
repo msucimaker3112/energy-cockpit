@@ -214,6 +214,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
+      // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
+      this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
+      this._c._g2n = typeof c.grid2_name === 'string' && c.grid2_name.trim() ? c.grid2_name.trim() : T('st.g2name');
       // budget_kwh (optional): Jahresziel für den Netzbezug in kWh (Zahl oder Sensor). budget_profile: linear (Standard) oder history (Soll folgt dem Verlauf des Vorjahres)
       this._c._bud = typeof c.budget_kwh === 'number' ? c.budget_kwh : typeof c.budget_kwh === 'string' && c.budget_kwh.trim() ? c.budget_kwh.trim() : null;
       this._c._budHist = c.budget_profile === 'history';
@@ -467,12 +470,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const now = new Date(), y = now.getFullYear(), CUR = cur();
       const months = Array.from({ length: now.getMonth() + 1 }, (x, i) => M.imp[key(y, i)]);
       if (months.every((v) => v === undefined)) { el.style.display = 'none'; return; }
-      const ist = months.reduce((a, v) => a + (v || 0), 0);
+      const g2m = (M.g2 || {}), ist = months.reduce((a, v) => a + (v || 0), 0) + Array.from({ length: now.getMonth() + 1 }, (x, i) => g2m[key(y, i)] || 0).reduce((a, v) => a + v, 0);
       // Anteil des Jahres, der bis jetzt vergangen ist: gleichmäßig oder nach dem Verlauf des Vorjahres
       const y0 = new Date(y, 0, 1).getTime(), lin = (now.getTime() - y0) / (new Date(y + 1, 0, 1).getTime() - y0);
       let share = lin, mode = 'lin';
       if (c._budHist) {
-        const prev = Array.from({ length: 12 }, (x, i) => M.imp[key(y - 1, i)]), tot = prev.reduce((a, v) => a + (v || 0), 0);
+        const prev = Array.from({ length: 12 }, (x, i) => (M.imp[key(y - 1, i)] === undefined ? undefined : M.imp[key(y - 1, i)] + ((M.g2 || {})[key(y - 1, i)] || 0))), tot = prev.reduce((a, v) => a + (v || 0), 0);
         if (prev.every((v) => typeof v === 'number') && tot > 0) {
           const m = now.getMonth(), m0 = new Date(y, m, 1).getTime(), mf = (now.getTime() - m0) / (new Date(y, m + 1, 1).getTime() - m0);
           share = (prev.slice(0, m).reduce((a, v) => a + v, 0) + prev[m] * mf) / tot; mode = 'hist';
@@ -541,9 +544,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._loading = true;
       try {
         const now = new Date();
-        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c._hist].concat(c._chg, c._dis).filter(Boolean);
+        const ids = [c.pv_total, c.grid_import_total, c.grid_export_total, c._hist, c._g2].concat(c._chg, c._dis).filter(Boolean);
         const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()), recIds = [...new Set([c.pv_today, c.pv_total].filter(Boolean))];
-        const totIds = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
+        const totIds = [c.pv_total, c.grid_import_total, c.grid_export_total, c._g2].concat(c._chg, c._dis).filter(Boolean);
         const [mon, day, hr, tdy] = await Promise.all([
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(c._lt ? 2000 : now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: recIds, types: ['change'], ...WD.statUnits(c) }),
@@ -576,7 +579,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           return out;
         };
         const sumM = (list) => list.reduce((acc, id) => { const m = byMonth(id); Object.keys(m).forEach((k) => { acc[k] = (acc[k] || 0) + m[k]; }); return acc; }, {});
-        this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: sumM(c._chg), dis: sumM(c._dis) };
+        this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: sumM(c._chg), dis: sumM(c._dis), g2: c._g2 ? byMonth(c._g2) : {} };
         // Diagramm-Reihe: pv_history füllt nur die Balken und "PV gesamt". Jeder Monat hat genau eine Quelle, Geldwerte und Autarkie bleiben bei pv_total
         this._m.pvC = this._m.pv; this._m.hist = {};
         if (c._hist) {
@@ -715,6 +718,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         pv: one('pv', [c.pv_today], [c.pv_total]), imp: one('imp', [c.import_today], [c.grid_import_total]), exp: one('exp', [c.export_today], [c.grid_export_total]),
         chg: one('chg', c._chgD, c._chg) || 0, dis: one('dis', c._disD, c._dis) || 0, label: T('st.today'),
       };
+      v.g2 = c._g2 ? this._tot(c._g2) || 0 : 0;
       if (v.pv !== null && v.exp !== null && v.exp > v.pv + v.dis + 0.5 && !hints.some((x) => x.includes(T('st.n.exp')))) hints.push(T('st.d.exp', { e: fKwh(v.exp), p: fKwh(v.pv) }));
       this._dHints = hints;
       return v;
@@ -730,11 +734,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const lks = this._complete().filter((k) => this._period === 'all' || k.startsWith(yr + '-'));
         if (!lks.length) return null;
         const lsum = (o) => lks.reduce((a, k) => a + (o[k] || 0), 0);
-        return { pv: lsum(M.pv), imp: lsum(M.imp), exp: lsum(M.exp), chg: lsum(M.chg), dis: lsum(M.dis), label: this._period === 'all' ? T('st.all') : String(yr) };
+        return { pv: lsum(M.pv), imp: lsum(M.imp), exp: lsum(M.exp), chg: lsum(M.chg), dis: lsum(M.dis), g2: lsum(M.g2 || {}), label: this._period === 'all' ? T('st.all') : String(yr) };
       }
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
       const sum = (o) => ks.reduce((a, k) => a + (o[k] || 0), 0);
-      return { pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
+      return { pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), g2: sum(M.g2 || {}), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
     }
 
     _render() {
@@ -748,16 +752,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const p = this._periodVals();
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
         const self = Math.max(0, p.pv - p.exp);
-        const cons = c._ac ? p.pv + p.imp - p.exp : p.pv + p.imp - p.exp - p.chg + p.dis;
+        // grid2: Bezug des zweiten Zählers zählt zum Netzbezug und zum Verbrauch, zu seinem eigenen Preis
+        const g2 = p.g2 || 0, price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, price), impT = p.imp + g2, costT = p.imp * price + g2 * price2;
+        const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         this._count('pvsav', price > 0 ? self * price : null, self * price < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
-        this._count('cost', price > 0 ? p.imp * price : null, p.imp * price < 100 ? 2 : 0);
-        this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - p.imp / cons)) * 100 : null, this._dec.q || 0);
+        this._count('cost', price > 0 ? costT : null, costT < 100 ? 2 : 0);
+        this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         this._f('pvsavSub', T('st.self', { kwh: this._fk(self) }));
         this._f('feedSub', T('st.fed', { kwh: this._fk(p.exp) }));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', T('st.self', { kwh: this._fk(self) }));
-        this._f('costSub', T('st.drawn', { kwh: this._fk(p.imp) }));
+        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : ''));
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—', cons: this._fk(cons) }));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)

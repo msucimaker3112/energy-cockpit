@@ -44,6 +44,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
 | `home_color` | `standard` (Standard), `source` | `source`: Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an (PV gelb, Speicher blau, Netz rot). Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt |
+| `grid2` | Objekt | Zweiter Netzzähler mit eigenem Tarif, der nur Strom bezieht, zum Beispiel eine Wärmepumpe. Siehe [Zweiter Netzzähler](#zweiter-netzzähler-grid2) |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` | Vergrößert die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern |
@@ -349,6 +350,8 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
+# grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
+# grid2_price_ct: 25.45                     # eigener Preis in Cent, oder grid2_price (Sensor/Helfer); grid2_name: Wärmepumpe
 # budget_kwh: 8000                         # Jahresziel für den Netzbezug in kWh (Zahl oder Sensor), siehe unten
 # budget_profile: history                   # Soll gleichmäßig (linear, Standard) oder nach dem Verlauf des Vorjahres
 # pv_lifetime: sensor.pv_zaehler_dauerhaft  # nur nötig, wenn pv_total täglich auf 0 geht, siehe unten
@@ -366,6 +369,18 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
 **`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+### Zweiter Netzzähler in der Statistik: `grid2_total`
+
+Mit `grid2_total` (kWh-Zähler mit Langzeitstatistik) zählt die Statistik den Bezug des zweiten Zählers dazu. Er geht in die Stromkosten ein, zu seinem eigenen Preis (`grid2_price` als Sensor oder Helfer, oder `grid2_price_ct` fest in Cent). Ohne eigenen Preis gilt der normale Strompreis. Unter „Stromkosten Netz“ steht dann, wie viel davon auf den zweiten Zähler entfällt, mit dem Namen aus `grid2_name`. Auch „Autarkie“ und das Jahresbudget rechnen den zweiten Zähler als Netzbezug.
+
+```yaml
+grid2_total: sensor.waermepumpe_energie_summe
+grid2_name: Wärmepumpe
+grid2_price_ct: 25.45
+```
+
+Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht. Im Reiter „Woche“ (Kosten je Verbraucher) ist der zweite Zähler noch nicht enthalten.
 
 ### Jahresbudget (optional): `budget_kwh`
 
@@ -574,6 +589,26 @@ roof_color: anthrazit # optional: rot (Standard), anthrazit, schwarz, grau, brau
 | Dach | Handy | Hell |
 |---|---|---|
 | ![Flachdach](img/flow-3d-flach.png) | ![3D am Handy](img/flow-3d-handy.png) | ![3D im hellen Schema](img/flow-3d-hell.png) |
+
+### Zweiter Netzzähler: `grid2`
+
+Manche Haushalte haben einen zweiten Zähler mit eigenem Tarif, zum Beispiel für die Wärmepumpe. Er hängt nicht am Hauptzähler und kennt nur Bezug. Mit `grid2` zeigt der Energiefluss ihn als eigene Kachel bei den Verbrauchern, mit eigener Linie zum Haus und den Kosten pro Stunde zu seinem Preis.
+
+```yaml
+grid2:
+  name: Wärmepumpe
+  entity: sensor.waermepumpe_leistung_summe    # Leistung in Watt, bei drei Phasen die Summe
+  price: input_number.preis_waermepumpe        # Preis pro kWh aus einem Sensor oder Helfer ...
+  # price_ct: 25.45                            # ... oder fest in Cent pro kWh
+```
+
+![Energiefluss mit zweitem Netzzähler](img/grid2-flow.png)
+
+- **Hausverbrauch:** Der zweite Zähler steckt nicht im Hauptzähler. Deshalb zählt die Karte ihn zum Hausverbrauch dazu (Haus plus Wärmepumpe) und im Ring zum Netz. Die Netz-Kachel zeigt weiter nur den Hauptzähler.
+- **Preis:** `price` (Sensor oder Helfer, Euro pro kWh) hat Vorrang vor `price_ct`. Ohne Preis zeigt die Kachel keine Kosten pro Stunde.
+- **Mehrere Phasen:** `entity` ist ein einzelner Sensor. Bei einem dreiphasigen Zähler legst du dir in Home Assistant einen Summen-Sensor an (Helfer „Min/Max“ mit Typ „Summe“). Das Saldieren von Bezug und Einspeisung auf verschiedenen Phasen ist bei einem reinen Verbraucher wie einer Wärmepumpe nicht nötig.
+- **Statistik:** Dort gibt es dazu `grid2_total` (kWh-Zähler), `grid2_name`, `grid2_price` und `grid2_price_ct`, siehe Statistik-Karte unten.
+- Die Kachel steht in der Reihe der Verbraucher, nicht neben dem Netz. Ein Eintrag unter `consumers` ist dafür nicht nötig.
 
 ### Farbe der Zahl beim Haus: `home_color: source`
 

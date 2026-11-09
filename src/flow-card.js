@@ -336,6 +336,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
     this._s3d = this._c.style === '3d';
     this._c.consumers = arr(this._c.consumers).filter(used);
+    // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
+    // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
+    const g2 = this._c.grid2;
+    this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
+    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || T('flow.grid2'), icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
       .filter((g) => g.name || g.items.length);
@@ -1180,7 +1185,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0) + bmDis);
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
-    const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
+    // grid2: Bezug des zweiten Zählers. Er steckt nicht im Hauptzähler: Hausverbrauch und Netzanteil im Ring werden um ihn größer
+    const g2w = c.grid2 ? Math.max(0, watt(h, c.grid2.entity) || 0) : 0;
+    home += g2w;
+    const gImpM = Math.max(0, grid || 0), gImp = gImpM + g2w, gExp = Math.max(0, -(grid || 0));
     // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
     const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), bmDis), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
     const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
@@ -1310,10 +1318,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     if (this._s3d) {
-      this._routes3d({ bats, gImp, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
+      this._routes3d({ bats, gImp: gImpM, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
       this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
     }
-    this._banner({ pv, grid, bat, soc, home, gImp, gExp });
+    this._banner({ pv, grid, bat, soc, home, gImp: gImpM, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
     // home_color: source (optional): Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil. Erst ab 5 Punkten Vorsprung wechselt die Farbe
@@ -1346,10 +1354,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (!el) return;
       const secSt = x.secondary && h.states[x.secondary];
       const dec = x.secondary_decimals === undefined ? 1 : x.secondary_decimals;
-      const secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
+      let secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
         ? `${nf(parseFloat(secSt.state) || 0, dec)} ${secSt.attributes.unit_of_measurement || ''}`.trim() : '';
       if (x.entity) {
         const p = this._cw(x), on = (p || 0) > onW(x);
+        // grid2: Kosten pro Stunde mit dem eigenen Preis
+        if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
