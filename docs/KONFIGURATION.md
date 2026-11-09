@@ -347,6 +347,7 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # earned_before: input_number.pv_vorher     # ... oder aus einem Sensor oder Helfer
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
+# start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
 # pv_lifetime: sensor.pv_zaehler_dauerhaft  # nur nötig, wenn pv_total täglich auf 0 geht, siehe unten
 # decimals: 2                               # feste Nachkommastellen bei kWh, siehe Darstellung
 ```
@@ -360,6 +361,10 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 **`pv_lifetime` (optional):** Geht dein PV-Zähler täglich auf 0 und gibt es keinen durchlaufenden, bleibt er bei `pv_total` (Verlauf, Monatsbalken, Autarkie funktionieren damit). Amortisation und "PV gesamt" brauchen aber den ganzen Ertrag. Dafür trägst du bei `pv_lifetime` einen Zähler ohne Zurücksetzen ein, zum Beispiel einen Helfer "Verbrauchszähler" ohne Zyklus, der deinen Tageszähler aufsummiert. Ohne Eintrag gilt `pv_total` wie bisher.
 
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
+
+**`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+**Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel „Amortisation“ aus, die Grundlast nimmt dann die ganze Breite.
 
 ### Kosten je Verbraucher (optional)
 

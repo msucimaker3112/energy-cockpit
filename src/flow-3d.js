@@ -25,7 +25,8 @@ function stack(socs,p,pre,large,label){
   // Füße
   [[8,D-8],[W-8,D-8],[W-8,8]].forEach((f)=>{body+=poly([[f[0]-5,f[1]+4,0],[f[0]+5,f[1]+4,0],[f[0]+5,f[1]+4,BASE],[f[0]-5,f[1]+4,BASE]],'fill:var(--slot)');});
 
-  socs.forEach((soc,k)=>{
+  // Von unten nach oben zeichnen; der erste Speicher steht oben, wie in der Zeile "Ladestand" (4 % / 22 %)
+  socs.slice().reverse().forEach((soc,k)=>{
     const z0=BASE+k*(H+GAP),z1=z0+H,wz0=z0+(n>=3?7:9),wz1=z1-(n>=3?7:9),wH=wz1-wz0;
     const lvl=soc>0?Math.max(1.5,wH*soc/100):0,top=wz0+lvl,col=soc<20?PAL.imp:soc<40?PAL.pv:accent;
     const x0=MX,x1=W-MX,yB=D-REV;

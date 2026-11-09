@@ -50,6 +50,7 @@ async function run(){
   ok('Strings: je String ein beschriftetes Modul',/400 W/.test(q(e,'[data-o="pv"] svg').textContent)&&/160 W/.test(q(e,'[data-o="pv"] svg').textContent),q(e,'[data-o="pv"] svg').textContent);
   e=mount(cases.stapel,hassFor());await wait(600);
   ok('gemeinsamer Sensor: Turm mit beiden Ladeständen',/4 %/.test(q(e,'[data-o="bat"] svg').textContent)&&/22 %/.test(q(e,'[data-o="bat"] svg').textContent),q(e,'[data-o="bat"] svg').textContent);
+  {const tx=qa(e,'[data-o="bat"] svg text'),y=(re)=>{const t=tx.find((n)=>re.test(n.textContent));return t?t.getBoundingClientRect().top:null;},y1=y(/^4 %$/),y2=y(/^22 %$/);ok('Turm: erster Akku (4 %) steht oben, wie in der Zeile Ladestand',y1!==null&&y2!==null&&y1<y2,y1+' < '+y2);}
   ok('gemeinsamer Sensor: zweite Kachel ausgeblendet',q(e,'[data-k="bat2"]').style.display==='none');
   ok('gemeinsamer Sensor: Leistung einmal',q(e,'[data-k="bat"] .num').textContent==='96',q(e,'[data-k="bat"] .num').textContent);
   ok('gemeinsamer Sensor: Name und Ladestände in der Kachel',q(e,'[data-k="bat"] .lbl').textContent==='Nexa · Noah'&&q(e,'[data-k="bat"] .soc-txt').textContent==='4 % / 22 %',q(e,'[data-k="bat"] .soc-txt').textContent);

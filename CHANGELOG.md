@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.22.0
+- **Energiefluss, 3D-Ansicht, Speicher-Turm:** Bei zwei oder mehr gestapelten Akkus mit gemeinsamem Sensor stand der erste Akku unten und der zweite oben, in der Zeile "Ladestand" daneben aber "erster / zweiter". Jetzt steht der erste Akku oben, die Grafik passt zum Text. Gemeldet in [#33](https://github.com/msucimaker3112/energy-cockpit/issues/33).
+- **Statistik, Reiter beim Öffnen (optional, `start_period`):** Mit `day`, `week`, `month` oder `year` bestimmst du, welchen Reiter die Karte beim Öffnen zeigt. Ohne Angabe bleibt es der Monat. Auch im Assistenten einstellbar. Wunsch aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).
+- **Statistik, Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel "Amortisation" aus, die Grundlast nimmt die ganze Breite. Bisher stand dort nur ein Strich. Wunsch aus [#31](https://github.com/msucimaker3112/energy-cockpit/issues/31).
+
 ## 0.21.0
 - **Statistik, "Heute" zeigte den Monat:** Lieferte einer der Tagessensoren (PV, Bezug, Einspeisung heute) keinen Wert, blieben unter "Heute" die Zahlen des vorher gezeigten Zeitraums stehen, meist die des Monats. Jetzt steht dort ein Strich, und ein gelber Hinweis nennt den Sensor. Fehler aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
 - **Statistik, "Heute" aus den Gesamtzählern:** Fehlt ein Tagessensor oder liefert er gerade nichts, rechnet die Karte den Tageswert aus dem Gesamtzähler seit Mitternacht, wie Monat und Jahr. Die Tagessensoren sind damit optional. Mit funktionierenden Tagessensoren ändert sich nichts.

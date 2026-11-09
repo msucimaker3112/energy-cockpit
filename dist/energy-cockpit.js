@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.21.0 - MIT License */
+/*! energy-cockpit v0.22.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -630,7 +630,8 @@ function stack(socs,p,pre,large,label){
   // Füße
   [[8,D-8],[W-8,D-8],[W-8,8]].forEach((f)=>{body+=poly([[f[0]-5,f[1]+4,0],[f[0]+5,f[1]+4,0],[f[0]+5,f[1]+4,BASE],[f[0]-5,f[1]+4,BASE]],'fill:var(--slot)');});
 
-  socs.forEach((soc,k)=>{
+  // Von unten nach oben zeichnen; der erste Speicher steht oben, wie in der Zeile "Ladestand" (4 % / 22 %)
+  socs.slice().reverse().forEach((soc,k)=>{
     const z0=BASE+k*(H+GAP),z1=z0+H,wz0=z0+(n>=3?7:9),wz1=z1-(n>=3?7:9),wH=wz1-wz0;
     const lvl=soc>0?Math.max(1.5,wH*soc/100):0,top=wz0+lvl,col=soc<20?PAL.imp:soc<40?PAL.pv:accent;
     const x0=MX,x1=W-MX,yB=D-REV;
@@ -4303,6 +4304,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .m.selfc .num{color:rgb(var(--sav))}
 .ring2{display:flex;margin-top:8px}
 .ring2 div{flex:1}
+.duo.one{grid-template-columns:1fr}
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
 .amo .big{display:flex;align-items:baseline;margin-top:10px}
 .amo .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
@@ -4449,6 +4451,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
+      // start_period (optional): Reiter beim Öffnen. Standard ist der Monat
+      this._c._start = ['day', 'week', 'month', 'year'].includes(c.start_period) ? c.start_period : '';
+      if (this._c._start && this._startSet !== this._c._start) { this._startSet = this._c._start; this._period = this._c._start === 'week' && !this._c._cc.length ? 'month' : this._c._start; }
       this._c._hist = this._c._lt && typeof c.pv_history === 'string' ? c.pv_history.trim().toLowerCase() : '';
       this._c._histUntil = /^\d{4}-\d{2}/.test(String(c.pv_history_until || '')) ? String(c.pv_history_until).slice(0, 7) : '';
       if (!this._c._lt) { this._yr = null; if (this._period === 'all') this._period = 'month'; }
@@ -4940,6 +4945,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (hn) { hn.style.display = hl.length ? '' : 'none'; this._f('dHint', hl.map((x) => `<span><ha-icon icon="mdi:alert-outline"></ha-icon>${x}</span>`).join('')); }
       // Amortisation (Lebensdauer-Zähler, heutige Preise)
       const inv = val(h, c.investment, typeof c.investment_eur === 'number' ? c.investment_eur : 0);
+      // Ohne Anschaffungskosten gibt es keine Amortisation: Kachel ausblenden, Grundlast nimmt die ganze Breite
+      const noInv = !c.investment && !(c.investment_eur > 0);
+      const amoP = this._$('.amo'), duo = this._$('.duo');
+      if (amoP) amoP.style.display = noInv ? 'none' : '';
+      if (duo) duo.classList.toggle('one', noInv);
       // pv_lifetime (optional, #28): durchlaufender Zähler für Amortisation und "PV gesamt", wenn pv_total täglich auf 0 geht
       const pvT = WD.kwh(h, c.pv_lifetime || c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
@@ -5058,7 +5068,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', pv_lifetime: 'PV-Zähler ohne Zurücksetzen für Amortisation (optional, wenn der PV-Zähler täglich auf 0 geht)', decimals: 'Nachkommastellen bei kWh (leer = automatisch)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
-    feed_in_card: 'Kachel Einspeiseerlös', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
+    feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
     cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
@@ -5073,6 +5083,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
       ent('grid_price', ['sensor', 'input_number']), { name: 'grid_price_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
       ent('feed_in', ['sensor', 'input_number']), { name: 'feed_in_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      { name: 'start_period', selector: { select: { mode: 'dropdown', options: [{ value: 'month', label: 'Monat (Standard)' }, { value: 'day', label: 'Heute' }, { value: 'week', label: 'Woche (mit Verbrauchern)' }, { value: 'year', label: 'Jahr' }] } } },
       { name: 'feed_in_card', selector: { select: { mode: 'dropdown', options: [{ value: 'standard', label: 'Einspeiseerlös (Standard)' }, { value: 'pv_self_consumption', label: 'PV-Eigenverbrauch stattdessen' }, { value: 'hidden', label: 'Ausblenden' }] } } },
       { name: 'investment_eur', selector: { number: { min: 0, max: 1000000, step: 50, mode: 'box' } } },
       { name: 'decimals', selector: { number: { min: 0, max: 3, step: 1, mode: 'box' } } },
