@@ -135,6 +135,8 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Speicher hinter dem Zähler** (zum Beispiel Zendure an der Steckdose) | Ladung zählt als Verbrauch, Abgabe als Quelle | `behind_meter: true` |
 | **Hybrid-Wechselrichter**, dessen Ertrag nur die Abgabe zählt | "PV heute", "Haus heute" und "Autarkie heute" stimmen, in der Statistik auch Autarkie und Aufteilung | `pv.daily_ac`, `pv_ac` |
 | **Dynamischer Tarif oder wechselnde Preise** | Fester Preis, Sensor oder Preisverlauf | `grid_price`, `grid_price_ct`, `grid_price_history` |
+| **Zweiter Netzzähler mit eigenem Tarif** (zum Beispiel Wärmepumpe) | Eigene Kachel mit Linie zum Haus und Kosten pro Stunde, der Bezug zählt zu Hausverbrauch, Ring und Statistik, mit eigenem Preis | `grid2`, in der Statistik `grid2_total` |
+| **Jahresziel für den Netzbezug** | Kachel mit Fortschritt, Soll bis heute, Hochrechnung und Abweichung in kWh und Euro, das Soll gleichmäßig oder nach dem Vorjahr | `budget_kwh`, `budget_profile` |
 | **Zwei Zähler in Reihe** | Rechnet die Differenz, auch mit eigenem Tarif | `minus`, `energy_minus`, siehe [Anleitung](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/ZWEI-ZAEHLER.md) |
 | **Daten aus der Zeit vor Home Assistant** | Langzeit-Ansicht mit importierter PV-Historie, bereits erwirtschaftete Beträge | `long_term`, `pv_history`, `earned_before_eur` |
 | **Wandtablet** | Die Karte passt sich der Bildschirmhöhe an | Standard, aus mit `fit_screen: false` |
@@ -174,7 +176,9 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Feste Nachkommastellen,** zum Beispiel immer `10,80 kWh` | `decimals: 2` |
 | **Geräte in Gruppen nach Leistung,** die aktiven oben | `consumer_groups_sort: leistung` |
 | **Dachfarbe** in der 3D-Ansicht | `roof_color: anthrazit` |
-| **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen | `hide_rest: true`, `rest_min: 10` |
+| **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen, bei einzelnen Verbrauchern ohne Gruppen mit `hide_rest: false` einschalten | `hide_rest`, `rest_min: 10` |
+| **Farbe der Zahl beim Haus** nach der größten Quelle (PV gelb, Speicher blau, Netz rot) | `home_color: source` |
+| **Statistik** startet mit „Heute“, der Woche oder dem Jahr | `start_period: day` |
 | **Aktiv ab:** ab welcher Leistung Rahmen und Linie erscheinen | `on_w` |
 | **Batterie:** Entladegrenze und Maximalladung, Ladestand im nutzbaren Bereich, Temperatur | `reserve_soc`, `max_soc`, `soc_display: nutzbar`, `temp` |
 | **PV-Prognose** für morgen und übermorgen, zum Beispiel von Forecast.Solar oder Solcast | `pv.forecast_tomorrow`, `pv.forecast_day_after` |

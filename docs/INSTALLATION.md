@@ -57,12 +57,12 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 ![Assistent, Schritt Solar](img/wiz-flow-1-solar.png)
 
-### Energiefluss (8 Schritte)
+### Energiefluss (9 Schritte)
 
 | Schritt | Aufgabe |
 |---|---|
 | 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Zählt der Tagesertrag ohne Akku-Ladung, gibt es dafür einen eigenen Schalter. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
-| 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. |
+| 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. Unten gibt es optional einen **zweiten Netzzähler** (zum Beispiel eine Wärmepumpe mit eigenem Zähler und Tarif) mit Name und Preis. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
 | 4. Weitere Speicher | Optional. Hast du mehr als einen Speicher, trägst du hier den zweiten und dritten ein, jeder bekommt eine eigene Kachel. |
 | 5. Haus | Optional. Ohne Angabe wird der Hausverbrauch berechnet. |
@@ -91,7 +91,21 @@ Der **Assistent** legt Räume und Geräte aus den Bereichen von Home Assistant a
 
 ### Statistik
 
-Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batterie, Tageswerte, Preise und Anlagenkosten sind optional. Die **Anschaffungskosten** der PV-Anlage trägst du im Schritt *Preise* als Betrag in Euro ein (zum Beispiel `18000`). Daraus berechnet die Karte die Amortisation.
+Die drei Gesamtzähler (PV-Ertrag, Netzbezug, Einspeisung) sind Pflicht, Batterie, Tageswerte, Preise und Anlagenkosten sind optional. Die **Anschaffungskosten** der PV-Anlage trägst du im Schritt *Preise* als Betrag in Euro ein (zum Beispiel `18000`). Daraus berechnet die Karte die Amortisation. Ohne Anschaffungskosten blendet die Karte die Kachel „Amortisation“ aus.
+
+Die weiteren Schritte sind optional:
+
+| Schritt | Aufgabe |
+|---|---|
+| 1. Zähler | PV-Ertrag, Netzbezug und Einspeisung als Gesamtzähler in kWh. |
+| 2. Zähler 2 | Ein zweiter Netzzähler mit eigenem Tarif, zum Beispiel für die Wärmepumpe, mit Name und Preis. Sein Bezug zählt zu den Stromkosten, zur Autarkie und zum Jahresbudget. |
+| 3. Batterie | Gesamtzähler für Laden und Entladen, Kapazität und Temperatur. |
+| 4. Heute | Tageswerte für den Reiter „Heute“. |
+| 5. Preise | Strompreis, Einspeisevergütung, Anschaffungskosten und optional das **Jahresziel für den Netzbezug** (Jahresbudget) mit Soll gleichmäßig oder nach dem Vorjahr. |
+| 6. Kosten | Kosten je Verbraucher, zum Beispiel E-Auto oder Wärmepumpe (bis zu vier Verbraucher). |
+| 7. Langzeit | Alle Jahre aus der Langzeitstatistik. |
+| 8. Aussehen | Farbschema. Den Reiter, mit dem die Karte startet (`start_period`), stellst du unter *Alle Felder* ein. |
+| 9. Fertig | Zusammenfassung. |
 
 ![Statistik: Gesamtzähler](img/wiz-stats-1-zaehler.png)
 
