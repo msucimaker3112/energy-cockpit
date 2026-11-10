@@ -22,6 +22,27 @@
       'ban.running': '{name} läuft', 'ban.fromgrid': '{w} aus dem Netz', 'ban.cost': 'kostet gerade <b>{cost} {cur}/h</b>',
       'ban.batempty': 'Akku leer', 'ban.batlimit': 'Akku am Limit',
     },
+   fr: {
+  'flow.title': 'Flux énergétique', 'flow.pv': 'Panneaux solaires', 'flow.pv2': 'PV 2', 'flow.grid2': 'Deuxième compteur', 'flow.grid': 'Réseau', 'flow.battery': 'Batterie', 'flow.home': 'Consommation maison',
+  'flow.cons_total': 'Consommateurs', 'flow.rest': 'Non mesuré', 'flow.restpct': '{n} % mesuré', 'flow.soc': 'Charge', 'flow.temp': 'Température',
+  'flow.next': 'Suite →', 'flow.error': 'Configurer au moins pv ou grid',
+  'pill.aut': 'Autosuffisance', 'pill.self': 'Autoconsommation', 'pv.use.home': 'Maison', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Réseau', 'pv.use.store': 'Stockage',
+  'stat.pv': 'PV aujourd\'hui', 'stat.fc1': 'PV demain', 'stat.fc2': 'PV après-demain', 'stat.imp': 'Soutirage aujourd\'hui', 'stat.exp': 'Injection', 'stat.bat': 'Batterie ± aujourd\'hui', 'stat.aut': 'Autosuffisance aujourd\'hui',
+  'mix.pv': 'Solaire', 'mix.bat': 'Batterie', 'mix.grid': 'Réseau',
+  'tag.offline': 'Hors ligne', 'tag.producing': 'Production', 'tag.idle': 'Inactif', 'tag.balanced': 'Équilibré',
+  'tag.import': 'Soutirage', 'tag.export': 'Injection', 'tag.standby': 'Veille', 'tag.charging': 'Charge', 'tag.discharging': 'Décharge', 'tag.passthrough': 'Transit',
+  'bat.io': 'Entrée <b>{in}</b> · Sortie <b>{out}</b>', 'bat.split': ' (Maison <b>{home}</b> · Réseau <b>{grid}</b>)', 'bat.shared': 'Capteur partagé avec <b>{name}</b>',
+  'forecast': 'Prévision', 'forecast.day': 'Prévision aujourd\'hui', 'offline': 'hors ligne',
+  'ka.on': '● Actif', 'ka.wait': '☝ Appuyer une fois – l\'écran reste allumé',
+  'waste.today': 'Aujourd\'hui', 'waste.tomorrow': 'Demain',
+  'bat.usable_pct': 'utilisable', 'bat.usable_slow': '<b>{kwh} kWh</b> utilisable · charge lente', 'bat.full_at': 'Plein à <b>{time}</b> · dans {dur}',
+  'bat.last_24': 'Suffisant <b>plus de 24 h</b> · {kwh} kWh utilisable', 'bat.last_until': 'Suffisant jusqu\'à <b>{time}</b> · encore {dur}',
+  'bat.full': 'Plein · <b>{kwh} kWh</b> utilisable', 'bat.usable': '<b>{kwh} kWh</b> utilisable (jusqu\'à {res} %)',
+  'dur.2days': '> 2 jours',
+  'ban.surplus': '{w} surplus', 'ban.batfull': 'Batterie pleine – ', 'ban.tonet': 'Courant injecté au réseau · l\'autoconsommation économise <b>{gain} {cur}/h</b>',
+  'ban.running': '{name} en marche', 'ban.fromgrid': '{w} depuis le réseau', 'ban.cost': 'coûte actuellement <b>{cost} {cur}/h</b>',
+  'ban.batempty': 'Batterie vide', 'ban.batlimit': 'Batterie à la limite',
+    }, 
   };
   // T('key', { n: 5 }) ersetzt {n}; fehlende Schlüssel fallen auf Englisch, dann auf den Schlüssel zurück
   WD.T = (k, vars) => {
