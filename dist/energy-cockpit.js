@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.25.2 - MIT License */
+/*! energy-cockpit v0.25.3 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -4288,7 +4288,7 @@ WD.addStrings({
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
   'st.n.pv': 'PV heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Akku geladen heute', 'st.n.dis': 'Akku entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
@@ -4774,15 +4774,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (months.every((v) => v === undefined)) { el.style.display = 'none'; return; }
       const g2m = (M.g2 || {}), ist = months.reduce((a, v) => a + (v || 0), 0) + Array.from({ length: now.getMonth() + 1 }, (x, i) => g2m[key(y, i)] || 0).reduce((a, v) => a + v, 0);
       // Anteil des Jahres, der bis jetzt vergangen ist: gleichmäßig oder nach dem Verlauf des Vorjahres
-      const y0 = new Date(y, 0, 1).getTime(), lin = (now.getTime() - y0) / (new Date(y + 1, 0, 1).getTime() - y0);
-      let share = lin, mode = 'lin';
+      const y0 = new Date(y, 0, 1).getTime(), yl = new Date(y + 1, 0, 1).getTime() - y0;
+      let cum = (t) => (t - y0) / yl, mode = 'lin';
       if (c._budHist) {
         const prev = Array.from({ length: 12 }, (x, i) => (M.imp[key(y - 1, i)] === undefined ? undefined : M.imp[key(y - 1, i)] + ((M.g2 || {})[key(y - 1, i)] || 0))), tot = prev.reduce((a, v) => a + (v || 0), 0);
         if (prev.every((v) => typeof v === 'number') && tot > 0) {
-          const m = now.getMonth(), m0 = new Date(y, m, 1).getTime(), mf = (now.getTime() - m0) / (new Date(y, m + 1, 1).getTime() - m0);
-          share = (prev.slice(0, m).reduce((a, v) => a + v, 0) + prev[m] * mf) / tot; mode = 'hist';
+          cum = (t) => { const m = new Date(t).getMonth(), m0 = new Date(y, m, 1).getTime(), mf = (t - m0) / (new Date(y, m + 1, 1).getTime() - m0); return (prev.slice(0, m).reduce((a, v) => a + v, 0) + prev[m] * mf) / tot; };
+          mode = 'hist';
         }
       }
+      // Messdaten erst seit später im Jahr (Zähler spät eingerichtet): Soll und Hochrechnung gelten für den erfassten Zeitraum
+      const t0 = this._impStart, late = typeof t0 === 'number' && t0 > y0 + 2 * 864e5 && t0 < now.getTime();
+      const share = cum(now.getTime()) - (late ? cum(t0) : 0);
       const soll = goal * share, abw = ist - soll, fc = share > 0.03 ? ist / share : null, fcAbw = fc === null ? null : fc - goal;
       // Farbe: im Soll grün, bis 10 % darüber gelb, darüber rot
       const cls = (d, ref) => (d <= 0 ? 'ok' : ref > 0 && d / ref <= 0.1 ? 'warn' : 'bad');
@@ -4798,7 +4801,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._f('budFc', fc === null ? '—' : this._fk(fc) + ' kWh');
       this._f('budFcAbw', fcAbw === null ? '—' : `<span class="c-${cls(fcAbw, goal)}">${sgn(fcAbw)} kWh</span>`);
       this._f('budFcAbwE', fcAbw === null ? '' : eur(fcAbw));
-      this._f('budHint', mode === 'hist' ? T('st.bud.hist', { y: y - 1 }) : T('st.bud.lin'));
+      this._f('budHint', (mode === 'hist' ? T('st.bud.hist', { y: y - 1 }) : T('st.bud.lin')) + (late ? ' · ' + T('st.bud.since', { d: new Date(t0).toLocaleDateString(WD.state.loc, { day: 'numeric', month: 'long', year: 'numeric' }) }) : ''));
       requestAnimationFrame(() => {
         const f = this._$('[data-f="budFill"]'), k = this._$('[data-f="budMk"]');
         if (f) f.style.width = Math.min(100, ist / goal * 100) + '%';
@@ -4851,7 +4854,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const totIds = [c.pv_total, c.grid_import_total, c.grid_export_total, c._g2].concat(c._chg, c._dis).filter(Boolean);
         const [mon, day, hr, tdy] = await Promise.all([
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(c._lt ? 2000 : now.getFullYear() - 1, 0, 1).toISOString(), period: 'month', statistic_ids: ids, types: ['change'], ...WD.statUnits(c) }),
-          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: recIds, types: ['change'], ...WD.statUnits(c) }),
+          h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(now.getFullYear(), 0, 1).toISOString(), period: 'day', statistic_ids: [...new Set([...recIds, c.grid_import_total].filter(Boolean))], types: ['change'], ...WD.statUnits(c) }),
           c.home_power ? h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(Date.now() - 8 * 864e5).toISOString(), period: 'hour', statistic_ids: [c.home_power], types: ['mean'], ...WD.statUnits(c) }) : Promise.resolve({}),
           // ab 23 Uhr gestern: die letzte Stunde vor Mitternacht liefert den Zählerstand zum Tagesbeginn
           h.callWS({ type: 'recorder/statistics_during_period', start_time: new Date(d0.getTime() - 36e5).toISOString(), period: 'hour', statistic_ids: totIds, types: ['change', 'state'], ...WD.statUnits(c) }).catch(() => ({})),
@@ -4882,6 +4885,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         };
         const sumM = (list) => list.reduce((acc, id) => { const m = byMonth(id); Object.keys(m).forEach((k) => { acc[k] = (acc[k] || 0) + m[k]; }); return acc; }, {});
         this._m = { pv: byMonth(c.pv_total), imp: byMonth(c.grid_import_total), exp: byMonth(c.grid_export_total), chg: sumM(c._chg), dis: sumM(c._dis), g2: c._g2 ? byMonth(c._g2) : {} };
+        // Beginn der Messdaten des Netzbezugs im laufenden Jahr (Jahresbudget: erst später eingerichtete Zähler)
+        const ir = (day && day[c.grid_import_total]) || [];
+        this._impStart = ir.length ? (typeof ir[0].start === 'number' ? ir[0].start : Date.parse(ir[0].start)) : null;
         // Diagramm-Reihe: pv_history füllt nur die Balken und "PV gesamt". Jeder Monat hat genau eine Quelle, Geldwerte und Autarkie bleiben bei pv_total
         this._m.pvC = this._m.pv; this._m.hist = {};
         if (c._hist) {

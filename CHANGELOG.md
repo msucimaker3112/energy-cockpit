@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.25.3
+- **Statistik, Jahresbudget bei spät beginnenden Messdaten:** Wer seinen Zähler erst im Laufe des Jahres eingerichtet hat, bekam ein Soll für das ganze Jahr bis heute und eine Hochrechnung, die nicht zusammenpassten (bei Messdaten ab Oktober zum Beispiel 247 kWh Netzbezug gegen 2.055 kWh Soll). Jetzt erkennt die Karte, ab wann der Netzbezug aufgezeichnet wird, und rechnet Soll und Hochrechnung für diesen Zeitraum. Unter der Kachel steht "Messdaten erst seit 10. Oktober 2026 … vorläufig". Bei vollständigen Daten ändert sich nichts. Wunsch aus [#37](https://github.com/msucimaker3112/energy-cockpit/issues/37).
+
 ## 0.25.2
 - **Assistent, Prognose heute:** Im Schritt "Solar" ließ sich bei "Prognose" nur ein Sensor in Watt auswählen, obwohl der Hilfetext sagte, eine Tagesprognose in kWh gehe auch (nur im Formular). Jetzt bietet der Assistent beides an: Sensoren mit Leistung in W/kW und Sensoren mit Energie in kWh, zum Beispiel Forecast.Solar "Energie Produktion heute". Überschrift und Hilfetext sind angepasst. Gemeldet in [#36](https://github.com/msucimaker3112/energy-cockpit/issues/36).
 

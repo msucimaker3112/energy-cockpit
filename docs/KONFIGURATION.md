@@ -404,6 +404,7 @@ budget_profile: history   # optional: linear (Standard) oder history
 - **Farbe:** Im Soll grün, bis 10 % darüber gelb, darüber rot.
 - **`budget_profile: linear`** (Standard): Das Soll läuft gleichmäßig übers Jahr, am 1. Juli sind es etwa die Hälfte des Ziels.
 - **`budget_profile: history`:** Das Soll folgt dem Verlauf deines Netzbezugs im letzten vollen Jahr. Wer im Winter viel aus dem Netz bezieht und im Sommer wenig (mit PV-Anlage), bekommt im Winter ein höheres Soll. Dafür braucht die Karte die Monatswerte aller 12 Monate des Vorjahres. Fehlen sie, rechnet sie gleichmäßig. Welche Rechnung gilt, steht unter der Kachel.
+- **Zähler erst später im Jahr eingerichtet:** Beginnen die Messdaten des Netzbezugs erst nach dem 1. Januar (zum Beispiel am 10. Oktober), rechnen Soll und Hochrechnung nur für den erfassten Zeitraum, und unter der Kachel steht „Messdaten erst seit …“. Die Werte sind dann vorläufig, weil sie auf wenigen Wochen beruhen (im Winter höher als im Jahresmittel). Ab dem nächsten Jahr gilt das ganze Jahr.
 - Grundlage ist `grid_import_total`. Der Wert hinkt wie die anderen Monatswerte bis zu einer Stunde hinterher.
 
 **Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel „Amortisation“ aus, die Grundlast nimmt dann die ganze Breite.
