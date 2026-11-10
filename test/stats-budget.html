@@ -1,0 +1,76 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Jahresbudget Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft budget_kwh und budget_profile. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?goal=8000&profile=history&cur=Monatswert&late=Tage seit Beginn der Messdaten&w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const P=new URLSearchParams(location.search);
+// Netzbezug je Monat: laufendes Jahr bis heute (Monat vor dem aktuellen je 'cur' kWh, der aktuelle halb so viel), Vorjahr: Winter schwer
+let CUR=+(P.get('cur')||500),PREV=[900,800,700,500,300,200,200,200,300,500,700,900];
+let impYear=[],impPrev=[];
+const rows=(arr,year)=>arr.map((v,i)=>v===null?null:({start:new Date(year,i,1).getTime(),change:v})).filter(Boolean);
+function build(){impYear=Array.from({length:M+1},(x,i)=>i<M?CUR:Math.round(CUR/2));}
+function rowsDay(){const out=[];for(let t=dataStart;t<Date.now();t+=864e5)out.push({start:t,change:1});return out;}
+build();
+let prevOn=true,dataStart=null,onlyFrom=0;
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const r={};if(m.period==='day'){if(dataStart&&(m.statistic_ids||[]).includes('sensor.imp'))r['sensor.imp']=rowsDay();return r;}if(m.period!=='month')return r;(m.statistic_ids||[]).forEach(id=>{if(id==='sensor.imp')r[id]=(prevOn?rows(PREV,Y-1):rows(PREV.map((v,i)=>i<6?v:null),Y-1)).concat(rows(impYear.map((v,i)=>i<onlyFrom?null:v),Y));else r[id]=rows(impYear.map(()=>1),Y);});return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price_ct:30};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const num=(t)=>parseFloat(String(t).replace(/[^\d,.\-−+]/g,'').replace(/\./g,'').replace(',','.').replace('−','-'));
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),t=(e,f)=>{const x=q(e,`[data-f="${f}"]`);return x?x.textContent.trim():null;};
+  const y0=new Date(Y,0,1).getTime(),lin=(Date.now()-y0)/(new Date(Y+1,0,1).getTime()-y0),ist=impYear.reduce((a,v)=>a+v,0),goal=8000;
+  let e=mount(base);await wait(1600);
+  ok('ohne Option: keine Budget-Kachel',!q(e,'.bud'));
+  e=mount({...base,budget_kwh:goal});await wait(2500);
+  ok('Kachel sichtbar',!!q(e,'.bud')&&q(e,'.bud').style.display!=='none');
+  ok('Prozent vom Ziel',Math.abs(num(q(e,'[data-t="bud"]').textContent)-Math.round(ist/goal*100))<=1,q(e,'[data-t="bud"]').textContent+' (erwartet '+Math.round(ist/goal*100)+')');
+  ok('Soll bis heute gleichmäßig',Math.abs(num(t(e,'budSoll'))-goal*lin)<=5,t(e,'budSoll')+' (erwartet '+Math.round(goal*lin)+')');
+  ok('Abweichung Ist − Soll',Math.abs(num(t(e,'budAbw'))-(ist-goal*lin))<=5,t(e,'budAbw'));
+  ok('Hochrechnung = Ist durch Jahresanteil',lin<0.03?t(e,'budFc')==='—':Math.abs(num(t(e,'budFc'))-ist/lin)<=ist/lin*0.01+3,t(e,'budFc')+' (erwartet '+Math.round(ist/lin)+')');
+  ok('Hinweis: gleichmäßig',/gleichmäßig/.test(t(e,'budHint')),t(e,'budHint'));
+  ok('Abweichung in Euro',/€/.test(t(e,'budAbwE')),t(e,'budAbwE'));
+  ok('Zielzeile',/8\.000/.test(t(e,'budOf')),t(e,'budOf'));
+  // Farben
+  CUR=10;build();e=mount({...base,budget_kwh:goal});await wait(2500);
+  ok('weit unter Soll: grün',q(e,'.bud').classList.contains('s-ok'),q(e,'.bud').className);
+  CUR=100000;build();e=mount({...base,budget_kwh:goal});await wait(2500);
+  ok('weit über Soll: rot',q(e,'.bud').classList.contains('s-bad'),q(e,'.bud').className);
+  // Verlauf des Vorjahres
+  CUR=500;build();
+  e=mount({...base,budget_kwh:goal,budget_profile:'history'});await wait(2500);
+  const tot=PREV.reduce((a,v)=>a+v,0),mf=(Date.now()-new Date(Y,M,1).getTime())/(new Date(Y,M+1,1).getTime()-new Date(Y,M,1).getTime()),sh=(PREV.slice(0,M).reduce((a,v)=>a+v,0)+PREV[M]*mf)/tot;
+  ok('history: Soll nach dem Vorjahresverlauf',Math.abs(num(t(e,'budSoll'))-goal*sh)<=8,t(e,'budSoll')+' (erwartet '+Math.round(goal*sh)+')');
+  ok('history: Hinweis nennt das Vorjahr',new RegExp(String(Y-1)).test(t(e,'budHint')),t(e,'budHint'));
+  prevOn=false;
+  e=mount({...base,budget_kwh:goal,budget_profile:'history'});await wait(2500);
+  ok('history ohne volles Vorjahr: gleichmäßig',/gleichmäßig/.test(t(e,'budHint'))&&Math.abs(num(t(e,'budSoll'))-goal*lin)<=5,t(e,'budHint'));
+  prevOn=true;
+  // Sensor als Ziel
+  hass.states['sensor.ziel']=S(5000,'kWh');
+  e=mount({...base,budget_kwh:'sensor.ziel'});await wait(2500);
+  ok('Ziel aus einem Sensor',/5\.000/.test(t(e,'budOf')),t(e,'budOf'));
+  // Messdaten erst seit später im Jahr (#37): Soll und Hochrechnung für den erfassten Zeitraum
+  CUR=100;build();dataStart=Date.now()-31*864e5;onlyFrom=new Date(dataStart).getMonth();
+  const istL=impYear.reduce((a,v,i)=>a+(i<onlyFrom?0:v),0),shL=(Date.now()-dataStart)/(new Date(Y+1,0,1).getTime()-y0);
+  e=mount({...base,budget_kwh:goal});await wait(2500);
+  ok('späte Messdaten: Soll nur für den erfassten Zeitraum',Math.abs(num(t(e,'budSoll'))-goal*shL)<=5,t(e,'budSoll')+' (erwartet '+Math.round(goal*shL)+')');
+  ok('späte Messdaten: Hochrechnung aus dem erfassten Zeitraum',Math.abs(num(t(e,'budFc'))-istL/shL)<=istL/shL*0.01+3,t(e,'budFc')+' (erwartet '+Math.round(istL/shL)+')');
+  ok('späte Messdaten: Hinweis nennt den Beginn',/Messdaten erst seit/.test(t(e,'budHint'))&&/vorläufig/.test(t(e,'budHint')),t(e,'budHint'));
+  dataStart=new Date(Y,0,2).getTime();onlyFrom=0;CUR=500;build();
+  e=mount({...base,budget_kwh:goal});await wait(2500);
+  ok('Daten seit Jahresanfang: kein Hinweis auf späten Beginn',!/erst seit/.test(t(e,'budHint')),t(e,'budHint'));
+  dataStart=null;onlyFrom=0;
+  e=mount({...base,budget_kwh:0});await wait(1600);
+  ok('Ziel 0: keine Kachel',!q(e,'.bud'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';build();if(P.get('late')){dataStart=Date.now()-(+P.get('late'))*864e5;onlyFrom=new Date(dataStart).getMonth();}mount({...base,budget_kwh:+(P.get('goal')||8000),budget_profile:P.get('profile')||undefined});}
+</script></body></html>

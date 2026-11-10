@@ -1,0 +1,46 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Farbe der Zahl beim Haus Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft home_color: source. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?pv=W&grid=W&bat=W&color=source|standard&style=3d) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(pv,grid,bat)=>({states:{'sensor.pv':S(pv),'sensor.grid':S(grid),'sensor.bat':S(bat),'sensor.soc':S(60,'%')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10}};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const col=(e)=>e.shadowRoot.querySelector('.core .num').style.color;
+const PV='rgb(255, 197, 61)',BAT='rgb(96, 165, 250)',GRID='rgb(255, 92, 122)';
+async function run(){
+  let e=mount(base,hassFor(1200,100,0));await wait(1500);
+  ok('ohne Option: keine eigene Farbe',col(e)==='',col(e));
+  e=mount({...base,home_color:'standard'},hassFor(1200,100,0));await wait(1500);
+  ok('standard: keine eigene Farbe',col(e)==='',col(e));
+  e=mount({...base,home_color:'source'},hassFor(1200,100,0));await wait(1500);
+  ok('source, PV überwiegt: gelb',col(e)===PV,col(e));
+  e=mount({...base,home_color:'source'},hassFor(0,800,0));await wait(1500);
+  ok('source, Netz überwiegt: rot',col(e)===GRID,col(e));
+  e=mount({...base,home_color:'source'},hassFor(0,100,-700));await wait(1500);
+  ok('source, Speicher entlädt: blau',col(e)===BAT,col(e));
+  e=mount({...base,home_color:'quatsch'},hassFor(1200,100,0));await wait(1500);
+  ok('unbekannter Wert: keine eigene Farbe',col(e)==='',col(e));
+  e=mount({...base,style:'3d',home_color:'source'},hassFor(1200,100,0));await wait(1500);
+  ok('3D: gelb',col(e)===PV,col(e));
+  // Vorsprung: Farbe wechselt erst ab 5 Punkten
+  e=mount({...base,home_color:'source'},hassFor(1200,100,0));await wait(1500);
+  e.hass=hassFor(600,650,0);await wait(1500);
+  ok('knapp hinten (48 % PV, 52 % Netz): bleibt gelb',col(e)===PV,col(e));
+  e.hass=hassFor(400,850,0);await wait(1500);
+  ok('deutlich hinten (32 % PV, 68 % Netz): wechselt auf rot',col(e)===GRID,col(e));
+  e.hass=hassFor(1200,100,0);await wait(1500);
+  ok('PV wieder vorn: wechselt zurück auf gelb',col(e)===PV,col(e));
+  e=mount({...base,home_color:'source'},hassFor(0,0,0));await wait(1500);
+  ok('nichts verbraucht: keine eigene Farbe',col(e)==='',col(e));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{mount({...base,style:P.get('style')||undefined,home_color:P.get('color')||'source'},hassFor(+(P.get('pv')||400),+(P.get('grid')||850),+(P.get('bat')||0)));}
+</script></body></html>

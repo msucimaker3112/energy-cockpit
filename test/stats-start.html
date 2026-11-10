@@ -1,0 +1,46 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Startreiter und Amortisation Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft start_period und das Ausblenden der Amortisation. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?start=day|week|year, &inv=1, &w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const one=(v)=>[{start:new Date(Y,M,1).getTime(),change:v}];
+// Monat: PV 100 kWh, davon 25 eingespeist => 75 selbst genutzt, 75 %
+const month={'sensor.pv':one(100),'sensor.imp':one(40),'sensor.exp':one(25),'sensor.chg':one(0),'sensor.dis':one(0)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.chg':S(4700),'sensor.dis':S(4500),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0),'sensor.chgd':S(0),'sensor.disd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{const r={};(m.statistic_ids||[]).forEach(id=>{r[id]=m.period==='month'?(month[id]||[]):[];});return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',charge_today:'sensor.chgd',discharge_today:'sensor.disd',grid_price_ct:34,feed_in_ct:0};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+  const on=(e)=>{const t=q(e,'.tab.on');return t?t.dataset.p:null;};
+  let e=mount(base);await wait(1600);
+  ok('ohne Option: Reiter Monat',on(e)==='month',on(e));
+  ok('ohne Investition: Amortisation ausgeblendet',q(e,'.amo').style.display==='none');
+  ok('ohne Investition: Grundlast hat die ganze Breite',!!q(e,'.duo.one')&&q(e,'.gl').offsetWidth>=q(e,'.duo').offsetWidth-2,q(e,'.gl').offsetWidth+' / '+q(e,'.duo').offsetWidth);
+  e=mount({...base,investment_eur:20000});await wait(1600);
+  ok('mit Investition: Amortisation sichtbar, zwei Spalten',q(e,'.amo').style.display!=='none'&&!q(e,'.duo.one'));
+  e=mount({...base,investment:'sensor.inv'});await wait(1600);
+  ok('Investition als Sensor: sichtbar',q(e,'.amo').style.display!=='none');
+  e=mount({...base,start_period:'day'});await wait(1600);
+  ok('start_period day: Reiter Heute',on(e)==='day',on(e));
+  e=mount({...base,start_period:'year'});await wait(1600);
+  ok('start_period year: Reiter Jahr',on(e)==='year',on(e));
+  e=mount({...base,start_period:'week'});await wait(1600);
+  ok('start_period week ohne Verbraucher: Monat',on(e)==='month',on(e));
+  e=mount({...base,start_period:'quatsch'});await wait(1600);
+  ok('unbekannter Wert: Monat',on(e)==='month',on(e));
+  e=mount({...base,start_period:'day'});await wait(1600);
+  q(e,'.tab[data-p="month"]').click();await wait(800);
+  e.setConfig({...base,start_period:'day'});await wait(800);
+  ok('Konfiguration unverändert neu gesetzt: Reiter bleibt wie gewählt',on(e)==='month',on(e));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,start_period:P.get('start')||undefined,investment_eur:P.get('inv')?20000:undefined});}
+</script></body></html>

@@ -1,0 +1,29 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>energy-cockpit Prognose im Assistenten Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+/* Prüft die Auswahl für "Prognose heute" im Assistenten (burgl82, #36). Aufruf: ?test=1&still=1 */
+const S=(v,u,o)=>({state:String(v),attributes:Object.assign({unit_of_measurement:u},o||{},{friendly_name:(o&&o.friendly_name)||'x'}),last_updated:'x'});
+const hass={states:{
+ 'sensor.energy_production_today':S(8.4,'kWh',{device_class:'energy',friendly_name:'Energy production today'}),
+ 'sensor.solcast_forecast_today':S(7.9,'kWh',{device_class:'energy',friendly_name:'Solcast Prognose heute'}),
+ 'sensor.power_production_now':S(1200,'W',{device_class:'power',friendly_name:'Power production now'}),
+ 'sensor.pv_leistung_kw':S(1.2,'kW',{friendly_name:'PV Leistung'}),
+ 'sensor.batterie_soc':S(55,'%',{device_class:'battery',friendly_name:'Batterie'}),
+ 'sensor.aussentemperatur':S(7,'°C',{device_class:'temperature',friendly_name:'Temperatur'}),
+ 'switch.licht':{state:'on',attributes:{friendly_name:'Licht'},last_updated:'x'}}};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const ids=(k)=>WD.wizardList(hass,k).map(x=>x.id);
+const f=ids('forecast');
+ok('forecast: kWh-Sensor (Forecast.Solar) wählbar',f.includes('sensor.energy_production_today'),f.join(', '));
+ok('forecast: kWh-Prognose von Solcast wählbar',f.includes('sensor.solcast_forecast_today'));
+ok('forecast: Leistung in W wählbar',f.includes('sensor.power_production_now'));
+ok('forecast: Leistung in kW wählbar',f.includes('sensor.pv_leistung_kw'));
+ok('forecast: Batterie, Temperatur und Schalter nicht',!f.includes('sensor.batterie_soc')&&!f.includes('sensor.aussentemperatur')&&!f.includes('switch.licht'),f.length+' Einträge');
+const p=ids('power'),e=ids('energy');
+ok('power: weiterhin nur Leistung',p.includes('sensor.power_production_now')&&!p.includes('sensor.energy_production_today'),p.join(', '));
+ok('energy: weiterhin nur Energie',e.includes('sensor.energy_production_today')&&!e.includes('sensor.power_production_now'),e.join(', '));
+document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+</script></body></html>

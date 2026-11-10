@@ -157,7 +157,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .grp .val{margin-top:7px}
 .grp .num{font-size:1.25rem}.grp .unit{font-size:.68rem;margin-left:3px}
 .grp.on .num{color:rgb(var(--c));text-shadow:none}
-.its{margin-top:6px;border-top:1px solid rgba(var(--ov),.06);padding-top:4px}
+.its{margin-top:6px;border-top:1px solid rgba(var(--ov),.06);padding-top:4px;display:flex;flex-direction:column}
 .it{display:flex;align-items:center;font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));line-height:1.8;min-width:0;cursor:pointer}
 .it i{flex:none;width:5px;height:5px;border-radius:50%;background:rgba(var(--ov),.2);margin-right:5px;transition:background .4s,box-shadow .4s}
 .it.on i{background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35)}
@@ -270,7 +270,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .d-name{flex:1;min-width:0;font-weight:700;font-size:1.05rem;overflow-wrap:anywhere}
 .d-sum{margin-left:10px;font-size:1.35rem;font-weight:750;color:rgb(var(--c));font-variant-numeric:tabular-nums;white-space:nowrap}
 .d-x{margin-left:12px;flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--stroke);background:rgba(var(--ov),.06);color:var(--txt);font-size:1.2rem;line-height:1;cursor:pointer}
-.d-its{padding:8px 10px 14px;overflow:auto;max-height:calc(80vh - 72px)}
+.d-its{padding:8px 10px 14px;overflow:auto;max-height:calc(80vh - 72px);display:flex;flex-direction:column}
 .d-it{display:flex;align-items:center;padding:11px 8px;border-radius:12px;font-size:.95rem;color:rgb(var(--mut));cursor:pointer}
 .d-it:active{background:rgba(var(--ov),.07)}
 .d-it i{flex:none;width:8px;height:8px;border-radius:50%;background:rgba(var(--ov),.2);margin-right:10px}
@@ -294,6 +294,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 class EnergyCockpitFlowCard extends HTMLElement {
   constructor() {
     super();
+    this._dec = {};
     this._tw = {};
     this._raf = null;
     this.attachShadow({ mode: 'open' });
@@ -316,6 +317,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
       return;
     }
     this._c = JSON.parse(JSON.stringify(config));
+    this._dec = WD.decOf(this._c);
+    // consumer_groups_sort: leistung (#24): Geräte einer Gruppe nach aktueller Leistung, aktive oben. Reihenfolge je Gruppe merken
+    this._gSort = this._c.consumer_groups_sort === 'leistung' || this._c.consumer_groups_sort === 'power';
+    this._gOrd = {}; this._gSortT = 0;
     this._dTot = null; this._dLoaded = 0; this._dErr = false;
     // Listen können als Array oder als Objekt {0:…, 1:…} vorliegen (so speichert sie das Formular von Home Assistant)
     const arr = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : []));
@@ -333,6 +338,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
     this._s3d = this._c.style === '3d';
     this._c.consumers = arr(this._c.consumers).filter(used);
+    // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
+    // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
+    const g2 = this._c.grid2;
+    this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
+    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || T('flow.grid2'), icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
       .filter((g) => g.name || g.items.length);
@@ -529,6 +539,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
+    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn hide_rest: false ausdrücklich gesetzt ist (#34)
+    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && c.hide_rest === false && c.rest !== false;
+    if (restC && !sam) links.push('crest');
+    const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
+        <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
+        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div></div>` : '';
     const G = c.consumer_groups;
     let grps = '';
     if (G.length) {
@@ -566,7 +582,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}">
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${this._s3d && WD.D3.roof(c.roof_color) ? ` style="${WD.D3.roof(c.roof_color)}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -602,7 +618,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
           </div>
         </div>
-        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}</div>` : ''}
+        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}${consRest}</div>` : ''}
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
@@ -1041,6 +1057,29 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._set('.b-chips', chips, true);
   }
 
+  // consumer_groups_sort: leistung. Aktive Geräte (über on_w) nach Leistung absteigend, darunter die übrigen in eingetragener Reihenfolge.
+  // Gegen Springen: höchstens alle 10 s neu ordnen, und ein Gerät überholt seinen Vordermann nur mit deutlich mehr Leistung (10 % und 20 W)
+  _sortGroup(i, g) {
+    const items = g.items || [], now = Date.now();
+    let ord = this._gOrd[i];
+    if (ord && ord.length === items.length && now - (ord.t || 0) < 10000) return;
+    const p = items.map((x) => { const w = x.entity ? this._cw(x) : null; return w !== null && w > onW(x) ? w : -1; });
+    ord = ord && ord.length === items.length ? ord.slice() : items.map((x, j) => j);
+    const ahead = (a, b) => (p[b] < 0 ? p[a] >= 0 || false : p[a] >= 0 && p[a] > p[b] * 1.1 && p[a] - p[b] > 20);
+    for (let pass = 0; pass < items.length; pass++) {
+      let moved = false;
+      for (let k = 0; k + 1 < ord.length; k++) {
+        const a = ord[k], b = ord[k + 1];
+        // Inaktive untereinander: zurück in die eingetragene Reihenfolge
+        if (ahead(b, a) || (p[a] < 0 && p[b] < 0 && b < a)) { ord[k] = b; ord[k + 1] = a; moved = true; }
+      }
+      if (!moved) break;
+    }
+    ord.t = now;
+    this._gOrd[i] = ord;
+    ord.forEach((j, n) => { const it = this._$(`[data-i="${i}-${j}"]`); if (it && it.style.order !== String(n)) it.style.order = String(n); });
+  }
+
   // Kurzansicht: Fenster mit allen Geräten einer Gruppe, Werte laufen live mit
   _openGroup(i) {
     const g = (this._c.consumer_groups || [])[i], dl = this._$('.gdlg'), h = this._hass;
@@ -1048,7 +1087,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const rows = (g.items || []).map((x, j) => {
       const st = x.entity ? h.states[x.entity] : null;
       if (x.entity && (!st || st.state === 'unavailable')) return '';
-      return `<div class="d-it" data-j="${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`;
+      const o = this._gSort && this._gOrd[i] ? this._gOrd[i].indexOf(j) : -1;
+      return `<div class="d-it" data-j="${j}" data-e="${esc(x.entity || x.secondary)}"${o >= 0 ? ` style="order:${o}"` : ''}><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`;
     }).join('');
     const ico = g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`;
     dl.style.setProperty('--c', rgb(g.color, '167,139,250'));
@@ -1092,8 +1132,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
 
   // Leistung formatieren; watt_only: true zeigt immer Watt statt ab 1000 W kW
-  _sw(w) { return splitW(w, !!(this._c && this._c.watt_only)); }
-  _fW(w) { return fW(w, !!(this._c && this._c.watt_only)); }
+  _sw(w) { return splitW(w, !!(this._c && this._c.watt_only), this._dec.p); }
+  _fW(w) { return fW(w, !!(this._c && this._c.watt_only), this._dec.p); }
+  _fk(v) { return fKwh(v, this._dec.e); }
+  _fp(v) { return fPct(v, this._dec.q); }
 
   _set(sel, txt, isHtml, root) {
     const el = root ? root.querySelector(sel) : this._$(sel);
@@ -1151,14 +1193,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0) + bmDis);
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
-    const gImp = Math.max(0, grid || 0), gExp = Math.max(0, -(grid || 0));
+    // grid2: Bezug des zweiten Zählers. Er steckt nicht im Hauptzähler: Hausverbrauch und Netzanteil im Ring werden um ihn größer
+    const g2w = c.grid2 ? Math.max(0, watt(h, c.grid2.entity) || 0) : 0;
+    home += g2w;
+    const gImpM = Math.max(0, grid || 0), gImp = gImpM + g2w, gExp = Math.max(0, -(grid || 0));
     // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
     const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), bmDis), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
     const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
     const tot = pvHome + gImp + bDis;
 
-    this._set('[data-p="aut"]', home > TH ? fPct(1 - gImp / home) : '—');
-    this._set('[data-p="self"]', (pv || 0) > TH ? fPct(1 - gExp / pv) : '—');
+    this._set('[data-p="aut"]', home > TH ? this._fp(1 - gImp / home) : '—');
+    this._set('[data-p="self"]', (pv || 0) > TH ? this._fp(1 - gExp / pv) : '—');
 
     // Aufteilung je Quelle: PV 2 (Balkonkraftwerk) deckt zuerst das Haus, PV 1 lädt danach die Batterie und speist ein
     const need = Math.max(0, home - gImp - bDis);
@@ -1210,7 +1255,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (/^(k|m)?wh$/i.test(fUnit)) {
         const e = num(h, c.pv.forecast);
         const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
-        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${fKwh(kwh)} kWh</b>`);
+        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${this._fk(kwh)} kWh</b>`);
       } else {
         const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
         if (fc !== null) parts.push(`${T('forecast')} <b>${this._fW(fc)}</b>`);
@@ -1281,12 +1326,24 @@ class EnergyCockpitFlowCard extends HTMLElement {
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     if (this._s3d) {
-      this._routes3d({ bats, gImp, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
+      this._routes3d({ bats, gImp: gImpM, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
       this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
     }
-    this._banner({ pv, grid, bat, soc, home, gImp, gExp });
+    this._banner({ pv, grid, bat, soc, home, gImp: gImpM, gExp });
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
+    // home_color: source (optional): Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil. Erst ab 5 Punkten Vorsprung wechselt die Farbe
+    const hn = this._$('.core .num');
+    if (hn) {
+      let col = '';
+      if (c.home_color === 'source' && tot > 0) {
+        const lead = ['pv', 'bat', 'grid'].reduce((a, k) => (sh[k] > sh[a] ? k : a), 'pv');
+        const keep = this._hc && sh[this._hc] >= sh[lead] - 0.05 ? this._hc : lead;
+        this._hc = keep;
+        col = `rgb(${keep === 'pv' ? PAL.pv : keep === 'bat' ? PAL.bat : PAL.imp})`;
+      } else this._hc = null;
+      if (hn.style.color !== col) hn.style.color = col;
+    }
     let start = 0;
     ['pv', 'bat', 'grid'].forEach((k) => {
       const seg = this._$(`.seg[data-g="${k}"]`);
@@ -1305,10 +1362,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (!el) return;
       const secSt = x.secondary && h.states[x.secondary];
       const dec = x.secondary_decimals === undefined ? 1 : x.secondary_decimals;
-      const secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
+      let secTxt = secSt && !['unavailable', 'unknown'].includes(secSt.state)
         ? `${nf(parseFloat(secSt.state) || 0, dec)} ${secSt.attributes.unit_of_measurement || ''}`.trim() : '';
       if (x.entity) {
         const p = this._cw(x), on = (p || 0) > onW(x);
+        // grid2: Kosten pro Stunde mit dem eigenen Preis
+        if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
@@ -1321,6 +1380,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._set(`[data-k="c${i}"] .unit`, parts.slice(1).join(' '));
       }
     });
+    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (hide_rest: false): Hausverbrauch minus Summe der Verbraucher
+    const crel = this._$('[data-k="crest"]');
+    if (crel) {
+      const restW = Math.max(0, home - sumAll - bmChg), restMin = parseFloat(c.rest_min) || 0;
+      const show = restMin <= 0 || (home > TH && restW / home * 100 >= restMin), on = show && restW > TH;
+      crel.style.display = show ? '' : 'none';
+      crel.classList.toggle('on', on);
+      this._anim('crest', restW, crel);
+      this._link('crest', on, false, PAL.mut, restW);
+    }
     const G = c.consumer_groups || [];
     if (G.length) {
       let known = 0, vis = 0;
@@ -1345,6 +1414,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
           const b = it.querySelector('b');
           if (b.textContent !== txt) b.textContent = txt;
         });
+        if (this._gSort) this._sortGroup(i, g);
         known += sum;
         sumAll += sum;
         const shown = (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
@@ -1397,20 +1467,20 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const balB = c.batteries.filter((b) => b.behind_meter !== true);
     // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Akku-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
-    this._set('[data-s="pv"] b', `${fKwh(dPv)}<small>kWh</small>`, true);
-    if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${fKwh(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
-    if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${fKwh(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
-    this._set('[data-s="imp"] b', `${fKwh(dImp)}<small>kWh</small>`, true);
-    this._set('[data-s="exp"] b', `${fKwh(dExp)}<small>kWh</small>`, true);
-    this._set('[data-s="bat"] b', `+${fKwh(dChg)}<small>/</small> −${fKwh(dDis)}<small>kWh</small>`, true);
+    this._set('[data-s="pv"] b', `${this._fk(dPv)}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${this._fk(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
+    if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${this._fk(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
+    this._set('[data-s="imp"] b', `${this._fk(dImp)}<small>kWh</small>`, true);
+    this._set('[data-s="exp"] b', `${this._fk(dExp)}<small>kWh</small>`, true);
+    this._set('[data-s="bat"] b', `+${this._fk(dChg)}<small>/</small> −${this._fk(dDis)}<small>kWh</small>`, true);
     let aut = null, dHome = c.home && c.home.daily ? en(c.home.daily) : null;
     if (dPv !== null && dImp !== null) {
       const cons = dPv + dImp - (dExp || 0) - (sumBat('daily_charge', balB) || 0) + (sumBat('daily_discharge', balB) || 0);
       if (cons > 0) aut = 1 - dImp / cons;
       if (dHome === null && !(c.home && c.home.daily)) dHome = Math.max(0, cons);
     }
-    this._set('[data-s="home"] b', `${fKwh(dHome)}<small>kWh</small>`, true);
-    this._set('[data-s="aut"] b', fPct(aut));
+    this._set('[data-s="home"] b', `${this._fk(dHome)}<small>kWh</small>`, true);
+    this._set('[data-s="aut"] b', this._fp(aut));
     if (this._dlg !== null && this._dlg !== undefined) this._dlgUpd();
   }
 }

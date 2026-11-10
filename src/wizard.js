@@ -27,6 +27,27 @@
     'ed.s.st.longterm.short': 'Langzeit', 'ed.s.st.longterm.title': 'Langzeit-Ansicht (optional)', 'ed.s.st.longterm.text': 'Standardmäßig aus. Eingeschaltet zeigt die Karte alle Jahre aus der Langzeitstatistik von Home Assistant: Jahre blättern, Reiter "Gesamt" und Hinweise auf fehlende Monate. Ausgeschaltet bleibt die Karte wie bisher.',
     'ed.s.st.look.short': 'Aussehen', 'ed.s.st.look.title': 'Farbschema', 'ed.s.st.look.text': 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.',
     'ed.s.st.done.short': 'Fertig', 'ed.s.st.done.title': 'Zusammenfassung', 'ed.s.st.done.text': 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder.',
+  // Liste aller passenden Entitäten (Leistung, Energie, Prozent, Preis, Schalter ...)
+  const list = (hass, kind) => {
+    const out = [];
+    if (!hass || !hass.states) return out;
+    Object.keys(hass.states).forEach((id) => {
+      const s = hass.states[id], a = s.attributes || {}, u = a.unit_of_measurement || '', dc = a.device_class || '';
+      const dom = id.split('.')[0];
+      let ok = false;
+      if (kind === 'power') ok = dom === 'sensor' && (POWER_UNITS.indexOf(u) >= 0 || dc === 'power');
+      else if (kind === 'energy') ok = dom === 'sensor' && (ENERGY_UNITS.indexOf(u) >= 0 || dc === 'energy');
+      // Prognose: Leistung in W/kW oder Tagesprognose in kWh (zum Beispiel Forecast.Solar "Energie Produktion heute")
+      else if (kind === 'forecast') ok = dom === 'sensor' && (POWER_UNITS.indexOf(u) >= 0 || ENERGY_UNITS.indexOf(u) >= 0 || dc === 'power' || dc === 'energy');
+      else if (kind === 'percent') ok = (dom === 'sensor' || dom === 'number') && (u === '%' || dc === 'battery');
+      else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
+      else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
+      else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));
+      else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
+      if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
+    });
+    return out.sort((x, y) => x.name.localeCompare(y.name, 'de'));
+  };
 
     'ed.s.w.pv_total': 'PV Gesamtertrag', 'ed.s.w.grid_import_total': 'Netzbezug gesamt', 'ed.s.w.grid_export_total': 'Einspeisung gesamt',
     'ed.s.w.battery_charge_total': 'Batterie geladen gesamt', 'ed.s.w.battery_discharge_total': 'Batterie entladen gesamt', 'ed.s.w.battery_capacity_kwh': 'Kapazität (kWh)', 'ed.s.w.battery_temp': 'Batterietemperatur',

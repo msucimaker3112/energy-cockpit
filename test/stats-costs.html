@@ -16,6 +16,7 @@ let calls=[];
 const wk0=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7).getTime();let meanOn=false;
 const hassFor=(o)=>({states:Object.assign({'sensor.w':S(630)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
   if(m.period!=='hour')return {};
+  if(m.types&&m.types.includes('state'))return {}; // Abfrage für "Heute" aus den Gesamtzählern, gehört nicht zu den Verbraucherkosten
   if(m.types&&m.types.includes('mean'))return meanOn?{[m.statistic_ids[0]]:hrs.map(x=>({start:x.t,mean:.25}))}:{};
   const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15;calls.push({from,to});
   const r={};const rows=hrs.concat(now.getMonth()>0?[past]:[]).filter(x=>x.t>=from&&x.t<to);
@@ -91,7 +92,7 @@ async function run(){
   e=mount(off,hassFor());await wait(600);
   ok('ohne Eintrag: kein Bereich und keine Abfrage',!q(e,'.cc')&&calls.length===0);
   e=mount({...base,long_term:true,pv_ac:true},hassFor());await wait(700);await tab(e,'all');
-  ok('Gesamt: Bereich bleibt und nennt den Grund',q(e,'.cc').style.display!=='none'&&/aktuelle Jahr/.test(q(e,'[data-f="ccSum"]').textContent),q(e,'[data-f="ccSum"]').textContent);
+  ok('Gesamt: Bereich bleibt und nennt den Grund',q(e,'.cc').style.display!=='none'&&/laufende Jahr/.test(q(e,'[data-f="ccSum"]').textContent),q(e,'[data-f="ccSum"]').textContent);
   const h2=hassFor();h2.callWS=async(m)=>{if(m.period==='hour')throw new Error('keine Statistik');return {};};
   e=mount({...base,pv_ac:true},h2);await wait(600);
   ok('Abfrage fehlgeschlagen: Bereich aus, kein Absturz',q(e,'.cc').style.display==='none');

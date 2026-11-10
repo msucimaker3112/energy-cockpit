@@ -44,7 +44,7 @@ async function run(){
     ok(`${w} px: Maßstab bleibt gleich`,new Set(ss).size===1,[...new Set(ss)].join(' / '));
     // Frühere Jahre und Gesamt: Bereich bleibt stehen und sagt, warum keine Werte da sind
     tab('all');await wait(100);
-    ok(`${w} px: Gesamt zeigt den Kosten-Bereich mit Hinweis`,q('.cc').style.display!=='none'&&/aktuelle Jahr/.test(q('[data-f="ccSum"]').textContent),q('[data-f="ccSum"]').textContent);
+    ok(`${w} px: Gesamt zeigt den Kosten-Bereich mit Hinweis`,q('.cc').style.display!=='none'&&/laufende Jahr/.test(q('[data-f="ccSum"]').textContent),q('[data-f="ccSum"]').textContent);
     ok(`${w} px: Gesamt zeigt keine erfundenen Kosten`,[...e.shadowRoot.querySelectorAll('[data-f^="ccS"]')].filter(x=>/^ccS\d/.test(x.dataset.f)).every(x=>x.textContent==='—'));
     tab('day');await wait(100);
     ok(`${w} px: Heute zeigt wieder Kosten`,/gespart/.test(q('[data-f="ccSum"]').textContent),q('[data-f="ccSum"]').textContent);

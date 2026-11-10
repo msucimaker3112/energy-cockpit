@@ -1,0 +1,53 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Bereiche ausblenden Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft hide (#35). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?hide=monthly,footer&w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const one=(v)=>[{start:new Date(Y,M,1).getTime(),change:v}];
+const mon={'sensor.pv':one(100),'sensor.imp':one(40),'sensor.exp':one(25)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const r={};if(m.period==='month')(m.statistic_ids||[]).forEach(id=>{if(mon[id])r[id]=mon[id];});return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price_ct:30,investment_eur:20000};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s);
+  const vis=(e,s)=>{const x=q(e,s);return !!x&&getComputedStyle(x).display!=='none'&&x.offsetHeight>0;};
+  let e=mount(base);await wait(1800);
+  ok('ohne hide: alles sichtbar',vis(e,'.money')&&vis(e,'.amo')&&vis(e,'.gl')&&vis(e,'.chart')&&vis(e,'footer'));
+  e=mount({...base,hide:['monthly']});await wait(1800);
+  ok('monthly: Diagramm weg, Rest da',!vis(e,'.chart')&&vis(e,'.money')&&vis(e,'.amo')&&vis(e,'.gl')&&vis(e,'footer'));
+  e=mount({...base,hide:['footer']});await wait(1800);
+  ok('footer: Fußzeile weg, Rest da',!vis(e,'footer')&&vis(e,'.chart')&&vis(e,'.money'));
+  e=mount({...base,hide:['money']});await wait(1800);
+  ok('money: vier Kacheln weg, Rest da',!vis(e,'.money')&&vis(e,'.amo')&&vis(e,'.chart'));
+  e=mount({...base,hide:['amortisation']});await wait(1800);
+  ok('amortisation: Kachel weg, Grundlast da und füllt die Breite',!vis(e,'.amo')&&vis(e,'.gl')&&q(e,'.gl').offsetWidth>=q(e,'.duo').offsetWidth-2,q(e,'.gl').offsetWidth+' / '+q(e,'.duo').offsetWidth);
+  e=mount({...base,hide:['baseload']});await wait(1800);
+  ok('baseload: Grundlast weg, Amortisation füllt die Breite',!vis(e,'.gl')&&vis(e,'.amo')&&q(e,'.amo').offsetWidth>=q(e,'.duo').offsetWidth-2,q(e,'.amo').offsetWidth+' / '+q(e,'.duo').offsetWidth);
+  e=mount({...base,hide:['amortisation','baseload']});await wait(1800);
+  ok('beide: ganze Zeile weg',!vis(e,'.amo')&&!vis(e,'.gl')&&!vis(e,'.duo'));
+  e=mount({...base,investment_eur:undefined,hide:['baseload']});await wait(1800);
+  ok('ohne Investition und baseload: Zeile weg, kein Leerraum',!vis(e,'.duo'));
+  e=mount({...base,hide:'monthly, footer'});await wait(1800);
+  ok('Text mit Komma: monthly und footer',!vis(e,'.chart')&&!vis(e,'footer')&&vis(e,'.money'));
+  e=mount({...base,hide:['Monthly','GRUNDLAST']});await wait(1800);
+  ok('Groß-/Kleinschreibung und deutsche Namen',!vis(e,'.chart')&&!vis(e,'.gl'));
+  e=mount({...base,hide:['quatsch']});await wait(1800);
+  ok('unbekannter Name: nichts ausgeblendet',vis(e,'.money')&&vis(e,'.amo')&&vis(e,'.gl')&&vis(e,'.chart')&&vis(e,'footer'));
+  e=mount({...base,hide:['money','monthly','footer','amortisation','baseload']});await wait(1800);
+  ok('alles ausgeblendet: Kopf mit Reitern bleibt, kein Absturz',!!q(e,'.tabs')&&!vis(e,'.money')&&!vis(e,'.chart'));
+  e=mount({...base,hide:['monthly']});await wait(1800);
+  q(e,'.tab[data-p="year"]').click();await wait(900);
+  ok('Reiter funktionieren weiter, Werte werden berechnet',/\d/.test(q(e,'[data-t="cost"]').textContent),q(e,'[data-t="cost"]').textContent);
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,hide:P.get('hide')||undefined});}
+</script></body></html>

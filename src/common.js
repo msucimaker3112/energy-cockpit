@@ -104,15 +104,24 @@ const WD = (() => {
   const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
   const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
   // onlyW: immer in Watt, nie in kW umschalten (Option watt_only)
-  const splitW = (w, onlyW) => {
+  // d (optional): feste Nachkommastellen aus der Option decimals; ohne d bleibt die bisherige Darstellung. Watt bleiben immer ganzzahlig
+  const splitW = (w, onlyW, d) => {
     if (w === null || w === undefined || isNaN(w)) return ['—', ''];
     const a = Math.abs(w);
-    if (a >= 999.5 && !onlyW) return [nf(a / 1000, a >= 10000 ? 1 : 2), 'kW'];
+    if (a >= 999.5 && !onlyW) return [nf(a / 1000, typeof d === 'number' ? d : a >= 10000 ? 1 : 2), 'kW'];
     return [nf(Math.round(a), 0), 'W'];
   };
-  const fW = (w, onlyW) => splitW(w, onlyW).join(' ');
-  const fKwh = (v) => (v === null ? '—' : nf(v, v >= 100 ? 0 : 1));
-  const fPct = (v) => (v === null || !isFinite(v) ? '—' : Math.round(Math.max(0, Math.min(1, v)) * 100) + ' %');
+  const fW = (w, onlyW, d) => splitW(w, onlyW, d).join(' ');
+  const fKwh = (v, d) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, typeof d === 'number' ? d : v >= 100 ? 0 : 1));
+  const fPct = (v, d) => (v === null || !isFinite(v) ? '—' : (typeof d === 'number' ? nf(Math.max(0, Math.min(1, v)) * 100, d) : Math.round(Math.max(0, Math.min(1, v)) * 100)) + ' %');
+  // Option decimals (#25): Zahl = Nachkommastellen für Energie (kWh); Objekt { energy, power, percentage } einzeln. power gilt für kW-Werte
+  const decOf = (c) => {
+    const n = (v) => { const x = parseInt(v, 10); return isNaN(x) ? undefined : Math.max(0, Math.min(3, x)); };
+    const v = c && c.decimals;
+    if (v === undefined || v === null || v === '') return {};
+    if (typeof v === 'object') return { e: n(v.energy), p: n(v.power), q: n(v.percentage) };
+    return { e: n(v) };
+  };
   // Währungssymbol aus Home Assistant (€, $, £ …)
   const cur = () => {
     try {
@@ -169,5 +178,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();

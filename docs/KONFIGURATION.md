@@ -21,7 +21,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv.name`, `pv.icon` | Text | Anzeigename, Symbol (`mdi:…`) |
 | `pv.daily` | Sensor | Tagesertrag in kWh |
 | `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Akku geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
-| `pv.forecast` | Sensor | Prognose-Leistung (z. B. Solcast) |
+| `pv.forecast` | Sensor | Prognose für heute: Leistung in W/kW oder Tagesprognose in kWh (z. B. Solcast, Forecast.Solar "Energie Produktion heute"). Im Assistenten wählbar |
 | `pv.forecast_tomorrow`, `pv.forecast_day_after` | Sensor (kWh) | Erwartete Produktion für morgen und übermorgen, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `pv.strings` | Liste | Teilstränge `{entity, name}` |
 | `grid.entity` | Sensor | Netzleistung (Bezug positiv) |
@@ -43,9 +43,11 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `animations` | `auto` (Standard), `always` | `auto`: Ist am Gerät "Bewegung reduzieren" eingeschaltet, stehen Linien, Ring und das Leuchten von Kacheln und Symbolen still, und die Zahlen zählen nicht hoch. `always`: immer animieren. Unabhängig davon rechnet die Karte höchstens einmal pro Sekunde neu, und Zahlen zählen nur bei großen Sprüngen hoch |
 | `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
+| `home_color` | `standard` (Standard), `source` | `source`: Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an (PV gelb, Speicher blau, Netz rot). Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt |
+| `grid2` | Objekt | Zweiter Netzzähler mit eigenem Tarif, der nur Strom bezieht, zum Beispiel eine Wärmepumpe. Siehe [Zweiter Netzzähler](#zweiter-netzzähler-grid2) |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` | Vergrößert die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
-| `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern |
+| `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, bekommt die Kachel, wenn er `hide_rest: false` ausdrücklich einträgt. Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
 | `groups_lines` | `direkt` (Standard) oder `sammel` | Linien zu Einzelverbrauchern und Gruppen. `sammel` zeichnet nur **eine** Linie vom Ring zu einer Plakette "Verbraucher" mit der Summe und fasst den Bereich in einem Rahmen zusammen. Die Kacheln zeigen ihre Aktivität weiter mit Farbrand und Wert, bekommen aber keine eigene Linie. Gut bei vielen Geräten, auch auf dem Handy |
 | `battery.soc_display` | `brutto` (Standard) oder `nutzbar` | `nutzbar` zeigt den Ladestand relativ zum nutzbaren Bereich (0 % = Entladegrenze, 100 % = Maximalladung). Mit `brutto` bleibt die Anzeige wie die Batterie, die Grenzen erscheinen als schraffierte Bereiche auf dem Balken |
@@ -154,6 +156,12 @@ consumers:
 
 `on_w` gibt es auch für Gruppen und ihre Einträge. Damit bekommt zum Beispiel eine Zirkulationspumpe mit 6 W einen Rahmen.
 
+**Geräte in Gruppen nach Leistung sortieren (optional, `consumer_groups_sort: leistung`):** Die gerade aktiven Geräte stehen oben, das stärkste zuerst. Geräte unter `on_w` folgen in der eingetragenen Reihenfolge. Damit die Liste bei schwankenden Werten nicht springt, ordnet die Karte höchstens alle 10 Sekunden neu, und ein Gerät überholt ein anderes erst mit deutlich mehr Leistung (mehr als 10 % und 20 W). Das Fenster der Kurzansicht zeigt dieselbe Reihenfolge. Ohne Eintrag (oder mit `konfiguriert`) bleibt alles wie eingetragen. Die Gruppen selbst behalten ihren Platz.
+
+```yaml
+consumer_groups_sort: leistung
+```
+
 **Differenz-Verbraucher (optional, z. B. Zählerkaskade):** Mit `minus` rechnet die Karte `entity − minus`, nie negativ. `minus` darf auch eine **Liste** sein (mehrere Unterzähler). Mit `plus` (ebenfalls Sensor oder Liste) wird noch etwas dazugerechnet. `minus` und `plus` gibt es für Einzelverbraucher und für Einträge in Gruppen, im Assistenten als "Davon abziehen". Ohne `minus` ändert sich nichts. Beschreibung mit Aufbauten und Beispiel: [Zähler in Reihe](ZWEI-ZAEHLER.md#direkt-in-der-karte-option).
 
 Zweite Solaranlage, zum Beispiel ein Balkonkraftwerk mit eigenem Sensor:
@@ -249,6 +257,7 @@ waste:
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
+| `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |
 | `fit_margin` | `8` | Abstand unten in Pixel |
 | `keep_awake` | `auto` | `true`/`false`/`auto`: Bildschirm wach halten (Echo Show, Silk) |
 | `nav_path`, `nav_label` | | Schaltfläche zur nächsten Ansicht |
@@ -340,11 +349,82 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # earned_before: input_number.pv_vorher     # ... oder aus einem Sensor oder Helfer
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
+# hide: [monthly, footer]                  # Bereiche ausblenden: monthly, amortisation, baseload, footer, money
+# start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
+# grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
+# grid2_price_ct: 25.45                     # eigener Preis in Cent, oder grid2_price (Sensor/Helfer); grid2_name: Wärmepumpe
+# budget_kwh: 8000                         # Jahresziel für den Netzbezug in kWh (Zahl oder Sensor), siehe unten
+# budget_profile: history                   # Soll gleichmäßig (linear, Standard) oder nach dem Verlauf des Vorjahres
+# pv_lifetime: sensor.pv_zaehler_dauerhaft  # nur nötig, wenn pv_total täglich auf 0 geht, siehe unten
+# decimals: 2                               # feste Nachkommastellen bei kWh, siehe Darstellung
 ```
 
 Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
 
+**"Heute":** Die Karte nimmt die Tagessensoren (`pv_today`, `import_today`, `export_today`, `charge_today`, `discharge_today`). Fehlt einer oder liefert er gerade keinen Wert, rechnet sie den Wert aus dem Gesamtzähler seit Mitternacht, so wie Monat und Jahr. Die Tagessensoren sind damit optional. Unter den Kacheln steht dann ein gelber Hinweis, welcher Sensor fehlt. Ebenso warnt die Karte, wenn in einem Tagesfeld offenbar ein Gesamtzähler steckt (der Wert ist viel größer als der Zuwachs des Gesamtzählers seit Mitternacht) oder wenn heute mehr eingespeist als erzeugt wurde. Ohne Statistik und ohne Tagessensor zeigt die Kachel einen Strich, nie die Werte eines anderen Zeitraums.
+
+**Rekordtag:** Die Karte sucht den besten Tag des Jahres in der Statistik von `pv_today` und von `pv_total` und zeigt den höheren Wert. Ein neu angelegter Tagessensor mit erst wenigen Tagen Verlauf verfälscht den Rekord so nicht mehr.
+
+**`pv_lifetime` (optional):** Geht dein PV-Zähler täglich auf 0 und gibt es keinen durchlaufenden, bleibt er bei `pv_total` (Verlauf, Monatsbalken, Autarkie funktionieren damit). Amortisation und "PV gesamt" brauchen aber den ganzen Ertrag. Dafür trägst du bei `pv_lifetime` einen Zähler ohne Zurücksetzen ein, zum Beispiel einen Helfer "Verbrauchszähler" ohne Zyklus, der deinen Tageszähler aufsummiert. Ohne Eintrag gilt `pv_total` wie bisher.
+
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
+
+**`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+**`hide`:** Blendet einzelne Bereiche der Statistik aus, die du nicht brauchst. Eine Liste mit diesen Namen, auch im Editor unter „Alle Felder“ auswählbar:
+
+| Name | Bereich |
+|---|---|
+| `monthly` | Diagramm „PV-Ertrag pro Monat“ mit der Jahresübersicht |
+| `amortisation` | Kachel „Amortisation“ (ohne Anschaffungskosten ist sie ohnehin ausgeblendet) |
+| `baseload` | Kachel „Grundlast (nachts)“ |
+| `footer` | Fußzeile mit Rekordtag, Akku-Wirkungsgrad, Vollzyklen, Akku-Temperatur und PV gesamt |
+| `money` | Die vier Kacheln oben (PV-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
+
+```yaml
+hide: [monthly, footer]
+```
+
+Die Werte werden im Hintergrund weiter berechnet. Ohne Eintrag ändert sich nichts. Das Jahresbudget und die Kosten je Verbraucher lassen sich einfach weglassen (sie erscheinen nur mit `budget_kwh` und `cost_consumers`).
+
+### Zweiter Netzzähler in der Statistik: `grid2_total`
+
+Mit `grid2_total` (kWh-Zähler mit Langzeitstatistik) zählt die Statistik den Bezug des zweiten Zählers dazu. Er geht in die Stromkosten ein, zu seinem eigenen Preis (`grid2_price` als Sensor oder Helfer, oder `grid2_price_ct` fest in Cent). Ohne eigenen Preis gilt der normale Strompreis. Unter „Stromkosten Netz“ steht dann, wie viel davon auf den zweiten Zähler entfällt, mit dem Namen aus `grid2_name`. Auch „Autarkie“ und das Jahresbudget rechnen den zweiten Zähler als Netzbezug.
+
+```yaml
+grid2_total: sensor.waermepumpe_energie_summe
+grid2_name: Wärmepumpe
+grid2_price_ct: 25.45
+```
+
+Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht. Im Reiter „Woche“ (Kosten je Verbraucher) ist der zweite Zähler noch nicht enthalten.
+
+### Jahresbudget (optional): `budget_kwh`
+
+Wer sich für das Jahr ein Ziel für den Netzbezug setzt, zum Beispiel 8.000 kWh, sieht auf einen Blick, wie weit er damit ist. Die Kachel „Jahresbudget Netzbezug“ erscheint nur, wenn `budget_kwh` eingetragen ist, und gilt immer für das laufende Jahr, egal welcher Reiter offen ist.
+
+```yaml
+budget_kwh: 8000          # Jahresziel für den Netzbezug (kWh), auch als Sensor oder Helfer möglich
+budget_profile: history   # optional: linear (Standard) oder history
+```
+
+![Jahresbudget mit gleichmäßigem Soll](img/budget-linear.png)
+
+| Wert | Bedeutung |
+|---|---|
+| Prozent und Balken | Netzbezug seit 1. Januar im Verhältnis zum Jahresziel. Der Strich im Balken zeigt das Soll bis heute |
+| Soll bis heute | Wie viel du bis heute verbrauchen dürftest, um im Ziel zu bleiben |
+| Abweichung Ist − Soll | Ist minus Soll in kWh und, wenn ein Strompreis eingetragen ist, in Euro. Negativ heißt: du liegst unter dem Soll |
+| Hochrechnung | Netzbezug bis heute, auf das ganze Jahr hochgerechnet (Ist geteilt durch den Anteil des Jahres, der vergangen ist) |
+| Abweichung zum Ziel | Hochrechnung minus Jahresziel in kWh und Euro |
+
+- **Farbe:** Im Soll grün, bis 10 % darüber gelb, darüber rot.
+- **`budget_profile: linear`** (Standard): Das Soll läuft gleichmäßig übers Jahr, am 1. Juli sind es etwa die Hälfte des Ziels.
+- **`budget_profile: history`:** Das Soll folgt dem Verlauf deines Netzbezugs im letzten vollen Jahr. Wer im Winter viel aus dem Netz bezieht und im Sommer wenig (mit PV-Anlage), bekommt im Winter ein höheres Soll. Dafür braucht die Karte die Monatswerte aller 12 Monate des Vorjahres. Fehlen sie, rechnet sie gleichmäßig. Welche Rechnung gilt, steht unter der Kachel.
+- **Zähler erst später im Jahr eingerichtet:** Beginnen die Messdaten des Netzbezugs erst nach dem 1. Januar (zum Beispiel am 10. Oktober), rechnen Soll und Hochrechnung nur für den erfassten Zeitraum, und unter der Kachel steht „Messdaten erst seit …“. Die Werte sind dann vorläufig, weil sie auf wenigen Wochen beruhen (im Winter höher als im Jahresmittel). Ab dem nächsten Jahr gilt das ganze Jahr.
+- Grundlage ist `grid_import_total`. Der Wert hinkt wie die anderen Monatswerte bis zu einer Stunde hinterher.
+
+**Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel „Amortisation“ aus, die Grundlast nimmt dann die ganze Breite.
 
 ### Kosten je Verbraucher (optional)
 
@@ -512,6 +592,7 @@ Statt Kacheln und Ring zeigt die Karte Haus, Solar, Netz und Speicher als kleine
 type: custom:energy-cockpit-flow-card
 style: 3d
 house_style: sattel   # oder flach (Flachdach)
+roof_color: anthrazit # optional: rot (Standard), anthrazit, schwarz, grau, braun, gruen, blau oder "#hex"
 ```
 
 ![3D-Ansicht mit zwei Speichern und Balkonkraftwerk](img/flow-3d-zwei.png)
@@ -526,6 +607,38 @@ house_style: sattel   # oder flach (Flachdach)
 | Dach | Handy | Hell |
 |---|---|---|
 | ![Flachdach](img/flow-3d-flach.png) | ![3D am Handy](img/flow-3d-handy.png) | ![3D im hellen Schema](img/flow-3d-hell.png) |
+
+### Zweiter Netzzähler: `grid2`
+
+Manche Haushalte haben einen zweiten Zähler mit eigenem Tarif, zum Beispiel für die Wärmepumpe. Er hängt nicht am Hauptzähler und kennt nur Bezug. Mit `grid2` zeigt der Energiefluss ihn als eigene Kachel bei den Verbrauchern, mit eigener Linie zum Haus und den Kosten pro Stunde zu seinem Preis.
+
+```yaml
+grid2:
+  name: Wärmepumpe
+  entity: sensor.waermepumpe_leistung_summe    # Leistung in Watt, bei drei Phasen die Summe
+  price: input_number.preis_waermepumpe        # Preis pro kWh aus einem Sensor oder Helfer ...
+  # price_ct: 25.45                            # ... oder fest in Cent pro kWh
+```
+
+![Energiefluss mit zweitem Netzzähler](img/grid2-flow.png)
+
+- **Hausverbrauch:** Der zweite Zähler steckt nicht im Hauptzähler. Deshalb zählt die Karte ihn zum Hausverbrauch dazu (Haus plus Wärmepumpe) und im Ring zum Netz. Die Netz-Kachel zeigt weiter nur den Hauptzähler.
+- **Preis:** `price` (Sensor oder Helfer, Euro pro kWh) hat Vorrang vor `price_ct`. Ohne Preis zeigt die Kachel keine Kosten pro Stunde.
+- **Mehrere Phasen:** `entity` ist ein einzelner Sensor. Bei einem dreiphasigen Zähler legst du dir in Home Assistant einen Summen-Sensor an (Helfer „Min/Max“ mit Typ „Summe“). Das Saldieren von Bezug und Einspeisung auf verschiedenen Phasen ist bei einem reinen Verbraucher wie einer Wärmepumpe nicht nötig.
+- **Statistik:** Dort gibt es dazu `grid2_total` (kWh-Zähler), `grid2_name`, `grid2_price` und `grid2_price_ct`, siehe Statistik-Karte unten.
+- Die Kachel steht in der Reihe der Verbraucher, nicht neben dem Netz. Ein Eintrag unter `consumers` ist dafür nicht nötig.
+
+### Farbe der Zahl beim Haus: `home_color: source`
+
+Standardmäßig ist die Zahl über dem Haus türkis. Mit `home_color: source` bekommt sie die Farbe der Quelle, die im Ring gerade den größten Anteil hat: gelb bei PV, blau beim Speicher, rot beim Netz. So siehst du auf einen Blick, woher der Strom gerade überwiegend kommt. Damit die Farbe nicht flackert, wechselt sie erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt. Das gilt in der flachen und in der 3D-Ansicht.
+
+```yaml
+home_color: source
+```
+
+| PV überwiegt | Netz überwiegt |
+|---|---|
+| ![Zahl in Gelb](img/farbe-quelle-pv.png) | ![Zahl in Rot](img/farbe-quelle-netz.png) |
 
 ### Kurzansicht fürs Handy: `compact`
 

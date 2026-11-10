@@ -1,0 +1,50 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Zweiter Netzzähler Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft grid2. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?wp=Watt&style=3d&w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(o)=>({states:Object.assign({'sensor.pv':S(1000),'sensor.grid':S(200),'sensor.bat':S(0),'sensor.soc':S(60,'%'),'sensor.wp':S(1500),'sensor.preis':S(0.2545,'EUR/kWh'),'sensor.dose':S(300)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10}};
+const g2={entity:'sensor.wp',name:'Wärmepumpe',price_ct:25.45};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+  let e=mount(base,hassFor());await wait(1500);
+  ok('ohne grid2: Haus = PV + Netz = 1,20 kW',/1,2/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('ohne grid2: keine Kachel',!q(e,'[data-k="c0"]'));
+  e=mount({...base,grid2:g2},hassFor());await wait(1500);
+  ok('grid2: Kachel mit Namen',!!q(e,'[data-k="c0"]')&&/Wärmepumpe/.test(t(e,'[data-k="c0"]')),t(e,'[data-k="c0"]'));
+  ok('grid2: Leistung 1,5 kW in der Kachel',/1,5/.test(t(e,'[data-k="c0"] .num')),t(e,'[data-k="c0"] .num'));
+  ok('grid2: Hausverbrauch = 1,2 + 1,5 = 2,7 kW',/2,7/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('grid2: Netzanteil im Ring 63 %',t(e,'[data-m="grid"]')==='63 %',t(e,'[data-m="grid"]'));
+  ok('grid2: Solaranteil im Ring 37 %',t(e,'[data-m="pv"]')==='37 %',t(e,'[data-m="pv"]'));
+  ok('grid2: Kosten pro Stunde mit eigenem Preis',/0,38 €\/h/.test(t(e,'[data-k="c0"] .c-sec')),t(e,'[data-k="c0"] .c-sec'));
+  ok('grid2: Linie zur Kachel läuft',!!q(e,'.link[data-l="c0"].on'));
+  ok('grid2: Netz-Kachel zeigt weiter nur den Hauptzähler',/200/.test(t(e,'[data-k="grid"] .num')),t(e,'[data-k="grid"] .num'));
+  e=mount({...base,grid2:{entity:'sensor.wp',name:'WP',price:'sensor.preis'}},hassFor());await wait(1500);
+  ok('Preis aus einem Sensor: 0,38 €/h',/0,38 €\/h/.test(t(e,'[data-k="c0"] .c-sec')),t(e,'[data-k="c0"] .c-sec'));
+  e=mount({...base,grid2:{entity:'sensor.wp',name:'WP',price:'sensor.preis',price_ct:99}},hassFor());await wait(1500);
+  ok('Sensor hat Vorrang vor price_ct',/0,38 €\/h/.test(t(e,'[data-k="c0"] .c-sec')),t(e,'[data-k="c0"] .c-sec'));
+  e=mount({...base,grid2:{entity:'sensor.wp',name:'WP'}},hassFor());await wait(1500);
+  ok('ohne Preis: keine Kosten, Leistung bleibt',!/€/.test(t(e,'[data-k="c0"] .c-sec'))&&/2,7/.test(t(e,'.core .num')),t(e,'[data-k="c0"] .c-sec'));
+  e=mount({...base,grid2:g2},hassFor({'sensor.wp':S(0)}));await wait(1500);
+  ok('Wärmepumpe aus: Haus wieder 1,2 kW, keine Kosten',/1,2/.test(t(e,'.core .num'))&&!/€/.test(t(e,'[data-k="c0"] .c-sec')),t(e,'.core .num')+' / '+t(e,'[data-k="c0"] .c-sec'));
+  e=mount({...base,grid2:g2},hassFor({'sensor.wp':S('unavailable')}));await wait(1500);
+  ok('Sensor nicht verfügbar: kein Absturz, Haus 1,2 kW',/1,2/.test(t(e,'.core .num')),t(e,'.core .num'));
+  e=mount({...base,grid2:g2,consumers:[{name:'Dose',entity:'sensor.dose'}]},hassFor());await wait(1500);
+  ok('weiterer Verbraucher bleibt, Wärmepumpe zuerst',/Wärmepumpe/.test(t(e,'[data-k="c0"]'))&&/Dose/.test(t(e,'[data-k="c1"]')),t(e,'[data-k="c1"]'));
+  e=mount({...base,grid2:{name:'ohne Sensor'}},hassFor());await wait(1500);
+  ok('grid2 ohne Sensor: ignoriert',!q(e,'[data-k="c0"]')&&/1,2/.test(t(e,'.core .num')));
+  e=mount({...base,style:'3d',grid2:g2},hassFor());await wait(1500);
+  ok('3D: Haus 2,7 kW und Kachel da',/2,7/.test(t(e,'.core .num'))&&!!q(e,'[data-k="c0"]'),t(e,'.core .num'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,style:P.get('style')||undefined,grid2:g2},hassFor({'sensor.wp':S(+(P.get('wp')||1500))}));}
+</script></body></html>

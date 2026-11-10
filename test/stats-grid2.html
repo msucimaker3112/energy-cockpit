@@ -1,0 +1,45 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Zweiter Netzzähler Statistik Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft grid2_total, grid2_price(_ct), grid2_name. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const one=(v)=>[{start:new Date(Y,M,1).getTime(),change:v}];
+// Monat: PV 100 kWh, davon 20 eingespeist, Bezug 100 kWh (Hauptzähler), zweiter Zähler 50 kWh
+const mon={'sensor.pv':one(100),'sensor.imp':one(100),'sensor.exp':one(20),'sensor.g2':one(50),'sensor.chg':one(0),'sensor.dis':one(0)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.g2':S(900),'sensor.p2':S(0.2545,'EUR/kWh'),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const r={};if(m.period==='month')(m.statistic_ids||[]).forEach(id=>{if(mon[id])r[id]=mon[id];});return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price_ct:30,feed_in_ct:0};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const num=(t)=>parseFloat(String(t).replace(/[^\d,.\-−+]/g,'').replace(/\./g,'').replace(',','.').replace('−','-'));
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),t=(e,f)=>{const x=q(e,`[data-f="${f}"]`);return x?x.textContent.trim():null;},tt=(e,k)=>q(e,`[data-t="${k}"]`).textContent.trim();
+  let e=mount(base);await wait(2500);
+  ok('ohne grid2: Stromkosten 30,00',tt(e,'cost')==='30,00',tt(e,'cost'));
+  ok('ohne grid2: Autarkie 44 %',tt(e,'aut')==='44',tt(e,'aut'));
+  ok('ohne grid2: kein "davon"',!/davon/.test(t(e,'costSub')),t(e,'costSub'));
+  e=mount({...base,grid2_total:'sensor.g2',grid2_price_ct:25,grid2_name:'Wärmepumpe'});await wait(2500);
+  ok('grid2: Stromkosten 100×0,30 + 50×0,25 = 42,50',tt(e,'cost')==='42,50',tt(e,'cost'));
+  ok('grid2: Bezug 150 kWh',/150 kWh/.test(t(e,'costSub')),t(e,'costSub'));
+  ok('grid2: davon Wärmepumpe 12,50 €',/davon Wärmepumpe 12,50/.test(t(e,'costSub')),t(e,'costSub'));
+  ok('grid2: Autarkie 1 − 150/230 = 35 %',tt(e,'aut')==='35',tt(e,'aut'));
+  e=mount({...base,grid2_total:'sensor.g2'});await wait(2500);
+  ok('ohne eigenen Preis: normaler Preis 150×0,30 = 45,00',tt(e,'cost')==='45,00',tt(e,'cost'));
+  ok('ohne Namen: Standardname',/davon Zweiter Zähler/.test(t(e,'costSub')),t(e,'costSub'));
+  e=mount({...base,grid2_total:'sensor.g2',grid2_price:'sensor.p2'});await wait(2500);
+  ok('Preis aus Sensor: 30,00 + 50×0,2545 = 42,73',tt(e,'cost')==='42,73',tt(e,'cost'));
+  e=mount({...base,grid2_total:'sensor.g2',grid2_price_ct:25,budget_kwh:1000});await wait(2500);
+  ok('Jahresbudget zählt den zweiten Zähler mit (150 von 1.000 kWh)',/150 von 1\.000/.test(t(e,'budOf')),t(e,'budOf'));
+  e=mount({...base,grid2_total:'sensor.fehlt',grid2_price_ct:25});await wait(2500);
+  ok('Zähler ohne Statistik: Kosten wie ohne grid2, kein Absturz',tt(e,'cost')==='30,00',tt(e,'cost'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,grid2_total:'sensor.g2',grid2_price_ct:25,grid2_name:'Wärmepumpe'});}
+</script></body></html>

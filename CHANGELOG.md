@@ -1,5 +1,44 @@
 # Änderungsprotokoll
 
+## 0.26.0
+- **Statistik, Bereiche ausblenden (optional, `hide`):** Mit einer Liste blendest du Bereiche aus, die du nicht brauchst: `monthly` (Diagramm "PV-Ertrag pro Monat"), `amortisation`, `baseload` (Grundlast), `footer` (Rekordtag, Wirkungsgrad, Zyklen, Temperatur, PV gesamt) und `money` (die vier Kacheln oben). Bleibt von der Zeile Amortisation und Grundlast nur eine Kachel, nimmt sie die ganze Breite. Auswählbar im Editor unter "Alle Felder". Ohne Eintrag ändert sich nichts. Wunsch aus [#35](https://github.com/msucimaker3112/energy-cockpit/issues/35).
+
+## 0.25.3
+- **Statistik, Jahresbudget bei spät beginnenden Messdaten:** Wer seinen Zähler erst im Laufe des Jahres eingerichtet hat, bekam ein Soll für das ganze Jahr bis heute und eine Hochrechnung, die nicht zusammenpassten (bei Messdaten ab Oktober zum Beispiel 247 kWh Netzbezug gegen 2.055 kWh Soll). Jetzt erkennt die Karte, ab wann der Netzbezug aufgezeichnet wird, und rechnet Soll und Hochrechnung für diesen Zeitraum. Unter der Kachel steht "Messdaten erst seit 10. Oktober 2026 … vorläufig". Bei vollständigen Daten ändert sich nichts. Wunsch aus [#37](https://github.com/msucimaker3112/energy-cockpit/issues/37).
+
+## 0.25.2
+- **Assistent, Prognose heute:** Im Schritt "Solar" ließ sich bei "Prognose" nur ein Sensor in Watt auswählen, obwohl der Hilfetext sagte, eine Tagesprognose in kWh gehe auch (nur im Formular). Jetzt bietet der Assistent beides an: Sensoren mit Leistung in W/kW und Sensoren mit Energie in kWh, zum Beispiel Forecast.Solar "Energie Produktion heute". Überschrift und Hilfetext sind angepasst. Gemeldet in [#36](https://github.com/msucimaker3112/energy-cockpit/issues/36).
+
+## 0.25.1
+- **Energiefluss, "Nicht erfasst" auch bei einzelnen Verbrauchern:** Wer Verbraucher unter `consumers` ohne Gruppen eingetragen hat, bekam die Kachel "Nicht erfasst" bisher nicht, sie gab es nur bei Gruppen. Mit `hide_rest: false` erscheint sie jetzt auch dort und zeigt den Hausverbrauch minus Summe der Verbraucher. `rest_min` und `rest.name` gelten ebenfalls. Ohne diese ausdrückliche Einstellung ändert sich nichts. Gemeldet in [#34](https://github.com/msucimaker3112/energy-cockpit/issues/34).
+
+## 0.25.0
+- **Zweiter Netzzähler (optional, `grid2`):** Für Haushalte mit einem zweiten Zähler und eigenem Tarif, zum Beispiel für die Wärmepumpe. Im Energiefluss erscheint der Zähler als Kachel bei den Verbrauchern, mit eigener Linie zum Haus und den Kosten pro Stunde zu seinem Preis (`price` aus einem Sensor oder Helfer, oder `price_ct` fest in Cent). Sein Bezug zählt zum Hausverbrauch und im Ring zum Netz. In der Statistik gibt es `grid2_total` (kWh-Zähler), `grid2_name`, `grid2_price` und `grid2_price_ct`: Der Bezug geht mit seinem Preis in die Stromkosten, in die Autarkie und in das Jahresbudget ein, unter „Stromkosten Netz“ steht der Anteil des zweiten Zählers. Im Assistenten gibt es dafür ein Feld im Schritt „Netz“ des Energieflusses und den neuen Schritt „Zähler 2“ in der Statistik. Ohne Eintrag ändert sich nichts. Wunsch aus [#29](https://github.com/msucimaker3112/energy-cockpit/issues/29).
+
+## 0.24.0
+- **Statistik, Jahresbudget (optional, `budget_kwh`):** Du setzt dir ein Jahresziel für den Netzbezug, zum Beispiel 8.000 kWh. Die Karte zeigt, wie viel davon verbraucht ist (Prozent und Balken), das Soll bis heute, die Abweichung in kWh und Euro, die Hochrechnung zum Jahresende und die Abweichung zum Ziel, farbig grün, gelb oder rot. Mit `budget_profile: history` folgt das Soll dem Verlauf deines Netzbezugs im Vorjahr, im Winter ist es dann höher als im Sommer. Ohne `budget_kwh` ändert sich nichts. Im Assistenten im Schritt "Preise" einstellbar. Wunsch aus der Facebook-Gruppe "Home Assistant Tipps und Tricks".
+- **Statistik, Kosten je Verbraucher:** Der Hinweis bei "Gesamt" ist verständlicher: "Nur für Heute, Woche, Monat und das laufende Jahr. Für 'Gesamt' gibt es hier keine Werte". Anlass: [#27](https://github.com/msucimaker3112/energy-cockpit/issues/27).
+
+## 0.23.0
+- **Energiefluss, Farbe der Zahl beim Haus (optional, `home_color: source`):** Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an: gelb bei PV, blau beim Speicher, rot beim Netz. Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt. Ohne Angabe bleibt die Zahl türkis. Im Assistenten im Schritt "Aussehen" einstellbar. Wunsch aus [#32](https://github.com/msucimaker3112/energy-cockpit/issues/32).
+
+## 0.22.0
+- **Energiefluss, 3D-Ansicht, Speicher-Turm:** Bei zwei oder mehr gestapelten Akkus mit gemeinsamem Sensor stand der erste Akku unten und der zweite oben, in der Zeile "Ladestand" daneben aber "erster / zweiter". Jetzt steht der erste Akku oben, die Grafik passt zum Text. Gemeldet in [#33](https://github.com/msucimaker3112/energy-cockpit/issues/33).
+- **Statistik, Reiter beim Öffnen (optional, `start_period`):** Mit `day`, `week`, `month` oder `year` bestimmst du, welchen Reiter die Karte beim Öffnen zeigt. Ohne Angabe bleibt es der Monat. Einstellbar unter „Alle Felder“ im Editor oder in YAML. Wunsch aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).
+- **Statistik, Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel "Amortisation" aus, die Grundlast nimmt die ganze Breite. Bisher stand dort nur ein Strich. Wunsch aus [#31](https://github.com/msucimaker3112/energy-cockpit/issues/31).
+
+## 0.21.0
+- **Statistik, "Heute" zeigte den Monat:** Lieferte einer der Tagessensoren (PV, Bezug, Einspeisung heute) keinen Wert, blieben unter "Heute" die Zahlen des vorher gezeigten Zeitraums stehen, meist die des Monats. Jetzt steht dort ein Strich, und ein gelber Hinweis nennt den Sensor. Fehler aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Statistik, "Heute" aus den Gesamtzählern:** Fehlt ein Tagessensor oder liefert er gerade nichts, rechnet die Karte den Tageswert aus dem Gesamtzähler seit Mitternacht, wie Monat und Jahr. Die Tagessensoren sind damit optional. Mit funktionierenden Tagessensoren ändert sich nichts.
+- **Statistik, Hinweise bei unpassenden Sensoren:** Die Karte warnt unter den Kacheln, wenn in einem Tagesfeld offenbar ein Gesamtzähler steckt oder heute mehr eingespeist als erzeugt wurde. Anlass waren [#26](https://github.com/msucimaker3112/energy-cockpit/issues/26), [#27](https://github.com/msucimaker3112/energy-cockpit/issues/27) und [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Statistik, Rekordtag:** Er kam nur aus dem Tagessensor. War der erst seit Kurzem angelegt, stand dort ein viel zu kleiner Rekord. Jetzt wertet die Karte auch den Gesamtzähler und zeigt den höheren Wert. Rückmeldung aus [#26](https://github.com/msucimaker3112/energy-cockpit/issues/26).
+- **Statistik, `pv_lifetime` (optional):** Ein durchlaufender PV-Zähler nur für Amortisation und "PV gesamt", wenn `pv_total` täglich auf 0 geht. Wunsch aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Energiefluss, Geräte in Gruppen nach Leistung (optional, `consumer_groups_sort: leistung`):** Aktive Geräte stehen oben, das stärkste zuerst. Die Liste ordnet sich höchstens alle 10 Sekunden neu und springt bei kleinen Schwankungen nicht. Wunsch aus [#24](https://github.com/msucimaker3112/energy-cockpit/issues/24).
+- **Energiefluss, Dachfarbe in 3D (optional, `roof_color`):** zum Beispiel `anthrazit`, `schwarz`, `grau`, `braun` oder eine eigene Farbe als `#hex`. Wunsch aus [#28](https://github.com/msucimaker3112/energy-cockpit/issues/28).
+- **Energiefluss und Statistik, feste Nachkommastellen (optional, `decimals`):** `decimals: 2` zeigt Energie immer mit zwei Stellen, also `10,80 kWh` und `0,00 kWh`. Einzeln für Energie, Leistung in kW und Prozent: `decimals: { energy: 2, power: 1, percentage: 1 }`. Wunsch aus [#25](https://github.com/msucimaker3112/energy-cockpit/issues/25).
+
+Alles Neue ist optional, ohne Eintrag bleibt die Anzeige wie bisher.
+
 ## 0.20.0
 - **Energiefluss, PV-Prognose für morgen und übermorgen (optional, `pv.forecast_tomorrow`, `pv.forecast_day_after`):** Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, zum Beispiel von Forecast.Solar oder Solcast. Ein Tipp öffnet den Verlauf. Einstellbar im Assistenten (Schritt *Solar*). Ohne Eintrag ändert sich nichts. Wunsch aus [#22](https://github.com/msucimaker3112/energy-cockpit/issues/22).
 - **Energiefluss, Solar-Linie fehlte:** Passten Hausverbrauch-Sensor, Netz und PV kurz nicht zusammen, etwa weil sie zeitversetzt melden, zeigte die 3D-Ansicht keine Solar-Linie, und die Solar-Kachel sagte nicht, wohin der Strom geht. Dieser Rest zählt jetzt zum Haus, in 3D und in der klassischen Ansicht. Passen die Werte zusammen, ändert sich nichts. Rückmeldung aus [#23](https://github.com/msucimaker3112/energy-cockpit/issues/23).
