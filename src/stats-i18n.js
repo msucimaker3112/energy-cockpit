@@ -19,4 +19,40 @@ WD.addStrings({
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
   'st.lt.hist': 'Historie: nur PV-Ertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
-});
+}, 'de');
+
+WD.addStrings({
+  'st.title': 'Statistics', 'st.err': 'pv_total, grid_import_total and grid_export_total are required', 'st.today': 'Today', 'st.next': 'Next →',
+  'st.pvsav': 'PV savings', 'st.feed': 'Feed-in revenue', 'st.selfc': 'PV self-consumption', 'st.cost': 'Grid electricity cost', 'st.aut': 'Self-sufficiency',
+  'st.amo': 'PV system payback', 'st.base': 'Base load (night)', 'st.monthly': 'PV yield per month', 'st.record': 'Record day',
+  'st.eff': 'Battery efficiency', 'st.cycles': 'Full cycles', 'st.temp': 'Battery temperature', 'st.pvall': 'PV total',
+  'st.self': '<b>{kwh} kWh</b> PV self-consumed', 'st.fed': '<b>{kwh} kWh</b> exported', 'st.drawn': '<b>{kwh} kWh</b> imported',
+  'st.autsub': 'Self-consumption <b>{self}</b> · Consumption <b>{cons} kWh</b>',
+  'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>The system has paid for itself 🎉</b>', 'st.eta.far': 'Forecast not yet meaningful', 'st.price.warn': '⚠ Electricity price is only {p} ct/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
+  'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
+  'st.full': '× full', 'st.note': 'Grid power {p} ct/kWh · Feed-in {f} ct/kWh · energy costs only, excluding standing charges · payback estimated at current prices',
+  'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
+  'st.import': 'Import', 'st.export': 'Export',
+  'st.week': 'Week', 'st.cc.title': 'Cost per consumer', 'st.cc.meas': 'measured', 'st.cc.est': 'by home mix', 'st.cc.cost': 'Grid cost', 'st.cc.saved': 'saved', 'st.cc.nohist': 'Only available for the current year', 'st.cc.grid': 'Grid', 'st.cc.bat': 'Battery', 'st.cc.pv': 'PV', 'st.cc.upto': 'up to {x} {cur}/h', 'st.cc.unitW': '{id} measures power ({u}). An energy meter in kWh is required.', 'st.cc.nostat': 'No kWh statistics for {id}. A meter with state_class total_increasing is required.', 'st.cc.missing': '{id} does not exist.',
+  'st.all': 'Total', 'st.hist': 'History', 'st.nodata2': 'no data',
+  'st.lt.from': 'Data from {d}', 'st.lt.gaps': 'No data for: {m}', 'st.lt.skip': 'Totals exclude {n} month(s) without complete data',
+  'st.lt.hist': 'History: PV yield only, without grid and storage values', 'st.lt.price': 'Monetary values calculated at current prices',
+}, 'en');
+
+WD.addStrings({
+  'st.title': 'Statistieken', 'st.err': 'pv_total, grid_import_total en grid_export_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
+  'st.pvsav': 'PV-besparing', 'st.feed': 'Terugleveropbrengst', 'st.selfc': 'PV-eigen verbruik', 'st.cost': 'Stroomkosten net', 'st.aut': 'Zelfvoorziening',
+  'st.amo': 'Terugverdientijd PV-installatie', 'st.base': 'Basislast (nacht)', 'st.monthly': 'PV-opbrengst per maand', 'st.record': 'Recorddag',
+  'st.eff': 'Accurendement', 'st.cycles': 'Volledige cycli', 'st.temp': 'Accutemperatuur', 'st.pvall': 'PV totaal',
+  'st.self': '<b>{kwh} kWh</b> PV zelf gebruikt', 'st.fed': '<b>{kwh} kWh</b> teruggeleverd', 'st.drawn': '<b>{kwh} kWh</b> afgenomen',
+  'st.autsub': 'Eigen verbruik <b>{self}</b> · Verbruik <b>{cons} kWh</b>',
+  'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>De installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Prognose nog niet betrouwbaar', 'st.price.warn': '⚠ Stroomprijs is maar {p} ct/kWh: dit veld verwacht <b>cent</b> (bijvoorbeeld 23.88), geen euro.',
+  'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 0 en 5 uur, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
+  'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · Teruglevering {f} ct/kWh · alleen energiekosten, zonder vaste kosten · terugverdientijd geschat met huidige prijzen',
+  'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparing te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
+  'st.import': 'Afname', 'st.export': 'Teruglevering',
+  'st.week': 'Week', 'st.cc.title': 'Kosten per verbruiker', 'st.cc.meas': 'gemeten', 'st.cc.est': 'volgens huismix', 'st.cc.cost': 'Netkosten', 'st.cc.saved': 'bespaard', 'st.cc.nohist': 'Alleen beschikbaar voor het huidige jaar', 'st.cc.grid': 'Net', 'st.cc.bat': 'Accu', 'st.cc.pv': 'PV', 'st.cc.upto': 'tot {x} {cur}/u', 'st.cc.unitW': '{id} meet vermogen ({u}). Er is een energiemeter in kWh nodig.', 'st.cc.nostat': 'Geen kWh-statistieken voor {id}. Er is een meter met state_class total_increasing nodig.', 'st.cc.missing': '{id} bestaat niet.',
+  'st.all': 'Totaal', 'st.hist': 'Geschiedenis', 'st.nodata2': 'geen gegevens',
+  'st.lt.from': 'Gegevens vanaf {d}', 'st.lt.gaps': 'Geen gegevens voor: {m}', 'st.lt.skip': 'In de totalen ontbreken {n} maand(en) zonder volledige gegevens',
+  'st.lt.hist': 'Geschiedenis: alleen PV-opbrengst, zonder net- en opslagwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen',
+}, 'nl');

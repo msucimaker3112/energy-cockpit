@@ -3,10 +3,12 @@
    in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
   const { nf, esc, rgb, T, setLocale, cur } = WD;
-  const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-  const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const SRC = [['Netz', '255,92,122'], ['Batterie', '96,165,250'], ['PV', '255,197,61']];
+  // Array, das bei jedem Zugriff die aktuelle Sprache liest (MONTHS[i], .map, .length usw. funktionieren weiter)
+  const live = (fn) => new Proxy([], { get: (_, p) => fn()[p], has: (_, p) => p in fn() });
+  const MONTHS = live(() => T('months'));
+  const MONTHS_LONG = live(() => T('months_long'));
+  const DAYS = live(() => T('days'));
+  const SRC = live(() => [[T('flow.grid'), '255,92,122'], [T('flow.battery'), '96,165,250'], [T('st.cc.pv'), '255,197,61']]);
   const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const fk = (v) => nf(v, v < 10 ? 2 : v < 100 ? 1 : 0);
   const fe = (v) => nf(v, 2);
@@ -104,8 +106,23 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     'room.sum': 'Summe', 'room.loading': 'Daten werden geladen …',
     'room.noprice': 'Kein Preis eingestellt: Es werden nur kWh angezeigt.', 'room.csv': 'Als CSV kopieren', 'room.copied': 'Kopiert',
     'room.since': 'Daten seit', 'room.unconf': 'Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.',
-  });
+  }, 'de');
 
+  WD.addStrings({
+    'room.title': 'Room billing', 'room.week': 'This week', 'room.month': 'This month', 'room.year': 'This year', 'room.prev': 'Previous year',
+    'room.tab.week': 'Week', 'room.tab.month': 'Month', 'room.tab.year': 'Year', 'room.tab.prev': 'Prev. year',
+    'room.sum': 'Total', 'room.loading': 'Loading data …',
+    'room.noprice': 'No price set: only kWh are shown.', 'room.csv': 'Copy as CSV', 'room.copied': 'Copied',
+    'room.since': 'Data since', 'room.unconf': 'Not set up yet. Edit the card (pencil): the <b>wizard</b> helps you select the meters.',
+  }, 'en');
+
+  WD.addStrings({
+    'room.title': 'Afrekening per ruimte', 'room.week': 'Deze week', 'room.month': 'Deze maand', 'room.year': 'Dit jaar', 'room.prev': 'Vorig jaar',
+    'room.tab.week': 'Week', 'room.tab.month': 'Maand', 'room.tab.year': 'Jaar', 'room.tab.prev': 'Vorig jaar',
+    'room.sum': 'Totaal', 'room.loading': 'Gegevens worden geladen …',
+    'room.noprice': 'Geen prijs ingesteld: alleen kWh worden getoond.', 'room.csv': 'Kopiëren als CSV', 'room.copied': 'Gekopieerd',
+    'room.since': 'Gegevens sinds', 'room.unconf': 'Nog niet ingesteld. Bewerk de kaart (potlood): de <b>assistent</b> helpt je de meters te kiezen.',
+  }, 'nl');
   class EnergyCockpitRoomCard extends HTMLElement {
     constructor() {
       super();
