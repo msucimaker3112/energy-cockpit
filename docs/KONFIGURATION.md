@@ -349,6 +349,7 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # earned_before: input_number.pv_vorher     # ... oder aus einem Sensor oder Helfer
 # long_term: true                           # Langzeit-Ansicht, siehe unten
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
+# hide: [monthly, footer]                  # Bereiche ausblenden: monthly, amortisation, baseload, footer, money
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
 # grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
 # grid2_price_ct: 25.45                     # eigener Preis in Cent, oder grid2_price (Sensor/Helfer); grid2_name: Wärmepumpe
@@ -369,6 +370,22 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
 **`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+**`hide`:** Blendet einzelne Bereiche der Statistik aus, die du nicht brauchst. Eine Liste mit diesen Namen, auch im Editor unter „Alle Felder“ auswählbar:
+
+| Name | Bereich |
+|---|---|
+| `monthly` | Diagramm „PV-Ertrag pro Monat“ mit der Jahresübersicht |
+| `amortisation` | Kachel „Amortisation“ (ohne Anschaffungskosten ist sie ohnehin ausgeblendet) |
+| `baseload` | Kachel „Grundlast (nachts)“ |
+| `footer` | Fußzeile mit Rekordtag, Akku-Wirkungsgrad, Vollzyklen, Akku-Temperatur und PV gesamt |
+| `money` | Die vier Kacheln oben (PV-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
+
+```yaml
+hide: [monthly, footer]
+```
+
+Die Werte werden im Hintergrund weiter berechnet. Ohne Eintrag ändert sich nichts. Das Jahresbudget und die Kosten je Verbraucher lassen sich einfach weglassen (sie erscheinen nur mit `budget_kwh` und `cost_consumers`).
 
 ### Zweiter Netzzähler in der Statistik: `grid2_total`
 

@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.26.0
+- **Statistik, Bereiche ausblenden (optional, `hide`):** Mit einer Liste blendest du Bereiche aus, die du nicht brauchst: `monthly` (Diagramm "PV-Ertrag pro Monat"), `amortisation`, `baseload` (Grundlast), `footer` (Rekordtag, Wirkungsgrad, Zyklen, Temperatur, PV gesamt) und `money` (die vier Kacheln oben). Bleibt von der Zeile Amortisation und Grundlast nur eine Kachel, nimmt sie die ganze Breite. Auswählbar im Editor unter "Alle Felder". Ohne Eintrag ändert sich nichts. Wunsch aus [#35](https://github.com/msucimaker3112/energy-cockpit/issues/35).
+
 ## 0.25.3
 - **Statistik, Jahresbudget bei spät beginnenden Messdaten:** Wer seinen Zähler erst im Laufe des Jahres eingerichtet hat, bekam ein Soll für das ganze Jahr bis heute und eine Hochrechnung, die nicht zusammenpassten (bei Messdaten ab Oktober zum Beispiel 247 kWh Netzbezug gegen 2.055 kWh Soll). Jetzt erkennt die Karte, ab wann der Netzbezug aufgezeichnet wird, und rechnet Soll und Hochrechnung für diesen Zeitraum. Unter der Kachel steht "Messdaten erst seit 10. Oktober 2026 … vorläufig". Bei vollständigen Daten ändert sich nichts. Wunsch aus [#37](https://github.com/msucimaker3112/energy-cockpit/issues/37).
 
