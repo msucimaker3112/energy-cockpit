@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.25.2
+- **Assistent, Prognose heute:** Im Schritt "Solar" ließ sich bei "Prognose" nur ein Sensor in Watt auswählen, obwohl der Hilfetext sagte, eine Tagesprognose in kWh gehe auch (nur im Formular). Jetzt bietet der Assistent beides an: Sensoren mit Leistung in W/kW und Sensoren mit Energie in kWh, zum Beispiel Forecast.Solar "Energie Produktion heute". Überschrift und Hilfetext sind angepasst. Gemeldet in [#36](https://github.com/msucimaker3112/energy-cockpit/issues/36).
+
 ## 0.25.1
 - **Energiefluss, "Nicht erfasst" auch bei einzelnen Verbrauchern:** Wer Verbraucher unter `consumers` ohne Gruppen eingetragen hat, bekam die Kachel "Nicht erfasst" bisher nicht, sie gab es nur bei Gruppen. Mit `hide_rest: false` erscheint sie jetzt auch dort und zeigt den Hausverbrauch minus Summe der Verbraucher. `rest_min` und `rest.name` gelten ebenfalls. Ohne diese ausdrückliche Einstellung ändert sich nichts. Gemeldet in [#34](https://github.com/msucimaker3112/energy-cockpit/issues/34).
 

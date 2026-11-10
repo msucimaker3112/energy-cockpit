@@ -21,7 +21,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv.name`, `pv.icon` | Text | Anzeigename, Symbol (`mdi:…`) |
 | `pv.daily` | Sensor | Tagesertrag in kWh |
 | `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Akku geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
-| `pv.forecast` | Sensor | Prognose-Leistung (z. B. Solcast) |
+| `pv.forecast` | Sensor | Prognose für heute: Leistung in W/kW oder Tagesprognose in kWh (z. B. Solcast, Forecast.Solar "Energie Produktion heute"). Im Assistenten wählbar |
 | `pv.forecast_tomorrow`, `pv.forecast_day_after` | Sensor (kWh) | Erwartete Produktion für morgen und übermorgen, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `pv.strings` | Liste | Teilstränge `{entity, name}` |
 | `grid.entity` | Sensor | Netzleistung (Bezug positiv) |
