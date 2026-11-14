@@ -169,6 +169,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 
 | Thema | Einstellung |
 |---|---|
+| **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
 | **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte | `text_size: gross`, `sehr_gross` oder `2` |
 | **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele) | `consumers[].size: gross` |
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |

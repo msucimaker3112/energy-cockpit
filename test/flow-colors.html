@@ -1,0 +1,57 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit eigene Farben Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft colors (Energiefluss): Batterie lädt/entlädt in eigener Farbe, Solar/Netz/Haus, ungültige Werte, zwei Karten mit verschiedenen Farben.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&p=-900 für Entladen, &c=1 für Farben, &d3=0 für flache Ansicht) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(bat)=>({states:{'sensor.pv':S(800),'sensor.grid':S(900),'sensor.bat':S(bat),'sensor.soc':S(60,'%')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const COL={battery_charge:'#22c55e',battery_discharge:'#ef4444'};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},style:'3d'},o||{});
+function mount(c,bat,keep){const host=document.getElementById('host');if(!keep)host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hassFor(bat);return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const bc=(e)=>q(e,'[data-k="bat"]').style.getPropertyValue('--c').trim();
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg(),-900);await wait(600);
+  ok('Standard: Entladen in Batteriefarbe',bc(e)==='96,165,250',bc(e));
+  e=mount(cfg(),900);await wait(600);
+  ok('Standard: Laden wie bisher',bc(e)==='56,189,248',bc(e));
+  e=mount(cfg({colors:COL}),900);await wait(600);
+  ok('Laden in eigener Farbe',bc(e)==='34,197,94',bc(e));
+  ok('3D-Batterie lädt in eigener Farbe',q(e,'[data-o="bat"]').innerHTML.indexOf('34,197,94')>=0);
+  e=mount(cfg({colors:COL}),-900);await wait(600);
+  ok('Entladen in eigener Farbe',bc(e)==='239,68,68',bc(e));
+  ok('Ring: Batterie-Anteil in Entladefarbe',/rgb\(239,\s*68,\s*68\)/.test(q(e,'.seg[data-g="bat"]').getAttribute('style')),q(e,'.seg[data-g="bat"]').getAttribute('style'));
+  ok('3D-Batterie entlädt in eigener Farbe',q(e,'[data-o="bat"]').innerHTML.indexOf('239,68,68')>=0);
+  e=mount(cfg({colors:{battery_charge:'#22c55e'}}),-900);await wait(600);
+  ok('nur Laden gesetzt: Entladen bleibt Standard',bc(e)==='96,165,250',bc(e));
+  e=mount(cfg({colors:{battery:'#a855f7'}}),-900);await wait(600);
+  ok('battery ohne battery_discharge: Entladen folgt der Batteriefarbe',bc(e)==='168,85,247',bc(e));
+  e=mount(cfg({colors:{pv:'#00ff00',grid_import:'1,2,3',home:'#ff00ff'}}),-900);await wait(600);
+  const st=q(e,'.wrap').getAttribute('style')||'';
+  ok('Solar-Farbe als CSS-Variable',/--pv:\s*0,255,0/.test(st),st);
+  ok('Netzbezug-Farbe (r,g,b)',/--imp:\s*1,2,3/.test(st));
+  ok('Haus-Farbe',/--home:\s*255,0,255/.test(st));
+  e=mount(cfg({colors:{battery_charge:'rot',battery_discharge:'#12',pv:42}}),900);await wait(600);
+  ok('ungültige Werte werden ignoriert',bc(e)==='56,189,248'&&!/--pv/.test(q(e,'.wrap').getAttribute('style')||''),bc(e));
+  e=mount(cfg(),900);await wait(300);
+  ok('ohne colors: keine Farb-Variablen auf der Karte',!/--pv/.test(q(e,'.wrap').getAttribute('style')||''));
+  // zwei Karten mit verschiedenen Farben stören sich nicht
+  const a=mount(cfg({colors:COL}),900);
+  const b=mount(cfg(),900,true);
+  await wait(800);
+  a.hass=hassFor(900);b.hass=hassFor(900);await wait(300);
+  ok('Karte mit Farben behält sie',bc(a)==='34,197,94',bc(a));
+  ok('Karte ohne Farben bleibt Standard',bc(b)==='56,189,248',bc(b));
+  ok('Standardpalette bleibt unverändert',WD.PAL.chg==='56,189,248'&&WD.PAL.dis==='96,165,250'&&WD.PAL.bat==='96,165,250');
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c=cfg();if(P.get('c')!=='0')c.colors=COL;if(P.get('d3')==='0')c.style='flach';mount(c,+(P.get('p')||-900));}
+</script></body></html>

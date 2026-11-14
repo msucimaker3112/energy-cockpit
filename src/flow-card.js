@@ -366,6 +366,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
     this._s3d = this._c.style === '3d';
+    const pf = WD.palFor(this._c.colors);
+    this._pal = pf.pal; this._palSet = pf.set;
     // text_size als Zahl (z. B. 2): Faktor fuer alle Texte und die Zahlen in den Kacheln. gross/sehr_gross bleiben wie bisher
     const tsn = parseFloat(String(this._c.text_size).replace(',', '.'));
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
@@ -585,7 +587,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (el && this._c.show_clock !== false) el.textContent = new Date().toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' });
   }
 
-  _build() {
+  // Eigene Farben (colors) gelten nur waehrend _build und _update dieser Karte, danach steht die Standardpalette wieder
+  _withPal(fn) {
+    if (!this._pal) return fn();
+    const keep = Object.assign({}, PAL);
+    Object.assign(PAL, this._pal);
+    try { return fn(); } finally { Object.assign(PAL, keep); }
+  }
+  _build() { return this._withPal(() => this._build0()); }
+  _update() { return this._withPal(() => this._update0()); }
+  _build0() {
     const c = this._c;
     this._bl = WD.state.lang;
     // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
@@ -684,7 +695,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : (this._tsn > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._tsn ? `--ts:${this._tsn};--vs:${this._tsn};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : (this._tsn > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._tsn ? `--ts:${this._tsn};--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -705,7 +716,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
                 <circle class="orbit" cx="60" cy="60" r="58.5"/>
                 <circle class="ring-bg" cx="60" cy="60" r="52"/>
                 <circle class="seg" data-g="pv" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.pv})"/>
-                <circle class="seg" data-g="bat" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.bat})"/>
+                <circle class="seg" data-g="bat" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.dis})"/>
                 <circle class="seg" data-g="grid" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.imp})"/>
               </svg>
               <div class="core">
@@ -716,7 +727,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
             <div class="mix">
               <span style="--c:${PAL.pv}"><i></i>${T('mix.pv')}<b data-m="pv">—</b></span>
-              ${c.battery ? `<span style="--c:${PAL.bat}"><i></i>${T('mix.bat')}<b data-m="bat">—</b></span>` : ''}
+              ${c.battery ? `<span style="--c:${PAL.dis}"><i></i>${T('mix.bat')}<b data-m="bat">—</b></span>` : ''}
               <span style="--c:${PAL.imp}"><i></i>${T('mix.grid')}<b data-m="grid">—</b></span>
             </div>
           </div>
@@ -1034,7 +1045,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const d = Math.min(x.out, expLeft);
         expLeft -= d;
         this._link(`r:${k}:grid`, d > TH, true, PAL.pv, d);
-        this._link(k, x.out - d > TH, true, x.p !== null && x.p < -TH ? PAL.bat : PAL.pv, x.out - d);
+        this._link(k, x.out - d > TH, true, x.p !== null && x.p < -TH ? PAL.dis : PAL.pv, x.out - d);
         return;
       }
       const chg = Math.max(0, x.p || 0), dis = Math.max(0, -(x.p || 0));
@@ -1042,8 +1053,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       solar -= fromPv; gridLeft -= fromGrid; expLeft -= toGrid;
       this._link(`r:pv:${k}`, fromPv > TH, true, PAL.pv, fromPv);
       this._link(`r:grid:${k}`, fromGrid > TH, true, PAL.imp, fromGrid);
-      this._link(`r:${k}:grid`, toGrid > TH, true, PAL.bat, toGrid);
-      this._link(k, dis - toGrid > TH, true, PAL.bat, dis - toGrid);
+      this._link(`r:${k}:grid`, toGrid > TH, true, PAL.dis, toGrid);
+      this._link(k, dis - toGrid > TH, true, PAL.dis, dis - toGrid);
     });
     // Rest der Einspeisung, den kein Gerät erklärt (zum Beispiel zeitversetzte Sensoren), bleibt an der Hauslinie
     if (gridLeft > TH) this._link('grid', true, true, PAL.imp, gridLeft);
@@ -1249,7 +1260,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     else if (el.textContent !== txt) el.textContent = txt;
   }
 
-  _update() {
+  _update0() {
     const h = this._hass, c = this._c;
     if (!h || !c || !this._$('.stage')) return;
     const pv1 = c.pv ? watt(h, c.pv.entity) : null;
@@ -1394,7 +1405,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const net = Math.abs(bp || 0) > TH;
       const through = via && !net && Math.max(pin, out) > TH;
       const on = net || through;
-      const col = through ? PAL.pv : on && chg ? PAL.chg : PAL.bat;
+      const col = through ? PAL.pv : on && chg ? PAL.chg : on ? PAL.dis : PAL.bat;
       el.classList.toggle('on', on);
       el.classList.toggle('charging', net && chg);
       el.style.setProperty('--c', col);
@@ -1427,7 +1438,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (via) {
         // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt
         this._link('pvbat', pin > TH, true, PAL.pv, pin);
-        this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.bat : PAL.pv, out);
+        this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     if (this._s3d) {
@@ -1445,7 +1456,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const lead = ['pv', 'bat', 'grid'].reduce((a, k) => (sh[k] > sh[a] ? k : a), 'pv');
         const keep = this._hc && sh[this._hc] >= sh[lead] - 0.05 ? this._hc : lead;
         this._hc = keep;
-        col = `rgb(${keep === 'pv' ? PAL.pv : keep === 'bat' ? PAL.bat : PAL.imp})`;
+        col = `rgb(${keep === 'pv' ? PAL.pv : keep === 'bat' ? PAL.dis : PAL.imp})`;
       } else this._hc = null;
       if (hn.style.color !== col) hn.style.color = col;
     }

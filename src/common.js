@@ -9,8 +9,20 @@ const WD = (() => {
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
-  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', home: '34,211,238', mut: '139,151,179' };
+  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179' };
   const TH = 10;
+  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home.
+  // Ohne battery_discharge entlaedt die Batterie in der Farbe der Batterie. Ungueltige Werte werden ignoriert
+  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home' };
+  const palFor = (colors) => {
+    const p = Object.assign({}, PAL), o = {};
+    if (colors && typeof colors === 'object') {
+      Object.keys(COLOR_KEYS).forEach((k) => { const v = accentRgb(colors[k]); if (v) o[COLOR_KEYS[k]] = v; });
+    }
+    Object.assign(p, o);
+    if (o.bat && !o.dis) p.dis = o.bat;
+    return { pal: p, set: Object.keys(o).length > 0 };
+  };
 
   // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
   const accentRgb = (a) => {
@@ -169,5 +181,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, palFor, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();

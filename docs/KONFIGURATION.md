@@ -251,6 +251,32 @@ grid_alert:
   delay: 120
 ```
 
+### Eigene Farben: `colors`
+
+Optional. Du legst fest, in welcher Farbe die Batterie lädt und entlädt, und ändern kannst du auch Solar, Netz und Haus.
+
+```yaml
+colors:
+  battery_charge: "#22c55e"      # Batterie lädt (grün)
+  battery_discharge: "#ef4444"   # Batterie entlädt (rot)
+```
+
+![Batterie lädt grün, entlädt rot](img/farben-batterie.png)
+
+| Schlüssel | Standard | Wirkt auf |
+|---|---|---|
+| `pv` | gold | Solar: Kachel, Linie, Ring |
+| `grid_import` | rot | Netzbezug |
+| `grid_export` | grün | Einspeisung |
+| `battery` | blau | Batterie im Ruhezustand, und beim Entladen, wenn `battery_discharge` fehlt |
+| `battery_charge` | hellblau | Batterie lädt: Kachel, Ladebalken, Linie, 3D-Objekt |
+| `battery_discharge` | wie `battery` | Batterie entlädt: Kachel, Linie, 3D-Objekt, Ring und Zeile „Solar / Akku / Netz“ |
+| `home` | türkis | Zahl beim Haus, Sammel-Linie |
+
+Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für diese Karte, andere Karten bleiben unberührt, und sie wirken nur in der Energiefluss-Karte.
+
+**Tipp:** Netzbezug ist standardmäßig rot. Wer die Batterie beim Entladen ebenfalls rot färbt, kann beides im Ring verwechseln. Dann hilft eine andere Farbe für `grid_import`, zum Beispiel Orange.
+
 ### Himmelsband: `weather`
 
 Optional. Ein dünner Streifen unter der Kopfzeile zeigt das Wetter des Tages in 24 Stunden, mit einem Punkt für "jetzt". Darunter stehen Wetter, Temperatur sowie Sonnenaufgang und Sonnenuntergang. Ein Tipp auf das Band zeigt Bewölkung, Wind und die nächsten Stunden.

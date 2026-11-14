@@ -13,7 +13,7 @@ const glow=(id,col,op)=>`<radialGradient id="${id}"><stop offset="0" style="stop
 function stack(socs,p,pre,large,label){
   const W=118,D=84,REV=30,MX=13;
   const n=socs.length,H=n===1?124:n===2?72:n===3?54:44,GAP=3,BASE=6;
-  const chg=p>TH,dis=p<-TH,run=chg||dis,accent=chg?PAL.chg:PAL.bat;
+  const chg=p>TH,dis=p<-TH,run=chg||dis,accent=chg?PAL.chg:dis?PAL.dis:PAL.bat;
   const dur=Math.max(1.2,3.4-Math.abs(p)/800).toFixed(2)+'s';
   const lampCol=run?accent:'139,151,179';
   const zT=BASE+n*H+(n-1)*GAP,CAPH=5;
@@ -202,7 +202,7 @@ function house(home,src,pre,form,detail,label){
   body+=`<polygon points="${pts(arc(0,Math.PI*2))}" style="fill:rgba(var(--ov),.035)"/>`;
   body+=`<polyline points="${pts(arc(0,Math.PI*2))}" style="fill:none;stroke:rgba(var(--ov),.1);stroke-width:8"/>`;
   let a=Math.PI*.75;
-  [[src.pv,PAL.pv],[src.bat,PAL.bat],[src.imp,PAL.imp]].forEach(([v,col])=>{if(!tot||v<=0)return;const e=a+v/tot*Math.PI*2;body+=`<polyline points="${pts(arc(a,e))}" style="fill:none;stroke:rgb(${col});stroke-width:8"/>`;a=e;});
+  [[src.pv,PAL.pv],[src.bat,PAL.dis],[src.imp,PAL.imp]].forEach(([v,col])=>{if(!tot||v<=0)return;const e=a+v/tot*Math.PI*2;body+=`<polyline points="${pts(arc(a,e))}" style="fill:none;stroke:rgb(${col});stroke-width:8"/>`;a=e;});
   body+=`<ellipse cx="${c[0]+5}" cy="${c[1]+6}" rx="80" ry="46" fill="url(#${pre}sh)"/>`;
   if(lit)body+=`<ellipse cx="${c[0]}" cy="${c[1]+4}" rx="88" ry="50" fill="url(#${pre}lt)"/>`;
   // Baum hinter dem Haus, Weg zur Tür
