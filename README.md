@@ -169,7 +169,8 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 
 | Thema | Einstellung |
 |---|---|
-| **Textgröße** für Handy und Tablet | `text_size: gross` oder `sehr_gross` |
+| **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte | `text_size: gross`, `sehr_gross` oder `2` |
+| **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele) | `consumers[].size: gross` |
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |
 | **Gruppen pro Reihe,** damit Gerätenamen auch auf dem Handy lesbar sind | `groups_columns: 1` |
 | **Alles in Watt** statt ab 1000 W in kW | `watt_only: true` |
@@ -182,6 +183,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Aktiv ab:** ab welcher Leistung Rahmen und Linie erscheinen | `on_w` |
 | **Batterie:** Entladegrenze und Maximalladung, Ladestand im nutzbaren Bereich, Temperatur | `reserve_soc`, `max_soc`, `soc_display: nutzbar`, `temp` |
 | **PV-Prognose** für morgen und übermorgen, zum Beispiel von Forecast.Solar oder Solcast | `pv.forecast_tomorrow`, `pv.forecast_day_after` |
+| **Himmelsband** mit dem Wetter des Tages (24 Stunden, Sonnenaufgang und -untergang) | `weather` |
 | **Haus heute** aus einem eigenen Sensor | `home.daily` |
 | **Unterposten** in der Raum-Abrechnung | `devices[].items` |
 

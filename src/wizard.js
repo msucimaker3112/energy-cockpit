@@ -20,6 +20,7 @@
       else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
       else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
       else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));
+      else if (kind === 'weather') ok = dom === 'weather';
       else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
       if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
     });

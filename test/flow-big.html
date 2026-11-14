@@ -1,0 +1,64 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit große Kacheln und Textgröße Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft size: gross bei Verbrauchern, text_size als Zahl und dass die Linien hinter den Kacheln laufen.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&ts=2, &w=Breite, &kurz=1) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(2600),'sensor.grid':S(-300),'sensor.bat':S(-600),'sensor.soc':S(71,'%'),'sensor.wp':S(1450),'sensor.wb1':S(3700),'sensor.wb2':S(0),'sensor.l':S(42),'sensor.k':S(118)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};
+const cons=()=>[
+ {entity:'sensor.wp',name:'Wärmepumpe',icon:'mdi:heat-pump-outline',color:'#ff8a5c',size:'gross'},
+ {entity:'sensor.wb1',name:'Wallbox 1',icon:'mdi:ev-station',color:'#a78bfa',size:'gross'},
+ {entity:'sensor.wb2',name:'Wallbox 2',icon:'mdi:ev-station',color:'#7dd3fc',size:'gross'},
+ {entity:'sensor.l',name:'Licht',icon:'mdi:lightbulb-outline',color:'#facc15'},
+ {entity:'sensor.k',name:'Kühlschrank',icon:'mdi:fridge-outline',color:'#34d399'}];
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},style:'3d',consumers:cons()},o||{});
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+const fs=(e,s)=>parseFloat(getComputedStyle(q(e,s)).fontSize);
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg());await wait(700);
+  ok('drei große Kacheln',qa(e,'.cons.big').length===3,qa(e,'.cons.big').length);
+  ok('Licht und Kühlschrank bleiben normal',!q(e,'[data-k="c3"]').classList.contains('big')&&!q(e,'[data-k="c4"]').classList.contains('big'));
+  ok('große Kachel belegt zwei Spalten',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='span 2',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);
+  const big=fs(e,'[data-k="c1"] .num'),small=fs(e,'[data-k="c3"] .num');
+  ok('große Zahl deutlich größer als bei kleiner Kachel',big>=small*1.6,big+' px gegen '+small+' px');
+  ok('Wert in der großen Kachel stimmt',/3,70/.test(q(e,'[data-k="c1"] .num').textContent),q(e,'[data-k="c1"] .num').textContent);
+  ok('size: big wird auch verstanden',(()=>{const x=mount(cfg({consumers:[{entity:'sensor.wp',name:'A',size:'big'}]}));return !!q(x,'.cons.big');})());
+  e=mount(cfg());await wait(500);
+  const bg=getComputedStyle(q(e,'[data-k="c3"]')).backgroundColor;
+  ok('Verbraucher-Kachel deckt die Linien ab (undurchsichtiger Grund)',bg!=='rgba(0, 0, 0, 0)'&&!/rgba\(.*,\s*0(\.\d+)?\)$/.test(bg),bg);
+  const zl=parseInt(getComputedStyle(q(e,'svg.links')).zIndex),zc=parseInt(getComputedStyle(q(e,'.consumers')).zIndex);
+  ok('Linien liegen hinter den Kacheln',zl<zc,zl+' < '+zc);
+
+  // Textgröße: gross/sehr_gross wie bisher (Zahlen unverändert), Zahl vergrößert auch die Zahlen
+  const norm=fs(mount(cfg({consumers:[]})),'.node .num');
+  ok('sehr_gross: Zahlen bleiben wie bisher',Math.abs(fs(mount(cfg({text_size:'sehr_gross',consumers:[]})),'.node .num')-norm)<0.5,norm);
+  const n2=fs(mount(cfg({text_size:2,consumers:[]})),'.node .num');
+  ok('text_size: 2 verdoppelt die Zahlen',Math.abs(n2/norm-2)<0.05,n2+' px gegen '+norm+' px');
+  ok('text_size: "2" als Text wird gelesen',Math.abs(fs(mount(cfg({text_size:'2',consumers:[]})),'.node .num')/norm-2)<0.05);
+  ok('text_size: "1,5" mit Komma wird gelesen',Math.abs(fs(mount(cfg({text_size:'1,5',consumers:[]})),'.node .num')/norm-1.5)<0.05);
+  ok('text_size: 9 wird auf 4 begrenzt',Math.abs(fs(mount(cfg({text_size:9,consumers:[]})),'.node .num')/norm-4)<0.1);
+  ok('text_size: 0.1 wird auf 0,5 begrenzt',Math.abs(fs(mount(cfg({text_size:0.1,consumers:[]})),'.node .num')/norm-0.5)<0.05);
+  ok('text_size: Unsinn wird ignoriert',Math.abs(fs(mount(cfg({text_size:'abc',consumers:[]})),'.node .num')-norm)<0.5);
+  const pill0=fs(mount(cfg()),'.pill');
+  e=mount(cfg({text_size:2}));await wait(400);
+  ok('kleine Texte wachsen mit (--ts)',fs(e,'.pill')>pill0*1.5,fs(e,'.pill')+' px gegen '+pill0+' px');
+  ok('große Kachel wächst mit',fs(e,'[data-k="c1"] .num')>=big*1.9,fs(e,'[data-k="c1"] .num'));
+
+  // Kurzansicht: große Kachel bleibt einspaltig
+  e=mount(cfg({compact:'immer'}));await wait(500);
+  ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);
+
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c=cfg();if(P.get('ts'))c.text_size=P.get('ts');if(P.get('kurz'))c.compact='immer';mount(c);}
+</script></body></html>

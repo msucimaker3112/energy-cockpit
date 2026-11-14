@@ -1,6 +1,6 @@
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
@@ -19,6 +19,20 @@ header>*{margin:3px 0 3px 8px}
 .clock{font-variant-numeric:tabular-nums;color:var(--mut);font-weight:500;margin-left:12px;font-size:.95rem}
 .pill{font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));padding:6px 11px;border-radius:999px;background:var(--glass);border:1px solid var(--stroke)}
 .pill b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;margin-left:4px}
+.sky{margin:-12px 0 18px;padding:0 2px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.sky[hidden]{display:none}
+.sky-bar{position:relative;display:flex;gap:1px;height:6px}
+.sky-bar i{flex:1;display:block}
+.sky-bar i:first-child{border-radius:4px 0 0 4px}
+.sky-bar i:last-child{border-radius:0 4px 4px 0}
+.sky-now{position:absolute;top:-3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--txt);box-shadow:0 0 0 3px rgba(var(--ov),.18)}
+.sky-row{display:flex;justify-content:space-between;gap:12px;margin-top:7px;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.sky-det{display:none;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--stroke);font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
+.sky.open .sky-det{display:block}
+.sky-det b{color:var(--txt);font-weight:650}
+.sky-det .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 12px;margin-top:8px}
+.cmp .sky-bar{display:none}
+.cmp .sky{margin:-14px 0 12px}
 .ka{display:none}
 .ka.show{display:block}
 .ka.wait{color:#fff;border-color:rgba(var(--pv),.6);background:rgba(var(--pv),.15);position:relative}
@@ -85,9 +99,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
 .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .val{margin-top:12px;display:flex;align-items:baseline}
-.num{font-size:1.95rem;font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1;color:var(--txt);transition:color .5s}
+.num{font-size:calc(1.95rem*var(--vs,1));font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1;color:var(--txt);transition:color .5s}
 .node.on .num{color:rgb(var(--c));text-shadow:none}
-.unit{font-size:.85rem;color:rgb(var(--mut));font-weight:650;margin-left:5px}
+.unit{font-size:calc(.85rem*var(--vs,1));color:rgb(var(--mut));font-weight:650;margin-left:5px}
 .tag{display:inline-flex;margin-top:9px;font-size:calc(.64rem*var(--ts,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
 .tag:empty{display:none}
 .sub{margin-top:9px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));line-height:1.55}
@@ -115,7 +129,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .core{position:absolute;top:14%;left:14%;right:14%;bottom:14%;border-radius:50%;background:radial-gradient(circle at 50% 28%,var(--bg2),var(--bg0) 72%);border:1px solid rgba(var(--ov),.08);box-shadow:0 0 0 1px rgba(var(--home),.35),inset 0 1px 0 rgba(var(--ov),.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .core ha-icon{color:rgb(var(--home));--mdc-icon-size:26px;margin-bottom:6px}
 .core .val{margin:0}
-.core .num{font-size:2.15rem;color:rgb(var(--home));text-shadow:none}
+.core .num{font-size:calc(2.15rem*var(--vs,1));color:rgb(var(--home));text-shadow:none}
 .hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
 .mix{display:flex;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
 .mix span{display:flex;align-items:center;margin:0 6px}
@@ -132,7 +146,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .c-txt{display:flex;flex-direction:column;min-width:0}
 .cons .lbl{font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:650;margin-bottom:3px}
 .cons .val{margin:0}
-.cons .num{font-size:1.1rem}.cons .unit{font-size:.7rem;margin-left:3px}
+.cons .num{font-size:calc(1.1rem*var(--vs,1))}.cons .unit{font-size:calc(.7rem*var(--vs,1));margin-left:3px}
 .cons.on .num{color:rgb(var(--c))}
 .c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
@@ -153,7 +167,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .grp .ico ha-icon{--mdc-icon-size:15px}
 .grp .lbl{font-size:calc(.6rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .grp .val{margin-top:7px}
-.grp .num{font-size:1.25rem}.grp .unit{font-size:.68rem;margin-left:3px}
+.grp .num{font-size:calc(1.25rem*var(--vs,1))}.grp .unit{font-size:calc(.68rem*var(--vs,1));margin-left:3px}
 .grp.on .num{color:rgb(var(--c));text-shadow:none}
 .its{margin-top:6px;border-top:1px solid rgba(var(--ov),.06);padding-top:4px;display:flex;flex-direction:column}
 .it{display:flex;align-items:center;font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));line-height:1.8;min-width:0;cursor:pointer}
@@ -175,22 +189,22 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .n-top{font-size:calc(.8rem*var(--ts,1))}
 .wide .ico{width:40px;height:40px;border-radius:13px}
 .wide .ico ha-icon{--mdc-icon-size:22px}
-.wide .num{font-size:2.6rem}
-.wide .unit{font-size:1rem}
+.wide .num{font-size:calc(2.6rem*var(--vs,1))}
+.wide .unit{font-size:calc(1rem*var(--vs,1))}
 .wide .sub{font-size:calc(.86rem*var(--ts,1))}
 .wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
-.wide .core .num{font-size:2.8rem}
+.wide .core .num{font-size:calc(2.8rem*var(--vs,1))}
 .wide .core ha-icon{--mdc-icon-size:32px}
 .wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .mix{font-size:calc(.82rem*var(--ts,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(200px,260px));gap:14px;margin-top:60px}
 .wide .cons{padding:14px 16px;border-radius:20px}
-.wide .cons .num{font-size:1.35rem}
+.wide .cons .num{font-size:calc(1.35rem*var(--vs,1))}
 .wide .cons .lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .groups{gap:12px;margin-top:60px}
 .wide .grp{padding:12px 12px 9px;border-radius:19px}
-.wide .grp .num{font-size:1.5rem}
+.wide .grp .num{font-size:calc(1.5rem*var(--vs,1))}
 .wide .grp .lbl{font-size:calc(.66rem*var(--ts,1))}
 .wide .it{font-size:calc(.72rem*var(--ts,1))}
 .wide .stat b{font-size:1.35rem}
@@ -206,7 +220,24 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .sam.on{border-color:rgba(var(--home),.6);box-shadow:0 0 0 1px rgba(var(--home),.3)}
 .sam-t{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650}
 .sam-w{font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
-/* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy) */
+/* Verbraucher-Kacheln decken die Linien ab, die dahinter zum Haus laufen */
+.cons{background:linear-gradient(var(--glass),var(--glass)),var(--bg0)}
+.cons.on{background:linear-gradient(rgba(var(--c),.07),rgba(var(--c),.07)),linear-gradient(var(--glass),var(--glass)),var(--bg0)}
+/* size: gross (je Verbraucher): breite, hervorgehobene Kachel mit grosser Zahl, z. B. Waermepumpe oder Wallbox */
+.cons.big{grid-column:span 2;padding:18px 20px;border-radius:22px}
+.cons.big .ico{transform:scale(1.4);margin:0 20px 0 6px}
+.cons.big .lbl{font-size:calc(.78rem*var(--ts,1));margin-bottom:6px;white-space:normal}
+.cons.big .num{font-size:calc(1.95rem*var(--vs,1))}
+.cons.big .unit{font-size:calc(.95rem*var(--vs,1));margin-left:5px}
+.wide .cons.big{padding:22px 26px;border-radius:26px}
+.wide .cons.big .num{font-size:calc(2.5rem*var(--vs,1))}
+.wide .cons.big .unit{font-size:calc(1.1rem*var(--vs,1))}
+.narrow .cons.big,.cmp .cons.big{grid-column:auto}
+.narrow .cons.big .num{font-size:calc(1.6rem*var(--vs,1))}
+.cmp .cons.big{padding:10px 12px}
+.cmp .cons.big .num{font-size:calc(1.2rem*var(--vs,1))}
+.cmp .cons.big .ico{transform:none;margin:0 10px 0 0}
+/* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy). Eine Zahl (z. B. 2) vergrößert zusätzlich die Zahlen in den Kacheln */
 .ts-l{--ts:1.25}
 .ts-xl{--ts:1.5}
 .ts-l .soc-row b,.ts-xl .soc-row b{font-size:1.05rem}
@@ -220,8 +251,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .narrow .layout.via-bat.has-pv2{grid-template-areas:"hub hub" "pv pv2" "bat bat" "grid grid"}
 .narrow .via-bat .mix{order:-1;margin:0 0 12px}
 .narrow .hub{max-width:210px}
-.narrow .num{font-size:1.5rem}
-.narrow .core .num{font-size:1.8rem}
+.narrow .num{font-size:calc(1.5rem*var(--vs,1))}
+.narrow .core .num{font-size:calc(1.8rem*var(--vs,1))}
 .narrow .groups{margin-top:26px}
 .narrow .groups:not(.gc-fixed){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 /* groups_columns: breite Gruppen verteilen ihre Einträge auf mehrere Spalten */
@@ -244,20 +275,20 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
 .cmp .ico ha-icon{--mdc-icon-size:14px}
 .cmp .val{margin-top:7px}
-.cmp .num{font-size:1.2rem}
-.cmp .unit{font-size:.68rem;margin-left:3px}
+.cmp .num{font-size:calc(1.2rem*var(--vs,1))}
+.cmp .unit{font-size:calc(.68rem*var(--vs,1));margin-left:3px}
 .cmp .tag{margin-top:6px;font-size:calc(.54rem*var(--ts,1));padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
 .cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
-.cmp .core .num{font-size:1.1rem}
+.cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
 .cmp .sambox{margin-top:30px;padding:24px 8px 8px;border-radius:20px}
 .cmp .sam{padding:5px 12px}
 .wrap.cmp .consumers,.wrap.cmp .groups{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:8px;justify-content:stretch}
 .cmp .cons{padding:8px 10px;border-radius:14px}
-.cmp .cons .num{font-size:1rem}
+.cmp .cons .num{font-size:calc(1rem*var(--vs,1))}
 .cmp .grp{padding:8px 10px;border-radius:14px}
 .cmp .grp:not(.rest){cursor:pointer}
 .cmp .grp:not(.rest) .g-hd:after{content:'›';margin-left:auto;padding-left:6px;color:rgb(var(--mut));font-size:1.1rem;line-height:1}
@@ -277,7 +308,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .d-it .in{flex:1;min-width:0;overflow-wrap:anywhere}
 .d-it b{margin-left:12px;color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cmp .grp .val{margin-top:4px}
-.cmp .grp .num{font-size:1.05rem}
+.cmp .grp .num{font-size:calc(1.05rem*var(--vs,1))}
 .cmp footer{grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;margin-top:12px;padding-top:12px}
 .cmp .stat{padding:7px 8px;border-radius:12px}
 .cmp .stat span{font-size:calc(.52rem*var(--ts,1));letter-spacing:.05em;margin-bottom:3px}
@@ -335,6 +366,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
     this._s3d = this._c.style === '3d';
+    // text_size als Zahl (z. B. 2): Faktor fuer alle Texte und die Zahlen in den Kacheln. gross/sehr_gross bleiben wie bisher
+    const tsn = parseFloat(String(this._c.text_size).replace(',', '.'));
+    this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
@@ -364,6 +398,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._hass = h;
     this._update();
     this._loadDaily();
+    if (this._c && this._c.weather) { if (!this._skyLoading && Date.now() - (this._skyLoaded || 0) > 30 * 60 * 1000) this._loadSky(); this._sky(true); }
     if (this._c && this._c.waste && !this._wLoading && Date.now() - (this._wLoaded || 0) > 30 * 60 * 1000) this._loadWaste();
   }
   // daily_from_total (optional): Tageswerte aus Gesamtzählern wie im Energie-Dashboard, Änderung seit Mitternacht aus der Langzeitstatistik
@@ -419,6 +454,75 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._wLoading = false;
     this._wasteChip();
   }
+  // Himmelsband (optional, weather): 24 Stunden als Farbstreifen, Punkt = jetzt. Stundenwerte aus weather.get_forecasts, Tageslicht aus sun.sun
+  _skyEnt() {
+    const w = this._c && this._c.weather, h = this._hass;
+    if (!w || !h || !h.states) return null;
+    if (typeof w === 'string' && w !== 'auto') return h.states[w] ? w : null;
+    return Object.keys(h.states).find((i) => i.indexOf('weather.') === 0) || null;
+  }
+  async _loadSky() {
+    const h = this._hass, id = this._skyEnt();
+    if (!h || !id) return;
+    this._skyLoading = true;
+    let fc = null;
+    try {
+      const r = await h.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { type: 'hourly' }, target: { entity_id: id }, return_response: true });
+      const x = r && r.response && r.response[id];
+      if (x && Array.isArray(x.forecast)) fc = x.forecast;
+    } catch (e) { fc = null; }
+    // Ältere Integrationen liefern die Vorhersage noch als Attribut
+    if (!fc) { const a = h.states[id] && h.states[id].attributes; if (a && Array.isArray(a.forecast)) fc = a.forecast; }
+    this._skyFc = fc; this._skyLoaded = fc ? Date.now() : Date.now() - 25 * 60 * 1000; this._skyLoading = false;
+    this._skyKey = null;
+    this._sky();
+  }
+  _sky(onlyIfChanged) {
+    const el = this._$('.sky'), h = this._hass, id = this._skyEnt();
+    if (!el || !h) return;
+    const ws = id && h.states[id];
+    if (!ws) { el.hidden = true; return; }
+    const sun = h.states['sun.sun'], sa = (sun && sun.attributes) || {};
+    const key = [ws.state, ws.attributes.temperature, sa.next_rising, sa.next_setting, this._skyFc && this._skyFc.length].join('|');
+    const now = new Date(), minute = now.getHours() * 60 + now.getMinutes();
+    if (onlyIfChanged && key === this._skyKey && this._skyMin === minute) return;
+    this._skyKey = key; this._skyMin = minute;
+    const tod = (v) => { const d = new Date(v); return v && !isNaN(d) ? d.getHours() + d.getMinutes() / 60 : null; };
+    const sr = tod(sa.next_rising), ss = tod(sa.next_setting);
+    const fmtT = (x) => { let hh = Math.floor(x), mm = Math.round((x - hh) * 60); if (mm === 60) { hh += 1; mm = 0; } return new Date(2000, 0, 1, hh, mm).toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' }); };
+    const COL = { sunny: '#ffc93d', 'clear-night': '#3a4a7a', partlycloudy: 'linear-gradient(#ffc93d 50%,#8d9ab3 50%)', cloudy: '#8d9ab3', fog: '#b7c0cf', rainy: '#4f86d9', pouring: '#2f63c4', snowy: '#cfe3ff', 'snowy-rainy': 'linear-gradient(#cfe3ff 50%,#4f86d9 50%)', lightning: '#8b6fd6', 'lightning-rainy': '#8b6fd6', hail: '#9fc3e8', windy: '#7f95b3', 'windy-variant': '#7f95b3', exceptional: '#e07a5f' };
+    const lab = (cnd) => { const k = 'sky.' + cnd, v = T(k); return v === k ? String(cnd || '') : v; };
+    const today = now.toDateString(), byHour = {};
+    (this._skyFc || []).forEach((f) => { const d = new Date(f.datetime); if (!isNaN(d) && d.toDateString() === today) byHour[d.getHours()] = f; });
+    const hasFc = Object.keys(byHour).length > 0;
+    const dark = (hr) => sr !== null && ss !== null && (hr + 1 <= sr || hr >= ss);
+    let segs = '';
+    for (let hr = 0; hr < 24; hr++) {
+      const f = byHour[hr], cur = hr === now.getHours();
+      let bg;
+      if (cur) bg = COL[ws.state] || 'rgba(var(--ov),.3)';
+      else if (f && f.condition) bg = COL[f.condition] || 'rgba(var(--ov),.25)';
+      else bg = dark(hr) ? 'rgba(var(--ov),.07)' : 'rgba(var(--ov),.2)';
+      const op = (cur || f) && dark(hr) ? 0.4 : 1;
+      segs += `<i style="background:${bg};opacity:${op}"></i>`;
+    }
+    this._$('.sky-bar').innerHTML = segs + `<span class="sky-now" style="left:${(minute / 14.4).toFixed(2)}%"></span>`;
+    const a = ws.attributes, tu = a.temperature_unit || (h.config && h.config.unit_system && h.config.unit_system.temperature) || '°C';
+    const tv = parseFloat(a.temperature);
+    this._$('.sky-l').textContent = lab(ws.state) + (isNaN(tv) ? '' : ` · ${nf(tv, 0)} ${tu}`);
+    this._$('.sky-r').textContent = sr !== null && ss !== null ? `↑ ${fmtT(sr)}   ↓ ${fmtT(ss)}` : '';
+    // Details: Bewölkung, Wind und die nächsten Stunden
+    const bits = [];
+    if (!isNaN(parseFloat(a.cloud_coverage))) bits.push(`${T('sky.cloud')} <b>${nf(parseFloat(a.cloud_coverage), 0)} %</b>`);
+    if (!isNaN(parseFloat(a.wind_speed))) bits.push(`${T('sky.wind')} <b>${nf(parseFloat(a.wind_speed), 0)} ${esc(a.wind_speed_unit || 'km/h')}</b>`);
+    const nextH = (this._skyFc || []).filter((f) => new Date(f.datetime) > new Date(now.getTime() - 36e5)).slice(0, 6);
+    const rows = nextH.map((f) => {
+      const d = new Date(f.datetime), pr = parseFloat(f.precipitation), p = pr > 0 ? ` · ${nf(pr, 1)} mm` : '';
+      return `<span>${d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' })} <b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span>`;
+    }).join('');
+    this._$('.sky-det').innerHTML = bits.join(' &nbsp;·&nbsp; ') + (rows ? `<div class="g">${rows}</div>` : (hasFc ? '' : `<div>${T('sky.nofc')}</div>`));
+    el.hidden = false;
+  }
   _wasteChip() {
     const el = this._$('.wst'), W = this._waste, w = this._c.waste;
     if (!el || !W) return;
@@ -446,7 +550,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!this._kaSub) this._kaSub = () => this._kaRender();
     KA.subs.add(this._kaSub);
     this._kaRender();
-    this._clockT = setInterval(() => { this._clock(); this._wasteChip(); }, 15000);
+    this._clockT = setInterval(() => { this._clock(); this._wasteChip(); this._sky(); }, 15000);
     this._clock();
     this._schedLayout();
   }
@@ -461,7 +565,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _observe() {
     if (!this._ro || !this.shadowRoot) return;
     this._ro.disconnect();
-    this.shadowRoot.querySelectorAll('.stage,.node,.hub,.cons,.grp,.banner').forEach((el) => this._ro.observe(el));
+    this.shadowRoot.querySelectorAll('.stage,.node,.hub,.cons,.grp,.banner,.sky').forEach((el) => this._ro.observe(el));
   }
   _$(s) { return this.shadowRoot.querySelector(s); }
   // keep_awake: 'auto' (nur im Silk-Browser des Echo Show, Standard) | true | false
@@ -532,7 +636,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : ''}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
@@ -580,7 +684,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ''}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${this._s3d && WD.D3.roof(c.roof_color) ? ` style="${WD.D3.roof(c.roof_color)}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : (this._tsn > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._tsn ? `--ts:${this._tsn};--vs:${this._tsn};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -589,6 +693,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="pill">${T('pill.self')}<b data-p="self">—</b></div>
         ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
       </header>
+      ${c.weather ? '<div class="sky" role="button" tabindex="0" hidden><div class="sky-bar"></div><div class="sky-row"><span class="sky-l"></span><span class="sky-r"></span></div><div class="sky-det"></div></div>' : ''}
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>
@@ -633,6 +738,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this.shadowRoot.addEventListener('click', (e) => {
         const dlg = this._$('.gdlg');
         if (dlg && dlg.open && (e.target === dlg || e.target.closest('.d-x'))) { dlg.close(); return; }
+        const sk = e.target.closest('.sky');
+        if (sk) { sk.classList.toggle('open'); return; }
         const nv = e.target.closest('[data-nav]');
         if (nv) { haNavigate(nv.dataset.nav); return; }
         const t = e.target.closest('[data-e]');

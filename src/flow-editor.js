@@ -18,7 +18,7 @@
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -32,7 +32,7 @@
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
-  const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
+  const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
   const itemFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
   const groupFields = () => [
     txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), numb('on_w', 0, 100000, 1),
@@ -71,6 +71,7 @@
       ent('feed_in', ['sensor', 'input_number']),
       numb('feed_in_ct', 0, 200, 0.1),
       bool('daily_from_total', false),
+      ent('weather', ['weather']),
       bool('show_clock', true),
       bool('fit_screen', true),
       bool('watt_only', false),
@@ -84,7 +85,7 @@
       { name: 'consumer_groups_sort', selector: { select: { mode: 'dropdown', options: [{ value: 'konfiguriert', label: 'Wie eingetragen (Standard)' }, { value: 'leistung', label: 'Nach Leistung, aktive Geräte oben' }] } } },
       numb('decimals', 0, 3, 1),
       { name: 'compact', selector: { select: { mode: 'dropdown', options: COMPACT } } },
-      { name: 'text_size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }] } } },
+      { name: 'text_size', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }] } } },
       { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
@@ -181,8 +182,9 @@
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
+      { path: 'weather', label: 'Wetter (Himmelsband)', kind: 'weather', optional: true, hints: H(/forecast|home|haus|zuhause|dwd|met|wetter/i), help: 'Optional. Zeigt unter der Kopfzeile ein Band mit dem Wetter der nächsten Stunden, dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage (zum Beispiel Met.no oder Deutscher Wetterdienst). Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' },
       { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
-      { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }], help: 'Vergrößert die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen.' },
+      { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }], help: 'Vergrößert die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
       `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,

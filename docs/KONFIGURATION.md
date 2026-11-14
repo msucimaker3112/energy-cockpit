@@ -45,7 +45,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
 | `home_color` | `standard` (Standard), `source` | `source`: Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an (PV gelb, Speicher blau, Netz rot). Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt |
 | `grid2` | Objekt | Zweiter Netzzähler mit eigenem Tarif, der nur Strom bezieht, zum Beispiel eine Wärmepumpe. Siehe [Zweiter Netzzähler](#zweiter-netzzähler-grid2) |
-| `text_size` | `normal` (Standard), `gross`, `sehr_gross` | Vergrößert die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Gut für Handy und Tablet |
+| `text_size` | `normal` (Standard), `gross`, `sehr_gross` oder eine Zahl (0,5 bis 4) | `gross` und `sehr_gross` vergrößern die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Eine Zahl, zum Beispiel `2`, vergrößert alle Texte **und die Zahlen in den Kacheln** auf das Doppelte. Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, bekommt die Kachel, wenn er `hide_rest: false` ausdrücklich einträgt. Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
@@ -156,6 +156,21 @@ consumers:
 
 `on_w` gibt es auch für Gruppen und ihre Einträge. Damit bekommt zum Beispiel eine Zirkulationspumpe mit 6 W einen Rahmen.
 
+**Große Kacheln (optional, `size: gross`):** Große Verbraucher wie Wärmepumpe oder Wallbox erscheinen als breite, hervorgehobene Kachel mit großer Zahl. Das geht für beliebig viele Verbraucher gleichzeitig.
+
+```yaml
+consumers:
+  - { entity: sensor.waermepumpe_leistung, name: Wärmepumpe, size: gross }
+  - { entity: sensor.wallbox_1, name: Wallbox 1, size: gross }
+  - { entity: sensor.wallbox_2, name: Wallbox 2, size: gross }
+  - { entity: sensor.licht, name: Licht }          # normale Kachel
+text_size: 1.6                                      # optional: alle Zahlen größer
+```
+
+![Große Kacheln](img/flow-grosse-kacheln.png)
+
+Die große Kachel belegt zwei Spalten. In der Kurzansicht (`compact`) und auf schmalen Bildschirmen bleibt sie einspaltig, die Zahl ist aber größer. Im Editor findest du das Feld „Größe der Kachel“ bei jedem Einzelverbraucher. Die Linien zu den Verbrauchern laufen hinter den Kacheln.
+
 **Geräte in Gruppen nach Leistung sortieren (optional, `consumer_groups_sort: leistung`):** Die gerade aktiven Geräte stehen oben, das stärkste zuerst. Geräte unter `on_w` folgen in der eingetragenen Reihenfolge. Damit die Liste bei schwankenden Werten nicht springt, ordnet die Karte höchstens alle 10 Sekunden neu, und ein Gerät überholt ein anderes erst mit deutlich mehr Leistung (mehr als 10 % und 20 W). Das Fenster der Kurzansicht zeigt dieselbe Reihenfolge. Ohne Eintrag (oder mit `konfiguriert`) bleibt alles wie eingetragen. Die Gruppen selbst behalten ihren Platz.
 
 ```yaml
@@ -208,7 +223,7 @@ groups_columns: 1      # 2 = zwei Gruppen pro Reihe; ohne Angabe alle nebeneinan
 Textgröße und Kachel "Nicht erfasst" (Bilder: `docs/img/text-*.png`, `docs/img/rest-ab-10.png`):
 
 ```yaml
-text_size: gross       # normal | gross | sehr_gross
+text_size: gross       # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die Zahlen)
 rest_min: 10           # "Nicht erfasst" erst ab 10 % des Hausverbrauchs
 hide_rest: false       # true blendet die Kachel immer aus
 ```
@@ -236,6 +251,34 @@ grid_alert:
   delay: 120
 ```
 
+### Himmelsband: `weather`
+
+Optional. Ein dünner Streifen unter der Kopfzeile zeigt das Wetter des Tages in 24 Stunden, mit einem Punkt für "jetzt". Darunter stehen Wetter, Temperatur sowie Sonnenaufgang und Sonnenuntergang. Ein Tipp auf das Band zeigt Bewölkung, Wind und die nächsten Stunden.
+
+![Himmelsband](img/flow-himmelsband.png)
+
+```yaml
+weather: weather.forecast_home   # oder: weather: auto (erste Wetter-Entität)
+```
+
+| Farbe | Wetter |
+|---|---|
+| Gold | sonnig |
+| Gold und Grau | teils bewölkt |
+| Grau | bewölkt, Nebel, Wind |
+| Blau | Regen, Starkregen |
+| Hellblau | Schnee, Schneeregen |
+| Violett | Gewitter |
+
+Stunden in der Nacht sind abgedunkelt. Stunden, die schon vorbei sind, zeigen nur Tag und Nacht, weil Home Assistant keine vergangene Vorhersage liefert.
+
+**Voraussetzungen:**
+- Eine Wetter-Entität (`weather.…`), zum Beispiel von Met.no oder dem Deutschen Wetterdienst.
+- Die Stundenwerte holt die Karte mit `weather.get_forecasts` (stündlich). Unterstützt die Integration das nicht, zeigt das Band nur Tageslicht und das aktuelle Wetter.
+- Sonnenaufgang und -untergang kommen aus `sun.sun`. Diese Entität gibt es in Home Assistant standardmäßig.
+
+In der Kurzansicht (`compact`) bleibt nur die Textzeile ohne Streifen. Ist die Entität nicht vorhanden, bleibt das Band einfach ausgeblendet.
+
 ### Abfallkalender-Hinweis
 
 ```yaml
@@ -254,6 +297,7 @@ waste:
 | Schlüssel | Standard | Beschreibung |
 |---|---|---|
 | `show_clock` | `true` | Uhr im Kopf |
+| `weather` | | Himmelsband mit dem Wetter des Tages, siehe [Himmelsband](#himmelsband-weather) |
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |

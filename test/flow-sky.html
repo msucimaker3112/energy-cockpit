@@ -1,0 +1,89 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Himmelsband Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script>
+/* ?h=13 setzt die Uhrzeit für die Ansicht (nur Anzeige, nicht für den Test) */
+(()=>{const h=new URLSearchParams(location.search).get('h');if(h===null||h==='')return;const R=Date,n=new R(),off=new R(n.getFullYear(),n.getMonth(),n.getDate(),+h,30).getTime()-n.getTime();
+class D extends R{constructor(...a){if(a.length===0)super(R.now()+off);else super(...a);}static now(){return R.now()+off;}}window.Date=D;})();
+</script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft das Himmelsband (weather): Vorhersage per weather.get_forecasts, ohne Vorhersage, auto, fehlende Entität, Antippen, Kurzansicht.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&w=Breite, &kurz=1, &z=sunny|cloudy|rainy|snowy|clear-night, &nofc=1) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const NOW=new Date(),HR=NOW.getHours();
+const iso=(d,h)=>{const x=new Date(NOW.getFullYear(),NOW.getMonth(),NOW.getDate()+d,h,0,0);return x.toISOString();};
+// Vorhersage ab der aktuellen Stunde bis Mitternacht: erst bewölkt, dann Regen, am Ende klar
+const mkFc=(cnd)=>{const out=[];for(let h=HR;h<24;h++)out.push({datetime:iso(0,h),condition:h<HR+3?cnd:(h<HR+6?'rainy':'cloudy'),temperature:9+((h-HR)%3),precipitation:h>=HR+3&&h<HR+6?1.4:0});return out;};
+const calls=[];
+const hassFor=(o)=>{o=o||{};const st=Object.assign({'sensor.pv':S(800),'sensor.grid':S(100),
+  'weather.forecast_home':{state:o.z||'rainy',attributes:{temperature:9.2,temperature_unit:'°C',cloud_coverage:86,wind_speed:14,wind_speed_unit:'km/h',friendly_name:'Zuhause'},last_updated:'x'},
+  'sun.sun':{state:'above_horizon',attributes:{next_rising:iso(1,7),next_setting:iso(0,17)},last_updated:'x'}},o.states||{});
+  if(o.noWeather)delete st['weather.forecast_home'];
+  return {states:st,language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+  callWS:async(m)=>{calls.push(m);if(o.noFc)throw new Error('not supported');return {response:{'weather.forecast_home':{forecast:mkFc(o.z||'rainy')}}};}};};
+const cfg={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},weather:'weather.forecast_home'};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg,hassFor());await wait(900);
+  const sky=q(e,'.sky');
+  ok('Himmelsband sichtbar',sky&&!sky.hidden);
+  ok('24 Stundenabschnitte',e.shadowRoot.querySelectorAll('.sky-bar i').length===24,e.shadowRoot.querySelectorAll('.sky-bar i').length);
+  ok('Zustand und Temperatur',t(e,'.sky-l')==='Regen · 9 °C',t(e,'.sky-l'));
+  ok('Sonnenaufgang und -untergang',/↑\s*07:00\s+↓\s*17:00/.test(t(e,'.sky-r')),t(e,'.sky-r'));
+  ok('Vorhersage für diese Wetter-Entität angefragt',calls.length>0&&calls[0].service==='get_forecasts'&&calls[0].target.entity_id==='weather.forecast_home'&&calls[0].service_data.type==='hourly',JSON.stringify(calls[0]&&calls[0].target));
+  const segs=[...e.shadowRoot.querySelectorAll('.sky-bar i')];
+  const bgs=segs.map(i=>getComputedStyle(i).backgroundColor);
+  ok('aktuelle Stunde hat die Regenfarbe',bgs[HR]==='rgb(79, 134, 217)',bgs[HR]);
+  ok('Stunden ohne Vorhersage (vergangen) sind neutral',HR===0||bgs[0]!=='rgb(79, 134, 217)',bgs[0]);
+  const now=q(e,'.sky-now');ok('Punkt für jetzt',now&&parseFloat(now.style.left)>=0&&parseFloat(now.style.left)<=100,now&&now.style.left);
+  ok('Details zuerst zu',getComputedStyle(q(e,'.sky-det')).display==='none');
+  q(e,'.sky').click();await wait(100);
+  ok('Antippen öffnet die Details',q(e,'.sky').classList.contains('open')&&getComputedStyle(q(e,'.sky-det')).display!=='none');
+  ok('Details: Bewölkung und Wind',/Bewölkung\s*86\s*%/.test(t(e,'.sky-det'))&&/Wind\s*14\s*km\/h/.test(t(e,'.sky-det')),t(e,'.sky-det').slice(0,80));
+  ok('Details: nächste Stunden',e.shadowRoot.querySelectorAll('.sky-det .g span').length>=1,e.shadowRoot.querySelectorAll('.sky-det .g span').length);
+  q(e,'.sky').click();await wait(50);
+  ok('erneutes Antippen schließt',!q(e,'.sky').classList.contains('open'));
+
+  // Ohne Vorhersage: nur Tageslicht und aktuelles Wetter, kein Absturz
+  e=mount(cfg,hassFor({noFc:1}));await wait(900);
+  ok('ohne Vorhersage: Band bleibt sichtbar',!q(e,'.sky').hidden&&t(e,'.sky-l')==='Regen · 9 °C');
+  ok('ohne Vorhersage: Hinweis in den Details',/Keine Vorhersage/.test(t(e,'.sky-det')),t(e,'.sky-det'));
+
+  // Zustand wechselt
+  e=mount(cfg,hassFor());await wait(600);
+  e.hass=hassFor({z:'snowy'});await wait(300);
+  ok('neuer Zustand erscheint',t(e,'.sky-l').indexOf('Schnee')===0,t(e,'.sky-l'));
+
+  // auto: erste Wetter-Entität
+  e=mount({...cfg,weather:'auto'},hassFor());await wait(900);
+  ok('auto findet die Wetter-Entität',!q(e,'.sky').hidden&&t(e,'.sky-l').indexOf('Regen')===0,t(e,'.sky-l'));
+
+  // Entität fehlt: Band bleibt versteckt
+  e=mount(cfg,hassFor({noWeather:1}));await wait(600);
+  ok('Entität fehlt: Band versteckt, kein Absturz',q(e,'.sky').hidden);
+
+  // Nicht eingerichtet: kein Band
+  const c2={...cfg};delete c2.weather;
+  e=mount(c2,hassFor());await wait(500);
+  ok('ohne weather: kein Himmelsband',!q(e,'.sky'));
+
+  // Kurzansicht: nur der Text
+  e=mount({...cfg,compact:'immer'},hassFor());await wait(900);
+  ok('Kurzansicht: Streifen ausgeblendet, Text bleibt',getComputedStyle(q(e,'.sky-bar')).display==='none'&&getComputedStyle(q(e,'.sky-row')).display!=='none');
+
+  // unbekannter Zustand: Rohtext statt Absturz
+  e=mount(cfg,hassFor({z:'tornado'}));await wait(700);
+  ok('unbekannter Zustand wird roh angezeigt',t(e,'.sky-l').indexOf('tornado')===0,t(e,'.sky-l'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c={...cfg,style:'3d',battery:{power:'sensor.pv',soc:'sensor.grid'}};if(P.get('kurz'))c.compact='immer';delete c.battery;mount(c,hassFor({z:P.get('z')||'rainy',noFc:P.get('nofc')}));if(P.get('open'))setTimeout(()=>q(document.querySelector('energy-cockpit-flow-card'),'.sky').click(),900);}
+</script></body></html>
