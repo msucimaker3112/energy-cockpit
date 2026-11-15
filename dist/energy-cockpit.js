@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.32.4 - MIT License */
+/*! energy-cockpit v0.32.5 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1082,7 +1082,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .mix span{display:flex;align-items:center;margin:0 6px}
 .mix i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
 .mix b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600;margin-left:4px}
-.consumers{position:relative;z-index:1;display:grid;justify-content:center;grid-template-columns:repeat(auto-fit,minmax(140px,240px));grid-gap:12px;gap:12px;margin-top:54px}
+.consumers{position:relative;z-index:1;display:grid;justify-content:center;grid-template-columns:repeat(auto-fit,minmax(max(140px,calc(140px*var(--ts,1))),max(240px,calc(240px*var(--ts,1)))));grid-gap:12px;gap:12px;margin-top:54px}
 .cons{display:flex;align-items:center;padding:11px 12px;border-radius:17px;background:var(--glass);border:1px solid var(--stroke);cursor:pointer;transition:all .5s;min-width:0}
 .cons .ico{margin-right:10px}
 .cons.on{border-color:rgba(var(--c),.55);background:rgba(var(--c),.07);box-shadow:0 0 0 1px rgba(var(--c),.35)}
@@ -1146,7 +1146,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .core ha-icon{--mdc-icon-size:32px}
 .wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .mix{font-size:calc(.82rem*var(--ts,1))}
-.wide .consumers{grid-template-columns:repeat(auto-fit,minmax(200px,260px));gap:14px;margin-top:60px}
+.wide .consumers{grid-template-columns:repeat(auto-fit,minmax(max(200px,calc(200px*var(--ts,1))),max(260px,calc(260px*var(--ts,1)))));gap:14px;margin-top:60px}
 .wide .cons{padding:14px 16px;border-radius:20px}
 .wide .cons .num{font-size:calc(1.35rem*var(--vs,1))}
 .wide .cons .lbl{font-size:calc(.72rem*var(--ts,1))}
@@ -1240,7 +1240,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy). Eine Zahl (z. B. 2) vergrößert zusätzlich die Zahlen in den Kacheln */
 .ts-l{--ts:1.25}
 .ts-xl{--ts:1.5}
-.ts-l .soc-row b,.ts-xl .soc-row b,.ts-l .sub .sr b,.ts-xl .sub .sr b,.ts-l .xr b,.ts-xl .xr b{font-size:1.05rem}
+.ts-l .soc-row b,.ts-xl .soc-row b,.ts-l .sub .sr b,.ts-xl .sub .sr b,.ts-l .xr b,.ts-xl .xr b{font-size:1.15em}
+.ts-l .cons .lbl,.ts-xl .cons .lbl{white-space:normal;overflow-wrap:anywhere}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}

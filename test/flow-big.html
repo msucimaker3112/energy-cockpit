@@ -76,6 +76,14 @@ async function run(){
   e=mount(cfg({roof_color:'anthrazit',label_size:3,text_size:'2',fit_screen:false,consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(500);
   ok('roof_color mit label_size: --ts und --vs kommen an',getComputedStyle(q(e,'.wrap')).getPropertyValue('--ts').trim()==='3'&&getComputedStyle(q(e,'.wrap')).getPropertyValue('--vs').trim()==='2',q(e,'.wrap').getAttribute('style'));
   ok('roof_color mit label_size: Beschriftung wirklich größer',fs(e,'[data-k="c0"] .lbl')/lb0>2.5,fs(e,'[data-k="c0"] .lbl')+' px gegen '+lb0+' px');
+  // #40 (Micha): bei grosser label_size bleiben die Werte neben den Beschriftungen lesbar, Verbraucher-Spalten wachsen mit
+  document.getElementById('host').style.maxWidth='1100px';
+  e=mount(cfg({label_size:3,fit_screen:false,consumers:[{entity:'sensor.wp',name:'Wärmepumpe',size:'mittel'},{entity:'sensor.wb1',name:'Wallbox 1',size:'mittel'}]}));await wait(600);
+  { const a=q(e,'[data-k="bat"] .soc-row'),b=a.querySelector('b');const ra=parseFloat(getComputedStyle(b).fontSize)/parseFloat(getComputedStyle(a).fontSize);
+    ok('label_size 3: Wert in der Zeile mindestens so groß wie die Beschriftung',ra>=1,ra.toFixed(2)); }
+  { const e0=mount(cfg({fit_screen:false,consumers:[{entity:'sensor.wp',name:'Wärmepumpe',size:'mittel'},{entity:'sensor.wb1',name:'Wallbox 1',size:'mittel'}]}));await wait(600);
+    const w0=q(e0,'[data-k="c0"]').getBoundingClientRect().width,w1=q(e,'[data-k="c0"]').getBoundingClientRect().width;
+    ok('label_size 3: Verbraucher-Kachel breiter als bei normaler Schrift',w1>w0*1.2,w1.toFixed(0)+' px gegen '+w0.toFixed(0)+' px'); }
   // size: mittel macht die Spalten breiter
   const w0=mount(cfg({consumers:[{entity:'sensor.l',name:'L'},{entity:'sensor.k',name:'K'}]}));await wait(500);const wn=q(w0,'[data-k="c0"]').getBoundingClientRect().width;
   e=mount(cfg({consumers:[{entity:'sensor.l',name:'L',size:'mittel'},{entity:'sensor.k',name:'K',size:'mittel'}]}));await wait(500);
