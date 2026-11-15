@@ -4,7 +4,7 @@
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   // Mehrere Sensoren (z. B. mehrere Unterzähler zum Abziehen)
   const entm = (name, domains) => ({ name, selector: { entity: Object.assign({ multiple: true }, domains ? { domain: domains } : {}) } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const VAL = [

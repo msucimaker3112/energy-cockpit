@@ -5,7 +5,7 @@
   // Mehrere Sensoren (z. B. mehrere Unterzähler zum Abziehen)
   const entm = (name, domains) => ({ name, selector: { entity: Object.assign({ multiple: true }, domains ? { domain: domains } : {}) } });
   const bool = (name, def) => ({ name, default: def, selector: { boolean: {} } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const LABELS = {

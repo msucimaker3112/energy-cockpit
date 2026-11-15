@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.32.3
+- **Editor, Dezimalzahlen eingeben:** Felder wie „Kapazität (kWh)“ nahmen nur Werte in Schritten von 0,1 an. „5,12“ oder „5.12“ wurde mit „Gültigen Wert eingeben“ abgelehnt. Jetzt sind beliebige Nachkommastellen erlaubt, in allen Editoren (Energiefluss, Statistik, Geräte, Raum). Anlass: [#47](https://github.com/msucimaker3112/energy-cockpit/issues/47).
+
 ## 0.32.2
 - **Energiefluss, Zusatzwerte in derselben Größe wie die anderen Zeilen:** Die Zusatzwerte (`extra`, zum Beispiel „Ladung“, „Entladung“, „SOH“, „Zyklen“ in der Batterie-Kachel) hatten immer dieselbe kleine Schrift, während „Ladestand“, „Temperatur“, „Voll um“ und „Voll in“ in der breiten Ansicht größer wurden. Auf einem Bildschirm ohne Seitenmenü sah man deshalb zwei Schriftgrößen in einer Kachel. Jetzt wachsen die Zusatzwerte mit, auch bei größerer Textgröße. Anlass: [#46](https://github.com/msucimaker3112/energy-cockpit/issues/46).
 

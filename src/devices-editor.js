@@ -87,7 +87,7 @@
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
   const bool = (name) => ({ name, selector: { boolean: {} } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const prune = (o) => {
     Object.keys(o).forEach((k) => { if (o[k] === '' || o[k] === undefined || o[k] === null || o[k] === false) delete o[k]; });

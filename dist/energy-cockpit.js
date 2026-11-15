@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.32.2 - MIT License */
+/*! energy-cockpit v0.32.3 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -2815,7 +2815,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   // Mehrere Sensoren (z. B. mehrere Unterzähler zum Abziehen)
   const entm = (name, domains) => ({ name, selector: { entity: Object.assign({ multiple: true }, domains ? { domain: domains } : {}) } });
   const bool = (name, def) => ({ name, default: def, selector: { boolean: {} } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const LABELS = {
@@ -3752,7 +3752,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
   const bool = (name) => ({ name, selector: { boolean: {} } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const prune = (o) => {
     Object.keys(o).forEach((k) => { if (o[k] === '' || o[k] === undefined || o[k] === null || o[k] === false) delete o[k]; });
@@ -4573,7 +4573,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
   const ent = (name, domains) => ({ name, selector: { entity: domains ? { domain: domains } : {} } });
   // Mehrere Sensoren (z. B. mehrere Unterzähler zum Abziehen)
   const entm = (name, domains) => ({ name, selector: { entity: Object.assign({ multiple: true }, domains ? { domain: domains } : {}) } });
-  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step || 1, mode: 'box' } } });
+  const numb = (name, min, max, step) => ({ name, selector: { number: { min, max, step: step && step % 1 ? 'any' : step || 1, mode: 'box' } } });
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const VAL = [
@@ -5624,12 +5624,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     schema: [
       { name: 'title', selector: { text: {} } },
       ...KEYS.map((k) => ent(k, ['sensor'])),
-      { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
-      ent('grid_price', ['sensor', 'input_number']), { name: 'grid_price_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
-      ent('feed_in', ['sensor', 'input_number']), { name: 'feed_in_ct', selector: { number: { min: 0, max: 200, step: 0.1, mode: 'box' } } },
+      { name: 'battery_capacity_kwh', selector: { number: { min: 0, max: 200, step: 'any', mode: 'box' } } },
+      ent('grid_price', ['sensor', 'input_number']), { name: 'grid_price_ct', selector: { number: { min: 0, max: 200, step: 'any', mode: 'box' } } },
+      ent('feed_in', ['sensor', 'input_number']), { name: 'feed_in_ct', selector: { number: { min: 0, max: 200, step: 'any', mode: 'box' } } },
       { name: 'budget_kwh', selector: { number: { min: 0, step: 100, mode: 'box', unit_of_measurement: 'kWh' } } },
       { name: 'budget_profile', selector: { select: { mode: 'dropdown', options: [{ value: 'linear', label: 'Gleichmäßig übers Jahr (Standard)' }, { value: 'history', label: 'Nach dem Verlauf des Vorjahres' }] } } },
-      ent('grid2_total', ['sensor']), { name: 'grid2_name', selector: { text: {} } }, ent('grid2_price', ['sensor', 'input_number']), { name: 'grid2_price_ct', selector: { number: { min: 0, max: 200, step: 0.01, mode: 'box' } } },
+      ent('grid2_total', ['sensor']), { name: 'grid2_name', selector: { text: {} } }, ent('grid2_price', ['sensor', 'input_number']), { name: 'grid2_price_ct', selector: { number: { min: 0, max: 200, step: 'any', mode: 'box' } } },
       { name: 'hide', selector: { select: { multiple: true, mode: 'list', options: [{ value: 'monthly', label: 'Diagramm PV-Ertrag pro Monat' }, { value: 'amortisation', label: 'Amortisation' }, { value: 'baseload', label: 'Grundlast (nachts)' }, { value: 'footer', label: 'Fußzeile (Rekordtag, Wirkungsgrad, Zyklen ...)' }, { value: 'money', label: 'Die vier Kacheln oben' }] } } },
       { name: 'start_period', selector: { select: { mode: 'dropdown', options: [{ value: 'month', label: 'Monat (Standard)' }, { value: 'day', label: 'Heute' }, { value: 'week', label: 'Woche (mit Verbrauchern)' }, { value: 'year', label: 'Jahr' }] } } },
       { name: 'feed_in_card', selector: { select: { mode: 'dropdown', options: [{ value: 'standard', label: 'Einspeiseerlös (Standard)' }, { value: 'pv_self_consumption', label: 'PV-Eigenverbrauch stattdessen' }, { value: 'hidden', label: 'Ausblenden' }] } } },
