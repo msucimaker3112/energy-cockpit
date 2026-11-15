@@ -20,7 +20,7 @@ async function run(){
   let e=mount(two(),hassFor({}));await wait(900);
   ok('Erster Akku zeigt die Leistung',t(e,'[data-k="bat"] .num')==='96',t(e,'[data-k="bat"] .num'));
   ok('Zweiter Akku zeigt keine eigene Leistung',t(e,'[data-k="bat2"] .num')==='—',t(e,'[data-k="bat2"] .num'));
-  ok('Zweiter Akku nicht Offline, sondern Lädt',t(e,'[data-k="bat2"] .tag')==='Lädt',t(e,'[data-k="bat2"] .tag'));
+  ok('Zweiter Akku nicht Offline, sondern Ladung',t(e,'[data-k="bat2"] .tag')==='Ladung',t(e,'[data-k="bat2"] .tag'));
   ok('Hinweis am ersten Akku',t(e,'[data-k="bat"] .sub').includes('Gemeinsamer Sensor mit Noah 2000'),t(e,'[data-k="bat"] .sub'));
   ok('Hinweis am zweiten Akku',t(e,'[data-k="bat2"] .sub').includes('Gemeinsamer Sensor mit Nexa 2000'),t(e,'[data-k="bat2"] .sub'));
   ok('Eigene Ladestände bleiben',t(e,'[data-k="bat"] .soc-txt')==='3 %'&&t(e,'[data-k="bat2"] .soc-txt')==='19 %');
@@ -29,7 +29,7 @@ async function run(){
   ok('Solar lädt 96 W',t(e,'[data-k="pv"] .sub').includes('Batterie 96 W'),t(e,'[data-k="pv"] .sub'));
   ok('Tageswerte zählen nur einmal',/\+2,0/.test(t(e,'[data-s="bat"] b'))&&/1,0/.test(t(e,'[data-s="bat"] b')),t(e,'[data-s="bat"] b'));
   e=mount(two(),hassFor({ch:0,dis:300,pv:0}));await wait(900);
-  ok('Entladen: beide Status Entlädt',t(e,'[data-k="bat"] .tag')==='Entlädt'&&t(e,'[data-k="bat2"] .tag')==='Entlädt');
+  ok('Entladen: beide Status Entladung',t(e,'[data-k="bat"] .tag')==='Entladung'&&t(e,'[data-k="bat2"] .tag')==='Entladung');
   ok('Entladen: einmal gezählt',/^1,27/.test(t(e,'.core .num')),t(e,'.core .num'));
   const c=two();c.batteries[0].power_charge='sensor.net';delete c.batteries[0].power_discharge;
   e=mount(c,hassFor({net:50}));await wait(900);

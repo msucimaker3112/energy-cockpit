@@ -299,6 +299,41 @@ grid_alert:
   delay: 120
 ```
 
+### Warum?-Erklärung: `why`
+
+Optional. Mit `why: true` erscheint an der **Netz-Kachel** ein kleines „?“. Ein Tipp darauf öffnet ein Fenster, das in einfachem Deutsch erklärt, woher der Netzbezug oder die Einspeisung kommt.
+
+```yaml
+why: true
+```
+
+![Warum-Erklärung bei Netzbezug und Einspeisung](img/flow-warum.png)
+
+**Bei Netzbezug**
+- **Wer braucht den Strom?** Balken zeigen die Verbraucher und Gruppen nach Leistung, der größte zuerst. Bei einer Gruppe steht der größte Eintrag darunter, zum Beispiel „davon Server 1,80 kW“. Der Rest, den kein Verbraucher erklärt, heißt „Nicht erfasst“. Lädt ein Speicher hinter dem Zähler, steht er als „Speicher lädt“ dabei.
+- **Gedeckt von:** Solar, Batterie und Netz mit ihren Anteilen.
+- **Warum nicht aus der Batterie?** Die Batterie ist leer (mit Ladestand und Entladegrenze), oder sie hat Ladung und gibt trotzdem nichts ab („Betriebsart oder Sperrzeit im Speicher prüfen“), oder sie liefert schon.
+- **Warum nicht Solar?** In der Nacht mit Sonnenaufgang und der Prognose für morgen (wenn `pv.forecast_tomorrow` gesetzt ist). Tagsüber mit der aktuellen Leistung und dem Wetter (wenn `weather` gesetzt ist).
+- **Hinweis:** Ist ein großer Teil keinem Verbraucher zugeordnet (mindestens 150 W und ein Viertel des Hausverbrauchs), schlägt die Karte vor, weitere Verbraucher einzutragen.
+
+**Bei Einspeisung**
+- Die Rechnung: Solar minus Haus (minus Batterie lädt) gleich Einspeisung.
+- **Warum nicht in die Batterie?** Sie ist voll, oder lädt gerade nicht, obwohl noch Platz ist, oder lädt schon.
+- **Tipp:** Aus den Überschuss-Vorschlägen (`surplus.suggestions`) nennt die Karte, was in die Einspeisung passt.
+
+**Bei ausgeglichenem Netz** (Bezug und Einspeisung unter 10 W) zeigt das Fenster dieselbe Aufstellung wie beim Netzbezug und erklärt, warum kein Netz nötig ist:
+- „Gedeckt von“ nennt Solar, Batterie und (falls vorhanden) das Netz.
+- **Warum kein Netzbezug?** Solar deckt das Haus allein, oder Solar und Batterie zusammen, oder die Batterie allein (mit Ladestand), oder das Haus braucht kaum Strom.
+- **Warum entlädt die Batterie?** Wenn Solar allein nicht reicht und die Batterie den Rest liefert.
+- **Warum lädt die Batterie?** Wenn Solar mehr liefert, als das Haus braucht.
+- Auch hier steht „Nicht erfasst“ als Rest, mit dem Hinweis, weitere Verbraucher einzutragen, wenn ein großer Teil keinem Verbraucher zugeordnet ist.
+
+**Gut zu wissen**
+- Die Erklärung entsteht aus den Werten, die die Karte ohnehin hat. Es gibt keine KI, keine Cloud und keine zusätzlichen Abfragen.
+- Je mehr Verbraucher oder Gruppen du einträgst, desto genauer ist sie. Bei wenigen steht vor allem „Nicht erfasst“, und die Karte sagt das ehrlich.
+- Das Fenster aktualisiert sich live, solange es offen ist, und schließt mit dem × oder einem Tipp neben das Fenster.
+- Im Editor und im Assistenten (Schritt „Aussehen“) einschaltbar. Das „?“ funktioniert in 3D, flach und in der Kurzansicht, auch mit der Tastatur (Tab, Enter).
+
 ### Zusatzwerte und Alarm: `extra`, `alarm`
 
 Optional. An **Solar** (`pv`), der **zweiten Anlage** (`pv2`), dem **Netz** (`grid`) und jedem **Speicher** (`battery`, `batteries`) kannst du frei wählbare Zusatzwerte anzeigen, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Mit `alarm` meldet die Kachel einen Fehler.

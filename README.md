@@ -4,7 +4,8 @@
 
 <p><b>Deine Energie auf einen Blick, auch in 3D.</b><br>
 Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.<br>
-Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kein YAML.</p>
+Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kein YAML.<br>
+<b>Neu: Die Karte erklärt sich selbst.</b> Ein „?“ sagt dir, warum gerade Strom aus dem Netz kommt.</p>
 
 [![Version](https://img.shields.io/github/v/release/msucimaker3112/energy-cockpit?label=Version&color=22d3ee)](https://github.com/msucimaker3112/energy-cockpit/releases/latest)
 [![In HACS](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz/)
@@ -17,7 +18,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
-**[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -25,11 +26,33 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <table>
 <tr>
-<td width="33%" valign="top"><b>Jeder Raum, jedes Gerät</b><br>Nicht nur Solar, Netz und Batterie: Du siehst live, wohin dein Strom wirklich fließt, bis zum einzelnen Gerät.</td>
-<td width="33%" valign="top"><b>In Minuten eingerichtet</b><br>Der Assistent schlägt passende Sensoren vor und zeigt ihre aktuellen Werte. Feste Gerätenamen gibt es nicht.</td>
-<td width="33%" valign="top"><b>Passt zu deiner Anlage</b><br>Balkonkraftwerk, mehrere Speicher, Hybrid-Wechselrichter, Handy oder Wandtablet: Vieles davon kam direkt von Nutzern.</td>
+<td width="25%" valign="top"><b>Erklärt sich selbst</b><br>Ein „?“ sagt dir in einfachem Deutsch, warum gerade Strom aus dem Netz kommt oder ins Netz geht.</td>
+<td width="25%" valign="top"><b>Jeder Raum, jedes Gerät</b><br>Nicht nur Solar, Netz und Batterie: Du siehst live, wohin dein Strom wirklich fließt, bis zum einzelnen Gerät.</td>
+<td width="25%" valign="top"><b>In Minuten eingerichtet</b><br>Der Assistent schlägt passende Sensoren vor und zeigt ihre aktuellen Werte. Feste Gerätenamen gibt es nicht.</td>
+<td width="25%" valign="top"><b>Passt zu deiner Anlage</b><br>Balkonkraftwerk, mehrere Speicher, Hybrid-Wechselrichter, Handy oder Wandtablet: Vieles davon kam direkt von Nutzern.</td>
 </tr>
 </table>
+
+## Neu: Die Karte erklärt sich selbst
+
+Du siehst 3,2 kW Netzbezug und fragst dich, wer das ist? Ein Tipp auf das **„?“ an der Netz-Kachel** beantwortet es in einfachem Deutsch, ohne dass du Sensoren abfragen musst.
+
+![Warum-Erklärung bei Netzbezug und Einspeisung](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-warum.png)
+
+- **Wer braucht den Strom?** Balken zeigen die Verbraucher und Gruppen, der größte zuerst, bei einer Gruppe auch ihren größten Eintrag („davon Server 1,80 kW“). Was kein Verbraucher erklärt, steht als „Nicht erfasst“ da.
+- **Warum nicht aus der Batterie?** Die Karte sagt, ob sie leer ist, ob sie Ladung hat und trotzdem nichts abgibt (Betriebsart oder Sperrzeit im Speicher prüfen) oder ob sie schon liefert.
+- **Warum nicht Solar?** In der Nacht mit Sonnenaufgang und der Prognose für morgen, tagsüber mit der aktuellen Leistung und dem Wetter.
+- **Und bei Einspeisung?** Die Rechnung „Solar minus Haus gleich Einspeisung“, ob die Batterie voll ist, und ein Tipp, was jetzt in den Überschuss passt (zum Beispiel die Waschmaschine).
+
+Alles entsteht aus den Werten, die die Karte ohnehin hat: **ohne KI, ohne Cloud, ohne zusätzliche Abfragen**. Das Fenster läuft live mit. Je mehr Verbraucher du einträgst, desto genauer wird die Erklärung, und wo Daten fehlen, sagt die Karte das ehrlich.
+
+**Einschalten:** im Assistenten Schritt *Aussehen* → **Warum?-Erklärung**, oder im YAML:
+
+```yaml
+why: true
+```
+
+Mehr dazu: [Warum?-Erklärung in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#warum-erklärung-why).
 
 ## Jeder Raum, jedes Gerät, live
 
@@ -250,6 +273,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 
 | Thema | Einstellung |
 |---|---|
+| **Warum?-Erklärung** am Netz: wer braucht den Strom, warum liefert die Batterie nichts, warum kein Solar | `why: true` |
 | **Zweite Anlage durch einen Speicher**, zum Beispiel Anker SOLIX Solarbank mit eigenen Modulen und AC-Ladung aus dem Haus | `pv2.to_battery`, `batteries[].power_in` |
 | **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
@@ -369,6 +393,7 @@ Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder p
 
 - **Energy flow:** animated solar, grid, one or more batteries (with discharge limit and forecast), home and consumers, surplus hint, second PV system (e.g. balcony solar). Optional 3D view with `style: 3d`.
 - **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
+- **New: the card explains itself.** A "?" on the grid tile tells you in plain language why power is coming from the grid or going to it: which consumers use it, why the battery is not delivering, why there is no solar (night, weather, forecast). Rule-based, no AI, no cloud. Turn it on with `why: true`.
 - **Optional extras:** a weather band under the header (`weather`), extra values and an alarm on the solar, grid and battery tiles (`extra`, `alarm`), your own colors (`colors`), large consumer tiles (`size: gross`), separate label size (`label_size`) and a storage with its own solar modules such as the Anker SOLIX Solarbank (`pv2.to_battery`). See the [configuration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md) (German).
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 

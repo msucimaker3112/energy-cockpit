@@ -1,0 +1,125 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Warum-Erklärung Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft why: "?" an der Netz-Kachel und die Erklärung für Netzbezug, Einspeisung und ausgeglichenes Netz.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&case=abend|mittag|ausgeglichen, &open=1) */
+const S=(v,u,a)=>({state:String(v),attributes:Object.assign({unit_of_measurement:u||'W'},a||{}),last_updated:'x'});
+const iso=(h)=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(h,0,0,0);return d.toISOString();};
+const base={pv:0,grid:3182,bat:0,soc:5,b1:698,b2:1799,wh:268,kk:115,tv:36,sun:'below_horizon',wx:'cloudy'};
+const hassFor=(o)=>{const v=Object.assign({},base,o||{});return {states:{'sensor.pv':S(v.pv),'sensor.grid':S(v.grid),'sensor.bat':S(v.bat),'sensor.soc':S(v.soc,'%'),'sensor.b1':S(v.b1),'sensor.b2':S(v.b2),'sensor.wh':S(v.wh),'sensor.kk':S(v.kk),'sensor.tv':S(v.tv),
+  'sensor.fc1':S(22,'kWh'),'sun.sun':{state:v.sun,attributes:{next_rising:iso(8)},last_updated:'x'},'weather.home':{state:v.wx,attributes:{temperature:4},last_updated:'x'}},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};};
+const it=(n,e)=>({name:n,entity:'sensor.'+e});
+const cfg=(o)=>Object.assign({why:true,style:'3d',pv:{entity:'sensor.pv',forecast_tomorrow:'sensor.fc1'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:7.5,reserve_pct:5,max_pct:100},weather:'weather.home',
+  consumer_groups:[{name:'Büro Keller',icon:'mdi:desktop-classic',color:'#f59e0b',items:[it('Arbeitsplätze','b1'),it('Server','b2')]},{name:'Technik',color:'#f87171',items:[it('Wassererhitzer','wh')]},{name:'Küche',color:'#34d399',items:[it('Kühlschrank','kk')]},{name:'Wohnzimmer',color:'#818cf8',items:[it('Fernseher','tv')]}]},o||{});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const txt=(e)=>{const d=q(e,'.wdlg');return d?d.textContent.replace(/\s+/g,' ').trim():'';};
+const open=async(e)=>{q(e,'.why').click();await wait(200);};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // ohne why: nichts davon
+  let e=mount(cfg({why:false}));await wait(700);
+  ok('ohne why: kein "?" und kein Fenster',!q(e,'.why')&&!q(e,'.wdlg'));
+
+  // Netzbezug am Abend, Batterie leer, Nacht
+  e=mount(cfg());await wait(900);
+  ok('"?" sitzt in der Netz-Kachel',!!q(e,'[data-k="grid"] .why'));
+  await open(e);const t1=txt(e);
+  ok('Fenster öffnet sich',q(e,'.wdlg').open);
+  ok('Überschrift nennt den Netzbezug',/Warum 3,18 kW Netzbezug\?/.test(t1),t1.slice(0,60));
+  ok('größter Verbraucher zuerst (Büro Keller 2,50 kW)',t1.indexOf('Büro Keller')<t1.indexOf('Technik')&&/2,50 kW/.test(t1),t1.slice(0,200));
+  ok('Gruppe nennt den größten Eintrag (davon Server 1,80 kW)',/davon Server 1,80 kW/.test(t1),t1);
+  ok('"Nicht erfasst" als Rest (266 W)',/Nicht erfasst/.test(t1)&&/266 W/.test(t1),t1);
+  ok('Deckung: nur Netz',/Gedeckt von: Netz 3,18 kW/.test(t1),t1.slice(0,300));
+  ok('Batterie leer erklärt',/Die Batterie ist leer \(5 %, Entladegrenze 5 %\)/.test(t1),t1);
+  ok('Nacht erklärt mit Sonnenaufgang und Prognose morgen',/Es ist Nacht\. Sonnenaufgang um \d{2}:\d{2} Uhr\. Prognose morgen 22 kWh/.test(t1),t1);
+  ok('kein Hinweis auf falsche Verbraucher-Zuordnung bei kleinem Rest',!/keinem Verbraucher zugeordnet/.test(t1));
+  q(e,'.wdlg .d-x').click();await wait(150);
+  ok('× schließt das Fenster',!q(e,'.wdlg').open);
+
+  // Tastatur
+  e=mount(cfg());await wait(800);
+  q(e,'.why').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,composed:true}));await wait(200);
+  ok('Enter auf dem "?" öffnet das Fenster',q(e,'.wdlg').open);
+
+  // Batterie hat Ladung, liefert aber nichts
+  e=mount(cfg(),hassFor({soc:60}));await wait(800);await open(e);
+  ok('Batterie 60 % ohne Abgabe: Hinweis auf Betriebsart oder Sperrzeit',/hat 60 %, gibt aber gerade keinen Strom ab/.test(txt(e)),txt(e));
+
+  // Batterie liefert schon
+  e=mount(cfg(),hassFor({soc:60,bat:-1000,grid:2182}));await wait(800);await open(e);
+  ok('Batterie liefert bereits 1,00 kW',/Die Batterie liefert bereits 1,00 kW/.test(txt(e)),txt(e));
+  ok('Deckung nennt die Batterie',/Batterie 1,00 kW/.test(txt(e)),txt(e));
+
+  // Tag, Solar reicht nicht, bewölkt
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:800,grid:1200,soc:5}));await wait(800);await open(e);
+  ok('Tag, Solar reicht nicht: Zahlen und Wetter',/Solar liefert 800 W, das reicht nicht für 2,00 kW\. Wetter: Bewölkt/.test(txt(e)),txt(e));
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:10,grid:3000,soc:5}));await wait(800);await open(e);
+  ok('Tag, kein Solar: "liefert gerade nichts" und Wetter',/Solar liefert gerade nichts\. Wetter: Bewölkt/.test(txt(e)),txt(e));
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:25,grid:3000,soc:5}));await wait(800);await open(e);
+  ok('Tag, wenig Solar: nennt die Leistung und das Wetter',/Solar liefert gerade nur 25 W\. Wetter: Bewölkt/.test(txt(e)),txt(e));
+
+  // Einspeisung mit voller Batterie
+  const sug=cfg({surplus:{threshold:1500,suggestions:[{name:'Waschmaschine',power:1200},{name:'Wallbox',power:3400}]}});
+  e=mount(sug,hassFor({sun:'above_horizon',pv:4100,grid:-1400,soc:100,b1:640,b2:460,wh:0,kk:110,tv:60}));await wait(800);await open(e);
+  ok('Einspeisung: Überschrift',/Warum 1,40 kW Einspeisung\?/.test(txt(e)),txt(e).slice(0,70));
+  ok('Einspeisung: Rechnung Solar minus Haus',/Solar 4,10 kW − Haus braucht 2,70 kW = Einspeisung 1,40 kW/.test(txt(e)),txt(e));
+  ok('Einspeisung: Batterie voll',/Die Batterie ist voll \(100 %\) und lädt nicht mehr/.test(txt(e)),txt(e));
+  ok('Tipp nennt nur, was in den Überschuss passt (Waschmaschine, nicht Wallbox)',/Waschmaschine/.test(txt(e))&&!/Wallbox/.test(txt(e)),txt(e));
+
+  // Einspeisung, Batterie hat Platz, lädt nicht
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:4100,grid:-1400,soc:70,b1:640,b2:460,wh:0,kk:110,tv:60}));await wait(800);await open(e);
+  ok('Einspeisung, Batterie 70 % lädt nicht: Hinweis',/lädt gerade nicht, obwohl noch Platz ist \(70 %\)/.test(txt(e)),txt(e));
+
+  // Netz ausgeglichen
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:2000,grid:0,bat:0,soc:60,b1:900,b2:900,wh:100,kk:100,tv:0}));await wait(800);await open(e);
+  ok('Netz ausgeglichen',/Netz ausgeglichen/.test(txt(e)),txt(e).slice(0,80));
+  ok('ausgeglichen: Aufstellung und Erklärung (Solar deckt das Haus)',/Gedeckt von: Solar 2,00 kW/.test(txt(e))&&/Warum kein Netzbezug\?/.test(txt(e))&&/Solar liefert 2,00 kW und deckt das Haus \(2,00 kW\) allein/.test(txt(e)),txt(e));
+  // wie auf Flos Dashboard: Netz 4 W, Solar 282 W, Batterie entlädt 71 W, viel nicht erfasst
+  e=mount(cfg({consumer_groups:[{name:'Technik',color:'#f87171',items:[it('Heizung','wh')]},{name:'Wohnzimmer',color:'#818cf8',items:[it('Fernseher','tv')]},{name:'Partyraum',color:'#34d399',items:[it('Proxmox','kk')]},{name:'Büro',color:'#f59e0b',items:[it('Arbeitsplätze','b1')]}]}),hassFor({sun:'above_horizon',pv:282,grid:4,bat:-71,soc:15,wh:34,tv:26,kk:12,b1:10,b2:0}));await wait(800);await open(e);
+  ok('Dashboard-Fall: Titel "Netz ausgeglichen"',/Netz ausgeglichen/.test(txt(e)),txt(e).slice(0,60));
+  ok('Dashboard-Fall: "Nicht erfasst 275 W" steht in der Aufstellung',/Nicht erfasst/.test(txt(e))&&/275 W/.test(txt(e)),txt(e));
+  ok('Dashboard-Fall: Büro mit 10 W fehlt nicht',/Büro/.test(txt(e)),txt(e));
+  ok('Dashboard-Fall: Gedeckt von Solar und Batterie',/Gedeckt von: Solar 282 W · Batterie 71 W/.test(txt(e)),txt(e).slice(0,200));
+  ok('Dashboard-Fall: Erklärungstexte vorhanden',/Warum kein Netzbezug\?/.test(txt(e))&&/Solar liefert 282 W und die Batterie 71 W/.test(txt(e))&&/Warum entlädt die Batterie\?/.test(txt(e))&&/Ladestand 15 %/.test(txt(e)),txt(e));
+  ok('Dashboard-Fall: Hinweis auf den großen nicht erfassten Anteil',/keinem Verbraucher zugeordnet/.test(txt(e)),txt(e));
+  // Batterie lädt bei ausgeglichenem Netz
+  e=mount(cfg(),hassFor({sun:'above_horizon',pv:3000,grid:0,bat:900,soc:40,b1:900,b2:900,wh:100,kk:100,tv:0}));await wait(800);await open(e);
+  ok('ausgeglichen mit ladender Batterie: Erklärung',/Warum lädt die Batterie\?/.test(txt(e))&&/lädt die Batterie/.test(txt(e)),txt(e));
+
+  // Live: Fenster folgt den Werten
+  e=mount(cfg());await wait(800);await open(e);
+  e.hass=hassFor({sun:'above_horizon',pv:4100,grid:-1400,soc:100,b1:640,b2:460,wh:0,kk:110,tv:60});await wait(400);
+  ok('offenes Fenster folgt neuen Werten',/Einspeisung/.test(txt(e))&&!/Netzbezug\?/.test(txt(e)),txt(e).slice(0,70));
+
+  // ohne Batterie, ohne Prognose, ohne Verbraucher
+  const nb={why:true,pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'}};
+  e=mount(nb,hassFor({sun:'above_horizon',pv:0,grid:1500}));await wait(800);await open(e);
+  ok('ohne Batterie und Verbraucher: kein Absturz, keine Batterie-Frage',/Netzbezug/.test(txt(e))&&!/aus der Batterie/.test(txt(e)),txt(e));
+
+  // großer unerfasster Anteil
+  e=mount(cfg({consumer_groups:[{name:'Küche',color:'#34d399',items:[it('Kühlschrank','kk')]}]}),hassFor({sun:'above_horizon',pv:0,grid:2000,soc:5}));await wait(800);await open(e);
+  ok('großer unerfasster Anteil: Hinweis, weitere Verbraucher einzutragen',/keinem Verbraucher zugeordnet/.test(txt(e)),txt(e));
+
+  // flache Ansicht und Kurzansicht
+  e=mount(cfg({style:'flach'}));await wait(800);
+  ok('flache Ansicht zeigt das "?"',!!q(e,'[data-k="grid"] .why'));
+  e=mount(cfg({compact:'immer'}));await wait(800);
+  ok('Kurzansicht zeigt das "?"',!!q(e,'.why'));
+  // Tipp auf das "?" öffnet nicht den Verlauf der Netz-Kachel
+  e=mount(cfg());await wait(800);const w0=q(e,'.why');let hist=false;e.addEventListener('hass-more-info',()=>{hist=true;});w0.click();await wait(200);
+  ok('Tipp auf das "?" öffnet das Fenster und nicht den Verlauf',q(e,'.wdlg').open&&!hist);
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const k=P.get('case');let o=null,c=cfg();
+  if(k==='mittag'){o={sun:'above_horizon',pv:4100,grid:-1400,soc:100,b1:640,b2:460,wh:0,kk:110,tv:60};c=cfg({surplus:{threshold:1500,suggestions:[{name:'Waschmaschine',power:1200}]}});}
+  if(k==='ausgeglichen')o={sun:'above_horizon',pv:2000,grid:0,bat:0,soc:60,b1:900,b2:900,wh:100,kk:100,tv:0};
+  const e=mount(c,hassFor(o));if(P.get('open'))setTimeout(()=>q(e,'.why').click(),1500);}
+</script></body></html>

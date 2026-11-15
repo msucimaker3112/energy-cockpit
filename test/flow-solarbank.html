@@ -39,12 +39,12 @@ async function run(){
   ok('AC-Ladung: Linie läuft rückwärts (Haus -> Solarbank)',link(e,'bat2').classList.contains('on')&&link(e,'bat2').classList.contains('rev'));
   ok('AC-Ladung: Solar 2 -> Solarbank ruht',!link(e,'r:pv2:bat2').classList.contains('on'));
   ok('AC-Ladung: Kachel nennt die Aufteilung',/Haus 800 W/.test(t(e,'[data-k="bat2"] .sub')),t(e,'[data-k="bat2"] .sub'));
-  ok('AC-Ladung: Tag "Lädt"',/Lädt/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
+  ok('AC-Ladung: Tag "Ladung"',/Ladung/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
 
   // C) Solar 2 und Abgabe gleichzeitig, mehr Abgabe als Modulleistung (Speicher entlädt)
   e=mount(cfg(),hassFor({solar2:50,chg:0,dis:150,out:200,ain:0}));await wait(800);
   ok('Entladen: Haus = 600 + 250 + 200 = 1.050 W',/^1[.,]05/.test(t(e,'.core .num')),t(e,'.core .num'));
-  ok('Entladen: Tag "Entlädt"',/Entlädt/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
+  ok('Entladen: Tag "Entladung"',/Entladung/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
 
   // D) Ohne to_battery: alles wie bisher (Solar 2 speist das Haus direkt)
   const old=cfg();delete old.pv2.to_battery;
