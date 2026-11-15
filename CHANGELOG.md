@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.30.1
+- **Hilfetexte im Editor und in der Anleitung ergänzt:** Im Assistenten und im Formular erklären jetzt Hilfetexte die Textgröße als Zahl (zum Beispiel 2 oder 1,5, und dass „Auf Bildschirmhöhe skalieren“ die Vergrößerung wieder aufheben kann), die Kachelgröße (normal, mittel, groß), das Wetter (Himmelsband), die eigenen Farben sowie die Zusatzwerte und den Alarm. Die Installationsanleitung nennt beim Schritt „Aussehen“ die Textgröße als Zahl und das Wetter. Die Funktion der Karte bleibt unverändert.
+
 ## 0.30.0
 - **Energiefluss, Zusatzwerte und Alarm je Kachel (optional, `extra` und `alarm`):** An Solar, zweiter Anlage, Netz und jedem Speicher kannst du frei wählbare Zusatzwerte anzeigen, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters, die Netzfrequenz oder die Zelltemperatur eines Speichers. Jede Zeile hat einen Sensor, optional einen Namen, eine Einheit, Nachkommastellen und eine Warngrenze (`warn_above`, `warn_below`, der Wert wird dann gelb). Mit `alarm` wird ein beliebiger Sensor zum Alarm: Bei einem Fehler erscheint ein roter Hinweis in der Kachel und die Kachel bekommt einen roten Rahmen. Ein Tipp auf eine Zeile oder den Alarm öffnet den Verlauf des Sensors. In der Kurzansicht bleibt nur der Alarm. Im Editor in den Abschnitten Solar, Netz und Batterie unter „Zusatzwerte“. Ohne Eintrag ändert sich nichts. Wunsch aus [#41](https://github.com/msucimaker3112/energy-cockpit/issues/41).
 
