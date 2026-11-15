@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.29.1 - MIT License */
+/*! energy-cockpit v0.30.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -943,7 +943,7 @@ WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
 /* ---- flow-card.js ---- */
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
@@ -1197,6 +1197,19 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons.big{padding:10px 12px}
 .cmp .cons.big .num{font-size:calc(1.2rem*var(--vs,1))}
 .cmp .cons.big .ico{transform:none;margin:0 10px 0 0}
+/* extra / alarm (optional, je Kachel): frei waehlbare Zusatzwerte und ein Alarm, z. B. Spannung, Strom, Temperatur eines Wechselrichters */
+.xt{margin-top:10px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut))}
+.xr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;cursor:pointer;min-width:0}
+.xr .xl{display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xr .xl ha-icon{--mdc-icon-size:calc(14px*var(--ts,1));margin-right:5px;flex:none}
+.xr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.xr.warn b{color:rgb(var(--pv))}
+.xa{display:flex;align-items:center;margin-bottom:6px;padding:5px 10px;border-radius:999px;font-size:calc(.7rem*var(--ts,1));font-weight:700;letter-spacing:.04em;color:rgb(var(--imp));background:rgba(var(--imp),.14);border:1px solid rgba(var(--imp),.5);cursor:pointer;width:fit-content;max-width:100%;box-sizing:border-box}
+.xa[hidden]{display:none}
+.xa:before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:rgb(var(--imp));margin-right:7px}
+.node.alarm{border-color:rgba(var(--imp),.75)!important;box-shadow:0 0 0 1px rgba(var(--imp),.4)!important}
+.cmp .xt .xr{display:none}
+.cmp .xt{margin-top:6px}
 /* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy). Eine Zahl (z. B. 2) vergrößert zusätzlich die Zahlen in den Kacheln */
 .ts-l{--ts:1.25}
 .ts-xl{--ts:1.5}
@@ -1485,6 +1498,66 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._$('.sky-det').innerHTML = bits.join(' &nbsp;·&nbsp; ') + (rows ? `<div class="g">${rows}</div>` : (hasFc ? '' : `<div>${T('sky.nofc')}</div>`));
     el.hidden = false;
   }
+  // extra / alarm je Kachel (pv, pv2, grid, Speicher): Liste frei waehlbarer Werte und ein Alarm-Sensor
+  _xtList(v) { return (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : [])).map((x) => (typeof x === 'string' ? { entity: x } : x)).filter((x) => x && typeof x.entity === 'string' && x.entity); }
+  _xtAlarm(a) { const x = typeof a === 'string' ? { entity: a } : a; return x && typeof x.entity === 'string' && x.entity ? x : null; }
+  _xtHtml(conf) {
+    if (!conf || !this._xtC) return '';
+    const rows = this._xtList(conf.extra).slice(0, 8), al = this._xtAlarm(conf.alarm);
+    if (!rows.length && !al) return '';
+    this._xtC.push({ rows, al });
+    return `<div class="xt" data-x="${this._xtC.length - 1}">${al ? `<div class="xa" data-e="${esc(al.entity)}" hidden><span class="xat"></span></div>` : ''}${rows.map((r, i) => `<div class="xr" data-i="${i}" data-e="${esc(r.entity)}"><span class="xl">${r.icon ? `<ha-icon icon="${esc(r.icon)}"></ha-icon>` : ''}<span class="xn">${esc(r.name || '')}</span></span><b class="xv">—</b></div>`).join('')}</div>`;
+  }
+  _xtUpdate() {
+    const h = this._hass;
+    if (!h || !this._xtC || !this._xtC.length) return;
+    this.shadowRoot.querySelectorAll('.xt').forEach((el) => {
+      const cfg = this._xtC[+el.dataset.x];
+      if (!cfg) return;
+      cfg.rows.forEach((r, i) => {
+        const row = el.querySelector(`.xr[data-i="${i}"]`), st = h.states && h.states[r.entity];
+        if (!row) return;
+        const nm = r.name || (st && st.attributes && st.attributes.friendly_name) || r.entity;
+        if (row.querySelector('.xn').textContent !== nm) row.querySelector('.xn').textContent = nm;
+        let txt = '—', warn = false;
+        if (st && !['unavailable', 'unknown', ''].includes(st.state)) {
+          const v = parseFloat(String(st.state).replace(',', '.'));
+          const unit = r.unit !== undefined ? String(r.unit) : (st.attributes && st.attributes.unit_of_measurement) || '';
+          if (!isNaN(v) && isFinite(st.state)) {
+            const d = r.decimals !== undefined && !isNaN(parseInt(r.decimals)) ? Math.max(0, Math.min(6, parseInt(r.decimals))) : (Number.isInteger(v) ? 0 : (Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2));
+            txt = nf(v, d) + (unit ? ' ' + unit : '');
+            const wa = parseFloat(r.warn_above), wb = parseFloat(r.warn_below);
+            warn = (!isNaN(wa) && v > wa) || (!isNaN(wb) && v < wb);
+          } else txt = String(st.state) + (r.unit ? ' ' + r.unit : '');
+        }
+        const b = row.querySelector('.xv');
+        if (b.textContent !== txt) b.textContent = txt;
+        row.classList.toggle('warn', warn);
+      });
+      const chip = el.querySelector('.xa'), node = el.closest('.node');
+      if (chip && cfg.al) {
+        const st = h.states && h.states[cfg.al.entity], s0 = st ? String(st.state) : '';
+        let on = false;
+        if (st && !['unavailable', 'unknown'].includes(s0)) {
+          const list = (v) => (Array.isArray(v) ? v : (v === undefined || v === null ? null : [v])), norm = (x) => String(x).toLowerCase();
+          const onL = list(cfg.al.on), okL = list(cfg.al.ok);
+          if (onL) on = onL.map(norm).includes(norm(s0));
+          else {
+            const ok = (okL || ['off', 'ok', 'normal', 'none', 'false', '0', '', 'idle']).map(norm);
+            const n = parseFloat(s0);
+            on = !ok.includes(norm(s0)) && !(okL === null && !isNaN(n) && n === 0);
+          }
+        }
+        const bin = ['on', 'off', 'true', 'false'].includes(s0.toLowerCase());
+        const name = cfg.al.name || T('xt.alarm');
+        chip.hidden = !on;
+        const txt = on && !bin ? `${name}: ${(st.attributes && st.attributes.friendly_name && cfg.al.show_name) || s0}` : name;
+        const at = chip.querySelector('.xat');
+        if (at.textContent !== txt) at.textContent = txt;
+        if (node) node.classList.toggle('alarm', on);
+      }
+    });
+  }
   _wasteChip() {
     const el = this._$('.wst'), W = this._waste, w = this._c.waste;
     if (!el || !W) return;
@@ -1555,8 +1628,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     try { return fn(); } finally { Object.assign(PAL, keep); }
   }
   _build() { return this._withPal(() => this._build0()); }
-  _update() { return this._withPal(() => this._update0()); }
+  _update() { return this._withPal(() => { this._update0(); this._xtUpdate(); }); }
   _build0() {
+    this._xtC = [];
     const c = this._c;
     this._bl = WD.state.lang;
     // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
@@ -1564,23 +1638,23 @@ class EnergyCockpitFlowCard extends HTMLElement {
     clearTimeout(this._fitT);
     this._fitT = setTimeout(refit, 2500);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
-    const node = (k, cls, icon, label, color, ent, extra = '') => `
+    const node = (k, cls, icon, label, color, ent, extra = '', conf = null) => `
       <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
         ${this._s3d ? `<div class="o3d" data-o="${k}"></div>` : ''}<div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
         <div class="val"><span class="num">—</span><span class="unit"></span></div>
-        <div class="tag"></div>${extra}<div class="sub"></div>
+        <div class="tag"></div>${extra}<div class="sub"></div>${this._xtHtml(conf)}
       </div>`;
     const links = [];
     let nodes = '';
-    if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity); if (!this._via) links.push('pv'); }
+    if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
-    if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity); links.push('pv2'); }
-    if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity); links.push('grid'); }
+    if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); links.push('pv2'); }
+    if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
       const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
-        `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`)).join('');
+        `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
       nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
@@ -2591,7 +2665,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -2604,6 +2678,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const COMPACT = [{ value: 'aus', label: 'Aus: ausführliche Ansicht (Standard)' }, { value: 'auto', label: 'Nur auf dem Handy' }, { value: 'immer', label: 'Immer' }];
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
+  const extraFields = () => [ent('entity', ['sensor', 'binary_sensor', 'input_number', 'number']), txt('name'), txt('unit'), numb('decimals', 0, 4, 1), numb('warn_above', -1000000, 1000000, 0.1), numb('warn_below', -1000000, 1000000, 0.1)];
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
   const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'mittel', label: 'Mittel (eine Spalte, größere Zahl)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
   const itemFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
@@ -2617,17 +2692,18 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     txt('name'), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), bool('invert', false),
     numb('capacity_kwh', 0, 200, 0.1), numb('reserve_pct', 0, 100, 1), numb('max_pct', 0, 100, 1), ent('temp', ['sensor']),
     ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']), bool('behind_meter', false),
+    sec('extra', 'Zusatzwerte (bis zu 6)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']),
   ];
 
   WD.flowForm = () => ({
     schema: [
       txt('title'),
-      sec('pv', 'Solar', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
-      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
-      sec('grid', 'Netz', [ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
+      sec('pv', 'Solar', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
+      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
+      sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('grid2', 'Zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Zähler)', [ent('entity', ['sensor']), txt('name'), ent('price', ['sensor', 'input_number', 'number']), numb('price_ct', 0, 200, 0.01)]),
       sec('battery', 'Batterie', [
-        ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('power_out', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
+        sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('power_out', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
         numb('capacity_kwh', 0, 200, 0.1), ent('reserve_soc', ['sensor', 'number', 'input_number']), numb('reserve_pct', 0, 100, 1),
         ent('max_soc', ['sensor', 'number', 'input_number']), numb('max_pct', 0, 100, 1),
         { name: 'tap', selector: { select: { mode: 'dropdown', options: [{ value: 'power', label: 'Verlauf der Lade-/Entladeleistung (Standard)' }, { value: 'soc', label: 'Verlauf des Ladestands in %' }] } } },

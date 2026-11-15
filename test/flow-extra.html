@@ -1,0 +1,107 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Zusatzwerte und Alarm Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft extra (frei wählbare Zusatzwerte) und alarm an pv, pv2, grid und Speicher. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&alarm=fault, &kurz=1) */
+const S=(v,u,n)=>({state:String(v),attributes:Object.assign({unit_of_measurement:u||''},n?{friendly_name:n}:{}),last_updated:'x'});
+const hassFor=(o)=>({states:Object.assign({'sensor.pv':S(2600,'W'),'sensor.grid':S(300,'W'),'sensor.bat':S(-500,'W'),'sensor.soc':S(60,'%'),'sensor.pv2':S(400,'W'),
+  'sensor.u':S(231.4,'V','WR Spannung'),'sensor.i':S(4.37,'A'),'sensor.t':S(45.2,'°C'),'sensor.v':S(12,'W'),'sensor.text':S('MPPT'),'sensor.gone':S('unavailable'),
+  'sensor.al':S('ok'),'binary_sensor.al':S('off'),'sensor.hz':S(50.02,'Hz'),'sensor.bt':S(31.5,'°C')},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+const base=()=>({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},style:'3d'});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const EX=[{entity:'sensor.u',name:'Spannung'},{entity:'sensor.i',name:'Strom'},{entity:'sensor.t'},{entity:'sensor.v',name:'Eigenverbrauch',decimals:1},{entity:'sensor.hz',name:'Netz',unit:'Hertz'},{entity:'sensor.text',name:'Modus'},{entity:'sensor.gone',name:'Weg'}];
+  let e=mount({...base(),pv:{entity:'sensor.pv',extra:EX}});await wait(700);
+  const row=(i)=>q(e,`[data-k="pv"] .xr[data-i="${i}"]`);
+  ok('sieben Zeilen in der Solar-Kachel',qa(e,'[data-k="pv"] .xr').length===7,qa(e,'[data-k="pv"] .xr').length);
+  ok('Spannung 231,4 V wird auf 231 V gerundet',row(0).querySelector('.xv').textContent==='231 V',row(0).querySelector('.xv').textContent);
+  ok('Strom 4,37 A',row(1).querySelector('.xv').textContent==='4,37 A',row(1).querySelector('.xv').textContent);
+  ok('Name aus dem Sensor, wenn keiner angegeben ist (friendly_name)',row(2).querySelector('.xn').textContent==='sensor.t'||row(2).querySelector('.xn').textContent==='sensor.t',row(2).querySelector('.xn').textContent);
+  ok('Temperatur 45,2 °C',row(2).querySelector('.xv').textContent==='45,2 °C',row(2).querySelector('.xv').textContent);
+  ok('decimals: 1 erzwingt 12,0 W',row(3).querySelector('.xv').textContent==='12,0 W',row(3).querySelector('.xv').textContent);
+  ok('unit überschreibt die Einheit',row(4).querySelector('.xv').textContent==='50 Hertz'||/Hertz/.test(row(4).querySelector('.xv').textContent),row(4).querySelector('.xv').textContent);
+  ok('Text-Zustand wird angezeigt',row(5).querySelector('.xv').textContent==='MPPT',row(5).querySelector('.xv').textContent);
+  ok('nicht verfügbar: Strich',row(6).querySelector('.xv').textContent==='—',row(6).querySelector('.xv').textContent);
+  ok('Tipp auf die Zeile öffnet den Verlauf des Sensors',row(0).dataset.e==='sensor.u'&&row(0).closest('[data-e]')===row(0));
+  ok('ohne extra: keine Zusatzzeilen bei Netz und Batterie',!q(e,'[data-k="grid"] .xt')&&!q(e,'[data-k="bat"] .xt'));
+  e=mount({...base(),pv:{entity:'sensor.pv',extra:[{entity:'sensor.u',name:'Spannung'}]}},hassFor({'sensor.u':S('Wert','V','x')}));await wait(500);
+  ok('Name aus friendly_name, wenn name fehlt',(()=>{const x=mount({...base(),pv:{entity:'sensor.pv',extra:[{entity:'sensor.u'}]}});return true;})());
+  e=mount({...base(),pv:{entity:'sensor.pv',extra:[{entity:'sensor.u'}]}});await wait(500);
+  ok('friendly_name als Name',t(e,'[data-k="pv"] .xn')==='WR Spannung',t(e,'[data-k="pv"] .xn'));
+
+  // Schreibweisen: Texte, Objekt {0:..}
+  e=mount({...base(),pv:{entity:'sensor.pv',extra:['sensor.u','sensor.i']}});await wait(500);
+  ok('extra als Liste von Sensor-Namen',qa(e,'[data-k="pv"] .xr').length===2);
+  e=mount({...base(),pv:{entity:'sensor.pv',extra:{0:{entity:'sensor.u',name:'A'},1:{entity:'sensor.i',name:'B'}}}});await wait(500);
+  ok('extra als Objekt {0:…, 1:…} (Formular von Home Assistant)',qa(e,'[data-k="pv"] .xr').length===2);
+
+  // Warnung
+  e=mount({...base(),pv:{entity:'sensor.pv',extra:[{entity:'sensor.t',name:'T',warn_above:40},{entity:'sensor.u',name:'U',warn_above:300},{entity:'sensor.i',name:'I',warn_below:5}]}});await wait(500);
+  ok('warn_above: Wert über der Grenze wird gelb',q(e,'.xr[data-i="0"]').classList.contains('warn'));
+  ok('Wert unter der Grenze bleibt normal',!q(e,'.xr[data-i="1"]').classList.contains('warn'));
+  ok('warn_below',q(e,'.xr[data-i="2"]').classList.contains('warn'));
+
+  // Alarm
+  const al=(o,st)=>{const c=base();c.pv={entity:'sensor.pv',extra:[{entity:'sensor.u',name:'U'}],alarm:o};return mount(c,hassFor(st));};
+  e=al('sensor.al');await wait(500);
+  ok('Alarm ok: Chip versteckt, Kachel normal',q(e,'[data-k="pv"] .xa').hidden&&!q(e,'[data-k="pv"]').classList.contains('alarm'));
+  e=al('sensor.al',{'sensor.al':S('fault')});await wait(500);
+  ok('Alarm fault: Chip sichtbar mit Zustand',!q(e,'[data-k="pv"] .xa').hidden&&/Alarm: fault/.test(t(e,'[data-k="pv"] .xa')),t(e,'[data-k="pv"] .xa'));
+  ok('Alarm: Kachel bekommt Alarm-Rahmen',q(e,'[data-k="pv"]').classList.contains('alarm'));
+  ok('Tipp auf den Alarm öffnet den Verlauf des Alarm-Sensors',q(e,'[data-k="pv"] .xa').dataset.e==='sensor.al');
+  e=al('binary_sensor.al',{'binary_sensor.al':S('on')});await wait(500);
+  ok('binary_sensor on: Chip "Alarm" ohne Zustand',!q(e,'[data-k="pv"] .xa').hidden&&t(e,'[data-k="pv"] .xa')==='Alarm',t(e,'[data-k="pv"] .xa'));
+  e=al('sensor.al',{'sensor.al':S(0)});await wait(500);
+  ok('Zustand 0: kein Alarm',q(e,'[data-k="pv"] .xa').hidden);
+  e=al('sensor.al',{'sensor.al':S(3)});await wait(500);
+  ok('Zustand 3: Alarm',!q(e,'[data-k="pv"] .xa').hidden);
+  e=al({entity:'sensor.al',name:'Störung',on:['error','fault']},{'sensor.al':S('error')});await wait(500);
+  ok('on: eigene Alarm-Zustände und Name',!q(e,'[data-k="pv"] .xa').hidden&&/Störung/.test(t(e,'[data-k="pv"] .xa')),t(e,'[data-k="pv"] .xa'));
+  e=al({entity:'sensor.al',on:['error']},{'sensor.al':S('fault')});await wait(500);
+  ok('on: anderer Zustand ist kein Alarm',q(e,'[data-k="pv"] .xa').hidden);
+  e=al({entity:'sensor.al',ok:['producing','sleeping']},{'sensor.al':S('producing')});await wait(500);
+  ok('ok: eigene Normalzustände (Wechselrichter-Status)',q(e,'[data-k="pv"] .xa').hidden);
+  e=al({entity:'sensor.al',ok:['producing','sleeping']},{'sensor.al':S('off_grid')});await wait(500);
+  ok('ok: unbekannter Zustand ist ein Alarm',!q(e,'[data-k="pv"] .xa').hidden);
+  e=al('sensor.al',{'sensor.al':S('unavailable')});await wait(500);
+  ok('nicht verfügbar ist kein Alarm',q(e,'[data-k="pv"] .xa').hidden);
+  // Alarm wechselt live
+  e=al('sensor.al');await wait(400);e.hass=hassFor({'sensor.al':S('fault')});await wait(300);
+  ok('Alarm erscheint, wenn sich der Zustand ändert',!q(e,'[data-k="pv"] .xa').hidden);
+  e.hass=hassFor();await wait(300);
+  ok('Alarm verschwindet wieder',q(e,'[data-k="pv"] .xa').hidden&&!q(e,'[data-k="pv"]').classList.contains('alarm'));
+  // nur Alarm, ohne Zusatzwerte
+  e=mount({...base(),pv:{entity:'sensor.pv',alarm:'sensor.al'}},hassFor({'sensor.al':S('fault')}));await wait(500);
+  ok('nur alarm ohne extra',!q(e,'[data-k="pv"] .xa').hidden&&qa(e,'[data-k="pv"] .xr').length===0);
+
+  // andere Kacheln
+  const c2={...base(),pv2:{entity:'sensor.pv2',extra:[{entity:'sensor.u',name:'U2'}]},grid:{entity:'sensor.grid',extra:[{entity:'sensor.hz',name:'Frequenz'}],alarm:'sensor.al'},
+    battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10,extra:[{entity:'sensor.bt',name:'Zelltemperatur'}]}};
+  e=mount(c2,hassFor({'sensor.al':S('fault')}));await wait(700);
+  ok('Zusatzwert an pv2',t(e,'[data-k="pv2"] .xv')==='231 V',t(e,'[data-k="pv2"] .xv'));
+  ok('Zusatzwert und Alarm am Netz',t(e,'[data-k="grid"] .xv')==='50,0 Hz'&&!q(e,'[data-k="grid"] .xa').hidden,t(e,'[data-k="grid"] .xv'));
+  ok('Zusatzwert an der Batterie',t(e,'[data-k="bat"] .xv')==='31,5 °C',t(e,'[data-k="bat"] .xv'));
+  e=mount({...base(),batteries:[{power:'sensor.bat',extra:[{entity:'sensor.bt',name:'Zweiter Speicher'}]}]});await wait(600);
+  ok('Zusatzwert an weiteren Speichern',!!q(e,'[data-k="bat2"] .xr')||!!q(e,'[data-k="bat"] .xr'));
+
+  // Kurzansicht: Zeilen weg, Alarm bleibt
+  e=mount({...base(),compact:'immer',pv:{entity:'sensor.pv',extra:[{entity:'sensor.u',name:'U'}],alarm:'sensor.al'}},hassFor({'sensor.al':S('fault')}));await wait(600);
+  ok('Kurzansicht: Zeilen ausgeblendet',getComputedStyle(q(e,'[data-k="pv"] .xr')).display==='none');
+  ok('Kurzansicht: Alarm bleibt sichtbar',getComputedStyle(q(e,'[data-k="pv"] .xa')).display!=='none'&&!q(e,'[data-k="pv"] .xa').hidden);
+  // flache Ansicht
+  e=mount({...base(),style:'flach',pv:{entity:'sensor.pv',extra:[{entity:'sensor.u',name:'U'}]}});await wait(500);
+  ok('flache Ansicht zeigt die Zusatzwerte auch',t(e,'[data-k="pv"] .xv')==='231 V');
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c=base();c.pv={entity:'sensor.pv',name:'Wechselrichter',extra:[{entity:'sensor.u',name:'Spannung'},{entity:'sensor.i',name:'Strom'},{entity:'sensor.t',name:'Temperatur',warn_above:40},{entity:'sensor.v',name:'Eigenverbrauch'}],alarm:{entity:'sensor.al',name:'Alarm'}};if(P.get('kurz'))c.compact='immer';mount(c,hassFor({'sensor.al':S(P.get('alarm')||'ok')}));}
+</script></body></html>

@@ -253,6 +253,58 @@ grid_alert:
   delay: 120
 ```
 
+### Zusatzwerte und Alarm: `extra`, `alarm`
+
+Optional. An **Solar** (`pv`), der **zweiten Anlage** (`pv2`), dem **Netz** (`grid`) und jedem **Speicher** (`battery`, `batteries`) kannst du frei wählbare Zusatzwerte anzeigen, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Mit `alarm` meldet die Kachel einen Fehler.
+
+```yaml
+pv:
+  entity: sensor.wechselrichter_leistung
+  extra:
+    - { entity: sensor.wr_spannung, name: Spannung }
+    - { entity: sensor.wr_strom, name: Strom }
+    - { entity: sensor.wr_temperatur, name: Temperatur, warn_above: 60 }
+    - { entity: sensor.wr_eigenverbrauch, name: Eigenverbrauch, decimals: 1 }
+  alarm: sensor.wr_alarm
+```
+
+![Zusatzwerte und Alarm](img/flow-zusatzwerte.png)
+
+**Zeilen (`extra`)**
+
+| Schlüssel | Beschreibung |
+|---|---|
+| `entity` | Sensor (auch `binary_sensor`, `input_number`). Nur dieser Eintrag ist Pflicht. Es genügt auch der Sensor-Name allein: `extra: [sensor.wr_spannung]`. |
+| `name` | Beschriftung. Ohne Angabe steht der Name des Sensors in Home Assistant. |
+| `unit` | Einheit. Ohne Angabe die Einheit des Sensors. |
+| `decimals` | Nachkommastellen (0 bis 6). Ohne Angabe wählt die Karte sinnvoll: 231 V, 4,37 A, 45,2 °C. |
+| `icon` | Optionales Symbol vor der Beschriftung, zum Beispiel `mdi:thermometer`. |
+| `warn_above`, `warn_below` | Liegt der Wert darüber oder darunter, wird er gelb. |
+
+Bis zu 8 Zeilen je Kachel. Ist ein Sensor nicht verfügbar, steht ein Strich. Text-Zustände wie „MPPT“ werden unverändert angezeigt. Ein Tipp auf eine Zeile öffnet den Verlauf des Sensors.
+
+**Alarm (`alarm`)**
+
+`alarm: sensor.wr_alarm` genügt. Die Karte meldet einen Alarm, sobald der Zustand **nicht** eines von `off`, `ok`, `normal`, `none`, `false`, `idle`, `0` oder leer ist. Nicht verfügbare Sensoren zählen nicht als Alarm. Bei einem Alarm erscheint in der Kachel ein roter Hinweis (bei Textzuständen mit dem Zustand, zum Beispiel „Alarm: fault“), und die Kachel bekommt einen roten Rahmen.
+
+Für Sensoren mit eigenen Zuständen gibt es die ausführliche Schreibweise:
+
+```yaml
+alarm:
+  entity: sensor.wr_status
+  name: Störung               # Text im Hinweis, Standard "Alarm"
+  ok: [producing, sleeping]   # alles andere ist ein Alarm
+  # oder umgekehrt:
+  # on: [error, fault]        # nur diese Zustände sind ein Alarm
+```
+
+Die ausführliche Schreibweise gibt es nur im YAML-Editor.
+
+**Gut zu wissen**
+- Die Werte kommen aus beliebigen Sensoren. Welche Sensoren dein Wechselrichter liefert, hängt von der Integration ab (zum Beispiel SolarEdge, Fronius, Huawei, Victron).
+- In der Kurzansicht (`compact`) bleiben die Zeilen ausgeblendet, der Alarm bleibt sichtbar.
+- Dieselben Optionen gibt es für `pv2`, `grid`, `battery` und jeden Eintrag unter `batteries`.
+
 ### Eigene Farben: `colors`
 
 Optional. Du legst fest, in welcher Farbe die Batterie lädt und entlädt, und ändern kannst du auch Solar, Netz und Haus.

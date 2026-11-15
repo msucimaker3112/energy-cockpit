@@ -169,6 +169,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 
 | Thema | Einstellung |
 |---|---|
+| **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
 | **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte | `text_size: gross`, `sehr_gross` oder `2` |
 | **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele), auch eine schmalere Stufe | `consumers[].size: gross` oder `mittel` |
