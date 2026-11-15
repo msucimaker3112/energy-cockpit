@@ -17,7 +17,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
-**[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -41,7 +41,7 @@ Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räu
 
 <table>
 <tr>
-<td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Batterie-Prognose und Überschuss-Hinweis.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
+<td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Batterie-Prognose, Überschuss-Hinweis, Wetterband, Zusatzwerten mit Alarm und eigenen Farben.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
 <td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten je Verbraucher und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
 </tr>
 <tr>
@@ -82,6 +82,87 @@ house_style: sattel   # oder flach
 | ![Zwei Speicher und Balkonkraftwerk](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-3d-zwei.png) | ![Helles Farbschema](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-3d-hell.png) | ![Flachdach](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-3d-flach.png) |
 
 Mehr dazu: [3D-Ansicht in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#3d-ansicht-style-3d).
+
+## Wetter, Farben und mehr
+
+Alles hier ist **optional**. Ohne Eintrag sieht die Karte aus wie bisher.
+
+### Wetter: das Himmelsband
+
+Ein dünner Streifen unter der Kopfzeile zeigt das Wetter des Tages in 24 Stunden (Gold für Sonne, Grau für Wolken, Blau für Regen, Hellblau für Schnee), dazu Temperatur, Sonnenaufgang und Sonnenuntergang. Ein Punkt markiert „jetzt“, ein Tipp zeigt Bewölkung, Wind und die nächsten Stunden. So siehst du, warum die PV gerade so viel liefert und wann die Sonne wiederkommt. Keine Bewegung, keine Effekte über der Karte.
+
+```yaml
+weather: weather.forecast_home   # oder: weather: auto
+```
+
+![Himmelsband mit Wetterlage und Details](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-himmelsband.png)
+
+Mehr dazu: [Himmelsband in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#himmelsband-weather).
+
+### Zusatzwerte und Alarm
+
+An Solar, Netz und jedem Speicher zeigst du frei wählbare Zusatzwerte, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Ein Alarm-Sensor färbt die Kachel rot und zeigt einen Hinweis.
+
+```yaml
+pv:
+  entity: sensor.wechselrichter_leistung
+  extra:
+    - { entity: sensor.wr_spannung, name: Spannung }
+    - { entity: sensor.wr_temperatur, name: Temperatur, warn_above: 60 }
+  alarm: sensor.wr_alarm
+```
+
+![Zusatzwerte und Alarm in der Solar-Kachel](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-zusatzwerte.png)
+
+Mehr dazu: [Zusatzwerte und Alarm in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#zusatzwerte-und-alarm-extra-alarm).
+
+### Eigene Farben
+
+Zum Beispiel Grün beim Laden der Batterie und Rot beim Entladen. Auch Solar, Netz und Haus lassen sich umfärben.
+
+```yaml
+colors:
+  battery_charge: "#22c55e"
+  battery_discharge: "#ef4444"
+```
+
+![Batterie lädt grün, entlädt rot](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/farben-batterie.png)
+
+Mehr dazu: [Eigene Farben in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#eigene-farben-colors).
+
+### Große Kacheln und Schrift
+
+Wärmepumpe und Wallboxen als breite Kachel mit großer Zahl (`size: gross`), oder eine Stufe kleiner (`size: mittel`). Die Textgröße lässt sich als Zahl angeben, und die Beschriftungen wachsen auf Wunsch getrennt von den Zahlen, damit alles auf einen Bildschirm passt.
+
+```yaml
+consumers:
+  - { entity: sensor.waermepumpe_leistung, name: Wärmepumpe, size: gross }
+  - { entity: sensor.wallbox, name: Wallbox, size: gross }
+label_size: 1.5     # nur Namen und Zusatzwerte größer
+```
+
+![Große Kacheln für Wärmepumpe und Wallboxen](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-grosse-kacheln.png)
+
+Mehr dazu: [Verbraucher in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#verbraucher).
+
+### Speicher mit eigenen Modulen (zum Beispiel Anker SOLIX Solarbank)
+
+Solar 2 läuft durch den Speicher statt direkt ins Haus. Fürs Haus zählt die AC-Seite: Abgabe als Quelle, Ladung aus dem Haus als Verbrauch.
+
+```yaml
+pv2:
+  entity: sensor.anker_solarstrom
+  to_battery: 2        # läuft durch Speicher Nr. 2
+batteries:
+  - name: Anker Solarbank
+    power_out: sensor.anker_ac_ausgang
+    power_in: sensor.anker_netzbezugsleistung
+    behind_meter: true
+```
+
+![Solarbank mit eigenen Modulen und AC-Ladung](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-solarbank.png)
+
+Mehr dazu: [Zweite Anlage durch einen Speicher in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#zweite-anlage-durch-einen-speicher-pv2to_battery).
 
 ## Kosten je Verbraucher
 
@@ -288,6 +369,7 @@ Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder p
 
 - **Energy flow:** animated solar, grid, one or more batteries (with discharge limit and forecast), home and consumers, surplus hint, second PV system (e.g. balcony solar). Optional 3D view with `style: 3d`.
 - **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
+- **Optional extras:** a weather band under the header (`weather`), extra values and an alarm on the solar, grid and battery tiles (`extra`, `alarm`), your own colors (`colors`), large consumer tiles (`size: gross`), separate label size (`label_size`) and a storage with its own solar modules such as the Anker SOLIX Solarbank (`pv2.to_battery`). See the [configuration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md) (German).
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 
 **Install:** Energy-Cockpit is in the default HACS store. Open HACS, search for *energy-cockpit*, download it and reload the browser. Then add a card and search for *Energy-Cockpit*.
