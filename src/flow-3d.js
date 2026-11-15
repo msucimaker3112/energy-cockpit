@@ -312,7 +312,7 @@ const roof = (v) => {
     const n = parseInt(m[1], 16), dk = (s) => Math.round(((n >> s) & 255) * 0.6);
     pair = ['#' + m[1], `rgb(${dk(16)},${dk(8)},${dk(0)})`];
   }
-  return `--rf0:${pair[0]};--rf1:${pair[1]}`;
+  return `--rf0:${pair[0]};--rf1:${pair[1]};`;
 };
 // Maße des Rings aus house() (R = 92): für den Anschluss der Linien in der Karte
 const ring = { w: 2 * (92 * 1.23 + 6), bottom: 92 * 0.71 + 8, rx: 92 * Math.SQRT2 * C, ry: 92 * Math.SQRT2 * S };

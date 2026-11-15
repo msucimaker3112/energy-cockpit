@@ -31,6 +31,8 @@ header>*{margin:3px 0 3px 8px}
 .sky.open .sky-det{display:block}
 .sky-det b{color:var(--txt);font-weight:650}
 .sky-det .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 12px;margin-top:8px}
+.sky-det .g>span{display:flex;flex-direction:column;gap:2px}
+.sky-det .g .ht{font-variant-numeric:tabular-nums}
 .cmp .sky-bar{display:none}
 .cmp .sky{margin:-14px 0 12px}
 .ka{display:none}
@@ -155,10 +157,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .stat{display:flex;flex-direction:column;padding:11px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
 .stat span{font-size:calc(.62rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.09em;font-weight:650;display:flex;align-items:center;margin-bottom:5px}
 .stat span i{flex:none;width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px}
-.stat span{min-width:0;overflow-wrap:anywhere}
+.stat span{min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
 .stat.fc{cursor:pointer}
 .stat.fc span i{background:none;box-shadow:inset 0 0 0 1.5px rgb(var(--c))}
-.stat b{font-size:1.1rem;font-variant-numeric:tabular-nums;font-weight:700}
+.stat b{font-size:1.1rem;font-variant-numeric:tabular-nums;font-weight:700;margin-top:auto}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .groups{position:relative;z-index:1;display:grid;grid-gap:10px;gap:10px;margin-top:54px}
 .grp{position:relative;padding:10px 10px 8px;border-radius:17px;background:linear-gradient(160deg,rgba(var(--ov),.06),rgba(var(--ov),.012)),var(--panel);border:1px solid var(--stroke);transition:border-color .5s,box-shadow .5s,opacity .5s;min-width:0}
@@ -583,7 +585,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const nextH = (this._skyFc || []).filter((f) => new Date(f.datetime) > new Date(now.getTime() - 36e5)).slice(0, 6);
     const rows = nextH.map((f) => {
       const d = new Date(f.datetime), pr = parseFloat(f.precipitation), p = pr > 0 ? ` · ${nf(pr, 1)} mm` : '';
-      return `<span>${d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' })} <b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span>`;
+      return `<span><span class="ht">${d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' })}</span><span><b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span></span>`;
     }).join('');
     this._$('.sky-det').innerHTML = bits.join(' &nbsp;·&nbsp; ') + (rows ? `<div class="g">${rows}</div>` : (hasFc ? '' : `<div>${T('sky.nofc')}</div>`));
     el.hidden = false;

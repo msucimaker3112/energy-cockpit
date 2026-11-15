@@ -48,6 +48,9 @@ async function run(){
   ok('Antippen öffnet die Details',q(e,'.sky').classList.contains('open')&&getComputedStyle(q(e,'.sky-det')).display!=='none');
   ok('Details: Bewölkung und Wind',/Bewölkung\s*86\s*%/.test(t(e,'.sky-det'))&&/Wind\s*14\s*km\/h/.test(t(e,'.sky-det')),t(e,'.sky-det').slice(0,80));
   ok('Details: nächste Stunden',e.shadowRoot.querySelectorAll('.sky-det .g span').length>=1,e.shadowRoot.querySelectorAll('.sky-det .g span').length);
+  // #49 (Joe): Uhrzeit steht über Temperatur und Zustand, alle Zellen gleich aufgebaut
+  { const cells=[...e.shadowRoot.querySelectorAll('.sky-det .g>span')];const ok1=cells.length>=1&&cells.every(c=>{const a=c.querySelector('.ht').getBoundingClientRect(),b=c.children[1].getBoundingClientRect();return b.top>=a.bottom-1&&Math.abs(a.left-b.left)<1;});
+    ok('Details: Uhrzeit über Temperatur und Zustand',ok1,cells.length+' Zellen'); }
   q(e,'.sky').click();await wait(50);
   ok('erneutes Antippen schließt',!q(e,'.sky').classList.contains('open'));
 

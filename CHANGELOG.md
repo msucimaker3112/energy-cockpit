@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.32.4
+- **Energiefluss, Textgröße mit Dachfarbe:** Wer in der 3D-Ansicht eine Dachfarbe (`roof_color`) eingestellt hatte, konnte die Größe der Beschriftungen (`label_size`) und der Texte (`text_size`) nicht ändern: Die Einstellung kam nie in der Karte an, nur die Zahlen wurden größer. Ursache war ein fehlendes Semikolon in der Stil-Zeile der Karte. Jetzt wirken beide Einstellungen zusammen. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+- **Himmelsband, Stunden-Vorschau aufgeräumt:** In den Details stehen Uhrzeit und Wetter jetzt untereinander („14:00“ darüber, „11° Teils bewölkt“ darunter). Vorher brach der Text hinter der Uhrzeit unordentlich um, besonders auf großen Bildschirmen. Anlass: [#49](https://github.com/msucimaker3112/energy-cockpit/issues/49).
+- **Energiefluss, Tageswerte unten bündig:** Bricht die Beschriftung einer Tageswert-Kachel auf zwei Zeilen um („Bezug heute“, „Batterie ± heute“), stand die Zahl höher oder tiefer als in den Nachbar-Kacheln. Jetzt stehen die Zahlen einer Reihe immer auf einer Linie, am unteren Rand der Kachel. Lange Wörter wie „Einspeisung“ werden bei Bedarf sauber getrennt statt mitten im Wort. Anlass: [#48](https://github.com/msucimaker3112/energy-cockpit/issues/48).
+
 ## 0.32.3
 - **Editor, Dezimalzahlen eingeben:** Felder wie „Kapazität (kWh)“ nahmen nur Werte in Schritten von 0,1 an. „5,12“ oder „5.12“ wurde mit „Gültigen Wert eingeben“ abgelehnt. Jetzt sind beliebige Nachkommastellen erlaubt, in allen Editoren (Energiefluss, Statistik, Geräte, Raum). Anlass: [#47](https://github.com/msucimaker3112/energy-cockpit/issues/47).
 

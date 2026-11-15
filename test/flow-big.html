@@ -63,7 +63,8 @@ async function run(){
   ok('große Kachel: Name größer als bei normaler',fs(e,'[data-k="c0"] .lbl')>=fs(e,'[data-k="c1"] .lbl')*1.3,fs(e,'[data-k="c0"] .lbl')+' px gegen '+fs(e,'[data-k="c1"] .lbl')+' px');
   ok('große Kachel: Zusatzwert größer als bei normaler',fs(e,'[data-k="c0"] .c-sec')>=fs(e,'[data-k="c1"] .c-sec')*1.3,fs(e,'[data-k="c0"] .c-sec')+' px gegen '+fs(e,'[data-k="c1"] .c-sec')+' px');
   // #40: label_size trennt die Groesse der Beschriftungen von den Zahlen
-  const lb0=fs(mount(cfg({consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]})),'[data-k="c0"] .lbl'),nm0=fs(mount(cfg({consumers:[]})),'.node .num');
+  e=mount(cfg({consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(400);const lb0=fs(e,'[data-k="c0"] .lbl');
+  e=mount(cfg({consumers:[]}));await wait(400);const nm0=fs(e,'.node .num');
   e=mount(cfg({label_size:2,consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(400);
   ok('label_size 2: Beschriftung doppelt so groß',Math.abs(fs(e,'[data-k="c0"] .lbl')/lb0-2)<0.1,fs(e,'[data-k="c0"] .lbl')+' px gegen '+lb0+' px');
   ok('label_size 2: Zahlen in den Kacheln bleiben',Math.abs(fs(e,'.node .num')-nm0)<0.5,fs(e,'.node .num')+' px gegen '+nm0+' px');
@@ -71,6 +72,10 @@ async function run(){
   ok('text_size 2 mit label_size 1: Zahlen doppelt, Beschriftung normal',Math.abs(fs(e,'.node .num')/nm0-2)<0.05&&Math.abs(fs(e,'[data-k="c0"] .lbl')/lb0-1)<0.1);
   e=mount(cfg({label_size:'abc',consumers:[{entity:'sensor.l',name:'L'}]}));await wait(300);
   ok('label_size: Unsinn wird ignoriert',Math.abs(fs(e,'[data-k="c0"] .lbl')-lb0)<0.5);
+  // #40 (Micha): roof_color und label_size/text_size zusammen: die Dachfarbe darf die Groessen nicht verschlucken
+  e=mount(cfg({roof_color:'anthrazit',label_size:3,text_size:'2',fit_screen:false,consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(500);
+  ok('roof_color mit label_size: --ts und --vs kommen an',getComputedStyle(q(e,'.wrap')).getPropertyValue('--ts').trim()==='3'&&getComputedStyle(q(e,'.wrap')).getPropertyValue('--vs').trim()==='2',q(e,'.wrap').getAttribute('style'));
+  ok('roof_color mit label_size: Beschriftung wirklich größer',fs(e,'[data-k="c0"] .lbl')/lb0>2.5,fs(e,'[data-k="c0"] .lbl')+' px gegen '+lb0+' px');
   // size: mittel macht die Spalten breiter
   const w0=mount(cfg({consumers:[{entity:'sensor.l',name:'L'},{entity:'sensor.k',name:'K'}]}));await wait(500);const wn=q(w0,'[data-k="c0"]').getBoundingClientRect().width;
   e=mount(cfg({consumers:[{entity:'sensor.l',name:'L',size:'mittel'},{entity:'sensor.k',name:'K',size:'mittel'}]}));await wait(500);
@@ -101,6 +106,15 @@ async function run(){
   host.style.maxWidth='760px';await xtRows(xcfg(),'normal');
   host.style.maxWidth='1100px';await xtRows(xcfg({text_size:'sehr_gross'}),'sehr groß');
   await xtRows(xcfg({label_size:1.6}),'label_size');
+  // #48 (Joe): Tageswerte unten: Zahlen stehen in einer Reihe auf gleicher Hoehe, auch wenn eine Beschriftung zweizeilig umbricht
+  const D=(v)=>S(v,'kWh');Object.assign(hass.states,{'sensor.dpv':D(2.2),'sensor.dimp':D(0.9),'sensor.dexp':D(0),'sensor.dchg':D(1.1),'sensor.ddis':D(1.2)});
+  document.getElementById('host').style.maxWidth='440px';
+  e=mount(cfg({pv:{entity:'sensor.pv',daily:'sensor.dpv'},grid:{entity:'sensor.grid',daily_import:'sensor.dimp',daily_export:'sensor.dexp'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10,daily_charge:'sensor.dchg',daily_discharge:'sensor.ddis'},text_size:'gross'}));await wait(800);
+  const st=qa(e,'.stat');const rows={};st.forEach(s=>{const r=s.getBoundingClientRect(),b=s.querySelector('b').getBoundingClientRect();(rows[Math.round(r.top)]=rows[Math.round(r.top)]||[]).push({lbl:s.querySelector('span').getBoundingClientRect().height,bot:Math.round(b.bottom),tb:Math.round(r.bottom)});});
+  const multi=Object.values(rows).filter(a=>a.length>1);const wrapped=multi.some(a=>Math.max(...a.map(z=>z.lbl))>Math.min(...a.map(z=>z.lbl))+4);
+  ok('Tageswerte: mindestens eine Reihe mit zweizeiliger Beschriftung (Testlage)',wrapped);
+  ok('Tageswerte: Zahlen einer Reihe auf gleicher Höhe',multi.every(a=>Math.max(...a.map(z=>z.bot))-Math.min(...a.map(z=>z.bot))<=1),JSON.stringify(multi.map(a=>a.map(z=>z.bot))));
+  document.getElementById('host').style.maxWidth='1100px';
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);
   ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);
