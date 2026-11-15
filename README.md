@@ -169,6 +169,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 
 | Thema | Einstellung |
 |---|---|
+| **Zweite Anlage durch einen Speicher**, zum Beispiel Anker SOLIX Solarbank mit eigenen Modulen und AC-Ladung aus dem Haus | `pv2.to_battery`, `batteries[].power_in` |
 | **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
 | **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte, und **Beschriftungsgröße** getrennt von den Zahlen | `text_size: gross`, `sehr_gross` oder `2`, `label_size: 1.5` |

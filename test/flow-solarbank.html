@@ -1,0 +1,81 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Solarbank mit eigenen Modulen Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft pv2.to_battery (#45, Anker SOLIX Solarbank): PV 2 läuft durch den Speicher, AC-Abgabe (power_out) und AC-Ladung (power_in) zählen fürs Haus.
+   Werte aus dem Issue: Solar 116 W, Akku lädt 96 W / entlädt 48 W, AC-Ausgang 72 W, AC-Eingang 4 W. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&case=ac, &d3=0) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const base={pv1:600,grid:250,se:0,solar2:116,chg:96,dis:48,out:72,ain:4,soc:60};
+const hassFor=(o)=>{const v=Object.assign({},base,o||{});return {states:{'sensor.pv1':S(v.pv1),'sensor.grid':S(v.grid),'sensor.sebat':S(v.se),'sensor.sesoc':S(70,'%'),
+  'sensor.solar2':S(v.solar2),'sensor.chg':S(v.chg),'sensor.dis':S(v.dis),'sensor.out':S(v.out),'sensor.ain':S(v.ain),'sensor.soc':S(v.soc,'%')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv1',name:'SolarEdge'},pv2:{entity:'sensor.solar2',name:'Anker Solar',to_battery:2},grid:{entity:'sensor.grid'},
+  battery:{name:'SolarEdge Akku',power:'sensor.sebat',soc:'sensor.sesoc',capacity_kwh:9.8},
+  batteries:[{name:'Anker Solarbank',power_charge:'sensor.chg',power_discharge:'sensor.dis',power_out:'sensor.out',power_in:'sensor.ain',soc:'sensor.soc',capacity_kwh:10,behind_meter:true}],style:'3d'},o||{});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const link=(e,k)=>q(e,`.link[data-l="${k}"]`);
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // A) Werte aus dem Issue
+  let e=mount(cfg());await wait(800);
+  ok('Haus = SolarEdge 600 + Netz 250 + AC-Abgabe 72 = 922 W',/^922$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('Solar 2 hat keine eigene Linie ins Haus',!link(e,'pv2'));
+  ok('Linie Solar 2 -> Solarbank läuft',!!link(e,'r:pv2:bat2')&&link(e,'r:pv2:bat2').classList.contains('on'));
+  ok('Linie Solarbank -> Haus läuft vorwärts (Abgabe 72 W minus Ladung 4 W)',link(e,'bat2').classList.contains('on')&&!link(e,'bat2').classList.contains('rev'));
+  ok('Solar-2-Kachel: Solar geht in den Speicher',/Speicher 116 W/.test(t(e,'[data-k="pv2"] .sub')),t(e,'[data-k="pv2"] .sub'));
+  ok('Solar-2-Kachel zeigt weiter "Erzeugung"',/Erzeugung/.test(t(e,'[data-k="pv2"] .tag')),t(e,'[data-k="pv2"] .tag'));
+  ok('Solarbank: Eingang und Ausgang',/Eingang 120 W · Ausgang 72 W/.test(t(e,'[data-k="bat2"] .sub')),t(e,'[data-k="bat2"] .sub'));
+  ok('Solarbank: Ladestand 60 %',/60\s*%/.test(t(e,'[data-k="bat2"] .soc-txt')),t(e,'[data-k="bat2"] .soc-txt'));
+  ok('SolarEdge-Speicher bleibt normal in der Bilanz',!!q(e,'[data-k="bat"]'));
+
+  // B) AC-Ladung aus dem Haus: Solar 2 liefert nichts, der Speicher zieht 800 W aus dem Haus
+  e=mount(cfg(),hassFor({solar2:0,out:0,ain:800,chg:640,dis:0,grid:1000}));await wait(800);
+  ok('AC-Ladung: Haus = 600 + 1.000 = 1.600 W (Ladung zählt als Verbrauch)',/^1[.,]60/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('AC-Ladung: Linie läuft rückwärts (Haus -> Solarbank)',link(e,'bat2').classList.contains('on')&&link(e,'bat2').classList.contains('rev'));
+  ok('AC-Ladung: Solar 2 -> Solarbank ruht',!link(e,'r:pv2:bat2').classList.contains('on'));
+  ok('AC-Ladung: Kachel nennt die Aufteilung',/Haus 800 W/.test(t(e,'[data-k="bat2"] .sub')),t(e,'[data-k="bat2"] .sub'));
+  ok('AC-Ladung: Tag "Lädt"',/Lädt/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
+
+  // C) Solar 2 und Abgabe gleichzeitig, mehr Abgabe als Modulleistung (Speicher entlädt)
+  e=mount(cfg(),hassFor({solar2:50,chg:0,dis:150,out:200,ain:0}));await wait(800);
+  ok('Entladen: Haus = 600 + 250 + 200 = 1.050 W',/^1[.,]05/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('Entladen: Tag "Entlädt"',/Entlädt/.test(t(e,'[data-k="bat2"] .tag')),t(e,'[data-k="bat2"] .tag'));
+
+  // D) Ohne to_battery: alles wie bisher (Solar 2 speist das Haus direkt)
+  const old=cfg();delete old.pv2.to_battery;
+  e=mount(old);await wait(800);
+  ok('Ohne to_battery: Haus wie bisher = 600 + 116 + 250 = 966 W',/^966$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  ok('Ohne to_battery: Solar 2 hat seine Linie',!!link(e,'pv2'));
+  ok('Ohne to_battery: keine Linie Solar 2 -> Speicher',!link(e,'r:pv2:bat2'));
+  ok('Ohne to_battery: Kachel zeigt das Haus',/Haus 116 W/.test(t(e,'[data-k="pv2"] .sub')),t(e,'[data-k="pv2"] .sub'));
+
+  // E) Ungültige Angaben werden ignoriert
+  const noOut=cfg();delete noOut.batteries[0].power_out;
+  e=mount(noOut);await wait(800);
+  ok('to_battery ohne power_out: ignoriert, wie bisher',/^966$/.test(t(e,'.core .num'))&&!link(e,'r:pv2:bat2'),t(e,'.core .num'));
+  const far=cfg();far.pv2.to_battery=5;
+  e=mount(far);await wait(800);
+  ok('to_battery auf nicht vorhandenen Speicher: ignoriert',/^966$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  const bad=cfg();bad.pv2.to_battery='abc';
+  e=mount(bad);await wait(800);
+  ok('to_battery Unsinn: ignoriert',/^966$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  const noIn=cfg();delete noIn.batteries[0].power_in;
+  e=mount(noIn);await wait(800);
+  ok('ohne power_in: AC-Ladung gilt als 0, Karte rechnet',/^922$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  const flat=cfg({style:'flach'});
+  e=mount(flat);await wait(800);
+  ok('flache Ansicht: gleiche Bilanz',/^922$/.test(t(e,'.core .num'))&&!!link(e,'r:pv2:bat2'),t(e,'.core .num'));
+  const cmp=cfg({compact:'immer'});
+  e=mount(cmp);await wait(800);
+  ok('Kurzansicht: kein Absturz',/^922$/.test(t(e,'.core .num')),t(e,'.core .num'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c=cfg();if(P.get('d3')==='0')c.style='flach';let o=null;if(P.get('case')==='ac')o={solar2:0,out:0,ain:800,chg:640,dis:0,grid:1000};mount(c,hassFor(o));}
+</script></body></html>

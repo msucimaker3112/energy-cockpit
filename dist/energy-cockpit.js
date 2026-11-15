@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.30.2 - MIT License */
+/*! energy-cockpit v0.31.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -943,7 +943,7 @@ WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
 /* ---- flow-card.js ---- */
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
@@ -1344,6 +1344,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
+    // pv2.to_battery: Nummer des Speichers, durch den PV 2 läuft (1 = battery, 2 = erster Eintrag unter batteries, …), z. B. Anker SOLIX Solarbank mit eigenen Modulen
+    // und AC-Ladung aus dem Haus (power_in). Der Speicher braucht power_out (AC-Abgabe ins Haus) und gilt als hinter dem Zähler
+    const tb = parseInt(this._c.pv2 && this._c.pv2.to_battery, 10);
+    this._via2 = this._c.pv2 && this._c.pv2.entity && tb >= 1 && bl[tb - 1] && bl[tb - 1].power_out && !(this._via && tb === 1) ? tb - 1 : -1;
+    if (this._via2 >= 0) bl[this._via2].behind_meter = true;
     this._s3d = this._c.style === '3d';
     const pf = WD.palFor(this._c.colors);
     this._pal = pf.pal; this._palSet = pf.set;
@@ -1657,7 +1662,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     let nodes = '';
     if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
-    if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); links.push('pv2'); }
+    if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); if (this._via2 < 0) links.push('pv2'); }
     if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
@@ -1667,6 +1672,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
+      if (this._via2 >= 0) links.push(`r:pv2:${this._bk(this._via2)}`);
       // 3D: echte Wege zwischen den Geräten, nicht über das Haus (Speicher hinter dem Zähler hängen am Haus)
       if (this._s3d) c.batteries.forEach((b, i) => {
         if (b.behind_meter === true) return;
@@ -2322,13 +2328,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       if (p !== null && b.invert) p = -p;
       // pv_to_battery: direkt: Ausgang des vorgeschalteten Speichers; ohne eigenen Leistungssensor ergibt sich Laden = PV-Eingang - Ausgang
-      let out = null;
-      if (this._via && i === 0) {
+      let out = null, inAc = null;
+      if ((this._via && i === 0) || i === this._via2) {
         out = watt(h, b.power_out);
         if (out !== null) out = Math.max(0, out);
-        if (p === null && out !== null) p = Math.max(0, pv1 || 0) - out;
+        // pv2.to_battery: AC-Ladung aus dem Haus (power_in), ohne Sensor 0
+        if (i === this._via2) { const ai = b.power_in ? watt(h, b.power_in) : null; inAc = ai === null ? 0 : Math.max(0, ai); }
+        if (p === null && out !== null) p = i === this._via2 ? Math.max(0, pv2 || 0) + inAc - out : Math.max(0, pv1 || 0) - out;
       }
-      return { b, i, p, out, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
+      return { b, i, p, out, inAc, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
     });
     // Gemeinsamer Leistungssensor (übereinander gestapelte Batterien): zählt nur einmal, beim ersten Speicher mit diesem Sensor
     const sensorSeen = {};
@@ -2339,7 +2347,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     });
     // behind_meter: Speicher hinter dem Zähler steht nicht in der Bilanz (eigene Kachel bleibt). Seine Ladung zählt wie ein Gerät im Haus, seine Abgabe als Quelle
     const inBal = bats.filter((x) => x.b.behind_meter !== true);
-    const bmChg = bats.reduce((a, x) => (x.b.behind_meter === true ? a + Math.max(0, x.p || 0) : a), 0);
+    const bmChg = bats.reduce((a, x) => (x.b.behind_meter === true ? a + (x.i === this._via2 ? (x.inAc || 0) : Math.max(0, x.p || 0)) : a), 0);
+    // pv2.to_battery: PV 2 speist den Speicher, nicht das Haus
+    const pv2Via = this._via2 >= 0 ? Math.max(0, pv2 || 0) : 0;
     const bat = inBal.some((x) => x.p !== null) ? inBal.reduce((a, x) => a + (x.p || 0), 0) : null;
     const withSoc = bats.filter((x) => x.soc !== null);
     const wSum = withSoc.reduce((a, x) => a + (x.cap || 1), 0);
@@ -2348,8 +2358,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Negativer Verbrauch ist nicht möglich, dann gilt die eigene Berechnung
     if (home !== null && home < 0) home = null;
     // Mit eigenem Sensor gilt dessen Wert, die Abgabe käme sonst im Ring dazu, nicht aber in der Zahl
-    const bmDis = home === null ? bats.reduce((a, x) => (x.b.behind_meter === true ? a + Math.max(0, -(x.p || 0)) : a), 0) : 0;
-    if (home === null) home = Math.max(0, (pv || 0) + (grid || 0) - (bat || 0) + bmDis);
+    const bmDis = home === null ? bats.reduce((a, x) => (x.b.behind_meter === true ? a + (x.i === this._via2 ? (x.out || 0) : Math.max(0, -(x.p || 0))) : a), 0) : 0;
+    if (home === null) home = Math.max(0, (pv || 0) - pv2Via + (grid || 0) - (bat || 0) + bmDis);
     else if (c.pv2 && c.pv2.add_to_home) home += Math.max(0, pv2 || 0);
 
     // grid2: Bezug des zweiten Zählers. Er steckt nicht im Hauptzähler: Hausverbrauch und Netzanteil im Ring werden um ihn größer
@@ -2358,7 +2368,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const gImpM = Math.max(0, grid || 0), gImp = gImpM + g2w, gExp = Math.max(0, -(grid || 0));
     // Herkunft und Aufteilung je Speicher: lädt der eine, während der andere entlädt, zählt beides
     const bDis = inBal.reduce((acc, x) => acc + Math.max(0, -(x.p || 0)), bmDis), bChg = inBal.reduce((acc, x) => acc + Math.max(0, x.p || 0), 0);
-    const pvHome = Math.min(Math.max(0, pv || 0), Math.max(0, home - gImp - bDis));
+    const pvHome = Math.min(Math.max(0, (pv || 0) - pv2Via), Math.max(0, home - gImp - bDis));
     const tot = pvHome + gImp + bDis;
 
     this._set('[data-p="aut"]', home > TH ? this._fp(1 - gImp / home) : '—');
@@ -2366,7 +2376,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
 
     // Aufteilung je Quelle: PV 2 (Balkonkraftwerk) deckt zuerst das Haus, PV 1 lädt danach die Batterie und speist ein
     const need = Math.max(0, home - gImp - bDis);
-    const p2 = Math.max(0, pv2 || 0), p1 = Math.max(0, pv1 || 0);
+    const p2raw = Math.max(0, pv2 || 0), p2 = this._via2 >= 0 ? 0 : p2raw, p1 = Math.max(0, pv1 || 0);
     const p2Home = Math.min(p2, need);
     const p1Home = Math.min(p1, Math.max(0, need - p2Home));
     const p1Bat = Math.min(bChg, Math.max(0, p1 - p1Home));
@@ -2386,16 +2396,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
       return use.join('');
     };
     if (c.pv2 && c.pv2.entity) {
-      const el = this._$('[data-k="pv2"]'), on = p2 > TH;
+      const el = this._$('[data-k="pv2"]'), on = p2raw > TH;
       el.classList.toggle('on', on);
       this._anim('pv2', pv2, el);
       this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts2 = [];
-      const u2 = on ? useText(p2Home + p2Rest, 0, p2Exp) : '';
+      const u2 = on ? (this._via2 >= 0 ? row(T('pv.use.store'), this._fW(p2raw)) : useText(p2Home + p2Rest, 0, p2Exp)) : '';
       if (u2) parts2.push(u2);
       (c.pv2.strings || []).forEach((s) => parts2.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       this._set('.pv2 .sub', parts2.join(''), true);
-      this._link('pv2', on, true, PAL.pv, pv2);
+      if (this._via2 < 0) this._link('pv2', on, true, PAL.pv, pv2);
     }
     if (c.pv) {
       const el = this._$('[data-k="pv"]'), on = p1 > TH;
@@ -2445,10 +2455,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const lead = x.lead || x, grp = [lead].concat(lead.shared || []);
       const bp = lead.p, bs = x.soc, chg = (bp || 0) > 0;
       // Vorgeschalteter Speicher (pv_to_battery: direkt): Strom läuft durch ihn, auch wenn er weder lädt noch entlädt (Durchleitung)
-      const via = this._via && x.i === 0 && x.out !== null;
-      const pin = via ? Math.max(0, pv1 || 0) : 0, out = via ? x.out : 0;
+      const via2 = x.i === this._via2 && x.out !== null;
+      const via = (this._via && x.i === 0 && x.out !== null) || via2;
+      const pin = via2 ? p2raw : via ? Math.max(0, pv1 || 0) : 0, out = via ? x.out : 0, inAc = via2 ? (x.inAc || 0) : 0;
       const net = Math.abs(bp || 0) > TH;
-      const through = via && !net && Math.max(pin, out) > TH;
+      const through = via && !net && Math.max(pin, out, inAc) > TH;
       const on = net || through;
       const col = through ? PAL.pv : on && chg ? PAL.chg : on ? PAL.dis : PAL.bat;
       el.classList.toggle('on', on);
@@ -2475,12 +2486,17 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const towerSoc = tower && grp.every((o) => o.soc !== null) ? grp.reduce((a, o) => a + o.soc * (o.cap || 1), 0) / grp.reduce((a, o) => a + (o.cap || 1), 0) : bs;
       const fc = tower ? this._batForecast(bp, towerSoc, Object.assign({}, x.b, { capacity_kwh: capSum }), x.i) : this._batForecast(bp === null ? null : bp * share, bs, x.b, x.i);
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
-      const outExp = via ? Math.min(out, gExp) : 0;
+      const outExp = via && !via2 ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
-      const subT = via ? T('bat.io', { in: this._fW(pin), out: this._fW(out) }) + split + (fc ? '<br>' + fc : '') : fc;
+      const subT = via ? T('bat.io', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subT ? '<br>' + subT : '') : subT, true, el);
-      if (via) {
+      if (via2) {
+        // PV 2 -> Speicher (Eingang) und Speicher <-> Haus: netzseitig (AC) Abgabe minus Ladung aus dem Haus
+        const acNet = out - inAc;
+        this._link(`r:pv2:${key}`, pin > TH, true, PAL.pv, pin);
+        this._link(key, Math.abs(acNet) > TH, acNet >= 0, acNet >= 0 ? (bp !== null && bp < -TH ? PAL.dis : PAL.pv) : PAL.imp, Math.abs(acNet));
+      } else if (via) {
         // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt
         this._link('pvbat', pin > TH, true, PAL.pv, pin);
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
@@ -2676,7 +2692,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -2701,7 +2717,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   // Weitere Speicher (ab dem zweiten): jeder mit eigener Kachel
   const batteryFields = () => [
     txt('name'), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), bool('invert', false),
-    numb('capacity_kwh', 0, 200, 0.1), numb('reserve_pct', 0, 100, 1), numb('max_pct', 0, 100, 1), ent('temp', ['sensor']),
+    numb('capacity_kwh', 0, 200, 0.1), numb('reserve_pct', 0, 100, 1), numb('max_pct', 0, 100, 1), ent('power_out', ['sensor']), ent('power_in', ['sensor']), ent('temp', ['sensor']),
     ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']), bool('behind_meter', false),
     sec('extra', 'Zusatzwerte (bis zu 6)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']),
   ];
@@ -2710,7 +2726,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     schema: [
       txt('title'),
       sec('pv', 'Solar', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
-      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
+      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [numb('to_battery', 0, 6, 1), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
       sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('grid2', 'Zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Zähler)', [ent('entity', ['sensor']), txt('name'), ent('price', ['sensor', 'input_number', 'number']), numb('price_ct', 0, 200, 0.01)]),
       sec('battery', 'Batterie', [
@@ -2755,7 +2771,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('nav_label'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
+    computeHelper: (s) => (s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
   });
 
   // Assistent: Schritte mit Sensor-Vorschlägen
@@ -2771,6 +2787,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'pv2.entity', label: 'Zweite Anlage, z. B. Balkonkraftwerk (Leistung)', kind: 'power', optional: true, hints: H(/bkw|balkon|pv2|solar2|plug|steckdose|shelly/i), help: 'Eigene Kachel und Linie. Die Bilanz (Autarkie, Eigenverbrauch, Herkunft) rechnet mit der Summe beider Anlagen.' },
       { path: 'pv2.name', label: 'Name der zweiten Anlage', kind: 'text', optional: true },
       { path: 'pv2.daily', label: 'Tagesertrag der zweiten Anlage (kWh)', kind: 'energy', optional: true },
+      { path: 'pv2.to_battery', label: 'Zweite Anlage läuft durch Speicher Nr.', kind: 'number', optional: true, help: 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank. Nummer wie in den Kacheln: 1 = Batterie, 2 = der erste Speicher unter Weitere Speicher. Der Speicher braucht dann die Ausgangsleistung ins Haus (AC-Abgabe).' },
       { path: 'pv2.add_to_home', label: 'Hausverbrauch enthält die zweite Anlage nicht', kind: 'bool', help: 'Nur aktivieren, wenn dein Hausverbrauchs-Sensor den Ertrag der zweiten Anlage NICHT enthält. Dann addiert die Karte ihn dazu.' },
     ] },
     { short: 'Netz', title: 'Stromnetz', text: 'Der Netzsensor zeigt Bezug und Einspeisung. Wenn später Bezug als Einspeisung angezeigt wird, setze "Vorzeichen umkehren".', fields: [
@@ -2807,6 +2824,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'batteries.0.power', label: 'Speicher 2: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i), help: 'Hat dein System getrennte Sensoren für Laden und Entladen, trägst du sie unter Alle Felder ein.' },
       { path: 'batteries.0.soc', label: 'Speicher 2: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
       { path: 'batteries.0.capacity_kwh', label: 'Speicher 2: Kapazität (kWh)', kind: 'number', optional: true },
+      { path: 'batteries.0.power_out', label: 'Speicher 2: Ausgangsleistung ins Haus (AC-Abgabe)', kind: 'power', optional: true, hints: H(/ac.?aus|ausgang|output|abgabe|ac_output/i, /batter|akku|speicher|solarbank/i), help: 'Nur für Speicher mit eigenen Solarmodulen (siehe „Zweite Anlage läuft durch Speicher“). Bei der Anker Solarbank: „AC-Ausgang“.' },
+      { path: 'batteries.0.power_in', label: 'Speicher 2: AC-Ladung aus dem Haus', kind: 'power', optional: true, hints: H(/netzbezug|ac.?ein|eingang|input|ac_input/i, /batter|akku|speicher|solarbank/i), help: 'Optional. Leistung, die der Speicher aus dem Hausnetz zieht. Bei der Anker Solarbank: „Netzbezugsleistung“. Ohne Angabe gilt 0.' },
       { path: 'batteries.0.temp', label: 'Speicher 2: Temperatur', kind: 'temp', optional: true, hints: H(/batter|akku|speicher|storage|bat\d/i, /temp/i) },
       { path: 'batteries.0.daily_charge', label: 'Speicher 2: Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i) },
       { path: 'batteries.0.daily_discharge', label: 'Speicher 2: Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },

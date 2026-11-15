@@ -135,9 +135,55 @@ battery:
 - Laden = Solar-Eingang minus Ausgang, Entladen = Ausgang minus Solar-Eingang. Einen eigenen Leistungssensor (`power`) brauchst du nicht, du kannst ihn aber angeben, dann gilt er.
 - Der Hausverbrauch ergibt sich ohne eigenen Sensor aus Netz plus Ausgang des Speichers.
 - Die Herkunft des Hausstroms zählt als **Solar**, soweit der Ausgang vom Solar-Eingang gedeckt ist, den Rest als Batterie. Bei vollem Speicher mit Durchleitung steht dort also Solar und nicht null Prozent.
-- Die Solar-Kachel zeigt `→ Speicher`, weil der ganze Solarstrom zuerst in den Speicher geht. Der Speicher zeigt Eingang und Ausgang, bei Einspeisung auch die Aufteilung des Ausgangs auf Haus und Netz, und `Durchleitung`, wenn er weder lädt noch entlädt.
+- Die Solar-Kachel zeigt `Speicher`, weil der ganze Solarstrom zuerst in den Speicher geht. Der Speicher zeigt Eingang und Ausgang, bei Einspeisung auch die Aufteilung des Ausgangs auf Haus und Netz, und `Durchleitung`, wenn er weder lädt noch entlädt.
 
 **Wichtig:** Die Option gilt für den **ersten** Speicher (`battery`). Ohne `power_out` oder ohne `pv.entity` bleibt die normale Darstellung. Auf dem Handy ist die Kurzansicht (`compact: auto`) am übersichtlichsten. Die Annahme "Solar zuerst ins Haus, der Rest lädt" entspricht Speichern mit Durchleitung. Sie wurde an echten Anlagen mit Balkonkraftwerk und Speicher getestet ([#15](https://github.com/msucimaker3112/energy-cockpit/issues/15)). Trag `power` und `power_charge` nur ein, wenn die Sensoren wirklich Laden und Entladen messen: `power` hat Vorrang vor der Rechnung aus Eingang und Ausgang.
+
+### Zweite Anlage durch einen Speicher: `pv2.to_battery`
+
+**Wofür:** Für Speicher, die eigene Solarmodule haben **und** zusätzlich per AC aus dem Haus laden können, zum Beispiel die **Anker SOLIX Solarbank**. Der Strom der Module läuft zuerst in den Speicher und von dort ins Haus. `pv_to_battery: direkt` (siehe oben) gilt nur für `pv` und den ersten Speicher, mit `pv2.to_battery` geht das auch für die zweite Anlage und jeden weiteren Speicher.
+
+```yaml
+pv:
+  entity: sensor.solaredge_modulleistung        # Hauptanlage, speist das Haus direkt
+pv2:
+  entity: sensor.anker_solarstrom               # Leistung der Module an der Solarbank
+  name: Anker Solar
+  to_battery: 2                                 # läuft durch Speicher Nr. 2
+battery:                                        # Speicher Nr. 1, zum Beispiel der Akku am Hybrid-Wechselrichter
+  power: sensor.solaredge_batterie_leistung
+  soc: sensor.solaredge_batterie_ladestand
+  capacity_kwh: 9.8
+batteries:                                      # ab Speicher Nr. 2
+  - name: Anker Solarbank
+    power_charge: sensor.anker_batterieladeleistung      # DC-Seite, nur zur Anzeige
+    power_discharge: sensor.anker_batterieentladeleistung
+    power_out: sensor.anker_ac_ausgang          # AC-Abgabe ins Haus, Pflicht
+    power_in: sensor.anker_netzbezugsleistung   # AC-Ladung aus dem Haus, optional
+    soc: sensor.anker_soc
+    capacity_kwh: 10
+    behind_meter: true
+```
+
+![Solarbank mit eigenen Modulen](img/flow-solarbank.png)
+
+**Nummer des Speichers:** Gezählt wird wie in den Kacheln. `battery` ist Nr. 1, der erste Eintrag unter `batteries` ist Nr. 2, der zweite Nr. 3 und so weiter. Im Beispiel läuft Solar 2 deshalb durch `batteries[0]`, also `to_battery: 2`.
+
+**Was die Karte daraus rechnet**
+
+- Solar 2 speist **nicht** mehr direkt das Haus, sondern den Speicher.
+- Fürs Haus zählt, was netzseitig (AC) passiert: die **AC-Abgabe** (`power_out`) ist eine Quelle, die **AC-Ladung** (`power_in`) ein Verbrauch, wie ein Gerät im Haus. Ohne `power_in` gilt die AC-Ladung als 0.
+- Hausverbrauch ohne eigenen Sensor = Hauptanlage + Netz + AC-Abgabe (minus Ladung des normalen Speichers).
+- Ring und „Solar / Batterie / Netz“ rechnen mit denselben AC-Werten. Der Anteil der Solarbank im Ring ist ihre AC-Abgabe.
+- Die Lade- und Entladeleistung auf der DC-Seite zeigt die Kachel an, sie gleichen sich wegen der Wandlungsverluste (bei der Anker etwa 20 %) nicht mit den AC-Werten aus. Das ist gewollt und kein Fehler.
+- Die Kachel der Solarbank zeigt Eingang und Ausgang, bei AC-Ladung die Aufteilung auf Solar 2 und Haus. Die Linie zwischen Speicher und Haus läuft bei Abgabe zum Haus und bei AC-Ladung zurück.
+
+**Wichtig**
+
+- `power_out` ist Pflicht. Ohne diesen Sensor, bei einer ungültigen Nummer oder bei einem Speicher, den es nicht gibt, bleibt die normale Darstellung.
+- Der Speicher gilt automatisch als **hinter dem Zähler** (`behind_meter: true`), du kannst es zur Klarheit eintragen.
+- Die Nummer 1 ist nur möglich, wenn `pv_to_battery` nicht schon `pv` durch denselben Speicher führt.
+- Im grafischen Editor: bei der zweiten Solaranlage „Läuft durch Speicher Nr.“, beim Speicher „Ausgangsleistung ins Haus“ und „AC-Ladung aus dem Haus“. Der Assistent fragt beides ebenfalls ab.
 
 ### Verbraucher
 
