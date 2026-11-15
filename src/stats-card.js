@@ -402,8 +402,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
       const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
       const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : [x.energy]).filter(Boolean);
-      const ids = [...new Set(house.concat(...c._cc.map(mine)))];
+      const ids = [...new Set(house.concat(c._g2 ? [c._g2] : [], ...c._cc.map(mine)))];
       const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
+      // grid2_total (z. B. Niedertarif-Zaehler): Bezug zaehlt zum Netzbezug, bewertet mit grid2_price, sonst mit dem normalen Preis
+      const price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, nowEur);
       const stat = (period, types, list, start, end) => h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), ...(end ? { end_time: end.toISOString() } : {}), period, statistic_ids: list, types, ...WD.statUnits(c) });
       const stamp = (r) => (typeof r.start === 'number' ? r.start : Date.parse(r.start));
       const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -420,9 +422,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         ids.forEach((id) => { if ((rows[id] || []).length) seen.add(id); });
         ids.forEach((id) => (rows[id] || []).forEach((r) => { if (r.change === null || r.change === undefined) return; const t = stamp(r); (at[t] = at[t] || {})[id] = Math.max(0, r.change); }));
         Object.keys(at).forEach((k) => {
-          const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp = v[c.grid_import_total] || 0, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
+          const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp0 = v[c.grid_import_total] || 0, g2 = c._g2 ? (v[c._g2] || 0) : 0, imp = imp0 + g2, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
           if (onHour) onHour(t, { pv, imp, exp, chg, dis });
-          const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr = rate(t, means);
+          const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr0 = rate(t, means), pr = imp > 0 && g2 > 0 ? (imp0 * pr0 + g2 * price2) / imp : pr0;
           const g = home > 0 ? Math.min(1, imp / home) : (imp > 0 ? 1 : 0), b = home > 0 ? Math.min(1 - g, dis / home) : 0;
           c._cc.forEach((x, i) => {
             const part = x.grid ? [v[x.grid] || 0, v[x.battery] || 0, v[x.pv] || 0] : [(v[x.energy] || 0) * g, (v[x.energy] || 0) * b, (v[x.energy] || 0) * (1 - g - b)];

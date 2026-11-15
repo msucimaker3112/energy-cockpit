@@ -226,12 +226,29 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* size: gross (je Verbraucher): breite, hervorgehobene Kachel mit grosser Zahl, z. B. Waermepumpe oder Wallbox */
 .cons.big{grid-column:span 2;padding:18px 20px;border-radius:22px}
 .cons.big .ico{transform:scale(1.4);margin:0 20px 0 6px}
-.cons.big .lbl{font-size:calc(.78rem*var(--ts,1));margin-bottom:6px;white-space:normal}
+.cons.big .lbl{font-size:calc(.95rem*var(--ts,1));margin-bottom:6px;white-space:normal}
+.cons.big .c-sec{font-size:calc(1.1rem*var(--ts,1))}
 .cons.big .num{font-size:calc(1.95rem*var(--vs,1))}
 .cons.big .unit{font-size:calc(.95rem*var(--vs,1));margin-left:5px}
 .wide .cons.big{padding:22px 26px;border-radius:26px}
 .wide .cons.big .num{font-size:calc(2.5rem*var(--vs,1))}
 .wide .cons.big .unit{font-size:calc(1.1rem*var(--vs,1))}
+.wide .cons.big .lbl{font-size:calc(1.05rem*var(--ts,1))}
+.wide .cons.big .c-sec{font-size:calc(1.2rem*var(--ts,1))}
+/* size: mittel (je Verbraucher): eine Spalte breit, aber mit groesserer Zahl und groesserem Namen */
+.cons.mid{padding:14px 16px;border-radius:20px}
+.cons.mid .ico{transform:scale(1.2);margin:0 14px 0 4px}
+.cons.mid .lbl{font-size:calc(.82rem*var(--ts,1));white-space:normal}
+.cons.mid .c-sec{font-size:calc(.95rem*var(--ts,1))}
+.cons.mid .num{font-size:calc(1.7rem*var(--vs,1))}
+.cons.mid .unit{font-size:calc(.85rem*var(--vs,1))}
+.wide .cons.mid{padding:16px 20px;border-radius:22px}
+.wide .cons.mid .num{font-size:calc(2rem*var(--vs,1))}
+.wide .cons.mid .lbl{font-size:calc(.9rem*var(--ts,1))}
+.cmp .cons.mid{padding:8px 10px;border-radius:14px}
+.cmp .cons.mid .ico{transform:none;margin:0 10px 0 0}
+.cmp .cons.mid .num{font-size:calc(1rem*var(--vs,1))}
+.cmp .cons.mid .lbl{font-size:calc(.64rem*var(--ts,1))}
 .narrow .cons.big,.cmp .cons.big{grid-column:auto}
 .narrow .cons.big .num{font-size:calc(1.6rem*var(--vs,1))}
 .cmp .cons.big{padding:10px 12px}
@@ -647,7 +664,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : ''}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
@@ -1508,7 +1525,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     const G = c.consumer_groups || [];
     if (G.length) {
-      let known = 0, vis = 0;
+      // Einzelverbraucher neben den Gruppen zaehlen ebenfalls als erfasst (sumAll enthaelt hier erst die Einzelverbraucher)
+      let known = sumAll, vis = 0;
       G.forEach((g, i) => {
         const el = this._$(`[data-k="g${i}"]`);
         if (!el) return;

@@ -1,0 +1,40 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Kosten je Verbraucher mit zweitem Zähler Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #44: grid2_total (zum Beispiel Niedertarif-Zähler) zählt bei "Kosten je Verbraucher" zum Netzbezug und wird mit grid2_price bewertet.
+   Heute 00 Uhr: Hochtarif-Zähler 1 kWh zu 30 ct, Niedertarif-Zähler 1 kWh zu 20 ct, Verbraucher 1 kWh nach Haus-Mix. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+const row={pv:0,imp:1,g2:1,exp:0,chg:0,dis:0,e:1};
+const map={'sensor.pv':'pv','sensor.imp':'imp','sensor.g2':'g2','sensor.exp':'exp','sensor.chg':'chg','sensor.dis':'dis','sensor.e':'e'};
+const hassFor=()=>({states:{'sensor.w':S(500)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  if(m.period!=='hour')return {};
+  if(m.types&&m.types.includes('state'))return {};
+  if(m.types&&m.types.includes('mean'))return {};
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={};
+  (m.statistic_ids||[]).forEach(id=>{if(map[id]&&d0>=from&&d0<to)r[id]=[{start:d0,change:row[map[id]]}];});return r;}});
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:30,
+  cost_consumers:[{name:'Mix',icon:'mdi:water-boiler',color:'#38bdf8',energy:'sensor.e'}]};
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1500);};
+async function run(){
+  let e=mount(base);await wait(600);await tab(e,'day');
+  ok('ohne zweiten Zähler: 1 kWh zu 30 ct = 0,30 (wie bisher)',t(e,'[data-t="ccC0"]')==='0,30',t(e,'[data-t="ccC0"]'));
+  e=mount({...base,grid2_total:'sensor.g2',grid2_price_ct:20});await wait(600);await tab(e,'day');
+  ok('mit zweitem Zähler: Mischpreis (30 ct und 20 ct je 1 kWh) = 0,25',t(e,'[data-t="ccC0"]')==='0,25',t(e,'[data-t="ccC0"]'));
+  e=mount({...base,grid2_total:'sensor.g2'});await wait(600);await tab(e,'day');
+  ok('zweiter Zähler ohne eigenen Preis: normaler Preis = 0,30',t(e,'[data-t="ccC0"]')==='0,30',t(e,'[data-t="ccC0"]'));
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{mount({...base,grid2_total:'sensor.g2',grid2_price_ct:20});}
+</script></body></html>

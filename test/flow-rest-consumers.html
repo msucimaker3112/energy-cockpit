@@ -34,6 +34,12 @@ async function run(){
   ok('rest false: keine Kachel',!q(e,'[data-k="crest"]'));
   e=mount({...base,hide_rest:false,consumer_groups:[{name:'G',items:[{name:'C',entity:'sensor.c'}]}]});await wait(1600);
   ok('mit Gruppen gilt die Gruppen-Kachel, keine zweite',!q(e,'[data-k="crest"]')&&!!q(e,'[data-k="grest"]'));
+  // #43: Einzelverbraucher neben Gruppen zaehlen als erfasst. Haus 1.200 W, Einzelverbraucher A+B 500 W, Gruppe 50 W -> Nicht erfasst 650 W
+  e=mount({...base,consumer_groups:[{name:'G',items:[{name:'C',entity:'sensor.c'}]}]});await wait(1600);
+  ok('#43: Einzelverbraucher neben Gruppen werden abgezogen (650 W)',/650/.test(t(e,'[data-k="grest"] .num')),t(e,'[data-k="grest"] .num')+' '+t(e,'[data-k="grest"] .unit'));
+  ok('#43: Anteil gemessen 46 %',/46\s*%/.test(t(e,'[data-k="grest"] .rest-t')),t(e,'[data-k="grest"] .rest-t'));
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},consumers:[],consumer_groups:[{name:'G',items:[{name:'C',entity:'sensor.c'}]}]});await wait(1600);
+  ok('nur Gruppe: Nicht erfasst = 1.150 W',/1[.,]?150|1,15/.test(t(e,'[data-k="grest"] .num')),t(e,'[data-k="grest"] .num')+' '+t(e,'[data-k="grest"] .unit'));
   e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},hide_rest:false});await wait(1600);
   ok('ohne Verbraucher: keine Kachel',!q(e,'[data-k="crest"]'));
   e=mount({...base,hide_rest:false,compact:'immer'});await wait(1600);

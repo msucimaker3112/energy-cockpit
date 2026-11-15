@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.29.0 - MIT License */
+/*! energy-cockpit v0.29.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1169,12 +1169,29 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* size: gross (je Verbraucher): breite, hervorgehobene Kachel mit grosser Zahl, z. B. Waermepumpe oder Wallbox */
 .cons.big{grid-column:span 2;padding:18px 20px;border-radius:22px}
 .cons.big .ico{transform:scale(1.4);margin:0 20px 0 6px}
-.cons.big .lbl{font-size:calc(.78rem*var(--ts,1));margin-bottom:6px;white-space:normal}
+.cons.big .lbl{font-size:calc(.95rem*var(--ts,1));margin-bottom:6px;white-space:normal}
+.cons.big .c-sec{font-size:calc(1.1rem*var(--ts,1))}
 .cons.big .num{font-size:calc(1.95rem*var(--vs,1))}
 .cons.big .unit{font-size:calc(.95rem*var(--vs,1));margin-left:5px}
 .wide .cons.big{padding:22px 26px;border-radius:26px}
 .wide .cons.big .num{font-size:calc(2.5rem*var(--vs,1))}
 .wide .cons.big .unit{font-size:calc(1.1rem*var(--vs,1))}
+.wide .cons.big .lbl{font-size:calc(1.05rem*var(--ts,1))}
+.wide .cons.big .c-sec{font-size:calc(1.2rem*var(--ts,1))}
+/* size: mittel (je Verbraucher): eine Spalte breit, aber mit groesserer Zahl und groesserem Namen */
+.cons.mid{padding:14px 16px;border-radius:20px}
+.cons.mid .ico{transform:scale(1.2);margin:0 14px 0 4px}
+.cons.mid .lbl{font-size:calc(.82rem*var(--ts,1));white-space:normal}
+.cons.mid .c-sec{font-size:calc(.95rem*var(--ts,1))}
+.cons.mid .num{font-size:calc(1.7rem*var(--vs,1))}
+.cons.mid .unit{font-size:calc(.85rem*var(--vs,1))}
+.wide .cons.mid{padding:16px 20px;border-radius:22px}
+.wide .cons.mid .num{font-size:calc(2rem*var(--vs,1))}
+.wide .cons.mid .lbl{font-size:calc(.9rem*var(--ts,1))}
+.cmp .cons.mid{padding:8px 10px;border-radius:14px}
+.cmp .cons.mid .ico{transform:none;margin:0 10px 0 0}
+.cmp .cons.mid .num{font-size:calc(1rem*var(--vs,1))}
+.cmp .cons.mid .lbl{font-size:calc(.64rem*var(--ts,1))}
 .narrow .cons.big,.cmp .cons.big{grid-column:auto}
 .narrow .cons.big .num{font-size:calc(1.6rem*var(--vs,1))}
 .cmp .cons.big{padding:10px 12px}
@@ -1590,7 +1607,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (sam) links.push('bundle');
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : ''}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
@@ -2451,7 +2468,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     const G = c.consumer_groups || [];
     if (G.length) {
-      let known = 0, vis = 0;
+      // Einzelverbraucher neben den Gruppen zaehlen ebenfalls als erfasst (sumAll enthaelt hier erst die Einzelverbraucher)
+      let known = sumAll, vis = 0;
       G.forEach((g, i) => {
         const el = this._$(`[data-k="g${i}"]`);
         if (!el) return;
@@ -2587,7 +2605,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
-  const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
+  const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'mittel', label: 'Mittel (eine Spalte, größere Zahl)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
   const itemFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), numb('on_w', 0, 100000, 1)];
   const groupFields = () => [
     txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), numb('on_w', 0, 100000, 1),
@@ -4838,8 +4856,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
       const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
       const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : [x.energy]).filter(Boolean);
-      const ids = [...new Set(house.concat(...c._cc.map(mine)))];
+      const ids = [...new Set(house.concat(c._g2 ? [c._g2] : [], ...c._cc.map(mine)))];
       const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
+      // grid2_total (z. B. Niedertarif-Zaehler): Bezug zaehlt zum Netzbezug, bewertet mit grid2_price, sonst mit dem normalen Preis
+      const price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, nowEur);
       const stat = (period, types, list, start, end) => h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), ...(end ? { end_time: end.toISOString() } : {}), period, statistic_ids: list, types, ...WD.statUnits(c) });
       const stamp = (r) => (typeof r.start === 'number' ? r.start : Date.parse(r.start));
       const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -4856,9 +4876,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         ids.forEach((id) => { if ((rows[id] || []).length) seen.add(id); });
         ids.forEach((id) => (rows[id] || []).forEach((r) => { if (r.change === null || r.change === undefined) return; const t = stamp(r); (at[t] = at[t] || {})[id] = Math.max(0, r.change); }));
         Object.keys(at).forEach((k) => {
-          const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp = v[c.grid_import_total] || 0, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
+          const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp0 = v[c.grid_import_total] || 0, g2 = c._g2 ? (v[c._g2] || 0) : 0, imp = imp0 + g2, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
           if (onHour) onHour(t, { pv, imp, exp, chg, dis });
-          const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr = rate(t, means);
+          const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr0 = rate(t, means), pr = imp > 0 && g2 > 0 ? (imp0 * pr0 + g2 * price2) / imp : pr0;
           const g = home > 0 ? Math.min(1, imp / home) : (imp > 0 ? 1 : 0), b = home > 0 ? Math.min(1 - g, dis / home) : 0;
           c._cc.forEach((x, i) => {
             const part = x.grid ? [v[x.grid] || 0, v[x.battery] || 0, v[x.pv] || 0] : [(v[x.energy] || 0) * g, (v[x.energy] || 0) * b, (v[x.energy] || 0) * (1 - g - b)];

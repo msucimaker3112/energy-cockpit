@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.29.1
+- **Energiefluss, Einzelverbraucher neben Gruppen bei „Nicht erfasst“:** Wer Gruppen und zusätzlich Einzelverbraucher (`consumers`) eingetragen hatte, bekam die Einzelverbraucher nicht von der Kachel „Nicht erfasst“ abgezogen, nur die Gruppen. Jetzt zählen beide als erfasst, auch beim Anteil „x % gemessen“. Gemeldet in [#43](https://github.com/msucimaker3112/energy-cockpit/issues/43).
+- **Statistik, zweiter Zähler bei „Kosten je Verbraucher“ (Zeittarife HT/NT):** Wer `grid2_total` (zum Beispiel den Niedertarif-Zähler) und `grid2_price` oder `grid2_price_ct` eingetragen hat, bekommt dessen Bezug jetzt auch bei den Kosten je Verbraucher. Er zählt zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Ohne zweiten Zähler ändert sich nichts. Die Geldwerte oben (Netzkosten, PV-Ersparnis) rechnen weiter mit dem aktuellen Preis. Anlass: [#44](https://github.com/msucimaker3112/energy-cockpit/issues/44).
+- **Energiefluss, `size: mittel` und größere Namen:** Neue Stufe `size: mittel` für Einzelverbraucher: eine Spalte breit, aber mit größerer Zahl und größerem Namen, so passen vier nebeneinander. In den großen Kacheln (`size: gross`) sind Name und Zusatzwert jetzt größer. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+
 ## 0.29.0
 - **Energiefluss, eigene Farben (optional, `colors`):** Du legst fest, in welcher Farbe die Batterie lädt und entlädt, zum Beispiel grün beim Laden und rot beim Entladen. Weitere Schlüssel: `pv` (Solar), `grid_import` (Netzbezug), `grid_export` (Einspeisung), `battery` (Batterie im Ruhezustand) und `home` (Haus). Die Farben gelten für Kacheln, Linien, den Ring, die Zeile „Solar / Akku / Netz“ und die 3D-Objekte, auch das Batterie-Objekt. Werte als `#hex` oder `r,g,b`, ungültige Werte werden ignoriert. Ohne `battery_discharge` entlädt die Batterie in der Farbe von `battery`. Die Farben gelten je Karte, zwei Karten mit verschiedenen Farben stören sich nicht. Im Editor unter „Farben“. Ohne Eintrag ändert sich nichts. Wunsch aus [#41](https://github.com/msucimaker3112/energy-cockpit/issues/41).
 

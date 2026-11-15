@@ -169,6 +169,8 @@ text_size: 1.6                                      # optional: alle Zahlen grö
 
 ![Große Kacheln](img/flow-grosse-kacheln.png)
 
+Es gibt drei Stufen: normal (ohne Angabe), `size: mittel` (eine Spalte breit, aber mit größerer Zahl und größerem Namen, so passen vier nebeneinander) und `size: gross` (zwei Spalten breit, mit sehr großer Zahl).
+
 Die große Kachel belegt zwei Spalten. In der Kurzansicht (`compact`) und auf schmalen Bildschirmen bleibt sie einspaltig, die Zahl ist aber größer. Im Editor findest du das Feld „Größe der Kachel“ bei jedem Einzelverbraucher. Die Linien zu den Verbrauchern laufen hinter den Kacheln.
 
 **Geräte in Gruppen nach Leistung sortieren (optional, `consumer_groups_sort: leistung`):** Die gerade aktiven Geräte stehen oben, das stärkste zuerst. Geräte unter `on_w` folgen in der eingetragenen Reihenfolge. Damit die Liste bei schwankenden Werten nicht springt, ordnet die Karte höchstens alle 10 Sekunden neu, und ein Gerät überholt ein anderes erst mit deutlich mehr Leistung (mehr als 10 % und 20 W). Das Fenster der Kurzansicht zeigt dieselbe Reihenfolge. Ohne Eintrag (oder mit `konfiguriert`) bleibt alles wie eingetragen. Die Gruppen selbst behalten ihren Platz.
@@ -467,7 +469,9 @@ grid2_name: Wärmepumpe
 grid2_price_ct: 25.45
 ```
 
-Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht. Im Reiter „Woche“ (Kosten je Verbraucher) ist der zweite Zähler noch nicht enthalten.
+Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht.
+
+**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, PV-Ersparnis) rechnen weiter mit dem aktuellen Preis.
 
 ### Jahresbudget (optional): `budget_kwh`
 

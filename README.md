@@ -171,7 +171,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 |---|---|
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
 | **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte | `text_size: gross`, `sehr_gross` oder `2` |
-| **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele) | `consumers[].size: gross` |
+| **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele), auch eine schmalere Stufe | `consumers[].size: gross` oder `mittel` |
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |
 | **Gruppen pro Reihe,** damit Gerätenamen auch auf dem Handy lesbar sind | `groups_columns: 1` |
 | **Alles in Watt** statt ab 1000 W in kW | `watt_only: true` |

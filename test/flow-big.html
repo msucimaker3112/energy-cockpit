@@ -52,6 +52,15 @@ async function run(){
   ok('kleine Texte wachsen mit (--ts)',fs(e,'.pill')>pill0*1.5,fs(e,'.pill')+' px gegen '+pill0+' px');
   ok('große Kachel wächst mit',fs(e,'[data-k="c1"] .num')>=big*1.9,fs(e,'[data-k="c1"] .num'));
 
+  // size: mittel (#40): eine Spalte, Zahl zwischen normal und gross; Namen in grossen Kacheln groesser
+  e=mount(cfg({consumers:[{entity:'sensor.wp',name:'WP',size:'mittel',secondary:'sensor.k'},{entity:'sensor.wb1',name:'WB',size:'gross',secondary:'sensor.k'},{entity:'sensor.l',name:'L'}]}));await wait(600);
+  const nm=fs(e,'[data-k="c2"] .num'),mm=fs(e,'[data-k="c0"] .num'),gg=fs(e,'[data-k="c1"] .num');
+  ok('mittel: eine Spalte',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto'&&q(e,'[data-k="c0"]').classList.contains('mid'));
+  ok('mittel: Zahl zwischen normal und gross',mm>nm*1.2&&mm<gg,nm+' < '+mm+' < '+gg);
+  ok('size: mid wird auch verstanden',(()=>{const x=mount(cfg({consumers:[{entity:'sensor.wp',name:'A',size:'mid'}]}));return !!q(x,'.cons.mid');})());
+  e=mount(cfg({consumers:[{entity:'sensor.wp',name:'WP',size:'gross',secondary:'sensor.k'},{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(600);
+  ok('große Kachel: Name größer als bei normaler',fs(e,'[data-k="c0"] .lbl')>=fs(e,'[data-k="c1"] .lbl')*1.3,fs(e,'[data-k="c0"] .lbl')+' px gegen '+fs(e,'[data-k="c1"] .lbl')+' px');
+  ok('große Kachel: Zusatzwert größer als bei normaler',fs(e,'[data-k="c0"] .c-sec')>=fs(e,'[data-k="c1"] .c-sec')*1.3,fs(e,'[data-k="c0"] .c-sec')+' px gegen '+fs(e,'[data-k="c1"] .c-sec')+' px');
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);
   ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);
