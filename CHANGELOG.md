@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.30.2
+- **Energiefluss, Beschriftungen getrennt von den Zahlen (optional, `label_size`):** Mit einer Zahl (zum Beispiel `label_size: 1.5`) werden nur die kleinen Texte größer, also Namen, Zusatzwerte und Beschriftungen. Die Zahlen in den Kacheln bleiben, wie sie sind, und die Karte passt weiter auf den Bildschirm. Der Wert hat Vorrang vor `text_size` bei den kleinen Texten. Im Editor unter „Alle Felder“. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+- **Energiefluss, `size: mittel` breiter:** Kommt eine mittlere Kachel vor, werden die Spalten der Verbraucher etwas breiter. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+- **Energiefluss, Werte der Solar-Kachel untereinander:** Haus, Batterie, Netz, die einzelnen Strings und die Prognose stehen jetzt in eigenen Zeilen, Name links und Wert rechts, statt in einer langen Zeile mit Punkten. Anlass: [#46](https://github.com/msucimaker3112/energy-cockpit/issues/46).
+- **Einheitliche Begriffe:** Überall heißt es jetzt „Batterie“ statt „Akku“, die Solar-Kachel heißt „Solar“ (statt „PV-Anlage“, die zweite „Solar 2“), und im Tag steht „Erzeugung“ statt „Erzeugt“, passend zu „Bezug“ und „Einspeisung“. Anlass: [#41](https://github.com/msucimaker3112/energy-cockpit/issues/41) und [#46](https://github.com/msucimaker3112/energy-cockpit/issues/46). Eigene Namen, die du in der Konfiguration eingetragen hast, bleiben unverändert.
+
 ## 0.30.1
 - **Hilfetexte im Editor und in der Anleitung ergänzt:** Im Assistenten und im Formular erklären jetzt Hilfetexte die Textgröße als Zahl (zum Beispiel 2 oder 1,5, und dass „Auf Bildschirmhöhe skalieren“ die Vergrößerung wieder aufheben kann), die Kachelgröße (normal, mittel, groß), das Wetter (Himmelsband), die eigenen Farben sowie die Zusatzwerte und den Alarm. Die Installationsanleitung nennt beim Schritt „Aussehen“ die Textgröße als Zahl und das Wetter. Die Funktion der Karte bleibt unverändert.
 

@@ -61,7 +61,7 @@ Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch lee
 
 | Schritt | Aufgabe |
 |---|---|
-| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Zählt der Tagesertrag ohne Akku-Ladung, gibt es dafür einen eigenen Schalter. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
+| 1. Solar | PV-Leistung wählen (W oder kW). Tagesertrag und Prognose sind optional. Zählt der Tagesertrag ohne Batterie-Ladung, gibt es dafür einen eigenen Schalter. Mit einer zweiten Anlage (zum Beispiel Balkonkraftwerk) bekommt sie eine eigene Kachel; die Bilanz rechnet mit der Summe. |
 | 2. Netz | Netzleistung wählen. Wird Bezug als Einspeisung angezeigt: **Vorzeichen umkehren**. Unten gibt es optional einen **zweiten Netzzähler** (zum Beispiel eine Wärmepumpe mit eigenem Zähler und Tarif) mit Name und Preis. |
 | 3. Batterie | Leistung und Ladestand wählen. Ohne Batterie überspringen. |
 | 4. Weitere Speicher | Optional. Hast du mehr als einen Speicher, trägst du hier den zweiten und dritten ein, jeder bekommt eine eigene Kachel. |
@@ -168,7 +168,7 @@ HACS: Eintrag öffnen → ⋮ → **Entfernen**. Manuell: Ressource löschen und
 | Problem | Ursache und Lösung |
 |---|---|
 | Handy oder Tablet wird warm, wenn die Energiefluss-Karte offen ist | Aktualisiere mindestens auf 0.18.2, dort rechnet die Karte deutlich sparsamer. Hilft das nicht, schalte am Gerät "Bewegung reduzieren" ein: Dann stehen die Animationen still. Melde dich gern in einem Issue und schreib dazu, welches Gerät und welche Karte es betrifft. |
-| "Autarkie heute" steht bei 0 %, "Haus heute" ist viel zu niedrig | Der Tagesertrag deines Wechselrichters zählt vermutlich ohne Akku-Ladung. Schalte im Schritt "Solar" die Einstellung "Tagesertrag zählt ohne Akku-Ladung" ein (`pv.daily_ac`), siehe [Konfiguration](KONFIGURATION.md#tagesertrag-von-hybrid-wechselrichtern). |
+| "Autarkie heute" steht bei 0 %, "Haus heute" ist viel zu niedrig | Der Tagesertrag deines Wechselrichters zählt vermutlich ohne Batterie-Ladung. Schalte im Schritt "Solar" die Einstellung "Tagesertrag zählt ohne Batterie-Ladung" ein (`pv.daily_ac`), siehe [Konfiguration](KONFIGURATION.md#tagesertrag-von-hybrid-wechselrichtern). |
 | Karte erscheint nicht in der Auswahl | Ressource fehlt oder Cache. Ressourcen prüfen, Strg + F5, ggf. App neu starten |
 | "Benutzerdefiniertes Element existiert nicht: energy-cockpit-…" | Ressource nicht geladen: Typ muss *JavaScript-Modul* sein, URL exakt prüfen |
 | Karte zeigt "—" statt Werten | Sensor nicht verfügbar oder falsche Einheit. Sensor in den Entwicklerwerkzeugen prüfen |

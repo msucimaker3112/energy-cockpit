@@ -20,7 +20,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv.entity` | Sensor | PV-Leistung |
 | `pv.name`, `pv.icon` | Text | Anzeigename, Symbol (`mdi:…`) |
 | `pv.daily` | Sensor | Tagesertrag in kWh |
-| `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Akku geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
+| `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Batterie geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
 | `pv.forecast` | Sensor | Prognose für heute: Leistung in W/kW oder Tagesprognose in kWh (z. B. Solcast, Forecast.Solar "Energie Produktion heute"). Im Assistenten wählbar |
 | `pv.forecast_tomorrow`, `pv.forecast_day_after` | Sensor (kWh) | Erwartete Produktion für morgen und übermorgen, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `pv.strings` | Liste | Teilstränge `{entity, name}` |
@@ -51,8 +51,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
 | `groups_lines` | `direkt` (Standard) oder `sammel` | Linien zu Einzelverbrauchern und Gruppen. `sammel` zeichnet nur **eine** Linie vom Ring zu einer Plakette "Verbraucher" mit der Summe und fasst den Bereich in einem Rahmen zusammen. Die Kacheln zeigen ihre Aktivität weiter mit Farbrand und Wert, bekommen aber keine eigene Linie. Gut bei vielen Geräten, auch auf dem Handy |
 | `battery.soc_display` | `brutto` (Standard) oder `nutzbar` | `nutzbar` zeigt den Ladestand relativ zum nutzbaren Bereich (0 % = Entladegrenze, 100 % = Maximalladung). Mit `brutto` bleibt die Anzeige wie die Batterie, die Grenzen erscheinen als schraffierte Bereiche auf dem Balken |
-| Gemeinsamer Sensor (gestapelte Akkus) | gleicher Sensor bei mehreren Speichern | Trage bei allen Speichern denselben Sensor ein, jeder mit eigenem `soc` und `capacity_kwh`. Die Leistung zählt nur einmal und steht beim ersten Speicher, die übrigen zeigen `—` und denselben Status. Die Prognose teilt die Leistung nach Kapazität auf, das ist eine Schätzung |
-| `battery.daily_charge`, `battery.daily_discharge` | Sensor | geladen / entladen heute (kWh). Ohne diese Werte zählt der Akku bei "Autarkie heute" nicht als eigener Strom |
+| Gemeinsamer Sensor (gestapelte Batterien) | gleicher Sensor bei mehreren Speichern | Trage bei allen Speichern denselben Sensor ein, jeder mit eigenem `soc` und `capacity_kwh`. Die Leistung zählt nur einmal und steht beim ersten Speicher, die übrigen zeigen `—` und denselben Status. Die Prognose teilt die Leistung nach Kapazität auf, das ist eine Schätzung |
+| `battery.daily_charge`, `battery.daily_discharge` | Sensor | geladen / entladen heute (kWh). Ohne diese Werte zählt der Batterie bei "Autarkie heute" nicht als eigener Strom |
 | `temp` (in `battery` oder je Eintrag in `batteries`) | Sensor | Temperatur des Speichers, frei wählbar. Steht in der Kachel unter dem Ladestand, ein Tipp öffnet den Verlauf. Ohne Eintrag erscheint keine Zeile |
 | `behind_meter` (in `battery` oder je Eintrag in `batteries`) | `true` / `false` (Standard) | Speicher hinter dem Zähler, den der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Er behält seine Kachel. Seine Ladung zählt als Verbrauch. Seine Abgabe zählt als Quelle: Der Hausverbrauch bleibt gleich, und der Ring zeigt den Anteil des Speichers. Weil seine Leistung oft früher da ist als Netz- und Wechselrichterwerte, kann der Hausverbrauch direkt nach dem Umschalten kurz zu hoch stehen. Mit eigenem `home.entity` bleiben Zahl und Ring beim Wert des Sensors, der Speicher zählt dort nicht als Quelle. Die Tageswerte für Autarkie und Haus rechnen ohne ihn. Nicht zusammen mit `pv_to_battery: direkt` gedacht |
 | `home.entity`, `home.name` | Sensor, Text | Hausverbrauch (sonst berechnet). Bei einem negativen Sensorwert rechnet die Karte den Verbrauch selbst |
@@ -80,15 +80,15 @@ pv:
 
 ### Tagesertrag von Hybrid-Wechselrichtern
 
-Manche Hybrid-Wechselrichter zählen im Tagesertrag nur, was sie abgeben. Was direkt aus den Modulen in den Akku geht, fehlt darin. Standardmäßig zieht die Karte die Akku-Ladung vom Tagesertrag ab, bei diesen Anlagen also doppelt.
+Manche Hybrid-Wechselrichter zählen im Tagesertrag nur, was sie abgeben. Was direkt aus den Modulen in den Batterie geht, fehlt darin. Standardmäßig zieht die Karte die Batterie-Ladung vom Tagesertrag ab, bei diesen Anlagen also doppelt.
 
 So erkennst du den Fall:
 
 - "Autarkie heute" steht bei 0 % oder ist viel zu niedrig, obwohl die Anlage heute viel erzeugt hat.
-- "Haus heute" ist viel zu niedrig, oft sogar kleiner als "Bezug heute", obwohl der Akku nicht aus dem Netz lädt.
+- "Haus heute" ist viel zu niedrig, oft sogar kleiner als "Bezug heute", obwohl der Batterie nicht aus dem Netz lädt.
 - Der Tagesertrag ist kleiner als "Einspeisung" und "Geladen heute" zusammen.
 
-Dann hilft diese Einstellung, im Assistenten im Schritt "Solar" unter "Tagesertrag zählt ohne Akku-Ladung":
+Dann hilft diese Einstellung, im Assistenten im Schritt "Solar" unter "Tagesertrag zählt ohne Batterie-Ladung":
 
 ```yaml
 pv:
@@ -108,7 +108,7 @@ Die Karte rechnet damit so:
 | Haus heute | Tagesertrag + Bezug heute − Einspeisung heute |
 | Autarkie heute | 1 − Bezug heute / Haus heute |
 
-Beispiel: Tagesertrag 7,2 kWh, Bezug 6,0 kWh, Einspeisung 3,3 kWh, Akku geladen 6,8 kWh. Ohne die Einstellung ergibt das 3,1 kWh im Haus und 0 % Autarkie. Mit ihr sind es 14,0 kWh PV, 9,9 kWh im Haus und 39 % Autarkie.
+Beispiel: Tagesertrag 7,2 kWh, Bezug 6,0 kWh, Einspeisung 3,3 kWh, Batterie geladen 6,8 kWh. Ohne die Einstellung ergibt das 3,1 kWh im Haus und 0 % Autarkie. Mit ihr sind es 14,0 kWh PV, 9,9 kWh im Haus und 39 % Autarkie.
 
 Die Einstellung gilt für alle Speicher ohne `behind_meter`. Ein weiterer Speicher mit eigenem Wechselrichter wird dabei nicht getrennt betrachtet. Ein eigener Sensor `home.daily` ersetzt nur die Kachel "Haus heute", nicht die Rechnung für die Autarkie.
 
@@ -169,7 +169,7 @@ text_size: 1.6                                      # optional: alle Zahlen grö
 
 ![Große Kacheln](img/flow-grosse-kacheln.png)
 
-Es gibt drei Stufen: normal (ohne Angabe), `size: mittel` (eine Spalte breit, aber mit größerer Zahl und größerem Namen, so passen vier nebeneinander) und `size: gross` (zwei Spalten breit, mit sehr großer Zahl).
+Es gibt drei Stufen: normal (ohne Angabe), `size: mittel` (eine Spalte breit, aber mit größerer Zahl und größerem Namen, so passen vier nebeneinander. Kommt eine mittlere Kachel vor, sind die Spalten der Verbraucher etwas breiter) und `size: gross` (zwei Spalten breit, mit sehr großer Zahl).
 
 Die große Kachel belegt zwei Spalten. In der Kurzansicht (`compact`) und auf schmalen Bildschirmen bleibt sie einspaltig, die Zahl ist aber größer. Im Editor findest du das Feld „Größe der Kachel“ bei jedem Einzelverbraucher. Die Linien zu den Verbrauchern laufen hinter den Kacheln.
 
@@ -324,7 +324,7 @@ colors:
 | `grid_export` | grün | Einspeisung |
 | `battery` | blau | Batterie im Ruhezustand, und beim Entladen, wenn `battery_discharge` fehlt |
 | `battery_charge` | hellblau | Batterie lädt: Kachel, Ladebalken, Linie, 3D-Objekt |
-| `battery_discharge` | wie `battery` | Batterie entlädt: Kachel, Linie, 3D-Objekt, Ring und Zeile „Solar / Akku / Netz“ |
+| `battery_discharge` | wie `battery` | Batterie entlädt: Kachel, Linie, 3D-Objekt, Ring und Zeile „Solar / Batterie / Netz“ |
 | `home` | türkis | Zahl beim Haus, Sammel-Linie |
 
 Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für diese Karte, andere Karten bleiben unberührt, und sie wirken nur in der Energiefluss-Karte.
@@ -380,6 +380,7 @@ waste:
 | `weather` | | Himmelsband mit dem Wetter des Tages, siehe [Himmelsband](#himmelsband-weather) |
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
+| `label_size` | | Zahl (0,5 bis 4, zum Beispiel `1.5`): vergrößert **nur die kleinen Texte** (Namen, Zusatzwerte, Beschriftungen), die Zahlen in den Kacheln bleiben. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Bei den kleinen Texten gilt `label_size` vor `text_size` |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
 | `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |
 | `fit_margin` | `8` | Abstand unten in Pixel |
@@ -502,7 +503,7 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 | `monthly` | Diagramm „PV-Ertrag pro Monat“ mit der Jahresübersicht |
 | `amortisation` | Kachel „Amortisation“ (ohne Anschaffungskosten ist sie ohnehin ausgeblendet) |
 | `baseload` | Kachel „Grundlast (nachts)“ |
-| `footer` | Fußzeile mit Rekordtag, Akku-Wirkungsgrad, Vollzyklen, Akku-Temperatur und PV gesamt |
+| `footer` | Fußzeile mit Rekordtag, Batterie-Wirkungsgrad, Vollzyklen, Batterie-Temperatur und PV gesamt |
 | `money` | Die vier Kacheln oben (PV-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
 
 ```yaml
@@ -556,7 +557,7 @@ budget_profile: history   # optional: linear (Standard) oder history
 
 ![Kosten je Verbraucher: Reiter Woche](img/kosten-woche.png)
 
-Zeigt je Verbraucher die Netzkosten und was Solar und Akku gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Einrichten geht im Assistenten im Schritt *Kosten* (bis zu vier Verbraucher), unter "Alle Felder" oder in YAML. Ohne Eintrag erscheinen weder der Bereich noch der Reiter Woche.
+Zeigt je Verbraucher die Netzkosten und was Solar und Batterie gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Einrichten geht im Assistenten im Schritt *Kosten* (bis zu vier Verbraucher), unter "Alle Felder" oder in YAML. Ohne Eintrag erscheinen weder der Bereich noch der Reiter Woche.
 
 ![Assistent: Schritt Kosten](img/wiz-stats-2-kosten.png)
 
@@ -567,7 +568,7 @@ cost_consumers:
     icon: mdi:car-electric
     color: "#a78bfa"
     power: sensor.wallbox_leistung     # optional: zeigt die Leistung und die Kosten pro Stunde
-    grid: sensor.ev_energie_netz       # gemessen: je ein Zähler für Netz, Akku und PV
+    grid: sensor.ev_energie_netz       # gemessen: je ein Zähler für Netz, Batterie und PV
     battery: sensor.ev_energie_akku
     pv: sensor.ev_energie_pv
   - name: Warmwasser
@@ -585,7 +586,7 @@ cost_consumers:
 | `on_w` | Ab welcher Leistung das Gerät als laufend gilt (Standard 10 W) |
 | `name`, `icon`, `color` | Anzeige. Ohne `icon` und `color` wählt die Karte sie selbst, das Symbol nach dem Namen |
 
-- **Netzkosten** = Anteil aus dem Netz × Strompreis (`grid_price` oder `grid_price_ct`). **Gespart** = Anteil aus Solar und Akku × Strompreis. Entgangene Einspeisevergütung ist darin nicht abgezogen.
+- **Netzkosten** = Anteil aus dem Netz × Strompreis (`grid_price` oder `grid_price_ct`). **Gespart** = Anteil aus Solar und Batterie × Strompreis. Entgangene Einspeisevergütung ist darin nicht abgezogen.
 - Der Reiter **Woche** zählt ab Montag. Er zeigt auch die Geldwerte und die Autarkie oben für diese Woche.
 - **Preis je Stunde:** Hat der Sensor `grid_price` eine Langzeitstatistik, etwa bei einem dynamischen Tarif, nimmt die Karte den Mittelwert jeder Stunde. Sonst gilt `grid_price_history`, danach der heutige Preis. Ein Helfer (`input_number`) hat keine Langzeitstatistik:
 
@@ -601,7 +602,7 @@ cost_consumers:
 - **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 
-**`pv_ac`:** Manche Hybrid-Wechselrichter zählen im Gesamtertrag nur ihre Abgabe: ohne die Ladung des Akkus aus den Modulen, dafür mit seiner Entladung. Mit `pv_ac: true` rechnet die Karte den Hausverbrauch als PV + Bezug − Einspeisung. Das gilt für die Autarkie und für die Aufteilung nach Haus-Mix.
+**`pv_ac`:** Manche Hybrid-Wechselrichter zählen im Gesamtertrag nur ihre Abgabe: ohne die Ladung des Batterien aus den Modulen, dafür mit seiner Entladung. Mit `pv_ac: true` rechnet die Karte den Hausverbrauch als PV + Bezug − Einspeisung. Das gilt für die Autarkie und für die Aufteilung nach Haus-Mix.
 
 ### Langzeit-Ansicht (optional)
 
@@ -622,7 +623,7 @@ pv_history_name: AC-Abgabe               # Bezeichnung in der Legende, sonst "Hi
 | Fehlende Monate | Zählen nicht als 0: Sie sind im Diagramm schraffiert und werden genannt. Summen enthalten nur Monate mit PV, Bezug und Einspeisung |
 | Unverändert | Amortisation (Lebensdauer), Grundlast (letzte Nächte), Rekordtag (aktuelles Jahr), *Heute* und der Monats-Reiter |
 
-**`pv_history`:** Füllt nur die Monatsbalken und *PV gesamt*. Mit `pv_history_until` kommen die Monate bis einschließlich zum Stichtag aus der Historie, ohne Stichtag nur Monate, für die `pv_total` keine Werte hat. So hat jeder Monat genau eine Quelle. Historien-Balken sind blau. Geldwerte, Autarkie und Akku rechnen weiter nur mit `pv_total`, weil für alte Monate Netz- und Speicherdaten fehlen. Für die Amortisation gibt es `earned_before_eur`. Die Statistik muss Zählerwerte (`sum`) in kWh, Wh oder MWh enthalten.
+**`pv_history`:** Füllt nur die Monatsbalken und *PV gesamt*. Mit `pv_history_until` kommen die Monate bis einschließlich zum Stichtag aus der Historie, ohne Stichtag nur Monate, für die `pv_total` keine Werte hat. So hat jeder Monat genau eine Quelle. Historien-Balken sind blau. Geldwerte, Autarkie und Batterie rechnen weiter nur mit `pv_total`, weil für alte Monate Netz- und Speicherdaten fehlen. Für die Amortisation gibt es `earned_before_eur`. Die Statistik muss Zählerwerte (`sum`) in kWh, Wh oder MWh enthalten.
 
 **Altdaten importieren:** Die Karte hat keinen eigenen Import. Altdaten kommen als CSV aus InfluxDB, Grafana oder der Hersteller-Cloud und werden mit der HACS-Integration *Import Statistics* in die Langzeitstatistik übernommen. Vorher ein Backup machen. Die `sum`-Werte müssen fortlaufend hochzählen, sonst entstehen Sprünge.
 
@@ -723,11 +724,11 @@ roof_color: anthrazit # optional: rot (Standard), anthrazit, schwarz, grau, brau
 
 ![3D-Ansicht mit zwei Speichern und Balkonkraftwerk](img/flow-3d-zwei.png)
 
-- **Das Haus** steht auf dem Ring mit dem Mix aus Solar, Akku und Netz. Der Hausverbrauch steht darüber.
+- **Das Haus** steht auf dem Ring mit dem Mix aus Solar, Batterie und Netz. Der Hausverbrauch steht darüber.
 - **Solar:** Die Module sind zu sehen, bei `pv.strings` mit einer Reihe je String. Die Sonne leuchtet mit dem Ertrag.
 - **Netz:** Der Zählerkasten zeigt die Leistung auf dem Display. Ein Bezug leuchtet rot, eine Einspeisung grün.
-- **Speicher:** Der Füllstand steht auf der Front des Speichers. Mehrere Speicher stehen nebeneinander. Gestapelte Akkus mit einem gemeinsamen Sensor erscheinen als ein Turm mit beiden Ladeständen.
-- **Linien nach den echten Wegen:** Die Linien laufen dort, wo die Energie fließt. Solar lädt einen Speicher vor dem Wechselrichter direkt (`pv_to_battery: direkt`), ein Speicher speist ins Netz, das Netz lädt den Akku. Das Haus bekommt nur, was dort ankommt. Kann die Karte Solarstrom keinem Weg zuordnen, etwa weil Hausverbrauch-Sensor, Netz und PV zeitversetzt melden, zählt er zum Haus. So fehlt die Solar-Linie nicht.
+- **Speicher:** Der Füllstand steht auf der Front des Speichers. Mehrere Speicher stehen nebeneinander. Gestapelte Batterien mit einem gemeinsamen Sensor erscheinen als ein Turm mit beiden Ladeständen.
+- **Linien nach den echten Wegen:** Die Linien laufen dort, wo die Energie fließt. Solar lädt einen Speicher vor dem Wechselrichter direkt (`pv_to_battery: direkt`), ein Speicher speist ins Netz, das Netz lädt den Batterie. Das Haus bekommt nur, was dort ankommt. Kann die Karte Solarstrom keinem Weg zuordnen, etwa weil Hausverbrauch-Sensor, Netz und PV zeitversetzt melden, zählt er zum Haus. So fehlt die Solar-Linie nicht.
 - Die Kurzansicht (`compact`), das Handy-Layout und die Farbschemen funktionieren auch in 3D.
 
 | Dach | Handy | Hell |
@@ -784,7 +785,7 @@ Was die Kurzansicht anders macht:
 
 - Solar, Netz und Batterie stehen neben dem Ring statt darunter. Die Karte ist etwa halb so hoch.
 - Gruppen zeigen nur Name und Summe. Ein **Tipp auf eine Gruppe** (Pfeil „›“) öffnet ein Fenster mit allen Geräten, ihren aktuellen Werten und der Summe. Die Werte laufen live mit, ein Tipp auf ein Gerät öffnet dessen Verlauf, „ד oder ein Tipp daneben schließt das Fenster.
-- Zusatztexte entfallen: Aufteilung des Solarstroms, Prognose, Akku-Prognose, Herkunft über dem Ring.
+- Zusatztexte entfallen: Aufteilung des Solarstroms, Prognose, Batterie-Prognose, Herkunft über dem Ring.
 - Zu den Verbrauchern führt die Sammel-Linie, sofern `groups_lines` nicht gesetzt ist. `groups_columns` gilt in der Kurzansicht nicht, die Gruppen verteilen sich selbst auf die Breite.
 
 Die Umschaltung richtet sich nach der Breite der Karte, nicht nach dem Gerätetyp. Sie gilt also auch für Android und für ein schmales Browserfenster.

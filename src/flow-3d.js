@@ -61,7 +61,7 @@ function stack(socs,p,pre,large,label){
     body+=poly([[x0+14,D,wz1],[x0+32,D,wz1],[x0+22,D,wz0],[x0+4,D,wz0]],'fill:#fff;fill-opacity:.07');
     body+=`<polygon points="${pts(win)}" style="fill:none;stroke:var(--edge);stroke-width:1.4;stroke-linejoin:round"/>`;
     if(k>0)body+=seg([0,D,z0],[W,D,z0],'stroke:var(--slot);stroke-width:1.6')+seg([W,D,z0],[W,0,z0],'stroke:var(--slot);stroke-width:1.6');
-    // Fuge zum nächsten Akku
+    // Fuge zum nächsten Batterie
     if(k<n-1)body+=poly([[4,D-3,z1],[W-3,D-3,z1],[W-3,D-3,z1+GAP],[4,D-3,z1+GAP]],'fill:var(--slot)')+poly([[W-3,D-3,z1],[W-3,4,z1],[W-3,4,z1+GAP],[W-3,D-3,z1+GAP]],'fill:var(--slot)');
     if(large){
       const o=P(0,D,z0),fs=n>=3?17:n===2?20:22;

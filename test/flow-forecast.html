@@ -45,7 +45,7 @@ async function run(){
   }
   // passt alles zusammen, ändert sich nichts: Solar lädt den Akku und speist ein
   e=mount({...base,style:'3d'},hassFor({'sensor.pv':S(3000),'sensor.grid':S(-1000),'sensor.bat':S(800),'sensor.dhome':D(1)}));await wait(400);
-  ok('3D, Werte passen: Aufteilung wie bisher',/Haus 1,20 kW · Batterie 800 W · Netz 1,00 kW/.test(t(e,'.pv .sub')),t(e,'.pv .sub'));
+  ok('3D, Werte passen: Aufteilung wie bisher (Zeilen untereinander)',[...e.shadowRoot.querySelectorAll('.pv .sub .sr')].map(x=>x.textContent.trim()).join(' | ')==='Haus 1,20 kW | Batterie 800 W | Netz 1,00 kW',[...e.shadowRoot.querySelectorAll('.pv .sub .sr')].map(x=>x.textContent.trim()).join(' | '));
   ok('3D, Werte passen: Solar → Akku und Solar → Netz',on(e,'r:pv:bat')&&on(e,'r:pv:grid'));
   // Fußzeile: Punkt vor jedem Titel, kein Titel läuft über den Rand (sehr große Schrift, schmale Karte)
   for(const w of [320,360,390,430,600,820]){

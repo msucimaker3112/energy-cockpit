@@ -20,6 +20,7 @@ const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
 const q=(e,s)=>e.shadowRoot.querySelector(s);
 const qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
 const fs=(e,s)=>parseFloat(getComputedStyle(q(e,s)).fontSize);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
 const lines=[];let fail=0;
 const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
 async function run(){
@@ -61,6 +62,26 @@ async function run(){
   e=mount(cfg({consumers:[{entity:'sensor.wp',name:'WP',size:'gross',secondary:'sensor.k'},{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(600);
   ok('große Kachel: Name größer als bei normaler',fs(e,'[data-k="c0"] .lbl')>=fs(e,'[data-k="c1"] .lbl')*1.3,fs(e,'[data-k="c0"] .lbl')+' px gegen '+fs(e,'[data-k="c1"] .lbl')+' px');
   ok('große Kachel: Zusatzwert größer als bei normaler',fs(e,'[data-k="c0"] .c-sec')>=fs(e,'[data-k="c1"] .c-sec')*1.3,fs(e,'[data-k="c0"] .c-sec')+' px gegen '+fs(e,'[data-k="c1"] .c-sec')+' px');
+  // #40: label_size trennt die Groesse der Beschriftungen von den Zahlen
+  const lb0=fs(mount(cfg({consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]})),'[data-k="c0"] .lbl'),nm0=fs(mount(cfg({consumers:[]})),'.node .num');
+  e=mount(cfg({label_size:2,consumers:[{entity:'sensor.l',name:'L',secondary:'sensor.k'}]}));await wait(400);
+  ok('label_size 2: Beschriftung doppelt so groß',Math.abs(fs(e,'[data-k="c0"] .lbl')/lb0-2)<0.1,fs(e,'[data-k="c0"] .lbl')+' px gegen '+lb0+' px');
+  ok('label_size 2: Zahlen in den Kacheln bleiben',Math.abs(fs(e,'.node .num')-nm0)<0.5,fs(e,'.node .num')+' px gegen '+nm0+' px');
+  e=mount(cfg({text_size:2,label_size:1,consumers:[{entity:'sensor.l',name:'L'}]}));await wait(400);
+  ok('text_size 2 mit label_size 1: Zahlen doppelt, Beschriftung normal',Math.abs(fs(e,'.node .num')/nm0-2)<0.05&&Math.abs(fs(e,'[data-k="c0"] .lbl')/lb0-1)<0.1);
+  e=mount(cfg({label_size:'abc',consumers:[{entity:'sensor.l',name:'L'}]}));await wait(300);
+  ok('label_size: Unsinn wird ignoriert',Math.abs(fs(e,'[data-k="c0"] .lbl')-lb0)<0.5);
+  // size: mittel macht die Spalten breiter
+  const w0=mount(cfg({consumers:[{entity:'sensor.l',name:'L'},{entity:'sensor.k',name:'K'}]}));await wait(500);const wn=q(w0,'[data-k="c0"]').getBoundingClientRect().width;
+  e=mount(cfg({consumers:[{entity:'sensor.l',name:'L',size:'mittel'},{entity:'sensor.k',name:'K',size:'mittel'}]}));await wait(500);
+  ok('mittel: Kachel breiter als eine normale',q(e,'[data-k="c0"]').getBoundingClientRect().width>wn*1.05,q(e,'[data-k="c0"]').getBoundingClientRect().width+' px gegen '+wn+' px');
+  ok('mittel: Verbraucher-Raster bekommt Klasse hm',q(e,'.consumers').classList.contains('hm'));
+  // Solar-Kachel: Zeilen untereinander, Namen: Solar statt PV-Anlage, Erzeugung statt Erzeugt
+  e=mount(cfg());await wait(500);
+  ok('Solar-Kachel heißt "Solar"',/^Solar$/i.test(t(e,'[data-k="pv"] .lbl')),t(e,'[data-k="pv"] .lbl'));
+  ok('Tag heißt "Erzeugung"',/Erzeugung/.test(t(e,'[data-k="pv"] .tag')),t(e,'[data-k="pv"] .tag'));
+  ok('Zeilen stehen untereinander (Name links, Wert rechts)',qa(e,'[data-k="pv"] .sub .sr').length>=1&&getComputedStyle(q(e,'[data-k="pv"] .sub .sr')).display==='flex',qa(e,'[data-k="pv"] .sub .sr').length);
+  ok('Mix-Zeile sagt Batterie statt Akku',!/Akku/.test(t(e,'.mix'))&&/Batterie/.test(t(e,'.mix')),t(e,'.mix'));
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);
   ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);

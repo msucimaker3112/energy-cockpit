@@ -25,7 +25,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <table>
 <tr>
-<td width="33%" valign="top"><b>Jeder Raum, jedes Gerät</b><br>Nicht nur Solar, Netz und Akku: Du siehst live, wohin dein Strom wirklich fließt, bis zum einzelnen Gerät.</td>
+<td width="33%" valign="top"><b>Jeder Raum, jedes Gerät</b><br>Nicht nur Solar, Netz und Batterie: Du siehst live, wohin dein Strom wirklich fließt, bis zum einzelnen Gerät.</td>
 <td width="33%" valign="top"><b>In Minuten eingerichtet</b><br>Der Assistent schlägt passende Sensoren vor und zeigt ihre aktuellen Werte. Feste Gerätenamen gibt es nicht.</td>
 <td width="33%" valign="top"><b>Passt zu deiner Anlage</b><br>Balkonkraftwerk, mehrere Speicher, Hybrid-Wechselrichter, Handy oder Wandtablet: Vieles davon kam direkt von Nutzern.</td>
 </tr>
@@ -41,7 +41,7 @@ Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räu
 
 <table>
 <tr>
-<td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Akku-Prognose und Überschuss-Hinweis.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
+<td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Batterie-Prognose und Überschuss-Hinweis.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
 <td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten je Verbraucher und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
 </tr>
 <tr>
@@ -69,7 +69,7 @@ Mit manueller Installation und Fehlerbehebung: [Installationsanleitung](https://
 
 ## 3D-Ansicht
 
-Mit einer Zeile wird aus Kacheln und Ring ein kleines Haus mit Solar, Zählerkasten und Speicher. Der Ladestand steht auf dem Akku, das Netz zeigt die Leistung auf dem Display, die Linien laufen nach den echten Wegen der Energie. Mehrere Speicher, Balkonkraftwerk, Gruppen, Handy-Ansicht und alle Farbschemen gehen auch in 3D. Ohne die Zeile bleibt alles wie bisher.
+Mit einer Zeile wird aus Kacheln und Ring ein kleines Haus mit Solar, Zählerkasten und Speicher. Der Ladestand steht auf der Batterie, das Netz zeigt die Leistung auf dem Display, die Linien laufen nach den echten Wegen der Energie. Mehrere Speicher, Balkonkraftwerk, Gruppen, Handy-Ansicht und alle Farbschemen gehen auch in 3D. Ohne die Zeile bleibt alles wie bisher.
 
 ```yaml
 type: custom:energy-cockpit-flow-card
@@ -85,7 +85,7 @@ Mehr dazu: [3D-Ansicht in der Konfiguration](https://github.com/msucimaker3112/e
 
 ## Kosten je Verbraucher
 
-E-Auto, Wärmepumpe, Warmwasser: Die Statistik zeigt je Gerät, was der Netzstrom kostet und wie viel Solar und Akku gespart haben, für heute, die Woche, den Monat und das Jahr. Mit je einem Zähler für Netz, Akku und PV misst sie, mit nur einem Zähler teilt sie den Verbrauch nach dem Mix des Hauses auf. Ein **Preisverlauf** sorgt dafür, dass alte Stunden zum alten Preis zählen. Der Assistent hat dafür einen eigenen Schritt "Kosten".
+E-Auto, Wärmepumpe, Warmwasser: Die Statistik zeigt je Gerät, was der Netzstrom kostet und wie viel Solar und Batterie gespart haben, für heute, die Woche, den Monat und das Jahr. Mit je einem Zähler für Netz, Batterie und PV misst sie, mit nur einem Zähler teilt sie den Verbrauch nach dem Mix des Hauses auf. Ein **Preisverlauf** sorgt dafür, dass alte Stunden zum alten Preis zählen. Der Assistent hat dafür einen eigenen Schritt "Kosten".
 
 ![Kosten je Verbraucher](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/kosten-woche.png)
 
@@ -130,7 +130,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 |---|---|---|
 | **Balkonkraftwerk oder zweite PV-Anlage** | Eigene Kachel und Linie, Autarkie und Herkunft rechnen mit der Summe | `pv2` |
 | **Mehrere Speicher** | Eine Kachel je Speicher, Ring und Tageswerte rechnen mit der Summe | `batteries` |
-| **Gestapelte Akkus an einem Sensor** | Die Leistung zählt nur einmal, die Prognose teilt sie nach Kapazität auf | gleicher Sensor |
+| **Gestapelte Batterien an einem Sensor** | Die Leistung zählt nur einmal, die Prognose teilt sie nach Kapazität auf | gleicher Sensor |
 | **Speicher vor dem Wechselrichter** (zum Beispiel Marstek B2500) | Weg Solar → Speicher → Haus mit Eingang, Ausgang und Durchleitung | `pv_to_battery: direkt` |
 | **Speicher hinter dem Zähler** (zum Beispiel Zendure an der Steckdose) | Ladung zählt als Verbrauch, Abgabe als Quelle | `behind_meter: true` |
 | **Hybrid-Wechselrichter**, dessen Ertrag nur die Abgabe zählt | "PV heute", "Haus heute" und "Autarkie heute" stimmen, in der Statistik auch Autarkie und Aufteilung | `pv.daily_ac`, `pv_ac` |
@@ -171,7 +171,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 |---|---|
 | **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
-| **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte | `text_size: gross`, `sehr_gross` oder `2` |
+| **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte, und **Beschriftungsgröße** getrennt von den Zahlen | `text_size: gross`, `sehr_gross` oder `2`, `label_size: 1.5` |
 | **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele), auch eine schmalere Stufe | `consumers[].size: gross` oder `mittel` |
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |
 | **Gruppen pro Reihe,** damit Gerätenamen auch auf dem Handy lesbar sind | `groups_columns: 1` |

@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.30.1 - MIT License */
+/*! energy-cockpit v0.30.2 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -192,13 +192,13 @@ const WD = (() => {
 (() => {
   const L = {
     de: {
-      'flow.title': 'Energiefluss', 'flow.pv': 'PV-Anlage', 'flow.pv2': 'PV 2', 'flow.grid2': 'Zweiter Zähler', 'flow.grid': 'Netz', 'flow.battery': 'Batterie', 'flow.home': 'Hausverbrauch',
+      'flow.title': 'Energiefluss', 'flow.pv': 'Solar', 'flow.pv2': 'Solar 2', 'flow.grid2': 'Zweiter Zähler', 'flow.grid': 'Netz', 'flow.battery': 'Batterie', 'flow.home': 'Hausverbrauch',
       'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand', 'flow.temp': 'Temperatur',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
       'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz', 'pv.use.store': 'Speicher',
       'stat.pv': 'PV heute', 'stat.fc1': 'PV morgen', 'stat.fc2': 'PV übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
-      'mix.pv': 'Solar', 'mix.bat': 'Akku', 'mix.grid': 'Netz',
-      'tag.offline': 'Offline', 'tag.producing': 'Erzeugt', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
+      'mix.pv': 'Solar', 'mix.bat': 'Batterie', 'mix.grid': 'Netz',
+      'tag.offline': 'Offline', 'tag.producing': 'Erzeugung', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
       'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Lädt', 'tag.discharging': 'Entlädt', 'tag.passthrough': 'Durchleitung',
       'bat.io': 'Eingang <b>{in}</b> · Ausgang <b>{out}</b>', 'bat.split': ' (Haus <b>{home}</b> · Netz <b>{grid}</b>)', 'bat.shared': 'Gemeinsamer Sensor mit <b>{name}</b>',
       'forecast': 'Prognose', 'forecast.day': 'Prognose heute', 'offline': 'offline',
@@ -208,9 +208,9 @@ const WD = (() => {
       'bat.last_24': 'Reicht <b>über 24 h</b> · {kwh} kWh nutzbar', 'bat.last_until': 'Reicht bis <b>{time}</b> · noch {dur}',
       'bat.full': 'Voll · <b>{kwh} kWh</b> nutzbar', 'bat.usable': '<b>{kwh} kWh</b> nutzbar (bis {res} %)',
       'dur.2days': '> 2 Tage',
-      'ban.surplus': '{w} Überschuss', 'ban.batfull': 'Akku voll – ', 'ban.tonet': 'Strom fließt ins Netz · selbst nutzen spart <b>{gain} {cur}/h</b>',
+      'ban.surplus': '{w} Überschuss', 'ban.batfull': 'Batterie voll – ', 'ban.tonet': 'Strom fließt ins Netz · selbst nutzen spart <b>{gain} {cur}/h</b>',
       'ban.running': '{name} läuft', 'ban.fromgrid': '{w} aus dem Netz', 'ban.cost': 'kostet gerade <b>{cost} {cur}/h</b>',
-      'ban.batempty': 'Akku leer', 'ban.batlimit': 'Akku am Limit',
+      'ban.batempty': 'Batterie leer', 'ban.batlimit': 'Batterie am Limit',
     },
   };
   // T('key', { n: 5 }) ersetzt {n}; fehlende Schlüssel fallen auf Englisch, dann auf den Schlüssel zurück
@@ -681,7 +681,7 @@ function stack(socs,p,pre,large,label){
     body+=poly([[x0+14,D,wz1],[x0+32,D,wz1],[x0+22,D,wz0],[x0+4,D,wz0]],'fill:#fff;fill-opacity:.07');
     body+=`<polygon points="${pts(win)}" style="fill:none;stroke:var(--edge);stroke-width:1.4;stroke-linejoin:round"/>`;
     if(k>0)body+=seg([0,D,z0],[W,D,z0],'stroke:var(--slot);stroke-width:1.6')+seg([W,D,z0],[W,0,z0],'stroke:var(--slot);stroke-width:1.6');
-    // Fuge zum nächsten Akku
+    // Fuge zum nächsten Batterie
     if(k<n-1)body+=poly([[4,D-3,z1],[W-3,D-3,z1],[W-3,D-3,z1+GAP],[4,D-3,z1+GAP]],'fill:var(--slot)')+poly([[W-3,D-3,z1],[W-3,4,z1],[W-3,4,z1+GAP],[W-3,D-3,z1+GAP]],'fill:var(--slot)');
     if(large){
       const o=P(0,D,z0),fs=n>=3?17:n===2?20:22;
@@ -1048,6 +1048,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .tag{display:inline-flex;margin-top:9px;font-size:calc(.64rem*var(--ts,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
 .tag:empty{display:none}
 .sub{margin-top:9px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));line-height:1.55}
+.sub .sr{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sub .sr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sub:empty{display:none}
 .sub b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .soc{margin-top:13px;position:relative;height:9px;border-radius:999px;background:rgba(var(--ov),.07);overflow:hidden}
@@ -1154,7 +1156,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .stat span{font-size:calc(.7rem*var(--ts,1))}
 /* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
 .sam-on .mix{order:-1;margin:0 0 12px}
-/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Akku) */
+/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Batterie) */
 .wrap:not(.s3d) .mix{order:-1;margin:0 0 12px}
 .sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
 .wrap .sambox .consumers,.wrap .sambox .groups{margin-top:0}
@@ -1192,6 +1194,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons.mid .ico{transform:none;margin:0 10px 0 0}
 .cmp .cons.mid .num{font-size:calc(1rem*var(--vs,1))}
 .cmp .cons.mid .lbl{font-size:calc(.64rem*var(--ts,1))}
+.consumers.hm{grid-template-columns:repeat(auto-fit,minmax(190px,300px))}
+.wide .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(250px,340px))}
+.narrow .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.wrap.cmp .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important}
 .narrow .cons.big,.cmp .cons.big{grid-column:auto}
 .narrow .cons.big .num{font-size:calc(1.6rem*var(--vs,1))}
 .cmp .cons.big{padding:10px 12px}
@@ -1343,6 +1349,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._pal = pf.pal; this._palSet = pf.set;
     // text_size als Zahl (z. B. 2): Faktor fuer alle Texte und die Zahlen in den Kacheln. gross/sehr_gross bleiben wie bisher
     const tsn = parseFloat(String(this._c.text_size).replace(',', '.'));
+    // label_size (optional): Faktor nur fuer die kleinen Texte (Namen, Zusatzwerte, Beschriftungen), unabhaengig von den Zahlen in den Kacheln
+    const lsn = parseFloat(String(this._c.label_size).replace(',', '.'));
+    this._lsn = !isNaN(lsn) && lsn > 0 ? Math.min(4, Math.max(0.5, lsn)) : 0;
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
@@ -1729,7 +1738,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : (this._tsn > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._tsn ? `--ts:${this._tsn};--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -1766,7 +1775,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
           </div>
         </div>
-        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}${consRest}</div>` : ''}
+        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers${c.consumers.some((x) => x.size === 'mittel' || x.size === 'mid') ? ' hm' : ''}">${cons}${consRest}</div>` : ''}
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
@@ -2030,7 +2039,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (L.dur !== dur) { L.dur = dur; L.g.style.setProperty('--d', dur); }
   }
 
-  // Akku-Prognose: geglättete Leistung (~5 min) -> Uhrzeit "voll um" / "reicht bis"
+  // Batterie-Prognose: geglättete Leistung (~5 min) -> Uhrzeit "voll um" / "reicht bis"
   _batForecast(bat, soc, b, idx) {
     const c = this._c, h = this._hass, cap = parseFloat((b || c.battery).capacity_kwh);
     const now = Date.now();
@@ -2321,7 +2330,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       return { b, i, p, out, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
     });
-    // Gemeinsamer Leistungssensor (übereinander gestapelte Akkus): zählt nur einmal, beim ersten Speicher mit diesem Sensor
+    // Gemeinsamer Leistungssensor (übereinander gestapelte Batterien): zählt nur einmal, beim ersten Speicher mit diesem Sensor
     const sensorSeen = {};
     bats.forEach((x) => {
       const id = x.b.power || (x.b.power_charge || x.b.power_discharge ? `${x.b.power_charge}|${x.b.power_discharge}` : '');
@@ -2367,12 +2376,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Rest ohne Ziel: Hausverbrauch-Sensor, Netz und PV passen kurz nicht zusammen (zeitversetzte Werte). Er bleibt beim Haus, wie der Netz-Rest in 3D (#23)
     const viaOn = this._via && bats[0] && bats[0].out !== null;
     const p1Rest = viaOn ? 0 : Math.max(0, p1 - p1Home - p1Bat - p1Exp), p2Rest = Math.max(0, p2 - p2Home - p2Exp - p2Bat);
+    // Zeilen untereinander (Name links, Wert rechts): Haus, Batterie, Netz, Strings, Prognose
+    const row = (label, val) => `<div class="sr"><span>${label}</span> <b>${val}</b></div>`;
     const useText = (home_, bat_, exp_) => {
       const use = [];
-      if (home_ > TH) use.push(`${T('pv.use.home')} <b>${this._fW(home_)}</b>`);
-      if (bat_ > TH) use.push(`${T('pv.use.bat')} <b>${this._fW(bat_)}</b>`);
-      if (exp_ > TH) use.push(`${T('pv.use.grid')} <b>${this._fW(exp_)}</b>`);
-      return use.length ? '→ ' + use.join(' · ') : '';
+      if (home_ > TH) use.push(row(T('pv.use.home'), this._fW(home_)));
+      if (bat_ > TH) use.push(row(T('pv.use.bat'), this._fW(bat_)));
+      if (exp_ > TH) use.push(row(T('pv.use.grid'), this._fW(exp_)));
+      return use.join('');
     };
     if (c.pv2 && c.pv2.entity) {
       const el = this._$('[data-k="pv2"]'), on = p2 > TH;
@@ -2382,8 +2393,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const parts2 = [];
       const u2 = on ? useText(p2Home + p2Rest, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
-      (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
-      this._set('.pv2 .sub', parts2.join('<br>'), true);
+      (c.pv2.strings || []).forEach((s) => parts2.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
+      this._set('.pv2 .sub', parts2.join(''), true);
       this._link('pv2', on, true, PAL.pv, pv2);
     }
     if (c.pv) {
@@ -2395,22 +2406,22 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
         // pv_to_battery: direkt: Der ganze Solarstrom geht in den Speicher, die Aufteilung steht beim Ausgang des Speichers
-        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home + p1Rest, p1Bat, p1Exp);
+        const u1 = this._via && bats[0].out !== null ? row(T('pv.use.store'), this._fW(p1)) : useText(p1Home + p1Rest, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
-      (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
+      (c.pv.strings || []).forEach((s) => parts.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
       if (/^(k|m)?wh$/i.test(fUnit)) {
         const e = num(h, c.pv.forecast);
         const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
-        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${this._fk(kwh)} kWh</b>`);
+        if (kwh !== null) parts.push(row(T('forecast.day'), this._fk(kwh) + ' kWh'));
       } else {
         const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
-        if (fc !== null) parts.push(`${T('forecast')} <b>${this._fW(fc)}</b>`);
+        if (fc !== null) parts.push(row(T('forecast'), this._fW(fc)));
       }
-      this._set('.pv .sub', parts.join('<br>'), true);
+      this._set('.pv .sub', parts.join(''), true);
       this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {
@@ -2425,7 +2436,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     bats.forEach((x) => {
       const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
       if (!el) return;
-      // 3D: Akkus an einem gemeinsamen Sensor stehen als Turm in der Kachel des ersten
+      // 3D: Batterien an einem gemeinsamen Sensor stehen als Turm in der Kachel des ersten
       if (this._s3d && x.lead) {
         if (el.style.display !== 'none') { el.style.display = 'none'; this._schedLayout(); }
         this._link(key, false, false, PAL.bat, 0);
@@ -2616,7 +2627,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const dChg = sumBat('daily_charge');
     const dDis = sumBat('daily_discharge');
     const balB = c.batteries.filter((b) => b.behind_meter !== true);
-    // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Akku-Ladung fehlt darin, die Entladung steckt darin
+    // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Batterie-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${this._fk(dPv)}<small>kWh</small>`, true);
     if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${this._fk(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
@@ -2657,7 +2668,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   const LABELS = {
     title: 'Titel', name: 'Anzeigename', icon: 'Symbol', minus: 'Differenz: abziehen (Sensor, W), z. B. Zähler 2 einer Zählerkaskade', plus: 'Differenz: dazurechnen (Sensor, W, optional)',
-    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
+    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
@@ -2665,7 +2676,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -2722,6 +2733,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       bool('daily_from_total', false),
       ent('weather', ['weather']),
       sec('colors', 'Farben (z. B. #22c55e)', [txt('pv'), txt('grid_import'), txt('grid_export'), txt('battery'), txt('battery_charge'), txt('battery_discharge'), txt('home')]),
+      numb('label_size', 0.5, 4, 0.1),
       bool('show_clock', true),
       bool('fit_screen', true),
       bool('watt_only', false),
@@ -2743,7 +2755,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('nav_label'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
+    computeHelper: (s) => (s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
   });
 
   // Assistent: Schritte mit Sensor-Vorschlägen
@@ -2752,7 +2764,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Solar', title: 'Solaranlage', text: 'Wähle den Sensor, der die aktuelle Erzeugung der PV-Anlage in Watt anzeigt.', fields: [
       { path: 'pv.entity', label: 'PV-Leistung', kind: 'power', hints: H(/pv|solar|photovolt|inverter|wechselrichter|erzeugung/i, /input|eingang|power|leistung/i) },
       { path: 'pv.daily', label: 'Tagesertrag (kWh)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute|yield|ertrag/i, /pv|solar|inverter/i) },
-      { path: 'pv.daily_ac', label: 'Tagesertrag zählt ohne Akku-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt. Zeichen dafür: "Autarkie heute" steht bei 0 %, und "Haus heute" ist viel zu niedrig. Braucht "Geladen heute" und "Entladen heute" beim Speicher.' },
+      { path: 'pv.daily_ac', label: 'Tagesertrag zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt. Zeichen dafür: "Autarkie heute" steht bei 0 %, und "Haus heute" ist viel zu niedrig. Braucht "Geladen heute" und "Entladen heute" beim Speicher.' },
       { path: 'pv.forecast', label: 'Prognose heute (kWh oder Leistung in W/kW)', kind: 'forecast', optional: true, hints: H(/forecast|prognose|solcast|production|produktion/i, /today|heute|now|jetzt/i), help: 'Eine Tagesprognose in kWh (zum Beispiel Forecast.Solar "Energie Produktion heute" oder Solcast "Prognose heute") erscheint als "Prognose heute" in kWh. Eine Leistungsprognose in W/kW zeigt "Prognose" in Watt.' },
       { path: 'pv.forecast_tomorrow', label: 'Prognose morgen (kWh)', kind: 'energy', optional: true, hints: H(/tomorrow|morgen/i, /forecast|prognose|solcast|production|produktion|ertrag/i), help: 'Erwartete Produktion für morgen, zum Beispiel von Forecast.Solar oder Solcast. Erscheint als Kachel "PV morgen" unten in der Karte.' },
       { path: 'pv.forecast_day_after', label: 'Prognose übermorgen (kWh)', kind: 'energy', optional: true, hints: H(/day.?after|d2|uebermorgen|übermorgen|day_3|day3/i), help: 'Nicht jede Integration hat diesen Wert, Forecast.Solar zum Beispiel nicht.' },
@@ -2786,7 +2798,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'battery.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn Laden negativ und Entladen positiv gemeldet wird.' },
       { path: 'battery.capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true, help: 'Für die Prognose "voll um / reicht bis".' },
       { path: 'battery.temp', label: 'Temperatur', kind: 'temp', optional: true, hints: H(/batter|akku|speicher|storage|bat\d/i, /temp/i), help: 'Optional. Steht in der Kachel unter dem Ladestand.' },
-      { path: 'battery.daily_charge', label: 'Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i), help: 'Für "Autarkie heute" und "Haus heute". Ohne diese beiden Werte zählt der Akku dort nicht als eigener Strom.' },
+      { path: 'battery.daily_charge', label: 'Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i), help: 'Für "Autarkie heute" und "Haus heute". Ohne diese beiden Werte zählt der Batterie dort nicht als eigener Strom.' },
       { path: 'battery.daily_discharge', label: 'Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },
       { path: 'battery.behind_meter', label: 'Speicher hinter dem Zähler', kind: 'bool', help: 'Nur für Speicher, die der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Seine Ladung zählt als Verbrauch, seine Abgabe als Quelle im Ring und im Hausverbrauch.' },
     ] },
@@ -2864,7 +2876,7 @@ WD.addStrings({
   'dev.ambilight': 'Ambilight', 'dev.music': 'Musik', 'dev.mute': 'Ton aus', 'dev.light': 'Licht',
   'dev.on': 'an', 'dev.off': 'aus', 'dev.tv_on': 'TV läuft', 'dev.tv_off': 'TV aus', 'dev.extra': 'Zusatzgerät', 'dev.cooling': 'kühlt', 'dev.pause': 'Pause', 'dev.since': 'seit',
   'dev.unmeasured': 'nicht erfasst', 'dev.live': 'Jetzt · davon <b>{n} %</b> gemessen', 'dev.sub': '{on} von {all} Geräten an · {w} gemessen',
-  'dev.cent': 'ct/kWh', 'dev.grid': 'Netz', 'dev.selfsup': 'PV/Akku', 'dev.standby': 'Standby', 'dev.year': 'Jahr', 'dev.tap_off': 'antippen = aus', 'dev.surplus': 'Überschuss',
+  'dev.cent': 'ct/kWh', 'dev.grid': 'Netz', 'dev.selfsup': 'PV/Batterie', 'dev.standby': 'Standby', 'dev.year': 'Jahr', 'dev.tap_off': 'antippen = aus', 'dev.surplus': 'Überschuss',
   'dev.playing': 'läuft',
   'dev.st.ready': 'bereit', 'dev.st.brewing': 'brüht', 'dev.st.inactive': 'inaktiv', 'dev.st.finished': 'fertig', 'dev.st.pause': 'Pause',
   'dev.st.action': 'Aktion nötig', 'dev.st.error': 'Fehler', 'dev.st.playing': 'spielt', 'dev.st.standby': 'Standby',
@@ -2872,7 +2884,7 @@ WD.addStrings({
 
 
 /* ---- devices-card.js ---- */
-/* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
+/* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Batterie vs. Netz) */
 (() => {
   const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
   // Leistung in W (kW und MW werden umgerechnet)
@@ -3281,7 +3293,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         if (per !== this._per) { this._eLoading = false; return; }
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         const pos = (v) => (v > 0 ? v : 0);
-        // Hausverbrauch und Netzanteil je Intervall: Haus = PV + Bezug - Einspeisung - Akku laden + Akku entladen
+        // Hausverbrauch und Netzanteil je Intervall: Haus = PV + Bezug - Einspeisung - Batterie laden + Batterie entladen
         const slot = {};
         const add = (k, f) => (r[he[k]] || []).forEach((x) => { const t = ts(x); (slot[t] = slot[t] || { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 })[f] += pos(x.change); });
         add('pv', 'pv'); add('import', 'imp'); add('export', 'exp'); add('charge', 'chg'); add('discharge', 'dis');
@@ -4508,7 +4520,7 @@ WD.addStrings({
   'st.title': 'Statistik', 'st.err': 'pv_total, grid_import_total und grid_export_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
   'st.pvsav': 'PV-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'PV-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation PV-Anlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'PV-Ertrag pro Monat', 'st.record': 'Rekordtag',
-  'st.eff': 'Akku-Wirkungsgrad', 'st.cycles': 'Vollzyklen', 'st.temp': 'Akku-Temperatur', 'st.pvall': 'PV gesamt',
+  'st.eff': 'Batterie-Wirkungsgrad', 'st.cycles': 'Vollzyklen', 'st.temp': 'Batterie-Temperatur', 'st.pvall': 'PV gesamt',
   'st.self': '<b>{kwh} kWh</b> PV selbst genutzt', 'st.fed': '<b>{kwh} kWh</b> eingespeist', 'st.drawn': '<b>{kwh} kWh</b> bezogen',
   'st.autsub': 'Eigenverbrauch <b>{self}</b> · Verbrauch <b>{cons} kWh</b>',
   'st.earned': '<b>{e} {cur}</b> von {i} {cur} zurückverdient', 'st.eta': '<b>{y} {cur}/Jahr</b> · fertig ca. <b>{yr}</b>', 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
@@ -4516,8 +4528,8 @@ WD.addStrings({
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Akku', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
-  'st.n.pv': 'PV heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Akku geladen heute', 'st.n.dis': 'Akku entladen heute',
+  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.n.pv': 'PV heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Batterie geladen heute', 'st.n.dis': 'Batterie entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
   'st.d.exp': 'Heute mehr eingespeist ({e} kWh) als erzeugt ({p} kWh). Prüfe den Sensor für die Einspeisung.',
@@ -4528,7 +4540,7 @@ WD.addStrings({
 
 
 /* ---- stats-card.js ---- */
-/* energy-cockpit-stats-card (abgeleitet aus energy-stats-card v1.0.1) – Statistik: Geld, Amortisation, Grundlast, Monatsvergleich, Akku */
+/* energy-cockpit-stats-card (abgeleitet aus energy-stats-card v1.0.1) – Statistik: Geld, Amortisation, Grundlast, Monatsvergleich, Batterie */
 (() => {
   const { nf, haNavigate, T, setLocale, cur, esc } = WD;
   const fEur = (v) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, Math.abs(v) < 100 ? 2 : 0));
@@ -4739,7 +4751,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c.battery_capacity_kwh = lst(c.battery_capacity_kwh).reduce((a, v) => a + (parseFloat(v) || 0), 0);
       // long_term (optional): ganze Historie, Jahre blättern, Reiter "Gesamt", pv_history. Ohne die Option bleibt alles wie bisher
       this._c._lt = c.long_term === true;
-      // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Akku-Ladung und mit Akku-Entladung
+      // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Batterie-Ladung und mit Batterie-Entladung
       this._c._ac = c.pv_ac === true;
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
@@ -5431,7 +5443,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
   if (!customElements.get('energy-cockpit-stats-card')) {
     customElements.define('energy-cockpit-stats-card', EnergyCockpitStatsCard);
     window.customCards = window.customCards || [];
-    window.customCards.push({ type: 'energy-cockpit-stats-card', name: 'energy-cockpit Statistik', description: 'Geld, Amortisation, Grundlast, Monatsvergleich, Akku', preview: true });
+    window.customCards.push({ type: 'energy-cockpit-stats-card', name: 'energy-cockpit Statistik', description: 'Geld, Amortisation, Grundlast, Monatsvergleich, Batterie', preview: true });
   }
 })();
 
@@ -5445,7 +5457,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Akku-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const KEYS = ['pv_total', 'grid_import_total', 'grid_export_total', 'battery_charge_total', 'battery_discharge_total', 'battery_temp', 'pv_today', 'import_today', 'export_today',
@@ -5502,7 +5514,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { path: 'battery_temp', label: 'Batterietemperatur', kind: 'temp', optional: true, hints: H(/batter|akku/i, /temp/i) },
     ] },
     { short: 'Heute', title: 'Tageswerte (optional)', text: 'Für die Ansicht "Heute".', fields: [
-      { path: 'pv_ac', label: 'PV-Zähler zählt ohne Akku-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Zähler nur ihre Abgabe zählen. Zeichen dafür: "Autarkie" ist zu niedrig, oder der Verbrauch wirkt zu klein.' },
+      { path: 'pv_ac', label: 'PV-Zähler zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Zähler nur ihre Abgabe zählen. Zeichen dafür: "Autarkie" ist zu niedrig, oder der Verbrauch wirkt zu klein.' },
       { path: 'pv_today', label: 'PV heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /pv|solar|inverter|ertrag|yield/i) },
       { path: 'import_today', label: 'Netzbezug heute (nicht der Gesamtverbrauch)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /import|bezug|verbrauch/i) },
       { path: 'export_today', label: 'Einspeisung heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /export|einspeis/i) },
@@ -5527,30 +5539,30 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { path: 'earned_before_eur', label: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', kind: 'number', optional: true, step: '1', help: 'Nur nötig, wenn die Anlage schon lief, bevor Home Assistant die Zähler erfasst hat. Der Betrag wird zur Amortisation addiert.' },
       { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
     ] },
-    { short: 'Kosten', title: 'Kosten je Verbraucher (optional)', text: 'Zeigt je Gerät die Netzkosten und was Solar und Akku gespart haben, heute, in dieser Woche, im Monat und im Jahr. Weitere Verbraucher gehen unter "Alle Felder" oder in YAML.', fields: [
+    { short: 'Kosten', title: 'Kosten je Verbraucher (optional)', text: 'Zeigt je Gerät die Netzkosten und was Solar und Batterie gespart haben, heute, in dieser Woche, im Monat und im Jahr. Weitere Verbraucher gehen unter "Alle Felder" oder in YAML.', fields: [
       { path: 'cost_consumers.0.name', label: 'Verbraucher 1: Name', kind: 'text', optional: true, help: 'Zum Beispiel E-Auto oder Wärmepumpe. Symbol und Farbe wählt die Karte selbst, in YAML gehen auch eigene.' },
       { path: 'cost_consumers.0.energy', label: 'Verbraucher 1: Energie', kind: 'energy', optional: true, help: 'Gesamtzähler in kWh. Die Karte teilt ihn jede Stunde so auf, wie das Haus gerade versorgt wurde. Das ist eine Schätzung.' },
       { path: 'cost_consumers.0.power', label: 'Verbraucher 1: Leistung', kind: 'power', optional: true },
       { path: 'cost_consumers.0.grid', label: 'Verbraucher 1: Energie aus dem Netz', kind: 'energy', optional: true, help: 'Nur wenn du eigene Zähler je Quelle hast, zum Beispiel von der Wallbox. Dann misst die Karte, statt zu schätzen, und braucht den Zähler oben nicht.' },
-      { path: 'cost_consumers.0.battery', label: 'Verbraucher 1: Energie aus dem Akku', kind: 'energy', optional: true },
+      { path: 'cost_consumers.0.battery', label: 'Verbraucher 1: Energie aus der Batterie', kind: 'energy', optional: true },
       { path: 'cost_consumers.0.pv', label: 'Verbraucher 1: Energie aus PV', kind: 'energy', optional: true },
       { path: 'cost_consumers.1.name', label: 'Verbraucher 2: Name', kind: 'text', optional: true },
       { path: 'cost_consumers.1.energy', label: 'Verbraucher 2: Energie', kind: 'energy', optional: true },
       { path: 'cost_consumers.1.power', label: 'Verbraucher 2: Leistung', kind: 'power', optional: true },
       { path: 'cost_consumers.1.grid', label: 'Verbraucher 2: Energie aus dem Netz', kind: 'energy', optional: true },
-      { path: 'cost_consumers.1.battery', label: 'Verbraucher 2: Energie aus dem Akku', kind: 'energy', optional: true },
+      { path: 'cost_consumers.1.battery', label: 'Verbraucher 2: Energie aus der Batterie', kind: 'energy', optional: true },
       { path: 'cost_consumers.1.pv', label: 'Verbraucher 2: Energie aus PV', kind: 'energy', optional: true },
       { path: 'cost_consumers.2.name', label: 'Verbraucher 3: Name', kind: 'text', optional: true },
       { path: 'cost_consumers.2.energy', label: 'Verbraucher 3: Energie', kind: 'energy', optional: true },
       { path: 'cost_consumers.2.power', label: 'Verbraucher 3: Leistung', kind: 'power', optional: true },
       { path: 'cost_consumers.2.grid', label: 'Verbraucher 3: Energie aus dem Netz', kind: 'energy', optional: true },
-      { path: 'cost_consumers.2.battery', label: 'Verbraucher 3: Energie aus dem Akku', kind: 'energy', optional: true },
+      { path: 'cost_consumers.2.battery', label: 'Verbraucher 3: Energie aus der Batterie', kind: 'energy', optional: true },
       { path: 'cost_consumers.2.pv', label: 'Verbraucher 3: Energie aus PV', kind: 'energy', optional: true },
       { path: 'cost_consumers.3.name', label: 'Verbraucher 4: Name', kind: 'text', optional: true },
       { path: 'cost_consumers.3.energy', label: 'Verbraucher 4: Energie', kind: 'energy', optional: true },
       { path: 'cost_consumers.3.power', label: 'Verbraucher 4: Leistung', kind: 'power', optional: true },
       { path: 'cost_consumers.3.grid', label: 'Verbraucher 4: Energie aus dem Netz', kind: 'energy', optional: true },
-      { path: 'cost_consumers.3.battery', label: 'Verbraucher 4: Energie aus dem Akku', kind: 'energy', optional: true },
+      { path: 'cost_consumers.3.battery', label: 'Verbraucher 4: Energie aus der Batterie', kind: 'energy', optional: true },
       { path: 'cost_consumers.3.pv', label: 'Verbraucher 4: Energie aus PV', kind: 'energy', optional: true },
     ] },
     { short: 'Langzeit', title: 'Langzeit-Ansicht (optional)', text: 'Standardmäßig aus. Eingeschaltet zeigt die Karte alle Jahre aus der Langzeitstatistik von Home Assistant: Jahre blättern, Reiter "Gesamt" und Hinweise auf fehlende Monate. Ausgeschaltet bleibt die Karte wie bisher.', fields: [

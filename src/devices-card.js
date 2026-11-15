@@ -1,4 +1,4 @@
-/* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Akku vs. Netz) */
+/* energy-cockpit-devices-card (abgeleitet aus devices-card v1.4.0) – Geräte & Verbrauch: Raum-Kacheln mit Live-Leistung, Schalten, Standby-Detektiv, Statistik Tag/Woche/Monat/Jahr mit stündlichem Strommix (PV/Batterie vs. Netz) */
 (() => {
   const { nf, esc, rgb, haNavigate, T, setLocale, cur } = WD;
   // Leistung in W (kW und MW werden umgerechnet)
@@ -407,7 +407,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         if (per !== this._per) { this._eLoading = false; return; }
         const ts = (x) => (typeof x.start === 'number' ? x.start : Date.parse(x.start));
         const pos = (v) => (v > 0 ? v : 0);
-        // Hausverbrauch und Netzanteil je Intervall: Haus = PV + Bezug - Einspeisung - Akku laden + Akku entladen
+        // Hausverbrauch und Netzanteil je Intervall: Haus = PV + Bezug - Einspeisung - Batterie laden + Batterie entladen
         const slot = {};
         const add = (k, f) => (r[he[k]] || []).forEach((x) => { const t = ts(x); (slot[t] = slot[t] || { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 })[f] += pos(x.change); });
         add('pv', 'pv'); add('import', 'imp'); add('export', 'exp'); add('charge', 'chg'); add('discharge', 'dis');

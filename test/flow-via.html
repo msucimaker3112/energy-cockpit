@@ -16,12 +16,12 @@ const lines=[];let fail=0;
 const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
 async function run(){
   let e=mount(via,hassFor(cases[0]));await wait(600);
-  ok('Einspeisung: Solar geht in den Speicher',sub(e,'.pv').includes('→ Speicher 445 W')&&!sub(e,'.pv').includes('Haus'),sub(e,'.pv'));
+  ok('Einspeisung: Solar geht in den Speicher',sub(e,'.pv').includes('Speicher 445 W')&&!sub(e,'.pv').includes('Haus'),sub(e,'.pv'));
   ok('Einspeisung: Ausgang aufgeteilt',sub(e,'.bat').includes('Ausgang 331 W (Haus 315 W · Netz 16 W)'),sub(e,'.bat'));
   e=mount(via,hassFor(cases[1]));await wait(600);
   ok('Bezug: keine Aufteilung',sub(e,'.bat').includes('Ausgang 357 W')&&!sub(e,'.bat').includes('Haus'),sub(e,'.bat'));
   e=mount(via,hassFor(cases[2]));await wait(600);
-  ok('Entladen: Solar in den Speicher',sub(e,'.pv').includes('→ Speicher 455 W'),sub(e,'.pv'));
+  ok('Entladen: Solar in den Speicher',sub(e,'.pv').includes('Speicher 455 W'),sub(e,'.pv'));
   ok('Entladen: Eingang und Ausgang',sub(e,'.bat').includes('Eingang 455 W · Ausgang 531 W'),sub(e,'.bat'));
   const noOut=hassFor(cases[0]);noOut.states['sensor.out']=S('unavailable');
   e=mount(via,noOut);await wait(600);

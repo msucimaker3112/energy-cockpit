@@ -1,4 +1,4 @@
-/* energy-cockpit-stats-card (abgeleitet aus energy-stats-card v1.0.1) – Statistik: Geld, Amortisation, Grundlast, Monatsvergleich, Akku */
+/* energy-cockpit-stats-card (abgeleitet aus energy-stats-card v1.0.1) – Statistik: Geld, Amortisation, Grundlast, Monatsvergleich, Batterie */
 (() => {
   const { nf, haNavigate, T, setLocale, cur, esc } = WD;
   const fEur = (v) => (v === null || v === undefined || !isFinite(v) ? '—' : nf(v, Math.abs(v) < 100 ? 2 : 0));
@@ -209,7 +209,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c.battery_capacity_kwh = lst(c.battery_capacity_kwh).reduce((a, v) => a + (parseFloat(v) || 0), 0);
       // long_term (optional): ganze Historie, Jahre blättern, Reiter "Gesamt", pv_history. Ohne die Option bleibt alles wie bisher
       this._c._lt = c.long_term === true;
-      // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Akku-Ladung und mit Akku-Entladung
+      // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Batterie-Ladung und mit Batterie-Entladung
       this._c._ac = c.pv_ac === true;
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
@@ -901,6 +901,6 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
   if (!customElements.get('energy-cockpit-stats-card')) {
     customElements.define('energy-cockpit-stats-card', EnergyCockpitStatsCard);
     window.customCards = window.customCards || [];
-    window.customCards.push({ type: 'energy-cockpit-stats-card', name: 'energy-cockpit Statistik', description: 'Geld, Amortisation, Grundlast, Monatsvergleich, Akku', preview: true });
+    window.customCards.push({ type: 'energy-cockpit-stats-card', name: 'energy-cockpit Statistik', description: 'Geld, Amortisation, Grundlast, Monatsvergleich, Batterie', preview: true });
   }
 })();

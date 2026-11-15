@@ -105,6 +105,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .tag{display:inline-flex;margin-top:9px;font-size:calc(.64rem*var(--ts,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
 .tag:empty{display:none}
 .sub{margin-top:9px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));line-height:1.55}
+.sub .sr{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sub .sr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sub:empty{display:none}
 .sub b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .soc{margin-top:13px;position:relative;height:9px;border-radius:999px;background:rgba(var(--ov),.07);overflow:hidden}
@@ -211,7 +213,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .stat span{font-size:calc(.7rem*var(--ts,1))}
 /* groups_lines: sammel: eine Linie zum ganzen Verbraucherbereich */
 .sam-on .mix{order:-1;margin:0 0 12px}
-/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Akku) */
+/* Klassische Ansicht: Legende über dem Ring, dort kommt keine Linie an (unten laufen die Linien zu den Verbrauchern, auf dem Handy zu Solar, Netz und Batterie) */
 .wrap:not(.s3d) .mix{order:-1;margin:0 0 12px}
 .sambox{position:relative;z-index:1;margin-top:46px;padding:30px 12px 12px;border:1px solid var(--stroke);border-radius:26px;background:rgba(var(--ov),.018)}
 .wrap .sambox .consumers,.wrap .sambox .groups{margin-top:0}
@@ -249,6 +251,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons.mid .ico{transform:none;margin:0 10px 0 0}
 .cmp .cons.mid .num{font-size:calc(1rem*var(--vs,1))}
 .cmp .cons.mid .lbl{font-size:calc(.64rem*var(--ts,1))}
+.consumers.hm{grid-template-columns:repeat(auto-fit,minmax(190px,300px))}
+.wide .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(250px,340px))}
+.narrow .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.wrap.cmp .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important}
 .narrow .cons.big,.cmp .cons.big{grid-column:auto}
 .narrow .cons.big .num{font-size:calc(1.6rem*var(--vs,1))}
 .cmp .cons.big{padding:10px 12px}
@@ -400,6 +406,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._pal = pf.pal; this._palSet = pf.set;
     // text_size als Zahl (z. B. 2): Faktor fuer alle Texte und die Zahlen in den Kacheln. gross/sehr_gross bleiben wie bisher
     const tsn = parseFloat(String(this._c.text_size).replace(',', '.'));
+    // label_size (optional): Faktor nur fuer die kleinen Texte (Namen, Zusatzwerte, Beschriftungen), unabhaengig von den Zahlen in den Kacheln
+    const lsn = parseFloat(String(this._c.label_size).replace(',', '.'));
+    this._lsn = !isNaN(lsn) && lsn > 0 ? Math.min(4, Math.max(0.5, lsn)) : 0;
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
@@ -786,7 +795,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : (this._tsn > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._tsn ? `--ts:${this._tsn};--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -823,7 +832,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
             </div>
           </div>
         </div>
-        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers">${cons}${consRest}</div>` : ''}
+        ${sam ? `<div class="sambox"><div class="sam" data-k="bundle"><span class="sam-t">${T('flow.cons_total')}</span><b class="sam-w">—</b></div>` : ''}${cons ? `<div class="consumers${c.consumers.some((x) => x.size === 'mittel' || x.size === 'mid') ? ' hm' : ''}">${cons}${consRest}</div>` : ''}
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
@@ -1087,7 +1096,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (L.dur !== dur) { L.dur = dur; L.g.style.setProperty('--d', dur); }
   }
 
-  // Akku-Prognose: geglättete Leistung (~5 min) -> Uhrzeit "voll um" / "reicht bis"
+  // Batterie-Prognose: geglättete Leistung (~5 min) -> Uhrzeit "voll um" / "reicht bis"
   _batForecast(bat, soc, b, idx) {
     const c = this._c, h = this._hass, cap = parseFloat((b || c.battery).capacity_kwh);
     const now = Date.now();
@@ -1378,7 +1387,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       return { b, i, p, out, soc: num(h, b.soc), cap: parseFloat(b.capacity_kwh) || 0 };
     });
-    // Gemeinsamer Leistungssensor (übereinander gestapelte Akkus): zählt nur einmal, beim ersten Speicher mit diesem Sensor
+    // Gemeinsamer Leistungssensor (übereinander gestapelte Batterien): zählt nur einmal, beim ersten Speicher mit diesem Sensor
     const sensorSeen = {};
     bats.forEach((x) => {
       const id = x.b.power || (x.b.power_charge || x.b.power_discharge ? `${x.b.power_charge}|${x.b.power_discharge}` : '');
@@ -1424,12 +1433,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Rest ohne Ziel: Hausverbrauch-Sensor, Netz und PV passen kurz nicht zusammen (zeitversetzte Werte). Er bleibt beim Haus, wie der Netz-Rest in 3D (#23)
     const viaOn = this._via && bats[0] && bats[0].out !== null;
     const p1Rest = viaOn ? 0 : Math.max(0, p1 - p1Home - p1Bat - p1Exp), p2Rest = Math.max(0, p2 - p2Home - p2Exp - p2Bat);
+    // Zeilen untereinander (Name links, Wert rechts): Haus, Batterie, Netz, Strings, Prognose
+    const row = (label, val) => `<div class="sr"><span>${label}</span> <b>${val}</b></div>`;
     const useText = (home_, bat_, exp_) => {
       const use = [];
-      if (home_ > TH) use.push(`${T('pv.use.home')} <b>${this._fW(home_)}</b>`);
-      if (bat_ > TH) use.push(`${T('pv.use.bat')} <b>${this._fW(bat_)}</b>`);
-      if (exp_ > TH) use.push(`${T('pv.use.grid')} <b>${this._fW(exp_)}</b>`);
-      return use.length ? '→ ' + use.join(' · ') : '';
+      if (home_ > TH) use.push(row(T('pv.use.home'), this._fW(home_)));
+      if (bat_ > TH) use.push(row(T('pv.use.bat'), this._fW(bat_)));
+      if (exp_ > TH) use.push(row(T('pv.use.grid'), this._fW(exp_)));
+      return use.join('');
     };
     if (c.pv2 && c.pv2.entity) {
       const el = this._$('[data-k="pv2"]'), on = p2 > TH;
@@ -1439,8 +1450,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const parts2 = [];
       const u2 = on ? useText(p2Home + p2Rest, 0, p2Exp) : '';
       if (u2) parts2.push(u2);
-      (c.pv2.strings || []).forEach((s) => parts2.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
-      this._set('.pv2 .sub', parts2.join('<br>'), true);
+      (c.pv2.strings || []).forEach((s) => parts2.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
+      this._set('.pv2 .sub', parts2.join(''), true);
       this._link('pv2', on, true, PAL.pv, pv2);
     }
     if (c.pv) {
@@ -1452,22 +1463,22 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
       if (on) {
         // pv_to_battery: direkt: Der ganze Solarstrom geht in den Speicher, die Aufteilung steht beim Ausgang des Speichers
-        const u1 = this._via && bats[0].out !== null ? `→ ${T('pv.use.store')} <b>${this._fW(p1)}</b>` : useText(p1Home + p1Rest, p1Bat, p1Exp);
+        const u1 = this._via && bats[0].out !== null ? row(T('pv.use.store'), this._fW(p1)) : useText(p1Home + p1Rest, p1Bat, p1Exp);
         if (u1) parts.push(u1);
       }
-      (c.pv.strings || []).forEach((s) => parts.push(`${esc(s.name || s.entity)} <b>${this._fW(watt(h, s.entity))}</b>`));
+      (c.pv.strings || []).forEach((s) => parts.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
       if (/^(k|m)?wh$/i.test(fUnit)) {
         const e = num(h, c.pv.forecast);
         const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
-        if (kwh !== null) parts.push(`${T('forecast.day')} <b>${this._fk(kwh)} kWh</b>`);
+        if (kwh !== null) parts.push(row(T('forecast.day'), this._fk(kwh) + ' kWh'));
       } else {
         const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
-        if (fc !== null) parts.push(`${T('forecast')} <b>${this._fW(fc)}</b>`);
+        if (fc !== null) parts.push(row(T('forecast'), this._fW(fc)));
       }
-      this._set('.pv .sub', parts.join('<br>'), true);
+      this._set('.pv .sub', parts.join(''), true);
       this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {
@@ -1482,7 +1493,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     bats.forEach((x) => {
       const key = this._bk(x.i), el = this._$(`[data-k="${key}"]`);
       if (!el) return;
-      // 3D: Akkus an einem gemeinsamen Sensor stehen als Turm in der Kachel des ersten
+      // 3D: Batterien an einem gemeinsamen Sensor stehen als Turm in der Kachel des ersten
       if (this._s3d && x.lead) {
         if (el.style.display !== 'none') { el.style.display = 'none'; this._schedLayout(); }
         this._link(key, false, false, PAL.bat, 0);
@@ -1673,7 +1684,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const dChg = sumBat('daily_charge');
     const dDis = sumBat('daily_discharge');
     const balB = c.batteries.filter((b) => b.behind_meter !== true);
-    // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Akku-Ladung fehlt darin, die Entladung steckt darin
+    // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Batterie-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${this._fk(dPv)}<small>kWh</small>`, true);
     if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${this._fk(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
