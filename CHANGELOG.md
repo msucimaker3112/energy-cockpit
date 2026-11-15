@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.32.2
+- **Energiefluss, Zusatzwerte in derselben Größe wie die anderen Zeilen:** Die Zusatzwerte (`extra`, zum Beispiel „Ladung“, „Entladung“, „SOH“, „Zyklen“ in der Batterie-Kachel) hatten immer dieselbe kleine Schrift, während „Ladestand“, „Temperatur“, „Voll um“ und „Voll in“ in der breiten Ansicht größer wurden. Auf einem Bildschirm ohne Seitenmenü sah man deshalb zwei Schriftgrößen in einer Kachel. Jetzt wachsen die Zusatzwerte mit, auch bei größerer Textgröße. Anlass: [#46](https://github.com/msucimaker3112/energy-cockpit/issues/46).
+
 ## 0.32.1
 - **Energiefluss, Batterie-Kachel einheitlich:** Die Zeile „Ladestand“ und die Zeilen darunter („Voll um“, „Voll in“, „Leer um“, „Leer in“, „Nutzbar“) haben jetzt dieselbe Schriftgröße und denselben Wert-Stil, auch in der breiten Ansicht und mit größerer Textgröße. Vorher war „Ladestand“ in der breiten Ansicht kleiner als die Zeilen darunter. Anlass: [#46](https://github.com/msucimaker3112/energy-cockpit/issues/46).
 

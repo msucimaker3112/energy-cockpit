@@ -91,6 +91,16 @@ async function run(){
   await cmpRows(bcfg(),'normal');
   document.getElementById('host').style.maxWidth='1100px';await cmpRows(bcfg({text_size:'sehr_gross'}),'sehr groß');
   await cmpRows(bcfg({label_size:1.6}),'label_size');
+  // #46 (Joe): Zusatzwerte (extra) der Batterie-Kachel in derselben Groesse wie Ladestand und "Voll um" (normal und breit)
+  const xtRows=async(c,label)=>{e=mount(c);await wait(700);const a=q(e,'[data-k="bat"] .soc-row'),x=q(e,'[data-k="bat"] .xr');
+    const fa=getComputedStyle(a).fontSize,fx=getComputedStyle(x).fontSize,wa=getComputedStyle(a.querySelector('b')).fontWeight,wx=getComputedStyle(x.querySelector('b')).fontWeight;
+    ok('Zusatzwerte '+label+': gleiche Größe wie Ladestand',!!a&&!!x&&fa===fx,fa+' gegen '+fx);
+    ok('Zusatzwerte '+label+': Werte gleich stark',wa===wx,wa+' gegen '+wx);};
+  const xcfg=(o)=>bcfg(Object.assign({battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10,extra:[{entity:'sensor.soc',name:'SOH'}]}},o||{}));
+  host=document.getElementById('host');host.style.maxWidth='1100px';await xtRows(xcfg(),'breit');
+  host.style.maxWidth='760px';await xtRows(xcfg(),'normal');
+  host.style.maxWidth='1100px';await xtRows(xcfg({text_size:'sehr_gross'}),'sehr groß');
+  await xtRows(xcfg({label_size:1.6}),'label_size');
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);
   ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);

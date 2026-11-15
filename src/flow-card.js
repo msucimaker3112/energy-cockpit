@@ -262,7 +262,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons.big .num{font-size:calc(1.2rem*var(--vs,1))}
 .cmp .cons.big .ico{transform:none;margin:0 10px 0 0}
 /* extra / alarm (optional, je Kachel): frei waehlbare Zusatzwerte und ein Alarm, z. B. Spannung, Strom, Temperatur eines Wechselrichters */
-.xt{margin-top:10px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut))}
+.xt{margin-top:10px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
+.wide .xt{font-size:calc(.86rem*var(--ts,1))}
 .xr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;cursor:pointer;min-width:0}
 .xr .xl{display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xr .xl ha-icon{--mdc-icon-size:calc(14px*var(--ts,1));margin-right:5px;flex:none}
@@ -294,7 +295,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy). Eine Zahl (z. B. 2) vergrößert zusätzlich die Zahlen in den Kacheln */
 .ts-l{--ts:1.25}
 .ts-xl{--ts:1.5}
-.ts-l .soc-row b,.ts-xl .soc-row b,.ts-l .sub .sr b,.ts-xl .sub .sr b{font-size:1.05rem}
+.ts-l .soc-row b,.ts-xl .soc-row b,.ts-l .sub .sr b,.ts-xl .sub .sr b,.ts-l .xr b,.ts-xl .xr b{font-size:1.05rem}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
