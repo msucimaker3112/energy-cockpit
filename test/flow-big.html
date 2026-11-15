@@ -82,6 +82,15 @@ async function run(){
   ok('Tag heißt "Erzeugung"',/Erzeugung/.test(t(e,'[data-k="pv"] .tag')),t(e,'[data-k="pv"] .tag'));
   ok('Zeilen stehen untereinander (Name links, Wert rechts)',qa(e,'[data-k="pv"] .sub .sr').length>=1&&getComputedStyle(q(e,'[data-k="pv"] .sub .sr')).display==='flex',qa(e,'[data-k="pv"] .sub .sr').length);
   ok('Mix-Zeile sagt Batterie statt Akku',!/Akku/.test(t(e,'.mix'))&&/Batterie/.test(t(e,'.mix')),t(e,'.mix'));
+  // #46 (Joe): Ladestand-Zeile und Zeilen "Voll um / Voll in" der Batterie-Kachel haben dieselbe Größe und Schriftstärke
+  const cmpRows=async(c,label)=>{e=mount(c);await wait(700);const a=q(e,'[data-k="bat"] .soc-row'),b=q(e,'[data-k="bat"] .sub .sr');
+    const fa=getComputedStyle(a).fontSize,fb=getComputedStyle(b).fontSize,wa=getComputedStyle(a.querySelector('b')).fontWeight,wb=getComputedStyle(b.querySelector('b')).fontWeight;
+    ok('Batterie-Kachel '+label+': Ladestand und Zeile darunter gleich groß',!!a&&!!b&&fa===fb,fa+' gegen '+fb);
+    ok('Batterie-Kachel '+label+': Werte gleich stark',wa===wb,wa+' gegen '+wb);};
+  const bcfg=(o)=>cfg(Object.assign({consumers:[],battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10}},o||{}));
+  await cmpRows(bcfg(),'normal');
+  document.getElementById('host').style.maxWidth='1100px';await cmpRows(bcfg({text_size:'sehr_gross'}),'sehr groß');
+  await cmpRows(bcfg({label_size:1.6}),'label_size');
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);
   ok('Kurzansicht: große Kachel einspaltig',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart==='auto',getComputedStyle(q(e,'[data-k="c0"]')).gridColumnStart);

@@ -116,8 +116,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .soc-low,.soc-high{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.22) 0 3px,rgba(var(--ov),.06) 3px 6px);pointer-events:none}
 .soc-low{left:0;border-right:1px solid rgba(var(--ov),.5)}
 .soc-high{right:0;border-left:1px solid rgba(var(--ov),.5)}
-.soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut))}
-.soc-row b{color:var(--txt);font-variant-numeric:tabular-nums}
+.soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
+.soc-row b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums}
 .hub-wrap{grid-area:hub;display:flex;flex-direction:column;align-items:center}
 .hub{position:relative;width:100%;max-width:250px;cursor:pointer;transition:transform .25s}
 .hub:before{content:'';display:block;padding-top:100%}
@@ -194,6 +194,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .wide .num{font-size:calc(2.6rem*var(--vs,1))}
 .wide .unit{font-size:calc(1rem*var(--vs,1))}
 .wide .sub{font-size:calc(.86rem*var(--ts,1))}
+.wide .soc-row{font-size:calc(.86rem*var(--ts,1))}
 .wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
 .wide .core .num{font-size:calc(2.8rem*var(--vs,1))}
@@ -293,7 +294,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 /* text_size: gross | sehr_gross vergrößert die kleinen Texte (Tablet, Handy). Eine Zahl (z. B. 2) vergrößert zusätzlich die Zahlen in den Kacheln */
 .ts-l{--ts:1.25}
 .ts-xl{--ts:1.5}
-.ts-l .soc-row b,.ts-xl .soc-row b{font-size:1.05rem}
+.ts-l .soc-row b,.ts-xl .soc-row b,.ts-l .sub .sr b,.ts-xl .sub .sr b{font-size:1.05rem}
 /* Smartphone */
 .narrow{padding:16px}
 .narrow header{margin-bottom:14px}
