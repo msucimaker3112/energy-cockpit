@@ -107,8 +107,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .tag{display:inline-flex;margin-top:9px;font-size:calc(.64rem*var(--ts,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:rgba(var(--c),.15);color:rgb(var(--c))}
 .tag:empty{display:none}
 .sub{margin-top:9px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));line-height:1.55}
-.sub .sr{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.sub .sr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sub .sr{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:12px;min-width:0}
+.sub .sr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;margin-left:auto;max-width:100%;text-align:right;overflow-wrap:anywhere}
 .sub:empty{display:none}
 .sub b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .soc{margin-top:13px;position:relative;height:9px;border-radius:999px;background:rgba(var(--ov),.07);overflow:hidden}
@@ -118,8 +118,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .soc-low,.soc-high{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.22) 0 3px,rgba(var(--ov),.06) 3px 6px);pointer-events:none}
 .soc-low{left:0;border-right:1px solid rgba(var(--ov),.5)}
 .soc-high{right:0;border-left:1px solid rgba(var(--ov),.5)}
-.soc-row{display:flex;justify-content:space-between;margin-top:7px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
-.soc-row b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums}
+.soc-row{display:flex;flex-wrap:wrap;justify-content:space-between;column-gap:12px;margin-top:7px;font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
+.soc-row b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;margin-left:auto;text-align:right}
 .hub-wrap{grid-area:hub;display:flex;flex-direction:column;align-items:center}
 .hub{position:relative;width:100%;max-width:250px;cursor:pointer;transition:transform .25s}
 .hub:before{content:'';display:block;padding-top:100%}
@@ -254,8 +254,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .cons.mid .ico{transform:none;margin:0 10px 0 0}
 .cmp .cons.mid .num{font-size:calc(1rem*var(--vs,1))}
 .cmp .cons.mid .lbl{font-size:calc(.64rem*var(--ts,1))}
-.consumers.hm{grid-template-columns:repeat(auto-fit,minmax(190px,300px))}
-.wide .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(250px,340px))}
+.consumers.hm{grid-template-columns:repeat(auto-fit,minmax(min(100%,max(190px,calc(190px*var(--ts,1)))),max(300px,calc(300px*var(--ts,1)))))}
+.wide .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,calc(250px*var(--ts,1)))),max(340px,calc(340px*var(--ts,1)))))}
 .narrow .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 .wrap.cmp .consumers.hm{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important}
 .narrow .cons.big,.cmp .cons.big{grid-column:auto}
@@ -1263,7 +1263,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       return T('bat.last_until', { time: clock(now + hrs * 3600e3), dur: fDur(hrs) });
     }
     if (soc >= maxSoc - 0.5) return T('bat.full', { kwh: nf(avail, 1) });
-    return T('bat.usable', { kwh: nf(avail, 1), res: Math.round(reserve) });
+    // #52: Reserve als eigene Zeile (vorher "x kWh (bis 15 %)" in einer Zeile, lief auf dem iPad aus der Kachel)
+    return reserve > 0 ? T('bat.usable', { kwh: nf(avail, 1), res: Math.round(reserve) }) : T('bat.usable0', { kwh: nf(avail, 1) });
   }
 
   // Entladegrenze und Maximalladung der Batterie in Prozent: Sensor, Helfer oder fester Wert
@@ -1664,7 +1665,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const shown = bs === null ? null : usable ? Math.max(0, Math.min(100, (bs - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, bs));
       fill.style.width = (shown === null ? 0 : shown) + '%';
       fill.style.setProperty('--sc', shown !== null && shown < 20 ? PAL.imp : shown !== null && shown < 40 ? PAL.pv : col);
-      this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''), false, el);
+      this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''), false, el);
       if (x.b.temp) this._set('.temp-txt', this._temp(x.b.temp), false, el);
       const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
       if (lo) { lo.style.width = (usable ? 0 : lm.reserve) + '%'; lo.style.display = !usable && lm.reserve > 0 ? '' : 'none'; }

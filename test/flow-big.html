@@ -81,8 +81,9 @@ async function run(){
   e=mount(cfg({label_size:3,fit_screen:false,consumers:[{entity:'sensor.wp',name:'Wärmepumpe',size:'mittel'},{entity:'sensor.wb1',name:'Wallbox 1',size:'mittel'}]}));await wait(600);
   { const a=q(e,'[data-k="bat"] .soc-row'),b=a.querySelector('b');const ra=parseFloat(getComputedStyle(b).fontSize)/parseFloat(getComputedStyle(a).fontSize);
     ok('label_size 3: Wert in der Zeile mindestens so groß wie die Beschriftung',ra>=1,ra.toFixed(2)); }
-  { const e0=mount(cfg({fit_screen:false,consumers:[{entity:'sensor.wp',name:'Wärmepumpe',size:'mittel'},{entity:'sensor.wb1',name:'Wallbox 1',size:'mittel'}]}));await wait(600);
-    const w0=q(e0,'[data-k="c0"]').getBoundingClientRect().width,w1=q(e,'[data-k="c0"]').getBoundingClientRect().width;
+  { const w1=q(e,'[data-k="c0"]').getBoundingClientRect().width; // vor dem nächsten mount messen, mount ersetzt die Karte
+    const e0=mount(cfg({fit_screen:false,consumers:[{entity:'sensor.wp',name:'Wärmepumpe',size:'mittel'},{entity:'sensor.wb1',name:'Wallbox 1',size:'mittel'}]}));await wait(600);
+    const w0=q(e0,'[data-k="c0"]').getBoundingClientRect().width;
     ok('label_size 3: Verbraucher-Kachel breiter als bei normaler Schrift',w1>w0*1.2,w1.toFixed(0)+' px gegen '+w0.toFixed(0)+' px'); }
   // size: mittel macht die Spalten breiter
   const w0=mount(cfg({consumers:[{entity:'sensor.l',name:'L'},{entity:'sensor.k',name:'K'}]}));await wait(500);const wn=q(w0,'[data-k="c0"]').getBoundingClientRect().width;

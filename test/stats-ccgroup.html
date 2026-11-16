@@ -1,0 +1,51 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Kosten je Verbraucher Gruppe Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #42: cost_consumers[].energy als Liste (mehrere Zähler, mit Namen darunter). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite) */
+const S=(v,u,n)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh',...(n?{friendly_name:n}:{})},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// 00 Uhr nur Netz (Bezug 2), 01 Uhr nur Solar (PV 3, davon 1 eingespeist). Klima A: 1 und 0,5 kWh, Klima B: 0,5 und 1 kWh
+const hrs=[{t:d0,pv:0,imp:2,exp:0,a:1,b:0.5,w:3},{t:d0+H,pv:3,imp:0,exp:1,a:0.5,b:1,w:1}];
+const map={'sensor.pv':'pv','sensor.imp':'imp','sensor.exp':'exp','sensor.klima_a':'a','sensor.klima_b':'b','sensor.wp':'w'};
+const hass={states:{'sensor.klima_a':S(10,'kWh','Klima Büro'),'sensor.klima_b':S(10,'kWh','Klima Schlafzimmer'),'sensor.wp':S(10)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  if(m.period!=='hour'||(m.types&&!m.types.includes('change')))return {};
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,rows=hrs.filter(x=>x.t>=from&&x.t<to),r={};
+  (m.statistic_ids||[]).forEach(id=>{if(map[id])r[id]=rows.map(x=>({start:x.t,change:x[map[id]]}));});return r;}};
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',grid_price_ct:40,
+  cost_consumers:[{name:'Klimaanlagen',energy:[{entity:'sensor.klima_a',name:'Büro'},'sensor.klima_b']},{name:'Wärmepumpe',energy:'sensor.wp'}]};
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(base);await wait(600);q(e,'.tab[data-p="day"]').click();await wait(1500);
+  ok('Gruppe: Netzkosten (1 + 0,5 kWh aus dem Netz) × 0,40 = 0,60',t(e,'[data-t="ccC0"]')==='0,60',t(e,'[data-t="ccC0"]'));
+  ok('Gruppe: gespart (0,5 + 1 kWh Solar) × 0,40 = 0,60 €',t(e,'[data-f="ccS0"]')==='0,60 €',t(e,'[data-f="ccS0"]'));
+  const rows=[...e.shadowRoot.querySelectorAll('.ccard[data-c="0"] .cc-parts > *')].map(x=>x.textContent.replace(/\s+/g,' ').trim());
+  ok('Teile darunter: eigener Name, sonst Name aus Home Assistant',rows[0]==='Büro'&&rows[3]==='Klima Schlafzimmer',rows.join(' | '));
+  ok('Teil 1: 1,5 kWh, Kosten 1 × 0,40 = 0,40 €',rows[1]==='1,5 kWh'&&rows[2]==='0,40 €',rows.slice(0,3).join(' | '));
+  ok('Teil 2: 1,5 kWh, Kosten 0,5 × 0,40 = 0,20 €',rows[4]==='1,5 kWh'&&rows[5]==='0,20 €',rows.slice(3,6).join(' | '));
+  ok('Einzelner Verbraucher daneben unverändert: 3 × 0,40 = 1,20',t(e,'[data-t="ccC1"]')==='1,20',t(e,'[data-t="ccC1"]'));
+  ok('Einzelner Verbraucher ohne Teile-Liste',!q(e,'.ccard[data-c="1"] .cc-parts'));
+  ok('Summe oben zählt die Gruppe einmal: 0,60 + 1,20 = 1,80 €',/1,80 €/.test(t(e,'[data-f="ccSum"]')),t(e,'[data-f="ccSum"]'));
+  // Liste aus reinen Texten, ohne Namen für die Gruppe
+  e=mount({...base,cost_consumers:[{energy:['sensor.klima_a','sensor.klima_b']}]});await wait(600);q(e,'.tab[data-p="day"]').click();await wait(1500);
+  ok('Liste aus Texten: Kosten 0,60',t(e,'[data-t="ccC0"]')==='0,60',t(e,'[data-t="ccC0"]'));
+  ok('ohne Namen: "Gruppe"',t(e,'.ccard[data-c="0"] .cc-name b')==='Gruppe',t(e,'.ccard[data-c="0"] .cc-name b'));
+  // Ein Teil ohne Statistik: Warnung statt still 0 €
+  e=mount({...base,cost_consumers:[{name:'Klima',energy:['sensor.klima_a','sensor.gibtsnicht']}]});await wait(600);q(e,'.tab[data-p="day"]').click();await wait(1500);
+  ok('fehlender Zähler in der Liste: Hinweis',/sensor\.gibtsnicht/.test(t(e,'.ccard[data-c="0"] .cc-leg')||''),t(e,'.ccard[data-c="0"] .cc-leg'));
+  // Leere Liste: Eintrag fällt weg, kein Absturz
+  e=mount({...base,cost_consumers:[{name:'Leer',energy:[]},{name:'Wärmepumpe',energy:'sensor.wp'}]});await wait(600);
+  ok('leere Liste: Eintrag fällt weg',e.shadowRoot.querySelectorAll('.ccard').length===1,e.shadowRoot.querySelectorAll('.ccard').length);
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const e=mount(base);setTimeout(()=>q(e,'.tab[data-p="day"]').click(),500);}
+</script></body></html>

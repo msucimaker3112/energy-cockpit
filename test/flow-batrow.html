@@ -1,0 +1,39 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Batterie-Zeilen Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft die Zeilen unter dem Ladestand (#52: "Nutzbar ... (bis 15 %)" lief auf dem iPad aus der Kachel). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&w=Breite, &ts=Textgröße, &kurz=1) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(o)=>({states:Object.assign({'sensor.pv':S(0),'sensor.grid':S(400),'sensor.bat':S(0),'sensor.soc':S(64,'%')},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({}),callApi:async()=>[]});
+const cfg={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10.24,reserve_pct:15}};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const rows=(e)=>[...e.shadowRoot.querySelectorAll('[data-k="bat"] .sub .sr')].map(r=>r.textContent.replace(/[\s ]+/g,' ').trim());
+// Jede Zeile bleibt innerhalb der Kachel
+const inside=(e)=>{const n=q(e,'[data-k="bat"]'),b=n.getBoundingClientRect();return [...n.querySelectorAll('.sub .sr, .sub .sr b')].filter(x=>x.offsetParent).every(x=>{const r=x.getBoundingClientRect();return r.right<=b.right+0.5&&r.left>=b.left-0.5&&x.scrollWidth<=x.clientWidth+1;});};
+async function run(){
+  const host=document.getElementById('host');
+  let e=mount(cfg,hassFor());await wait(600);
+  ok('Ruhe: Nutzbar und Reserve als zwei Zeilen',rows(e).join(' | ')==='Nutzbar 5,0 kWh | Reserve 15 %',rows(e).join(' | '));
+  e=mount({...cfg,battery:{...cfg.battery,reserve_pct:0}},hassFor());await wait(600);
+  ok('ohne Reserve: nur Nutzbar',rows(e).join(' | ')==='Nutzbar 6,6 kWh',rows(e).join(' | '));
+  // iPad hoch/quer, Handy, Desktop, mit großer Schrift und großen Beschriftungen
+  for(const[w,ts,ls,kurz] of [[768,'sehr_gross',0,0],[820,'sehr_gross',0,0],[1024,'sehr_gross',0,0],[1180,'sehr_gross',0,0],[820,2.5,0,0],[1024,2.5,2,0],[1366,3,3,0],[393,'sehr_gross',0,1],[430,2,0,1],[600,2.5,0,0]]){
+    host.style.maxWidth='none';host.style.width=w+'px';
+    const c={...cfg,fit_screen:false,text_size:ts};if(ls)c.label_size=ls;if(kurz)c.compact='immer';
+    e=mount(c,hassFor({'sensor.soc':S(100,'%')}));await wait(500);
+    ok(`voll, ${w} px, Text ${ts}${ls?', Beschriftung '+ls:''}${kurz?', Kurzansicht':''}: bleibt in der Kachel`,inside(e),rows(e).join(' | '));
+    e=mount(c,hassFor());await wait(500);
+    ok(`Ruhe, ${w} px, Text ${ts}${ls?', Beschriftung '+ls:''}${kurz?', Kurzansicht':''}: bleibt in der Kachel`,inside(e),rows(e).join(' | '));
+  }
+  document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}
+else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';const c={...cfg};if(P.get('ts'))c.text_size=P.get('ts');if(P.get('kurz'))c.compact='immer';mount(c,hassFor());}
+</script></body></html>

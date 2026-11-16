@@ -1,0 +1,52 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Preisverlauf Statistik Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #53: grid_price_history gilt auch für Netzkosten und PV-Ersparnis (Monat für Monat). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const pad=(n)=>String(n).padStart(2,'0');
+// Jeder Monat bis heute: PV 100, Einspeisung 20 (also 80 selbst genutzt), Bezug 100 kWh
+const months=(v)=>Array.from({length:M+1},(x,i)=>({start:new Date(Y,i,1).getTime(),change:v}));
+const mon={'sensor.pv':months(100),'sensor.imp':months(100),'sensor.exp':months(20)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const r={};if(m.period==='month')(m.statistic_ids||[]).forEach(id=>{if(mon[id])r[id]=mon[id].filter(x=>x.start>=Date.parse(m.start_time));});return r;}};
+// Bis Ende des Vormonats 25 ct, seitdem 30 ct (heutiger Preis)
+const prevEnd=new Date(Y,M,0),until=`${prevEnd.getFullYear()}-${pad(prevEnd.getMonth()+1)}-${pad(prevEnd.getDate())}`;
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price_ct:30,feed_in_ct:0};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const de=(v)=>v.toLocaleString('de-DE',{minimumFractionDigits:v<100?2:0,maximumFractionDigits:v<100?2:0});
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),tt=(e,k)=>q(e,`[data-t="${k}"]`).textContent.trim();
+  const year=async(e)=>{q(e,'.tab[data-p="year"]').click();await wait(800);};
+  // Ohne Verlauf: alles zum heutigen Preis (wie bisher)
+  let e=mount(base);await wait(2500);
+  ok('ohne Verlauf, Monat: Netzkosten 100×0,30 = 30,00',tt(e,'cost')==='30,00',tt(e,'cost'));
+  ok('ohne Verlauf, Monat: PV-Ersparnis 80×0,30 = 24,00',tt(e,'pvsav')==='24,00',tt(e,'pvsav'));
+  await year(e);
+  const n=M+1;
+  ok(`ohne Verlauf, Jahr: Netzkosten ${n}×100×0,30`,tt(e,'cost')===de(n*30),tt(e,'cost')+' erwartet '+de(n*30));
+  // Mit Verlauf
+  e=mount({...base,grid_price_history:[{until,ct:25}]});await wait(2500);
+  ok('mit Verlauf, laufender Monat: neuer Preis 30,00',tt(e,'cost')==='30,00',tt(e,'cost'));
+  ok('mit Verlauf, laufender Monat: PV-Ersparnis 24,00',tt(e,'pvsav')==='24,00',tt(e,'pvsav'));
+  await year(e);
+  const cost=M*25+30,sav=M*80*0.25+80*0.30;
+  ok(`mit Verlauf, Jahr: Netzkosten ${M}×25,00 + 30,00 = ${de(cost)}`,M===0||tt(e,'cost')===de(cost),tt(e,'cost'));
+  ok(`mit Verlauf, Jahr: PV-Ersparnis ${M}×20,00 + 24,00 = ${de(sav)}`,M===0||tt(e,'pvsav')===de(sav),tt(e,'pvsav'));
+  // Datum im Format JJJJ-MM (ganzer Monat) wirkt genauso
+  e=mount({...base,grid_price_history:[{until:until.slice(0,7),ct:25}]});await wait(2500);await year(e);
+  ok('Verlauf mit JJJJ-MM: gleiches Ergebnis',M===0||tt(e,'cost')===de(cost),tt(e,'cost'));
+  // Heute bleibt beim heutigen Preis
+  e=mount({...base,grid_price_history:[{until,ct:25}]});await wait(1500);q(e,'.tab[data-p="day"]').click();await wait(800);
+  ok('Heute: 2 kWh × 0,30 = 0,60',tt(e,'cost')==='0,60',tt(e,'cost'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,grid_price_history:[{until,ct:25}]});}
+</script></body></html>

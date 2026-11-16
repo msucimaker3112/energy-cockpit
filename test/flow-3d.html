@@ -107,7 +107,7 @@ async function run(){
   ok('Einspeise-Linie: sichtbar lang',q(e,'g[data-l="r:pv:grid"] path').getTotalLength()>=60,Math.round(q(e,'g[data-l="r:pv:grid"] path').getTotalLength()));
   host.style.width='';host.style.maxWidth='';
   // Text bleibt in der Kachel, bei jeder Breite, auch mit Kurzansicht
-  const fits=(n)=>{const b=n.getBoundingClientRect();return [...n.querySelectorAll('.lbl,.val,.num,.unit,.tag,.soc-row')].filter(x=>x.offsetParent).every(x=>{const r=x.getBoundingClientRect();return x.scrollWidth<=x.clientWidth+1&&r.right<=b.right+0.5&&r.left>=b.left-0.5&&(!x.classList.contains('soc-row')||r.height<28);});};
+  const fits=(n)=>{const b=n.getBoundingClientRect();return [...n.querySelectorAll('.lbl,.val,.num,.unit,.tag,.soc-row')].filter(x=>x.offsetParent).every(x=>{const r=x.getBoundingClientRect();return x.scrollWidth<=x.clientWidth+1&&r.right<=b.right+0.5&&r.left>=b.left-0.5&&(!x.classList.contains('soc-row')||r.height<1.8*Math.max(...[x,...x.children].map(y=>parseFloat(getComputedStyle(y).fontSize)*1.25)));});};
   for(const[w,kurz] of [[320,1],[360,1],[393,1],[430,1],[600,1],[768,1],[1100,1],[320,0],[393,0],[600,0],[768,0],[820,0],[899,0],[900,0],[1024,0],[1100,0],[1280,0],[1600,0]]){
     host.style.maxWidth='none';host.style.width=w+'px';
     e=mount({...cases.zwei,fit_screen:false,compact:kurz?'immer':false},hassFor());await wait(500);

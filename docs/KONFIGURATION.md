@@ -661,12 +661,26 @@ cost_consumers:
 
 | Feld | Bedeutung |
 |---|---|
-| `energy` | Zähler in kWh. Die Karte teilt den Verbrauch jeder Stunde so auf, wie das Haus in dieser Stunde versorgt wurde. Das ist eine Schätzung: Ein Gerät, das gezielt mit Überschuss läuft, hat in Wahrheit mehr PV-Anteil |
+| `energy` | Zähler in kWh. Die Karte teilt den Verbrauch jeder Stunde so auf, wie das Haus in dieser Stunde versorgt wurde. Das ist eine Schätzung: Ein Gerät, das gezielt mit Überschuss läuft, hat in Wahrheit mehr PV-Anteil. Auch eine Liste mehrerer Zähler ist möglich, siehe unten |
 | `grid`, `battery`, `pv` | Eigene Zähler je Quelle in kWh. Dann misst die Karte statt zu schätzen |
 | `power` | Leistung. Läuft das Gerät, steht dort die Leistung und "bis x €/h": die Kosten pro Stunde, wenn alles aus dem Netz käme |
 | `on_w` | Ab welcher Leistung das Gerät als laufend gilt (Standard 10 W) |
 | `name`, `icon`, `color` | Anzeige. Ohne `icon` und `color` wählt die Karte sie selbst, das Symbol nach dem Namen |
 
+- **Mehrere Zähler als ein Eintrag:** Bei `energy` darf auch eine Liste stehen, zum Beispiel für vier Klimaanlagen. Die Kachel zeigt oben Verbrauch und Kosten aller Zähler zusammen und darunter jeden Zähler mit Namen, kWh und Kosten. Ohne `name` nimmt die Karte den Namen aus Home Assistant:
+
+  ```yaml
+  cost_consumers:
+    - name: Klimaanlagen
+      energy:
+        - entity: sensor.klima_buero_energie
+          name: Büro
+        - entity: sensor.klima_schlafzimmer_energie
+          name: Schlafzimmer
+        - sensor.klima_kinderzimmer_energie   # Kurzform ohne eigenen Namen
+  ```
+
+  Die Liste geht nur in YAML (Code-Editor), der grafische Editor zeigt je Verbraucher einen Zähler.
 - **Netzkosten** = Anteil aus dem Netz × Strompreis (`grid_price` oder `grid_price_ct`). **Gespart** = Anteil aus Solar und Batterie × Strompreis. Entgangene Einspeisevergütung ist darin nicht abgezogen.
 - Der Reiter **Woche** zählt ab Montag. Er zeigt auch die Geldwerte und die Autarkie oben für diese Woche.
 - **Preis je Stunde:** Hat der Sensor `grid_price` eine Langzeitstatistik, etwa bei einem dynamischen Tarif, nimmt die Karte den Mittelwert jeder Stunde. Sonst gilt `grid_price_history`, danach der heutige Preis. Ein Helfer (`input_number`) hat keine Langzeitstatistik:
@@ -679,7 +693,7 @@ cost_consumers:
       ct: 36
   ```
 
-  Das gilt nur für die Kosten je Verbraucher. Die Geldwerte oben und die Amortisation rechnen weiter mit dem heutigen Preis.
+  Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **PV-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf.
 - **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 

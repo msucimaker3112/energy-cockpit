@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.33.0
+- **Energiefluss, mittlere Kacheln wachsen mit der Schrift:** Der Fix aus 0.32.5 kam bei Verbrauchern mit `size: mittel` nicht an, ihre Spalten blieben bei großer `label_size` oder `text_size` gleich breit und damit zu schmal. Jetzt wachsen auch sie mit. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+- **Energiefluss, Batterie-Zeilen passen in die Kachel:** „Nutzbar 5,0 kWh (bis 15 %)“ war eine einzige Zeile und lief auf dem iPad aus der Kachel. Jetzt stehen „Nutzbar“ und „Reserve“ in zwei Zeilen untereinander (ohne eingestellte Reserve nur „Nutzbar“). Bei voller Batterie heißt die Zeile „Nutzbar 8,7 kWh“ statt „Voll 8,7 kWh nutzbar“. Werte, die bei sehr großer Schrift nicht mehr in eine Zeile passen, brechen zwischen Wörtern um, Zahl und Einheit („100 %“, „5,0 kWh“) bleiben zusammen. Anlass: [#52](https://github.com/msucimaker3112/energy-cockpit/issues/52).
+- **Statistik, Preisverlauf auch für Stromkosten und PV-Ersparnis:** Der Preisverlauf (`grid_price_history`) galt bisher nur für die Kosten je Verbraucher. Wer seinen Preis unterjährig geändert hat, sah bei „Stromkosten Netz“ und „PV-Ersparnis“ im Jahr alle Monate zum neuen Preis. Jetzt zählt in den Reitern Monat, Jahr und Gesamt jeder Monat mit dem Preis, der damals galt. Anlass: [#53](https://github.com/msucimaker3112/energy-cockpit/issues/53).
+- **Statistik, mehrere Zähler als ein Verbraucher:** Bei „Kosten je Verbraucher“ darf `energy` jetzt eine Liste von Zählern sein, zum Beispiel für mehrere Klimaanlagen. Die Kachel zeigt die Summe und darunter jeden Zähler mit Namen, kWh und Kosten. Anlass: [#42](https://github.com/msucimaker3112/energy-cockpit/issues/42).
+
 ## 0.32.5
 - **Energiefluss, große Beschriftungen bleiben lesbar:** Bei einer großen `label_size` (zum Beispiel 3) blieben die Werte in den Zeilen der Kacheln klein (Ladestand, Temperatur, „Leer um“ …) und wirkten neben der riesigen Beschriftung winzig. Jetzt wachsen sie mit. Die Spalten der Verbraucher-Kacheln werden bei großer Schrift breiter und lange Namen brechen um, statt mit „…“ abgeschnitten zu werden. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
 

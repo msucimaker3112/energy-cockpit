@@ -161,6 +161,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-leg i{width:6px;height:6px;border-radius:50%;background:rgb(var(--s));margin-right:5px}
 .cc-leg b{color:var(--txt);font-weight:600;margin-left:3px}
 .ccard.bad{border-color:rgba(251,191,36,.45)}
+.cc-parts{margin-top:10px;padding-top:9px;border-top:1px solid rgba(var(--c),.16);display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:12px;row-gap:5px;font-size:.74rem;font-variant-numeric:tabular-nums;color:rgb(var(--mut))}
+.cc-parts span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-parts b{color:var(--txt);font-weight:600;text-align:right;white-space:nowrap}
+.cc-parts b.k{color:rgb(var(--mut));font-weight:500}
 .cc-leg .cc-warn{display:block;margin:0;color:#fbbf24;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .cc-warn ha-icon{--mdc-icon-size:14px;width:14px;height:14px;vertical-align:-2px;margin-right:5px}
 .wide{padding:24px 30px}
@@ -216,7 +220,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
       const ccIcon = (n) => (/auto|kfz|\bev\b|wallbox|lade/i.test(n) ? 'mdi:car-electric' : /wärmepumpe|waermepumpe|\bwp\b/i.test(n) ? 'mdi:heat-pump-outline' : /wasser|boiler/i.test(n) ? 'mdi:water-boiler' : /heiz/i.test(n) ? 'mdi:radiator' : /klima/i.test(n) ? 'mdi:air-conditioner' : 'mdi:flash');
       const ccCol = ['#a78bfa', '#38bdf8', '#fb923c', '#34d399', '#f472b6', '#facc15'];
-      this._c._cc = lst(c.cost_consumers).filter((x) => x && (x.energy || x.grid)).map((x, i) => ({ icon: ccIcon(x.name || ''), color: ccCol[i % ccCol.length], ...x }));
+      // #42: energy darf auch eine Liste sein (Zähler als Text oder { entity, name }). Die Karte addiert sie und zeigt die Teile mit Namen darunter
+      const ccParts = (e) => (Array.isArray(e) ? e : []).map((v) => (typeof v === 'string' ? { entity: v } : v && typeof v === 'object' && typeof v.entity === 'string' ? { entity: v.entity, name: v.name } : null)).filter((v) => v && v.entity);
+      this._c._cc = lst(c.cost_consumers).filter((x) => x && (x.energy || x.grid)).map((x, i) => {
+        const parts = x.grid ? [] : ccParts(x.energy);
+        return { icon: ccIcon(x.name || ''), color: ccCol[i % ccCol.length], ...x, _parts: parts.length ? parts : null, energy: parts.length ? '' : x.energy };
+      }).filter((x) => x.grid || x._parts || (typeof x.energy === 'string' && x.energy));
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
@@ -357,10 +366,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         ${c._cc.length ? `<div class="panel cc" style="display:none">
           <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
           <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
-            <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid)}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
+            <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid || T('st.cc.group'))}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
             <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><b data-f="ccS${i}">—</b><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
             <div class="cc-bar">${['--imp', '--bat', '--pv'].map((s) => `<i style="--s:var(${s})"></i>`).join('')}</div>
-            <div class="cc-leg" data-f="ccK${i}"></div>
+            <div class="cc-leg" data-f="ccK${i}"></div>${x._parts ? `<div class="cc-parts" data-f="ccD${i}"></div>` : ''}
           </div>`).join('')}</div>
         </div>` : ''}
         <div class="panel chart">
@@ -401,7 +410,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const now = new Date(), y0 = new Date(now.getFullYear(), 0, 1), m0 = new Date(now.getFullYear(), now.getMonth(), 1), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
       const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
-      const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : [x.energy]).filter(Boolean);
+      const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : x._parts ? x._parts.map((q) => q.entity) : [x.energy]).filter(Boolean);
       const ids = [...new Set(house.concat(c._g2 ? [c._g2] : [], ...c._cc.map(mine)))];
       const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
       // grid2_total (z. B. Niedertarif-Zaehler): Bezug zaehlt zum Netzbezug, bewertet mit grid2_price, sonst mit dem normalen Preis
@@ -409,7 +418,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const stat = (period, types, list, start, end) => h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), ...(end ? { end_time: end.toISOString() } : {}), period, statistic_ids: list, types, ...WD.statUnits(c) });
       const stamp = (r) => (typeof r.start === 'number' ? r.start : Date.parse(r.start));
       const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-      const zero = () => c._cc.map(() => [0, 0, 0, 0, 0]);
+      // je Eintrag: Netz, Batterie, Solar (kWh), Kosten, gespart; bei Teilen (#42) je Teil dazu kWh, Kosten, gespart
+      const zero = () => c._cc.map((x) => new Array(5 + (x._parts ? x._parts.length * 3 : 0)).fill(0));
       // Preis einer Stunde: Statistik des Preis-Sensors, sonst grid_price_history, sonst der heutige Preis
       const rate = (t, means) => {
         if (means[t] !== undefined) return means[t];
@@ -427,9 +437,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr0 = rate(t, means), pr = imp > 0 && g2 > 0 ? (imp0 * pr0 + g2 * price2) / imp : pr0;
           const g = home > 0 ? Math.min(1, imp / home) : (imp > 0 ? 1 : 0), b = home > 0 ? Math.min(1 - g, dis / home) : 0;
           c._cc.forEach((x, i) => {
-            const part = x.grid ? [v[x.grid] || 0, v[x.battery] || 0, v[x.pv] || 0] : [(v[x.energy] || 0) * g, (v[x.energy] || 0) * b, (v[x.energy] || 0) * (1 - g - b)];
+            const en = x._parts ? x._parts.reduce((a2, q) => a2 + (v[q.entity] || 0), 0) : (v[x.energy] || 0);
+            const part = x.grid ? [v[x.grid] || 0, v[x.battery] || 0, v[x.pv] || 0] : [en * g, en * b, en * (1 - g - b)];
             const line = [part[0], part[1], part[2], part[0] * pr, (part[1] + part[2]) * pr];
-            slots(t).forEach((s) => { for (let n = 0; n < 5; n++) s[i][n] += line[n]; });
+            if (x._parts) x._parts.forEach((q) => { const e1 = v[q.entity] || 0; line.push(e1, e1 * g * pr, e1 * (1 - g) * pr); });
+            slots(t).forEach((s) => { for (let n = 0; n < line.length; n++) s[i][n] += line[n]; });
           });
         });
       };
@@ -545,6 +557,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         }
         card.querySelectorAll('.cc-bar i').forEach((s, n) => { s.style.width = tot > 0 ? [g, b, p][n] / tot * 100 + '%' : '0'; });
         this._f(`ccK${i}`, [['--imp', 'st.cc.grid', g], ['--bat', 'st.cc.bat', b], ['--pv', 'st.cc.pv', p]].map(([s, l, v]) => `<span style="--s:var(${s})"><i></i>${T(l)}<b>${fk(v)}</b></span>`).join('') + '<span>kWh</span>');
+        if (x._parts) {
+          const st = this._hass && this._hass.states;
+          this._f(`ccD${i}`, x._parts.map((q, j) => {
+            const o = set ? set[i].slice(5 + j * 3, 8 + j * 3) : [0, 0, 0], nm = q.name || (st && st[q.entity] && st[q.entity].attributes && st[q.entity].attributes.friendly_name) || q.entity;
+            return `<span title="${esc(q.entity)}">${esc(nm)}</span><b class="k">${fk(o[0])} kWh</b><b>${priced ? `${nf(o[1], dec(o[1]))} ${CUR}` : '—'}</b>`;
+          }).join(''));
+        }
         const w = live(this._hass, x.power), on = w !== null && w > (x.on_w === undefined ? 10 : x.on_w), lv = this._$(`[data-f="ccL${i}"]`);
         lv.classList.toggle('on', on);
         if (on) this._f(`ccL${i}`, `${nf(w, 0)} W${price > 0 ? ' · ' + T('st.cc.upto', { x: nf(w / 1000 * price, 2), cur: CUR }) : ''}`);
@@ -740,6 +759,20 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._dHints = hints;
       return v;
     }
+    // #53: Preis eines Monats (Schlüssel JJJJ-MM) aus grid_price_history, Mittel über seine Tage (laufender Monat bis heute).
+    // Tage nach dem letzten Eintrag kosten den heutigen Preis. Ohne grid_price_history: null, dann gilt überall der heutige Preis
+    _monthPrice(k, nowEur) {
+      const ph = this._c._ph;
+      if (!ph.length) return null;
+      const [y, m] = k.split('-').map(Number), now = new Date();
+      const last = y === now.getFullYear() && m === now.getMonth() + 1 ? now.getDate() : new Date(y, m, 0).getDate();
+      let sum = 0;
+      for (let d = 1; d <= last; d++) {
+        const day = `${k}-${String(d).padStart(2, '0')}`, hit = ph.find((x) => day.slice(0, x.until.length) <= x.until);
+        sum += hit ? hit.eur : nowEur;
+      }
+      return sum / last;
+    }
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
@@ -751,11 +784,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const lks = this._complete().filter((k) => this._period === 'all' || k.startsWith(yr + '-'));
         if (!lks.length) return null;
         const lsum = (o) => lks.reduce((a, k) => a + (o[k] || 0), 0);
-        return { pv: lsum(M.pv), imp: lsum(M.imp), exp: lsum(M.exp), chg: lsum(M.chg), dis: lsum(M.dis), g2: lsum(M.g2 || {}), label: this._period === 'all' ? T('st.all') : String(yr) };
+        return { ks: lks, pv: lsum(M.pv), imp: lsum(M.imp), exp: lsum(M.exp), chg: lsum(M.chg), dis: lsum(M.dis), g2: lsum(M.g2 || {}), label: this._period === 'all' ? T('st.all') : String(yr) };
       }
       const ks = this._period === 'month' ? [key(now.getFullYear(), now.getMonth())] : Array.from({ length: now.getMonth() + 1 }, (x, i) => key(now.getFullYear(), i));
       const sum = (o) => ks.reduce((a, k) => a + (o[k] || 0), 0);
-      return { pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), g2: sum(M.g2 || {}), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
+      return { ks, pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), g2: sum(M.g2 || {}), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
     }
 
     _render() {
@@ -770,9 +803,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
         const self = Math.max(0, p.pv - p.exp);
         // grid2: Bezug des zweiten Zählers zählt zum Netzbezug und zum Verbrauch, zu seinem eigenen Preis
-        const g2 = p.g2 || 0, price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, price), impT = p.imp + g2, costT = p.imp * price + g2 * price2;
+        const g2 = p.g2 || 0, price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, price), impT = p.imp + g2;
+        // #53: Mit grid_price_history zählt jeder Monat mit seinem damaligen Preis (Bezug und selbst genutzter Solarstrom), sonst der heutige Preis
+        let impEur = p.imp * price, savEur = self * price;
+        if (p.ks && c._ph.length && price > 0) {
+          const M = this._m;
+          let ie = 0, se = 0, sk = 0;
+          p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
+          impEur = ie; savEur = sk > 0 ? se / sk * self : savEur;
+        }
+        const costT = impEur + g2 * price2;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
-        this._count('pvsav', price > 0 ? self * price : null, self * price < 100 ? 2 : 0);
+        this._count('pvsav', price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
         this._count('cost', price > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
