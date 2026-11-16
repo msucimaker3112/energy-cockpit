@@ -5,7 +5,8 @@
 <p><b>Deine Energie auf einen Blick, auch in 3D.</b><br>
 Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.<br>
 Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kein YAML.<br>
-<b>Neu: Die Karte erklärt sich selbst.</b> Ein „?“ sagt dir, warum gerade Strom aus dem Netz kommt.</p>
+<b>Neu: Die Karte erklärt sich selbst.</b> Ein „?“ sagt dir, warum gerade Strom aus dem Netz kommt.<br>
+<b>Neu: Auch für ioBroker.</b> Als Community-Projekt von Andreas (<a href="https://github.com/Landixus">Landixus</a>), <a href="#auch-für-iobroker">mehr dazu unten</a>.</p>
 
 [![Version](https://img.shields.io/github/v/release/msucimaker3112/energy-cockpit?label=Version&color=22d3ee)](https://github.com/msucimaker3112/energy-cockpit/releases/latest)
 [![In HACS](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz/)
@@ -18,7 +19,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
-**[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -89,6 +90,16 @@ Mit manueller Installation und Fehlerbehebung: [Installationsanleitung](https://
 - Leistungssensoren in W, kW oder MW und Energiesensoren in Wh, kWh oder MWh. Die Karten erkennen die Einheit und rechnen selbst um.
 - Für Verlauf und Kosten: Energiezähler mit Langzeitstatistik (`state_class: total_increasing`).
 - Empfohlen ist der Ansichtstyp **Panel** (eine Karte, volle Breite). In *Abschnitte*-Ansichten füllt die Karte nur die Breite des Abschnitts.
+
+## Auch für ioBroker
+
+Du nutzt **ioBroker** statt Home Assistant? Dann gibt es Energy-Cockpit jetzt auch für dich: **[ioBroker Energy-Cockpit](https://github.com/Landixus/ioBroker.energy-cockpit)** von Andreas (**[Landixus](https://github.com/Landixus)**).
+
+Der Adapter baut auf dem Quellcode dieses Projekts auf und bringt Energiefluss, 3D-Ansicht, Geräte, Raum-Abrechnung und Statistik nach ioBroker. Eingerichtet wird er mit eigenem Assistenten über deine ioBroker-Datenpunkte, ein Home Assistant ist dafür nicht nötig.
+
+- **Eigenständiges Community-Projekt:** Andreas entwickelt und pflegt den Adapter selbst. Fragen, Fehler und Wünsche zur ioBroker-Version bitte direkt [dort als Issue](https://github.com/Landixus/ioBroker.energy-cockpit/issues) melden.
+- **Frühe Testphase:** Der Adapter ist noch als Alpha gekennzeichnet. Was schon geht und was noch fehlt, steht in seiner README.
+- **Lizenz:** ebenfalls MIT, mit Hinweis auf dieses Projekt als Grundlage. Danke, Andreas!
 
 ## 3D-Ansicht
 
@@ -398,6 +409,8 @@ Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder p
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 
 **Install:** Energy-Cockpit is in the default HACS store. Open HACS, search for *energy-cockpit*, download it and reload the browser. Then add a card and search for *Energy-Cockpit*.
+
+**ioBroker:** There is a community port for ioBroker by Andreas ([Landixus](https://github.com/Landixus)): [ioBroker Energy-Cockpit](https://github.com/Landixus/ioBroker.energy-cockpit) (early alpha, maintained independently; please report ioBroker questions there).
 
 The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](https://github.com/msucimaker3112/energy-cockpit/blob/main/CONTRIBUTING.md). Issues and pull requests in English are welcome.
 
