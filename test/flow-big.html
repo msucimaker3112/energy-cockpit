@@ -126,6 +126,14 @@ async function run(){
   if(wrapped)break;}
   ok('Tageswerte: mindestens eine Reihe mit zweizeiliger Beschriftung (Testlage)',wrapped);
   ok('Tageswerte: Zahlen einer Reihe auf gleicher Höhe',multi.every(a=>Math.max(...a.map(z=>z.bot))-Math.min(...a.map(z=>z.bot))<=1),JSON.stringify(multi.map(a=>a.map(z=>z.bot))));
+
+  // #63 (Matze): Zahlen der Tageswerte wachsen mit label_size und text_size, Beschriftung und Zahl bleiben im Verhältnis
+  for(const [o,lab] of [[{label_size:2},'label_size 2'],[{text_size:'sehr_gross'},'sehr groß'],[{label_size:2,compact:'immer'},'Kurzansicht label_size 2']]){
+    document.getElementById('host').style.maxWidth='440px';
+    e=mount(cfg(Object.assign({pv:{entity:'sensor.pv',daily:'sensor.dpv'},grid:{entity:'sensor.grid',daily_import:'sensor.dimp',daily_export:'sensor.dexp'}},o)));await wait(800);
+    const s0=q(e,'.stat'),fl=parseFloat(getComputedStyle(s0.querySelector('span')).fontSize),fb=parseFloat(getComputedStyle(s0.querySelector('b')).fontSize);
+    ok('#63 '+lab+': Zahl mindestens 1,4× so groß wie die Beschriftung',fb>=fl*1.4,fb+' / '+fl);
+    ok('#63 '+lab+': Kacheln bleiben in der Karte',qa(e,'.stat').every(x=>x.getBoundingClientRect().right<=q(e,'footer').getBoundingClientRect().right+1));}
   document.getElementById('host').style.maxWidth='1100px';
   // Kurzansicht: große Kachel bleibt einspaltig
   e=mount(cfg({compact:'immer'}));await wait(500);

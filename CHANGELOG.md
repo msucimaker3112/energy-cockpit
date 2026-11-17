@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.33.3
+- **Energiefluss, Tageswerte unten wachsen mit der Schrift:** Mit großer `label_size` oder `text_size` wurden die Beschriftungen der Tageswerte (Solar heute, Bezug heute, Einspeisung …) groß, die Zahlen darunter blieben aber klein. Außerdem brachen die Beschriftungen mitten im Wort um („EIN-SPEI-SUNG“). Jetzt wachsen die Zahlen im gleichen Verhältnis mit, und die Kacheln werden breiter, statt die Wörter zu trennen. Gemeldet in [#63](https://github.com/msucimaker3112/energy-cockpit/issues/63).
+
 ## 0.33.2
 - **Energiefluss, „?“ überlappt den Titel nicht mehr:** In schmalen Kacheln (iPhone, aber auch iPad oder mehrspaltige Dashboards) lag das „?“ (`why: true`) über dem Titel der Netz-Kachel. Jetzt sitzt es rechts in der Titelzeile und richtet sich nach deren Schriftgröße, statt eine feste Größe zu haben. Wird es eng, wird der Titel mit „…“ gekürzt. Die Tippfläche bleibt groß genug, und der blaue Rahmen nach dem Antippen ist weg. Gemeldet in [#50](https://github.com/msucimaker3112/energy-cockpit/issues/50).
 
