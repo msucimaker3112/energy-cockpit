@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.33.2
+- **Energiefluss, „?“ überlappt den Titel nicht mehr:** In schmalen Kacheln (iPhone, aber auch iPad oder mehrspaltige Dashboards) lag das „?“ (`why: true`) über dem Titel der Netz-Kachel. Jetzt sitzt es rechts in der Titelzeile und richtet sich nach deren Schriftgröße, statt eine feste Größe zu haben. Wird es eng, wird der Titel mit „…“ gekürzt. Die Tippfläche bleibt groß genug, und der blaue Rahmen nach dem Antippen ist weg. Gemeldet in [#50](https://github.com/msucimaker3112/energy-cockpit/issues/50).
+
 ## 0.33.1
 - **Energiefluss, „Nicht erfasst“ im Editor einschaltbar:** Bei einzelnen Verbrauchern ohne Gruppen ließ sich die Kachel „Nicht erfasst“ nur per YAML mit `hide_rest: false` einschalten, im grafischen Editor gab es nur den Schalter „ausblenden“. Neu ist `show_rest: true`, im Editor „Kachel "Nicht erfasst" zeigen“. `hide_rest: false` funktioniert weiterhin. Gemeldet in [#58](https://github.com/msucimaker3112/energy-cockpit/issues/58).
 - **Energiefluss, Batterie-Zeilen in einheitlicher Farbe:** Ruhte die Batterie, wurden „Nutzbar“ und „Reserve“ abgedunkelt, „Ladestand“ und „Temperatur“ aber nicht. Jetzt sehen alle Zeilen gleich aus, nur Titel und Wert der Kachel treten bei ruhender Batterie zurück (gilt auch für die Solar-Kachel). Gemeldet in [#59](https://github.com/msucimaker3112/energy-cockpit/issues/59).

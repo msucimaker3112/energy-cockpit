@@ -111,6 +111,18 @@ async function run(){
   ok('flache Ansicht zeigt das "?"',!!q(e,'[data-k="grid"] .why'));
   e=mount(cfg({compact:'immer'}));await wait(800);
   ok('Kurzansicht zeigt das "?"',!!q(e,'.why'));
+  // #50: "?" sitzt in der Titelzeile, wächst mit deren Schrift und überlappt den Titel nie (auch in schmalen Kacheln einer breiten Karte)
+  const chk=(e,lab)=>{const wy=q(e,'[data-k="grid"] .why'),lb=q(e,'[data-k="grid"] .n-top .lbl'),a=wy.getBoundingClientRect(),b=lb.getBoundingClientRect(),fs=parseFloat(getComputedStyle(lb).fontSize);
+    ok(`#50 ${lab}: "?" in der Titelzeile`,!!wy.closest('.n-top'));
+    ok(`#50 ${lab}: "?" höchstens 2× Titelschrift`,wy.offsetHeight<=fs*2+0.5,wy.offsetHeight+' / '+fs);
+    ok(`#50 ${lab}: Titel endet vor dem "?"`,b.right<=a.left+0.5,Math.round(b.right)+' / '+Math.round(a.left));
+    ok(`#50 ${lab}: "?" bleibt in der Kachel`,a.right<=q(e,'[data-k="grid"]').getBoundingClientRect().right+0.5);};
+  const lng={entity:'sensor.grid',name:'Netzbezug Hausanschluss Zähler'};
+  for(const W of [360,320]){document.getElementById('host').style.maxWidth=W+'px';
+    for(const st of ['3d','flach']){e=mount(cfg({style:st,grid:lng}));await wait(900);chk(e,W+'px '+st);}}
+  document.getElementById('host').style.maxWidth='1100px';
+  for(const ts of ['normal','gross','sehr_gross']){e=mount(cfg({style:'flach',grid:lng,text_size:ts}));await wait(900);chk(e,'breit flach '+ts);}
+  e=mount(cfg({style:'flach',grid:lng,compact:'immer'}));await wait(900);chk(e,'Kurzansicht');
   // Tipp auf das "?" öffnet nicht den Verlauf der Netz-Kachel
   e=mount(cfg());await wait(800);const w0=q(e,'.why');let hist=false;e.addEventListener('hass-more-info',()=>{hist=true;});w0.click();await wait(200);
   ok('Tipp auf das "?" öffnet das Fenster und nicht den Verlauf',q(e,'.wdlg').open&&!hist);

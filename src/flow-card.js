@@ -88,7 +88,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .node.on:after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(var(--c),.12);opacity:0;pointer-events:none;animation:breathe 4s ease-in-out infinite}
 @keyframes breathe{50%{opacity:1}}
 .node:not(.on){border-color:rgba(var(--ov),.05)}
-.node:not(.on) .val,.node:not(.on) .n-top{opacity:.7}
+.node:not(.on) .val,.node:not(.on) .n-top>:not(.why){opacity:.7}
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
@@ -278,8 +278,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gri
 .cmp .xt .xr{display:none}
 .cmp .xt{margin-top:6px}
 /* why (optional): "?" an der Netz-Kachel, Fenster erklaert Netzbezug oder Einspeisung in Klartext */
-.why{position:absolute;top:10px;right:10px;z-index:3;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:rgb(var(--home));background:rgba(var(--home),.14);border:1px solid rgba(var(--home),.5);cursor:pointer}
+.why{position:relative;flex:none;margin-left:auto;width:1.9em;height:1.9em;box-sizing:border-box;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1em;letter-spacing:0;text-transform:none;color:rgb(var(--home));background:rgba(var(--home),.14);border:1px solid rgba(var(--home),.5);cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}
+.why:focus-visible{box-shadow:0 0 0 2px rgba(var(--home),.7)}
+.has-why .n-top .lbl{min-width:0;margin-right:8px}
 .why:hover{background:rgba(var(--home),.26)}
+.why:before{content:'';position:absolute;top:-8px;left:-8px;right:-8px;bottom:-8px}
+
 .wdlg{padding:0;width:min(92vw,470px);max-height:84vh;border-radius:24px;border:1px solid rgba(var(--home),.5);box-shadow:0 0 0 1px rgba(var(--home),.25),0 24px 60px rgba(0,0,0,.5);background:linear-gradient(160deg,rgba(var(--ov),.06),rgba(var(--ov),.012)),var(--panel);color:var(--txt);font-family:inherit}
 .wdlg::backdrop{background:rgba(0,0,0,.55)}
 .wdlg .wb{padding:6px 18px 18px;overflow:auto;max-height:calc(84vh - 70px)}
@@ -837,9 +841,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     clearTimeout(this._fitT);
     this._fitT = setTimeout(refit, 2500);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
-    const node = (k, cls, icon, label, color, ent, extra = '', conf = null) => `
+    const node = (k, cls, icon, label, color, ent, extra = '', conf = null, top = '') => `
       <div class="node ${cls}" data-k="${k}" data-e="${esc(ent)}" style="--c:${color}">
-        ${this._s3d ? `<div class="o3d" data-o="${k}"></div>` : ''}<div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span></div>
+        ${this._s3d ? `<div class="o3d" data-o="${k}"></div>` : ''}<div class="n-top"><span class="ico"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="lbl">${esc(label)}</span>${top}</div>
         <div class="val"><span class="num">—</span><span class="unit"></span></div>
         <div class="tag"></div>${extra}<div class="sub"></div>${this._xtHtml(conf)}
       </div>`;
@@ -848,7 +852,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); if (this._via2 < 0) links.push('pv2'); }
-    if (c.grid) { nodes += node('grid', 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '', c.grid); links.push('grid'); }
+    if (c.grid) { nodes += node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : ''); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
       const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
