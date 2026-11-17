@@ -20,7 +20,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv.entity` | Sensor | PV-Leistung |
 | `pv.name`, `pv.icon` | Text | Anzeigename, Symbol (`mdi:…`) |
 | `pv.daily` | Sensor | Tagesertrag in kWh |
-| `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Batterie geht, fehlt darin. Die Karte rechnet dann "PV heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
+| `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Batterie geht, fehlt darin. Die Karte rechnet dann "Solar heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
 | `pv.forecast` | Sensor | Prognose für heute: Leistung in W/kW oder Tagesprognose in kWh (z. B. Solcast, Forecast.Solar "Energie Produktion heute"). Im Assistenten wählbar |
 | `pv.forecast_tomorrow`, `pv.forecast_day_after` | Sensor (kWh) | Erwartete Produktion für morgen und übermorgen, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `pv.strings` | Liste | Teilstränge `{entity, name}` |
@@ -47,7 +47,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `grid2` | Objekt | Zweiter Netzzähler mit eigenem Tarif, der nur Strom bezieht, zum Beispiel eine Wärmepumpe. Siehe [Zweiter Netzzähler](#zweiter-netzzähler-grid2) |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` oder eine Zahl (0,5 bis 4) | `gross` und `sehr_gross` vergrößern die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Eine Zahl, zum Beispiel `2`, vergrößert alle Texte **und die Zahlen in den Kacheln** auf das Doppelte. Gut für Handy und Tablet |
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
-| `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, bekommt die Kachel, wenn er `hide_rest: false` ausdrücklich einträgt. Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
+| `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, schaltet die Kachel mit `show_rest: true` ein (im grafischen Editor: „Kachel "Nicht erfasst" zeigen“, `hide_rest: false` geht weiterhin). Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
+| `show_rest` | `true` / `false` (Standard) | Zeigt die Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern (`consumers`) ohne Gruppen: Hausverbrauch minus Summe der Verbraucher. Bei Gruppen erscheint sie ohnehin. `hide_rest: true` hat Vorrang |
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
 | `groups_lines` | `direkt` (Standard) oder `sammel` | Linien zu Einzelverbrauchern und Gruppen. `sammel` zeichnet nur **eine** Linie vom Ring zu einer Plakette "Verbraucher" mit der Summe und fasst den Bereich in einem Rahmen zusammen. Die Kacheln zeigen ihre Aktivität weiter mit Farbrand und Wert, bekommen aber keine eigene Linie. Gut bei vielen Geräten, auch auf dem Handy |
 | `battery.soc_display` | `brutto` (Standard) oder `nutzbar` | `nutzbar` zeigt den Ladestand relativ zum nutzbaren Bereich (0 % = Entladegrenze, 100 % = Maximalladung). Mit `brutto` bleibt die Anzeige wie die Batterie, die Grenzen erscheinen als schraffierte Bereiche auf dem Balken |
@@ -64,7 +65,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 
 ### PV-Prognose für morgen und übermorgen
 
-Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, direkt neben "PV heute". Ein hohler Punkt kennzeichnet sie als Prognose, ein Tipp öffnet den Verlauf des Sensors.
+Zwei Kacheln unten in der Karte zeigen die erwartete Produktion, direkt neben "Solar heute". Ein hohler Punkt kennzeichnet sie als Prognose, ein Tipp öffnet den Verlauf des Sensors.
 
 ```yaml
 pv:
@@ -104,7 +105,7 @@ Die Karte rechnet damit so:
 
 | Kachel | Rechnung mit `daily_ac: true` |
 |---|---|
-| PV heute | Tagesertrag + Geladen heute − Entladen heute |
+| Solar heute | Tagesertrag + Geladen heute − Entladen heute |
 | Haus heute | Tagesertrag + Bezug heute − Einspeisung heute |
 | Autarkie heute | 1 − Bezug heute / Haus heute |
 
@@ -273,6 +274,7 @@ Textgröße und Kachel "Nicht erfasst" (Bilder: `docs/img/text-*.png`, `docs/img
 ```yaml
 text_size: gross       # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die Zahlen)
 rest_min: 10           # "Nicht erfasst" erst ab 10 % des Hausverbrauchs
+show_rest: true        # "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen
 hide_rest: false       # true blendet die Kachel immer aus
 ```
 
@@ -571,9 +573,9 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 **Rekordtag:** Die Karte sucht den besten Tag des Jahres in der Statistik von `pv_today` und von `pv_total` und zeigt den höheren Wert. Ein neu angelegter Tagessensor mit erst wenigen Tagen Verlauf verfälscht den Rekord so nicht mehr.
 
-**`pv_lifetime` (optional):** Geht dein PV-Zähler täglich auf 0 und gibt es keinen durchlaufenden, bleibt er bei `pv_total` (Verlauf, Monatsbalken, Autarkie funktionieren damit). Amortisation und "PV gesamt" brauchen aber den ganzen Ertrag. Dafür trägst du bei `pv_lifetime` einen Zähler ohne Zurücksetzen ein, zum Beispiel einen Helfer "Verbrauchszähler" ohne Zyklus, der deinen Tageszähler aufsummiert. Ohne Eintrag gilt `pv_total` wie bisher.
+**`pv_lifetime` (optional):** Geht dein PV-Zähler täglich auf 0 und gibt es keinen durchlaufenden, bleibt er bei `pv_total` (Verlauf, Monatsbalken, Autarkie funktionieren damit). Amortisation und "Solar gesamt" brauchen aber den ganzen Ertrag. Dafür trägst du bei `pv_lifetime` einen Zähler ohne Zurücksetzen ein, zum Beispiel einen Helfer "Verbrauchszähler" ohne Zyklus, der deinen Tageszähler aufsummiert. Ohne Eintrag gilt `pv_total` wie bisher.
 
-**`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den PV-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
+**`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den Solar-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
 **`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
 
@@ -581,11 +583,11 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 | Name | Bereich |
 |---|---|
-| `monthly` | Diagramm „PV-Ertrag pro Monat“ mit der Jahresübersicht |
+| `monthly` | Diagramm „Solarertrag pro Monat“ mit der Jahresübersicht |
 | `amortisation` | Kachel „Amortisation“ (ohne Anschaffungskosten ist sie ohnehin ausgeblendet) |
 | `baseload` | Kachel „Grundlast (nachts)“ |
-| `footer` | Fußzeile mit Rekordtag, Batterie-Wirkungsgrad, Vollzyklen, Batterie-Temperatur und PV gesamt |
-| `money` | Die vier Kacheln oben (PV-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
+| `footer` | Fußzeile mit Rekordtag, Batterie (Wirkungsgrad), Batteriezyklen, Batterie (Temperatur) und Solar gesamt |
+| `money` | Die vier Kacheln oben (Solar-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
 
 ```yaml
 hide: [monthly, footer]
@@ -605,7 +607,7 @@ grid2_price_ct: 25.45
 
 Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht.
 
-**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, PV-Ersparnis) rechnen weiter mit dem aktuellen Preis.
+**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis.
 
 ### Jahresbudget (optional): `budget_kwh`
 
@@ -693,7 +695,7 @@ cost_consumers:
       ct: 36
   ```
 
-  Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **PV-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf.
+  Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **Solar-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf.
 - **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 
@@ -718,7 +720,7 @@ pv_history_name: AC-Abgabe               # Bezeichnung in der Legende, sonst "Hi
 | Fehlende Monate | Zählen nicht als 0: Sie sind im Diagramm schraffiert und werden genannt. Summen enthalten nur Monate mit PV, Bezug und Einspeisung |
 | Unverändert | Amortisation (Lebensdauer), Grundlast (letzte Nächte), Rekordtag (aktuelles Jahr), *Heute* und der Monats-Reiter |
 
-**`pv_history`:** Füllt nur die Monatsbalken und *PV gesamt*. Mit `pv_history_until` kommen die Monate bis einschließlich zum Stichtag aus der Historie, ohne Stichtag nur Monate, für die `pv_total` keine Werte hat. So hat jeder Monat genau eine Quelle. Historien-Balken sind blau. Geldwerte, Autarkie und Batterie rechnen weiter nur mit `pv_total`, weil für alte Monate Netz- und Speicherdaten fehlen. Für die Amortisation gibt es `earned_before_eur`. Die Statistik muss Zählerwerte (`sum`) in kWh, Wh oder MWh enthalten.
+**`pv_history`:** Füllt nur die Monatsbalken und *Solar gesamt*. Mit `pv_history_until` kommen die Monate bis einschließlich zum Stichtag aus der Historie, ohne Stichtag nur Monate, für die `pv_total` keine Werte hat. So hat jeder Monat genau eine Quelle. Historien-Balken sind blau. Geldwerte, Autarkie und Batterie rechnen weiter nur mit `pv_total`, weil für alte Monate Netz- und Speicherdaten fehlen. Für die Amortisation gibt es `earned_before_eur`. Die Statistik muss Zählerwerte (`sum`) in kWh, Wh oder MWh enthalten.
 
 **Altdaten importieren:** Die Karte hat keinen eigenen Import. Altdaten kommen als CSV aus InfluxDB, Grafana oder der Hersteller-Cloud und werden mit der HACS-Integration *Import Statistics* in die Langzeitstatistik übernommen. Vorher ein Backup machen. Die `sum`-Werte müssen fortlaufend hochzählen, sonst entstehen Sprünge.
 

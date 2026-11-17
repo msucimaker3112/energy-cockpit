@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.33.0 - MIT License */
+/*! energy-cockpit v0.33.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -196,7 +196,7 @@ const WD = (() => {
       'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand', 'flow.temp': 'Temperatur',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
       'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz', 'pv.use.store': 'Speicher',
-      'stat.pv': 'PV heute', 'stat.fc1': 'PV morgen', 'stat.fc2': 'PV übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
+      'stat.pv': 'Solar heute', 'stat.fc1': 'Solar morgen', 'stat.fc2': 'Solar übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Batterie', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugung', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
       'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Standby', 'tag.charging': 'Ladung', 'tag.discharging': 'Entladung', 'tag.passthrough': 'Durchleitung',
@@ -1031,7 +1031,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .node.on:after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(var(--c),.12);opacity:0;pointer-events:none;animation:breathe 4s ease-in-out infinite}
 @keyframes breathe{50%{opacity:1}}
 .node:not(.on){border-color:rgba(var(--ov),.05)}
-.node:not(.on) .val,.node:not(.on) .n-top,.node:not(.on) .sub{opacity:.7}
+.node:not(.on) .val,.node:not(.on) .n-top{opacity:.7}
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
@@ -1829,8 +1829,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
-    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn hide_rest: false ausdrücklich gesetzt ist (#34)
-    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && c.hide_rest === false && c.rest !== false;
+    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn show_rest: true oder hide_rest: false ausdrücklich gesetzt ist (#34, #58)
+    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && (c.hide_rest === false || (c.show_rest === true && c.hide_rest !== true)) && c.rest !== false;
     if (restC && !sam) links.push('crest');
     const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
         <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
@@ -2695,7 +2695,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._set(`[data-k="c${i}"] .unit`, parts.slice(1).join(' '));
       }
     });
-    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (hide_rest: false): Hausverbrauch minus Summe der Verbraucher
+    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (show_rest: true): Hausverbrauch minus Summe der Verbraucher
     const crel = this._$('[data-k="crest"]');
     if (crel) {
       const restW = Math.max(0, home - sumAll - bmChg), restMin = parseFloat(c.rest_min) || 0;
@@ -2828,7 +2828,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
-    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
+    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
@@ -2895,6 +2895,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       bool('fit_screen', true),
       bool('watt_only', false),
       bool('hide_rest', false),
+      bool('show_rest', false),
       numb('groups_columns', 1, 12, 1),
       numb('rest_min', 0, 100, 1),
       { name: 'style', selector: { select: { mode: 'dropdown', options: STYLE } } },
@@ -2988,6 +2989,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 12, minusKey: 'minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Haushaltszähler):' },
       { path: 'rest_min', label: 'Kachel "Nicht erfasst" erst anzeigen ab (% vom Hausverbrauch)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 10: Die Kachel erscheint nur, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind.' },
       { path: 'groups_columns', label: 'Gruppen pro Reihe', kind: 'number', optional: true, step: '1', help: 'Leer: alle Gruppen nebeneinander in einer Reihe. 1: jede Gruppe in einer eigenen Reihe über die volle Breite, die Namen sind dann besser lesbar. Stehen Gruppen untereinander, zeichnet die Karte eine Sammel-Linie.' },
+      { path: 'show_rest', label: 'Kachel "Nicht erfasst" zeigen', kind: 'bool', help: 'Zeigt bei einzelnen Verbrauchern ohne Gruppen eine Kachel mit dem Teil des Hausverbrauchs, der keinem Gerät zugeordnet ist (Hausverbrauch minus Summe der Verbraucher). Bei Gruppen erscheint sie ohnehin.' },
       { path: 'hide_rest', label: 'Kachel "Nicht erfasst" ausblenden', kind: 'bool', help: 'Die Kachel zeigt den Teil des Hausverbrauchs, der keinem Gerät und keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen).' },
       { path: 'groups_lines', label: 'Linien zu den Verbrauchern', kind: 'choice', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }], help: 'Bei vielen Geräten wirkt eine einzelne Sammel-Linie zum ganzen Bereich ruhiger.' },
     ] },
@@ -4679,24 +4681,24 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
 /* Texte der Statistik-Karte */
 WD.addStrings({
   'st.title': 'Statistik', 'st.err': 'pv_total, grid_import_total und grid_export_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
-  'st.pvsav': 'PV-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'PV-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
-  'st.amo': 'Amortisation PV-Anlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'PV-Ertrag pro Monat', 'st.record': 'Rekordtag',
-  'st.eff': 'Batterie-Wirkungsgrad', 'st.cycles': 'Vollzyklen', 'st.temp': 'Batterie-Temperatur', 'st.pvall': 'PV gesamt',
-  'st.self': '<b>{kwh} kWh</b> PV selbst genutzt', 'st.fed': '<b>{kwh} kWh</b> eingespeist', 'st.drawn': '<b>{kwh} kWh</b> bezogen',
+  'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
+  'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
+  'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',
+  'st.self': '<b>{kwh} kWh</b> Solarstrom selbst genutzt', 'st.fed': '<b>{kwh} kWh</b> eingespeist', 'st.drawn': '<b>{kwh} kWh</b> bezogen',
   'st.autsub': 'Eigenverbrauch <b>{self}</b> · Verbrauch <b>{cons} kWh</b>',
   'st.earned': '<b>{e} {cur}</b> von {i} {cur} zurückverdient', 'st.eta': '<b>{y} {cur}/Jahr</b> · fertig ca. <b>{yr}</b>', 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
   'st.glcost': '≈ <b>{x} {cur}/Jahr</b>', 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': '100 W weniger ≈ {x} {cur}/Jahr',
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'PV', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
-  'st.n.pv': 'PV heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Batterie geladen heute', 'st.n.dis': 'Batterie entladen heute',
+  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'Solar', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.n.pv': 'Solar heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Batterie geladen heute', 'st.n.dis': 'Batterie entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
   'st.d.exp': 'Heute mehr eingespeist ({e} kWh) als erzeugt ({p} kWh). Prüfe den Sensor für die Einspeisung.',
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
-  'st.lt.hist': 'Historie: nur PV-Ertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
+  'st.lt.hist': 'Historie: nur Solarertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
 });
 
 
@@ -4816,8 +4818,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .detail{margin-top:10px;font-size:.78rem;color:rgb(var(--mut));text-align:center;min-height:18px}
 .detail b{color:var(--txt);font-weight:600}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));grid-gap:10px;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--stroke)}
-.stat{padding:10px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
-.stat b{display:block;margin-top:5px;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;padding:10px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04);min-width:0}
+.sv{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:10px;margin-top:auto;padding-top:6px;min-width:0}
+.sv>span{color:rgb(var(--mut));font-size:.74rem;font-weight:500}
+.stat b{margin-left:auto;text-align:right;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .note{margin-top:10px;font-size:.64rem;color:rgba(139,151,179,.7);text-align:center}
 .dhint{display:flex;flex-direction:column;gap:4px;margin:-6px 0 14px;font-size:.72rem;color:#fbbf24;position:relative}
@@ -5085,11 +5089,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           ${c._lt ? '<div class="cover" data-f="cover"></div>' : ''}
         </div>
         <footer>
-          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.record')} ${now.getFullYear()}</span><b data-f="rec">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.eff')}</span><b data-f="eff">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.cycles')}</span><b data-f="cyc">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.temp')}</span><b data-f="temp">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.pvall')}</span><b data-f="pvAll">—</b></div>
+          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.record')} ${now.getFullYear()}</span><div class="sv"><span data-f="recD"></span><b data-f="rec">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.eff')}</span><b data-f="eff">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.cycles')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="cyc">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.temp')}</span><b data-f="temp">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.solar')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="pvAll">—</b></div></div>
         </footer>
         <div class="note" data-f="note"></div>
       </div></ha-card>`;
@@ -5611,11 +5615,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._detail();
       }
       // Footer
-      if (this._rec) this._f('rec', `${nf(this._rec.v, 1)}<small>kWh · ${new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' })}</small>`);
+      if (this._rec) { this._f('rec', `${nf(this._rec.v, 1)}<small>kWh</small>`); this._f('recD', T('st.recon', { d: new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' }) })); }
       const sumT = (list) => { let t = null; list.forEach((id) => { const v = WD.kwh(h, id, WD.rawUnits(c)); if (v !== null && v !== undefined) t = (t || 0) + v; }); return t; };
       const chT = sumT(c._chg), diT = sumT(c._dis);
       if (chT && diT) this._f('eff', `${nf(diT / chT * 100, 1)}<small>%</small>`);
-      if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
+      if (chT && c.battery_capacity_kwh) this._f('cyc', nf(chT / c.battery_capacity_kwh, 0));
       const tmp = live(h, c.battery_temp);
       if (tmp !== null) this._f('temp', `${nf(tmp, 1)}<small>°C</small>`);
       const pvAll = this._m && this._m.pvAll !== undefined ? this._m.pvAll : pvT;
@@ -5633,13 +5637,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const k = key(cy, i), kp = key(cy - 1, i);
       if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
       // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
-      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
+      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
       // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
       const running = k === key(new Date().getFullYear(), new Date().getMonth());
       const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
-      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
+      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
     }
   }
 

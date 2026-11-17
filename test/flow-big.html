@@ -117,10 +117,13 @@ async function run(){
   await xtRows(xcfg({label_size:1.6}),'label_size');
   // #48 (Joe): Tageswerte unten: Zahlen stehen in einer Reihe auf gleicher Hoehe, auch wenn eine Beschriftung zweizeilig umbricht
   const D=(v)=>S(v,'kWh');Object.assign(hass.states,{'sensor.dpv':D(2.2),'sensor.dimp':D(0.9),'sensor.dexp':D(0),'sensor.dchg':D(1.1),'sensor.ddis':D(1.2)});
-  document.getElementById('host').style.maxWidth='440px';
+  // Breite so waehlen, dass eine Beschriftung zweizeilig umbricht (haengt von den Texten ab)
+  let multi=[],wrapped=false;
+  for(const W of [440,400,480,360,520,330]){document.getElementById('host').style.maxWidth=W+'px';
   e=mount(cfg({pv:{entity:'sensor.pv',daily:'sensor.dpv'},grid:{entity:'sensor.grid',daily_import:'sensor.dimp',daily_export:'sensor.dexp'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10,daily_charge:'sensor.dchg',daily_discharge:'sensor.ddis'},text_size:'gross'}));await wait(800);
   const st=qa(e,'.stat');const rows={};st.forEach(s=>{const r=s.getBoundingClientRect(),b=s.querySelector('b').getBoundingClientRect();(rows[Math.round(r.top)]=rows[Math.round(r.top)]||[]).push({lbl:s.querySelector('span').getBoundingClientRect().height,bot:Math.round(b.bottom),tb:Math.round(r.bottom)});});
-  const multi=Object.values(rows).filter(a=>a.length>1);const wrapped=multi.some(a=>Math.max(...a.map(z=>z.lbl))>Math.min(...a.map(z=>z.lbl))+4);
+  multi=Object.values(rows).filter(a=>a.length>1);wrapped=multi.some(a=>Math.max(...a.map(z=>z.lbl))>Math.min(...a.map(z=>z.lbl))+4);
+  if(wrapped)break;}
   ok('Tageswerte: mindestens eine Reihe mit zweizeiliger Beschriftung (Testlage)',wrapped);
   ok('Tageswerte: Zahlen einer Reihe auf gleicher Höhe',multi.every(a=>Math.max(...a.map(z=>z.bot))-Math.min(...a.map(z=>z.bot))<=1),JSON.stringify(multi.map(a=>a.map(z=>z.bot))));
   document.getElementById('host').style.maxWidth='1100px';

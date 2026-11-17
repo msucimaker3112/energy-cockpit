@@ -22,7 +22,7 @@ const on=(e,k)=>{const g=q(e,`g[data-l="${k}"]`);return g?g.classList.contains('
 async function run(){
   // #22: Prognose
   let e=mount(base,hassFor());await wait(400);
-  ok('Prognose morgen: Kachel mit kWh',/PV morgen/i.test(t(e,'[data-s="fc1"] span'))&&t(e,'[data-s="fc1"] b')==='18,4kWh',t(e,'[data-s="fc1"]'));
+  ok('Prognose morgen: Kachel mit kWh',/Solar morgen/i.test(t(e,'[data-s="fc1"] span'))&&t(e,'[data-s="fc1"] b')==='18,4kWh',t(e,'[data-s="fc1"]'));
   ok('Prognose übermorgen: Wh werden zu kWh',t(e,'[data-s="fc2"] b')==='21,7kWh',t(e,'[data-s="fc2"] b'));
   ok('Prognose steht direkt nach PV heute',q(e,'[data-s="pv"]').nextElementSibling===q(e,'[data-s="fc1"]'));
   ok('Antippen öffnet den Verlauf',q(e,'[data-s="fc1"]').dataset.e==='sensor.fc1');

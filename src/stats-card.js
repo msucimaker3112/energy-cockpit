@@ -113,8 +113,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .detail{margin-top:10px;font-size:.78rem;color:rgb(var(--mut));text-align:center;min-height:18px}
 .detail b{color:var(--txt);font-weight:600}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));grid-gap:10px;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--stroke)}
-.stat{padding:10px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04)}
-.stat b{display:block;margin-top:5px;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;padding:10px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04);min-width:0}
+.sv{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:10px;margin-top:auto;padding-top:6px;min-width:0}
+.sv>span{color:rgb(var(--mut));font-size:.74rem;font-weight:500}
+.stat b{margin-left:auto;text-align:right;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
 .note{margin-top:10px;font-size:.64rem;color:rgba(139,151,179,.7);text-align:center}
 .dhint{display:flex;flex-direction:column;gap:4px;margin:-6px 0 14px;font-size:.72rem;color:#fbbf24;position:relative}
@@ -382,11 +384,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           ${c._lt ? '<div class="cover" data-f="cover"></div>' : ''}
         </div>
         <footer>
-          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.record')} ${now.getFullYear()}</span><b data-f="rec">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.eff')}</span><b data-f="eff">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.cycles')}</span><b data-f="cyc">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.temp')}</span><b data-f="temp">—</b></div>
-          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.pvall')}</span><b data-f="pvAll">—</b></div>
+          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.record')} ${now.getFullYear()}</span><div class="sv"><span data-f="recD"></span><b data-f="rec">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.eff')}</span><b data-f="eff">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.cycles')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="cyc">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.temp')}</span><b data-f="temp">—</b></div></div>
+          <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.solar')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="pvAll">—</b></div></div>
         </footer>
         <div class="note" data-f="note"></div>
       </div></ha-card>`;
@@ -908,11 +910,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._detail();
       }
       // Footer
-      if (this._rec) this._f('rec', `${nf(this._rec.v, 1)}<small>kWh · ${new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' })}</small>`);
+      if (this._rec) { this._f('rec', `${nf(this._rec.v, 1)}<small>kWh</small>`); this._f('recD', T('st.recon', { d: new Date(this._rec.t).toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit' }) })); }
       const sumT = (list) => { let t = null; list.forEach((id) => { const v = WD.kwh(h, id, WD.rawUnits(c)); if (v !== null && v !== undefined) t = (t || 0) + v; }); return t; };
       const chT = sumT(c._chg), diT = sumT(c._dis);
       if (chT && diT) this._f('eff', `${nf(diT / chT * 100, 1)}<small>%</small>`);
-      if (chT && c.battery_capacity_kwh) this._f('cyc', `${nf(chT / c.battery_capacity_kwh, 0)}<small>${T('st.full')}</small>`);
+      if (chT && c.battery_capacity_kwh) this._f('cyc', nf(chT / c.battery_capacity_kwh, 0));
       const tmp = live(h, c.battery_temp);
       if (tmp !== null) this._f('temp', `${nf(tmp, 1)}<small>°C</small>`);
       const pvAll = this._m && this._m.pvAll !== undefined ? this._m.pvAll : pvT;
@@ -930,13 +932,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const k = key(cy, i), kp = key(cy - 1, i);
       if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
       // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
-      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
+      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
       // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
       const running = k === key(new Date().getFullYear(), new Date().getMonth());
       const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
-      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · PV <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
+      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
     }
   }
 

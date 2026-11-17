@@ -26,7 +26,7 @@ async function run(){
   ok('standard: wie ohne Option',!!q(e,'.m.feed')&&qa(e,'.money .m').length===4);
   e=mount({...base,feed_in_card:'pv_self_consumption'});await wait(1600);
   ok('Eigenverbrauch: ersetzt die Kachel',!q(e,'.m.feed')&&!!q(e,'.m.selfc')&&qa(e,'.money .m').length===4);
-  ok('Eigenverbrauch: Titel',/PV-Eigenverbrauch/.test(q(e,'.m.selfc .lbl').textContent));
+  ok('Eigenverbrauch: Titel',/Solar-Eigenverbrauch/.test(q(e,'.m.selfc .lbl').textContent));
   ok('Eigenverbrauch: Quote 75 %',q(e,'[data-t="selfc"]').textContent==='75'&&q(e,'.m.selfc .unit').textContent==='%',q(e,'[data-t="selfc"]').textContent);
   ok('Eigenverbrauch: 75 kWh selbst genutzt',/75,0 kWh/.test(q(e,'[data-f="selfcSub"]').textContent),q(e,'[data-f="selfcSub"]').textContent);
   q(e,'.tab[data-p="day"]').click();await wait(1500);

@@ -88,7 +88,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .node.on:after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(var(--c),.12);opacity:0;pointer-events:none;animation:breathe 4s ease-in-out infinite}
 @keyframes breathe{50%{opacity:1}}
 .node:not(.on){border-color:rgba(var(--ov),.05)}
-.node:not(.on) .val,.node:not(.on) .n-top,.node:not(.on) .sub{opacity:.7}
+.node:not(.on) .val,.node:not(.on) .n-top{opacity:.7}
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
@@ -886,8 +886,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
-    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn hide_rest: false ausdrücklich gesetzt ist (#34)
-    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && c.hide_rest === false && c.rest !== false;
+    // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn show_rest: true oder hide_rest: false ausdrücklich gesetzt ist (#34, #58)
+    const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && (c.hide_rest === false || (c.show_rest === true && c.hide_rest !== true)) && c.rest !== false;
     if (restC && !sam) links.push('crest');
     const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
         <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
@@ -1752,7 +1752,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._set(`[data-k="c${i}"] .unit`, parts.slice(1).join(' '));
       }
     });
-    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (hide_rest: false): Hausverbrauch minus Summe der Verbraucher
+    // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (show_rest: true): Hausverbrauch minus Summe der Verbraucher
     const crel = this._$('[data-k="crest"]');
     if (crel) {
       const restW = Math.max(0, home - sumAll - bmChg), restMin = parseFloat(c.rest_min) || 0;

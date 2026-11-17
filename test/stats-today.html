@@ -45,7 +45,7 @@ async function run(){
   // 3. Ohne Tagessensoren: alles aus den Gesamtzählern. Bezug 0,5+0,5 + (5001,4−5001) = 1,4; PV 1+1,5 + (1003−1002,5) = 3,0
   e=mount(base,hassFor());await wait(1800);await tab(e,'day');
   ok('ohne Tagessensoren: Bezug 1,4 kWh',/1,4 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
-  ok('ohne Tagessensoren: PV selbst genutzt 2,5 kWh',/2,5 kWh PV selbst genutzt/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
+  ok('ohne Tagessensoren: Solarstrom selbst genutzt 2,5 kWh',/2,5 kWh Solarstrom selbst genutzt/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
   ok('ohne Tagessensoren: kein Hinweis',hint(e)==='',hint(e));
   // 4. #26: Gesamtzähler im Tagesfeld (53.419 kWh)
   e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(3),'sensor.di':S(1.4),'sensor.de':S(53419)}));await wait(1800);await tab(e,'day');
@@ -73,7 +73,7 @@ async function run(){
   // 8. decimals (#25)
   e=mount({...base,decimals:2},hassFor());await wait(1800);
   ok('decimals: 2 → 73,20 kWh bezogen',/73,20 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
-  ok('decimals: 2 → Monatszeile mit zwei Stellen',/PV 20,00 kWh/.test(t(e,'.detail')),t(e,'.detail'));
+  ok('decimals: 2 → Monatszeile mit zwei Stellen',/Solar 20,00 kWh/.test(t(e,'.detail')),t(e,'.detail'));
   e=mount({...base,decimals:{energy:0,percentage:1}},hassFor());await wait(2600);
   ok('decimals.energy 0 → 73 kWh',/^73 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
   ok('decimals.percentage 1 → Autarkie mit einer Stelle',/^\d+,\d$/.test(t(e,'[data-t="aut"]')),t(e,'[data-t="aut"]'));

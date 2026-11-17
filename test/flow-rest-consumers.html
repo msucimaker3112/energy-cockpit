@@ -24,6 +24,12 @@ async function run(){
   ok('Wert = Haus 1.200 − 500 = 700 W',/700/.test(t(e,'[data-k="crest"] .num')),t(e,'[data-k="crest"] .num')+' '+t(e,'[data-k="crest"] .unit'));
   ok('Linie läuft',!!q(e,'.link[data-l="crest"].on'));
   ok('Kachel steht nach den Verbrauchern',q(e,'.consumers').lastElementChild.dataset.k==='crest');
+  e=mount({...base,show_rest:true});await wait(1600);
+  ok('#58 show_rest true: Kachel da, 700 W',!!q(e,'[data-k="crest"]')&&/700/.test(t(e,'[data-k="crest"] .num')),t(e,'[data-k="crest"] .num'));
+  e=mount({...base,show_rest:true,hide_rest:true});await wait(1600);
+  ok('#58 hide_rest true hat Vorrang vor show_rest',!q(e,'[data-k="crest"]'));
+  e=mount({...base,show_rest:false});await wait(1600);
+  ok('#58 show_rest false: keine Kachel',!q(e,'[data-k="crest"]'));
   e=mount({...base,hide_rest:false,rest_min:70});await wait(1600);
   ok('rest_min 70: 58 % Rest, Kachel ausgeblendet',q(e,'[data-k="crest"]').style.display==='none');
   e=mount({...base,hide_rest:false,rest_min:50});await wait(1600);
