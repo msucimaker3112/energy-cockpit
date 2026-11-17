@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.33.3 - MIT License */
+/*! energy-cockpit v0.33.4 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -4695,7 +4695,7 @@ WD.addStrings({
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · reine Energiekosten ohne Grundgebühr · Amortisation mit heutigen Preisen geschätzt',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'Solar', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n} {eur} {cur}', 'st.basefee': 'davon Grundpreis {eur} {cur}', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'gespart', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'Solar', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
   'st.n.pv': 'Solar heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Batterie geladen heute', 'st.n.dis': 'Batterie entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
@@ -4939,6 +4939,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }).filter((x) => x.grid || x._parts || (typeof x.energy === 'string' && x.energy));
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
+      // grid_base_fee (optional, #57): Grundpreis in Euro pro Monat. grid_base_fee_history: frühere Grundpreise {until, eur}, "until" wie bei grid_price_history
+      { const bf = parseFloat(String(c.grid_base_fee).replace(',', '.')); this._c._bf = bf > 0 ? bf : 0; }
+      this._c._bfh = lst(c.grid_base_fee_history).filter((x) => x && x.until && !isNaN(parseFloat(String(x.eur).replace(',', '.')))).map((x) => ({ until: String(x.until), eur: Math.max(0, parseFloat(String(x.eur).replace(',', '.'))) })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
@@ -5484,6 +5487,31 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       return sum / last;
     }
+    // #57: Grundpreis (Euro pro Monat) anteilig je Tag, mit grid_base_fee_history wie beim Arbeitspreis. Laufender Monat bis heute.
+    // Gilt für Heute, Woche (ab Montag), Monat, Jahr und Gesamt in Stromkosten Netz. Ohne Eintrag: 0
+    _baseFee(p) {
+      const c = this._c;
+      if (!(c._bf > 0) && !c._bfh.length) return 0;
+      const now = new Date(), pad = (n) => String(n).padStart(2, '0');
+      const dayFee = (y, m, d) => {
+        const ds = `${y}-${pad(m)}-${pad(d)}`, hit = c._bfh.find((x) => ds.slice(0, x.until.length) <= x.until);
+        return (hit ? hit.eur : c._bf) / new Date(y, m, 0).getDate();
+      };
+      const monthFee = (k) => {
+        const [y, m] = k.split('-').map(Number), last = y === now.getFullYear() && m === now.getMonth() + 1 ? now.getDate() : new Date(y, m, 0).getDate();
+        let s = 0;
+        for (let d = 1; d <= last; d++) s += dayFee(y, m, d);
+        return s;
+      };
+      if (this._period === 'day') return dayFee(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      if (this._period === 'week') {
+        const back = (now.getDay() + 6) % 7;
+        let s = 0;
+        for (let i = 0; i <= back; i++) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i); s += dayFee(d.getFullYear(), d.getMonth() + 1, d.getDate()); }
+        return s;
+      }
+      return (p && p.ks ? p.ks : []).reduce((a, k) => a + monthFee(k), 0);
+    }
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
@@ -5523,17 +5551,17 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
           impEur = ie; savEur = sk > 0 ? se / sk * self : savEur;
         }
-        const costT = impEur + g2 * price2;
+        const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         this._count('pvsav', price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
-        this._count('cost', price > 0 ? costT : null, costT < 100 ? 2 : 0);
+        this._count('cost', price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         this._f('pvsavSub', T('st.self', { kwh: this._fk(self) }));
         this._f('feedSub', T('st.fed', { kwh: this._fk(p.exp) }));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', T('st.self', { kwh: this._fk(self) }));
-        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : ''));
+        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : '') + (baseFee > 0 ? ' · ' + T('st.basefee', { eur: fEur(baseFee), cur: CUR }) : ''));
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—', cons: this._fk(cons) }));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)
@@ -5668,7 +5696,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const KEYS = ['pv_total', 'grid_import_total', 'grid_export_total', 'battery_charge_total', 'battery_discharge_total', 'battery_temp', 'pv_today', 'import_today', 'export_today',
@@ -5695,6 +5723,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'pv_ac', selector: { boolean: {} } },
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
+      { name: 'grid_base_fee', selector: { number: { min: 0, max: 1000, step: 'any', mode: 'box' } } },
+      { name: 'grid_base_fee_history', selector: { object: {} } },
       { name: 'long_term', selector: { boolean: {} } },
       { name: 'pv_history', selector: { text: {} } }, { name: 'pv_history_until', selector: { text: {} } }, { name: 'pv_history_name', selector: { text: {} } },
       { name: 'fit_screen', default: true, selector: { boolean: {} } },
@@ -5741,6 +5771,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { path: 'grid_price_history.1.ct', label: 'Früherer Preis 2: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
       { path: 'grid_price_history.2.until', label: 'Früherer Preis 3: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true },
       { path: 'grid_price_history.2.ct', label: 'Früherer Preis 3: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_base_fee', label: 'Grundpreis Strom (Euro pro Monat)', kind: 'number', optional: true, step: '0.01', help: 'Optional. Den Grundpreis aus deiner Rechnung eintragen, zum Beispiel 12,50 pro Monat (Jahresbetrag durch 12 teilen). Er zählt anteilig je Tag in „Stromkosten Netz“ mit, für Heute, Woche, Monat, Jahr und Gesamt. Einmalige Anschlusskosten und Boni gehören nicht hierher.' },
+      { path: 'grid_base_fee_history.0.until', label: 'Früherer Grundpreis 1: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true, help: 'Wie bei den früheren Strompreisen: Bis zu diesem Tag gilt der frühere Grundpreis, danach der Grundpreis oben.' },
+      { path: 'grid_base_fee_history.0.eur', label: 'Früherer Grundpreis 1: Euro pro Monat', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_base_fee_history.1.until', label: 'Früherer Grundpreis 2: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true },
+      { path: 'grid_base_fee_history.1.eur', label: 'Früherer Grundpreis 2: Euro pro Monat', kind: 'number', optional: true, step: '0.01' },
       { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
       { path: 'feed_in_ct', label: 'oder feste Einspeisevergütung (Cent pro kWh)', kind: 'number', optional: true, step: '0.1' },
       { path: 'investment_eur', label: 'Anschaffungskosten der PV-Anlage (Euro)', kind: 'number', optional: true, step: '50', help: 'Gesamtpreis der Anlage laut Rechnung, zum Beispiel 18000. Damit berechnet die Karte die Amortisation.' },

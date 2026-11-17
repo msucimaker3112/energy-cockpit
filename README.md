@@ -249,7 +249,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Speicher vor dem Wechselrichter** (zum Beispiel Marstek B2500) | Weg Solar → Speicher → Haus mit Eingang, Ausgang und Durchleitung | `pv_to_battery: direkt` |
 | **Speicher hinter dem Zähler** (zum Beispiel Zendure an der Steckdose) | Ladung zählt als Verbrauch, Abgabe als Quelle | `behind_meter: true` |
 | **Hybrid-Wechselrichter**, dessen Ertrag nur die Abgabe zählt | "Solar heute", "Haus heute" und "Autarkie heute" stimmen, in der Statistik auch Autarkie und Aufteilung | `pv.daily_ac`, `pv_ac` |
-| **Dynamischer Tarif oder wechselnde Preise** | Fester Preis, Sensor oder Preisverlauf | `grid_price`, `grid_price_ct`, `grid_price_history` |
+| **Dynamischer Tarif oder wechselnde Preise** | Fester Preis, Sensor oder Preisverlauf | `grid_price`, `grid_price_ct`, `grid_price_history`, `grid_base_fee` |
 | **Zweiter Netzzähler mit eigenem Tarif** (zum Beispiel Wärmepumpe) | Eigene Kachel mit Linie zum Haus und Kosten pro Stunde, der Bezug zählt zu Hausverbrauch, Ring und Statistik, mit eigenem Preis | `grid2`, in der Statistik `grid2_total` |
 | **Jahresziel für den Netzbezug** | Kachel mit Fortschritt, Soll bis heute, Hochrechnung und Abweichung in kWh und Euro, das Soll gleichmäßig oder nach dem Vorjahr | `budget_kwh`, `budget_profile` |
 | **Zwei Zähler in Reihe** | Rechnet die Differenz, auch mit eigenem Tarif | `minus`, `energy_minus`, siehe [Anleitung](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/ZWEI-ZAEHLER.md) |

@@ -230,6 +230,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }).filter((x) => x.grid || x._parts || (typeof x.energy === 'string' && x.energy));
       // grid_price_history (optional): frühere Preise. "until" ist JJJJ-MM-TT oder JJJJ-MM, sortiert gilt der erste passende Eintrag
       this._c._ph = lst(c.grid_price_history).filter((x) => x && x.until && typeof x.ct === 'number').map((x) => ({ until: String(x.until), eur: x.ct / 100 })).sort((a, b) => (a.until < b.until ? -1 : 1));
+      // grid_base_fee (optional, #57): Grundpreis in Euro pro Monat. grid_base_fee_history: frühere Grundpreise {until, eur}, "until" wie bei grid_price_history
+      { const bf = parseFloat(String(c.grid_base_fee).replace(',', '.')); this._c._bf = bf > 0 ? bf : 0; }
+      this._c._bfh = lst(c.grid_base_fee_history).filter((x) => x && x.until && !isNaN(parseFloat(String(x.eur).replace(',', '.')))).map((x) => ({ until: String(x.until), eur: Math.max(0, parseFloat(String(x.eur).replace(',', '.'))) })).sort((a, b) => (a.until < b.until ? -1 : 1));
       this._ccY = null; this._ccV = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
@@ -775,6 +778,31 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       return sum / last;
     }
+    // #57: Grundpreis (Euro pro Monat) anteilig je Tag, mit grid_base_fee_history wie beim Arbeitspreis. Laufender Monat bis heute.
+    // Gilt für Heute, Woche (ab Montag), Monat, Jahr und Gesamt in Stromkosten Netz. Ohne Eintrag: 0
+    _baseFee(p) {
+      const c = this._c;
+      if (!(c._bf > 0) && !c._bfh.length) return 0;
+      const now = new Date(), pad = (n) => String(n).padStart(2, '0');
+      const dayFee = (y, m, d) => {
+        const ds = `${y}-${pad(m)}-${pad(d)}`, hit = c._bfh.find((x) => ds.slice(0, x.until.length) <= x.until);
+        return (hit ? hit.eur : c._bf) / new Date(y, m, 0).getDate();
+      };
+      const monthFee = (k) => {
+        const [y, m] = k.split('-').map(Number), last = y === now.getFullYear() && m === now.getMonth() + 1 ? now.getDate() : new Date(y, m, 0).getDate();
+        let s = 0;
+        for (let d = 1; d <= last; d++) s += dayFee(y, m, d);
+        return s;
+      };
+      if (this._period === 'day') return dayFee(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      if (this._period === 'week') {
+        const back = (now.getDay() + 6) % 7;
+        let s = 0;
+        for (let i = 0; i <= back; i++) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i); s += dayFee(d.getFullYear(), d.getMonth() + 1, d.getDate()); }
+        return s;
+      }
+      return (p && p.ks ? p.ks : []).reduce((a, k) => a + monthFee(k), 0);
+    }
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
@@ -814,17 +842,17 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
           impEur = ie; savEur = sk > 0 ? se / sk * self : savEur;
         }
-        const costT = impEur + g2 * price2;
+        const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         this._count('pvsav', price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
-        this._count('cost', price > 0 ? costT : null, costT < 100 ? 2 : 0);
+        this._count('cost', price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         this._f('pvsavSub', T('st.self', { kwh: this._fk(self) }));
         this._f('feedSub', T('st.fed', { kwh: this._fk(p.exp) }));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', T('st.self', { kwh: this._fk(self) }));
-        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : ''));
+        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : '') + (baseFee > 0 ? ' · ' + T('st.basefee', { eur: fEur(baseFee), cur: CUR }) : ''));
         this._f('autSub', T('st.autsub', { self: p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—', cons: this._fk(cons) }));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)

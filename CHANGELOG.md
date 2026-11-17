@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.33.4
+- **Statistik, Grundpreis:** Neu und optional: `grid_base_fee` (Euro pro Monat). Der Grundpreis zählt anteilig je Tag in „Stromkosten Netz“ mit, für Heute, Woche, Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „davon Grundpreis …“. Mit `grid_base_fee_history` lassen sich frühere Grundpreise eintragen (`until` wie bei `grid_price_history`). Einmalige Anschlusskosten und Wechselboni zählen bewusst nicht mit, Solar-Ersparnis und Amortisation bleiben unverändert. Ohne Eintrag ändert sich nichts. Anlass: [#57](https://github.com/msucimaker3112/energy-cockpit/issues/57).
+
 ## 0.33.3
 - **Energiefluss, Tageswerte unten wachsen mit der Schrift:** Mit großer `label_size` oder `text_size` wurden die Beschriftungen der Tageswerte (Solar heute, Bezug heute, Einspeisung …) groß, die Zahlen darunter blieben aber klein. Außerdem brachen die Beschriftungen mitten im Wort um („EIN-SPEI-SUNG“). Jetzt wachsen die Zahlen im gleichen Verhältnis mit, und die Kacheln werden breiter, statt die Wörter zu trennen. Gemeldet in [#63](https://github.com/msucimaker3112/energy-cockpit/issues/63).
 

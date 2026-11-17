@@ -1,0 +1,60 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Grundpreis Statistik Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #57: grid_base_fee (Grundpreis in Euro pro Monat) zählt anteilig in Stromkosten Netz, auch mit grid_base_fee_history. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite) */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+const pad=(n)=>String(n).padStart(2,'0');
+// Jeder Monat bis heute: PV 100, Einspeisung 20 (also 80 selbst genutzt), Bezug 100 kWh
+const months=(v)=>Array.from({length:M+1},(x,i)=>({start:new Date(Y,i,1).getTime(),change:v}));
+const mon={'sensor.pv':months(100),'sensor.imp':months(100),'sensor.exp':months(20)};
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.pvd':S(8),'sensor.impd':S(2),'sensor.expd':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const r={};if(m.period==='month')(m.statistic_ids||[]).forEach(id=>{if(mon[id])r[id]=mon[id].filter(x=>x.start>=Date.parse(m.start_time));});return r;}};
+// Bis Ende des Vormonats 25 ct, seitdem 30 ct (heutiger Preis)
+const prevEnd=new Date(Y,M,0),until=`${prevEnd.getFullYear()}-${pad(prevEnd.getMonth()+1)}-${pad(prevEnd.getDate())}`;
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price_ct:30,feed_in_ct:0};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(c);h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const de=(v)=>v.toLocaleString('de-DE',{minimumFractionDigits:v<100?2:0,maximumFractionDigits:v<100?2:0});
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),tt=(e,k)=>q(e,`[data-t="${k}"]`).textContent.trim();
+  const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(800);};
+  const F=30,D=now.getDate(),DIM=dim(Y,M),curFee=F*D/DIM,n=M+1;
+  // Ohne Grundpreis: wie bisher
+  let e=mount(base);await wait(2500);
+  ok('ohne Grundpreis, Monat: 30,00',tt(e,'cost')==='30,00',tt(e,'cost'));
+  ok('ohne Grundpreis: keine Zeile "davon Grundpreis"',!/Grundpreis/.test(q(e,'[data-f="costSub"]').textContent));
+  // Mit Grundpreis
+  e=mount({...base,grid_base_fee:F});await wait(2500);
+  ok(`Monat: 30,00 + Grundpreis anteilig (${D}/${DIM} von ${F}) = ${de(30+curFee)}`,tt(e,'cost')===de(30+curFee),tt(e,'cost'));
+  ok('Monat: Zeile "davon Grundpreis"',/davon Grundpreis/.test(q(e,'[data-f="costSub"]').textContent),q(e,'[data-f="costSub"]').textContent.trim());
+  await tab(e,'year');
+  ok(`Jahr: ${n}×30,00 + ${M} volle Monate + laufender Monat anteilig`,tt(e,'cost')===de(n*30+M*F+curFee),tt(e,'cost')+' erwartet '+de(n*30+M*F+curFee));
+  await tab(e,'day');
+  ok(`Heute: 2 kWh × 0,30 + ${F}/${DIM} = ${de(0.6+F/DIM)}`,tt(e,'cost')===de(0.6+F/DIM),tt(e,'cost'));
+  // Woche (Reiter nur mit cost_consumers): Tage ab Montag bis heute anteilig, direkt über die Rechenfunktion geprüft
+  e._period='week';const back=(now.getDay()+6)%7;let wexp=0;
+  for(let i=0;i<=back;i++){const d=new Date(Y,M,D-i);wexp+=F/dim(d.getFullYear(),d.getMonth());}
+  const wf=e._baseFee({});ok(`Woche: ${back+1} Tage anteilig = ${wf.toFixed(4)}`,Math.abs(wf-wexp)<1e-9,wf+' erwartet '+wexp);
+  e._period='month';
+  // Mit früherem Grundpreis (bis Ende Vormonat 20 statt 30)
+  const prevEnd=new Date(Y,M,0),until=`${prevEnd.getFullYear()}-${pad(prevEnd.getMonth()+1)}-${pad(prevEnd.getDate())}`;
+  e=mount({...base,grid_base_fee:F,grid_base_fee_history:[{until,eur:20}]});await wait(2500);await tab(e,'year');
+  ok(`Jahr mit Verlauf: ${n}×30,00 + ${M}×20 + laufender Monat`,M===0||tt(e,'cost')===de(n*30+M*20+curFee),tt(e,'cost')+' erwartet '+de(n*30+M*20+curFee));
+  // nur ein Grundpreis, kein Strompreis: Kachel zeigt trotzdem die Kosten
+  e=mount({...base,grid_price_ct:0,grid_base_fee:F});await wait(2500);
+  ok('ohne Strompreis, nur Grundpreis: Kosten zeigen den Grundpreis',tt(e,'cost')===de(curFee),tt(e,'cost'));
+  // Unsinn wird ignoriert
+  e=mount({...base,grid_base_fee:'abc'});await wait(2500);
+  ok('Grundpreis ungültig: ignoriert',tt(e,'cost')==='30,00',tt(e,'cost'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,grid_base_fee:30});}
+</script></body></html>

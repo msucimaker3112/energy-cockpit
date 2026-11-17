@@ -61,6 +61,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `grid_price`, `feed_in` | Sensor, `input_number` oder Zahl | Preis je kWh (Euro) für Kostenangaben |
 | `theme` | Text | Farbschema: `dunkel` (Standard), `graphit`, `hell`, `warm`, `auto` (folgt dem Home-Assistant-Design hell/dunkel) oder `ha` (Farben des HA-Designs). Gilt für alle vier Karten |
 | `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
+| `grid_base_fee` | Zahl | Nur Statistik: Grundpreis Strom in Euro pro Monat, zählt anteilig in „Stromkosten Netz“ mit (siehe Abschnitt Statistik), mit `grid_base_fee_history` auch für frühere Grundpreise |
 | `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
 
 ### PV-Prognose für morgen und übermorgen
@@ -696,6 +697,16 @@ cost_consumers:
   ```
 
   Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **Solar-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf.
+- **Grundpreis (optional): `grid_base_fee`.** Trägst du den Grundpreis aus deiner Rechnung ein (Euro pro Monat, zum Beispiel `12.5`, ein Jahresbetrag geteilt durch 12), zählt er in **Stromkosten Netz** mit: anteilig je Tag für Heute, Woche (ab Montag), Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „davon Grundpreis …“. Hat sich der Grundpreis geändert, trägst du den früheren in `grid_base_fee_history` ein, wie beim Preisverlauf:
+
+  ```yaml
+  grid_base_fee: 14.9          # Euro pro Monat, heute
+  grid_base_fee_history:
+    - until: 2026-10-31        # bis einschließlich, auch als 2026-10
+      eur: 12.5
+  ```
+
+  Einmalige Anschlusskosten und Wechselboni gehören bewusst nicht dazu, sie würden die Monats- und Jahreswerte verzerren. Der Grundpreis ändert weder die Solar-Ersparnis noch die Amortisation, und er steht nicht in „Kosten je Verbraucher“. Ohne Eintrag ändert sich nichts.
 - **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 
