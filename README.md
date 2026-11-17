@@ -19,6 +19,8 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
+<b>Gefällt dir die Karte? Ein ⭐ oben rechts hilft mehr, als du denkst.</b> <a href="#ein-stern-hilft-mehr-als-du-denkst">Warum mir das wichtig ist</a>
+
 **[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
@@ -390,9 +392,15 @@ battery:
 - Läuft in der Home-Assistant-App auf iPhone, iPad und Android sowie im Browser. Entwickelt und getestet mit Chromium-basierten Browsern (Chrome, Edge) und dem Silk-Browser des Echo Show, im Einsatz auch auf iPhone und iPad. Sehr alte Browser ohne Container-Queries und `color-mix` werden nicht unterstützt.
 - Die Karte rechnet höchstens einmal pro Sekunde neu. Wird dein Gerät trotzdem warm, schalte dort "Bewegung reduzieren" ein, dann stehen die Animationen still.
 
+## Ein Stern hilft mehr, als du denkst
+
+Energy-Cockpit baue ich in meiner Freizeit, es ist kostenlos und ohne Werbung. Mein einziger Lohn ist, wenn die Karte jemandem das Zuhause ein Stück verständlicher macht. Viele von euch nutzen sie inzwischen, das freut mich riesig. Auf GitHub sehe ich davon aber nur die Sterne.
+
+Jeder Stern sorgt dafür, dass andere die Karte beim Suchen finden, und er sagt mir, dass sich die viele Arbeit lohnt. Wenn sie dir gefällt, nimm dir bitte zehn Sekunden und klick oben rechts auf das ⭐. Das ist die einfachste Art, mir zu danken. Vielen Dank, das bedeutet mir wirklich viel.
+
 ## Mitmachen und unterstützen
 
-Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues). Viele Funktionen sind genau so entstanden, zuletzt die Kosten je Verbraucher.
+Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues). Viele Funktionen sind genau so entstanden, zuletzt die Kosten je Verbraucher.
 
 **Unterstützen:** Energy-Cockpit ist kostenlos und bleibt es. Es steckt aber viel Zeit in Entwicklung, Tests, Doku und Antworten auf eure Fragen. Wenn du mir ein Dankeschön geben möchtest, freue ich mich sehr: [Mit PayPal spenden](https://www.paypal.com/donate/?hosted_button_id=DTCAKWGEZ23SN). Danke!
 
@@ -411,6 +419,8 @@ Ein ⭐ oben rechts hilft anderen, das Projekt zu finden. Fehlt dir etwas oder p
 **Install:** Energy-Cockpit is in the default HACS store. Open HACS, search for *energy-cockpit*, download it and reload the browser. Then add a card and search for *Energy-Cockpit*.
 
 **ioBroker:** There is a community port for ioBroker by Andreas ([Landixus](https://github.com/Landixus)): [ioBroker Energy-Cockpit](https://github.com/Landixus/ioBroker.energy-cockpit) (early alpha, maintained independently; please report ioBroker questions there).
+
+**A personal request:** I build Energy-Cockpit in my free time, it is free and has no ads. If you like it, a ⭐ at the top right of this page means a lot to me. It helps others find the card and tells me the work is worth it. Thank you!
 
 The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](https://github.com/msucimaker3112/energy-cockpit/blob/main/CONTRIBUTING.md). Issues and pull requests in English are welcome.
 
