@@ -27,7 +27,7 @@ async function run(){
   e=mount({...base,grid2_total:'sensor.g2',grid2_price_ct:25,grid2_name:'Wärmepumpe'});await wait(2500);
   ok('grid2: Stromkosten 100×0,30 + 50×0,25 = 42,50',tt(e,'cost')==='42,50',tt(e,'cost'));
   ok('grid2: Bezug 150 kWh',/150 kWh/.test(t(e,'costSub')),t(e,'costSub'));
-  ok('grid2: davon Wärmepumpe 12,50 €',/davon Wärmepumpe 12,50/.test(t(e,'costSub')),t(e,'costSub'));
+  ok('grid2: davon Wärmepumpe 12,50 €',/davon Wärmepumpe\s*12,50/.test(t(e,'costSub')),t(e,'costSub'));
   ok('grid2: Autarkie 1 − 150/230 = 35 %',tt(e,'aut')==='35',tt(e,'aut'));
   e=mount({...base,grid2_total:'sensor.g2'});await wait(2500);
   ok('ohne eigenen Preis: normaler Preis 150×0,30 = 45,00',tt(e,'cost')==='45,00',tt(e,'cost'));

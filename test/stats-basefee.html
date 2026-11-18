@@ -30,10 +30,13 @@ async function run(){
   let e=mount(base);await wait(2500);
   ok('ohne Grundpreis, Monat: 30,00',tt(e,'cost')==='30,00',tt(e,'cost'));
   ok('ohne Grundpreis: keine Zeile "davon Grundpreis"',!/Grundpreis/.test(q(e,'[data-f="costSub"]').textContent));
+  ok('ohne Grundpreis: Hinweis "ohne Grundgebühr"',/ohne Grundgebühr/.test(q(e,'[data-f="note"]').textContent),q(e,'[data-f="note"]').textContent);
   // Mit Grundpreis
   e=mount({...base,grid_base_fee:F});await wait(2500);
   ok(`Monat: 30,00 + Grundpreis anteilig (${D}/${DIM} von ${F}) = ${de(30+curFee)}`,tt(e,'cost')===de(30+curFee),tt(e,'cost'));
   ok('Monat: Zeile "davon Grundpreis"',/davon Grundpreis/.test(q(e,'[data-f="costSub"]').textContent),q(e,'[data-f="costSub"]').textContent.trim());
+  ok('mit Grundpreis: Hinweis nennt den Grundpreis statt "ohne Grundgebühr"',/mit Grundpreis/.test(q(e,'[data-f="note"]').textContent)&&!/ohne Grundgebühr/.test(q(e,'[data-f="note"]').textContent),q(e,'[data-f="note"]').textContent);
+  { const r=[...q(e,'[data-f="costSub"]').querySelectorAll('.kv')]; ok('#66 Grundpreis als eigene Zeile mit Betrag rechts',r.length===2&&r[1].children[0].textContent==='davon Grundpreis'&&/^[\d,.]+ €$/.test(r[1].children[1].textContent),r.map((x)=>x.textContent).join(' / ')); }
   await tab(e,'year');
   ok(`Jahr: ${n}×30,00 + ${M} volle Monate + laufender Monat anteilig`,tt(e,'cost')===de(n*30+M*F+curFee),tt(e,'cost')+' erwartet '+de(n*30+M*F+curFee));
   await tab(e,'day');

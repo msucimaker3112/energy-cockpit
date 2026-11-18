@@ -1,0 +1,48 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit 3D-Bildgröße Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #67: Die Bilder in den 3D-Kacheln wachsen mit text_size und label_size, statt klein zu bleiben. Battery-Tag heißt wie bei Solar "Inaktiv" (#68). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite&ls=2|ts=sehr_gross) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(0),'sensor.grid':S(262),'sensor.bat':S(0),'sensor.soc':S(20,'%'),'sensor.c1':S(98),'sensor.c2':S(0),'sensor.c3':S(0)}};
+const base={style:'3d',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},consumers:[{name:'Elektronik',entity:'sensor.c1'},{name:'Trockner',entity:'sensor.c2'},{name:'Waschmaschine',entity:'sensor.c3'}]};
+function mount(c,w){const host=document.getElementById('host');host.style.width=w+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const img=(e,k)=>{const n=q(e,`.node[data-k="${k}"]`),s=n&&n.querySelector('.o3d svg');return {tall:!!n&&n.classList.contains('d3tall'),h:s?parseFloat(getComputedStyle(s).height):0,w:s?parseFloat(getComputedStyle(s).width):0,nw:n?n.offsetWidth:0};};
+async function run(){
+  // 1. Normale Schrift, schmalere Karte: Bild über dem Text wie bisher
+  let e=mount(base,700);await wait(700);
+  const n0=img(e,'pv');
+  ok('Batterie im Ruhezustand: "Inaktiv" wie bei Solar (#68)',/^Inaktiv$/i.test(q(e,'.node[data-k="bat"] .tag').textContent.trim()),q(e,'.node[data-k="bat"] .tag').textContent);
+  // 2. label_size 2, Kachel zu schmal fürs Bild daneben: Bild darüber, deutlich größer
+  e=mount({...base,label_size:2},1264);await wait(700);
+  const a=img(e,'pv'),g=img(e,'grid');
+  ok('label_size 2: Bild steht über dem Text',a.tall&&g.tall,JSON.stringify(a));
+    const cssH=parseFloat(getComputedStyle(q(e,'.node[data-k="pv"] .o3d svg')).height);
+  ok('label_size 2: Bild über dem Text mindestens 1,8× so hoch wie bisher (112 px) (#67)',cssH>=112*1.8,cssH.toFixed(0));
+  ok('label_size 2: Bild bleibt in der Kachel',a.w<=a.nw+1,a.w.toFixed(0)+' / '+a.nw);
+  // 3. sehr_gross, breite Kachel: Bild daneben, breiter als 132 px
+  e=mount({...base,text_size:'sehr_gross'},1904);await wait(700);
+  const b=img(e,'pv');
+  ok('sehr_gross breit: Bild neben dem Text',!b.tall,JSON.stringify(b));
+  ok('sehr_gross breit: Bild breiter als 132 px (#67)',b.w>170,b.w.toFixed(0));
+  const lb=q(e,'.node[data-k="pv"] .lbl'),ob=q(e,'.node[data-k="pv"] .o3d');
+  ok('sehr_gross breit: Text beginnt rechts vom Bild',lb.offsetLeft>=ob.offsetLeft+ob.offsetWidth-1,lb.offsetLeft+' / '+(ob.offsetLeft+ob.offsetWidth));
+  // 4. Normale Schrift breit: unverändert 132 px
+  e=mount(base,1904);await wait(700);
+  const c0=img(e,'pv');
+  ok('normale Schrift breit: Bild weiterhin 132 px breit',!c0.tall&&Math.abs(c0.w-132)<2,c0.w.toFixed(1));
+  // 5. Kurzansicht mit label_size 2: Bild wächst ebenfalls
+  e=mount({...base,compact:true,label_size:2},700);await wait(700);
+  const k2=img(e,'pv');const e3=mount({...base,compact:true},700);await wait(700);const k1=img(e3,'pv');
+  ok('Kurzansicht label_size 2: Bild größer als normal',k2.h>k1.h*1.25,k2.h.toFixed(0)+' vs '+k1.h.toFixed(0));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+if(P.get('test'))run();else{const c={...base};if(P.get('ls'))c.label_size=+P.get('ls');if(P.get('ts'))c.text_size=P.get('ts');mount(c,+(P.get('w')||1264));}
+</script></body></html>

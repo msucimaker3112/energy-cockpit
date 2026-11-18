@@ -33,6 +33,14 @@ async function run(){
   let e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(1.2),'sensor.di':S(3),'sensor.de':S('unavailable')},{noHours:true}));await wait(1800);
   ok('Monat: 73,2 kWh bezogen',/73,2 kWh/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
   ok('Monat: kein Hinweis',hint(e)==='',hint(e));
+  // #66: Zeilen unter den großen Werten wie die Fußzeile, Text links, Wert rechts
+  const rows=(k)=>[...q(e,`[data-f="${k}Sub"]`).querySelectorAll('.kv')].map((r)=>r.children[0].textContent+'|'+r.children[1].textContent);
+  ok('#66 Solar-Ersparnis: Zeile "Selbst genutzt | … kWh"',/^Selbst genutzt\|[\d,.]+ kWh$/.test(rows('pvsav').join()),rows('pvsav').join(' / '));
+  ok('#66 Einspeiseerlös: Zeile "Einspeisung | … kWh"',/^Einspeisung\|[\d,.]+ kWh$/.test(rows('feed').join()),rows('feed').join(' / '));
+  ok('#66 Stromkosten Netz: Zeile "Bezug | 73,2 kWh"',rows('cost')[0]==='Bezug|73,2 kWh',rows('cost').join(' / '));
+  ok('#66 Autarkie: Zeilen Eigenverbrauch und Verbrauch',rows('aut').length===2&&/^Eigenverbrauch\|/.test(rows('aut')[0])&&/^Verbrauch\|[\d,.]+ kWh$/.test(rows('aut')[1]),rows('aut').join(' / '));
+  const kv=q(e,'[data-f="autSub"] .kv'),r0=kv.getBoundingClientRect(),v0=kv.children[1].getBoundingClientRect(),l0=kv.children[0].getBoundingClientRect();
+  ok('#66 Wert rechtsbündig, Text linksbündig',Math.abs(v0.right-r0.right)<1.5&&Math.abs(l0.left-r0.left)<1.5,[l0.left-r0.left,r0.right-v0.right].map((x)=>x.toFixed(1)).join(' / '));
   await tab(e,'day');
   ok('#28 Heute: keine Werte des Monats',!/73,2/.test(t(e,'[data-f="costSub"]'))&&t(e,'[data-t="cost"]')==='—',t(e,'[data-t="cost"]')+' / '+t(e,'[data-f="costSub"]'));
   ok('#28 Heute: Hinweis nennt Einspeisung und Sensor',/Einspeisung heute: sensor\.de liefert gerade keinen Wert/.test(hint(e)),hint(e));
@@ -40,12 +48,12 @@ async function run(){
   ok('zurück im Monat: Werte wieder da, Hinweis weg',/73,2 kWh/.test(t(e,'[data-f="costSub"]'))&&hint(e)==='',t(e,'[data-f="costSub"]'));
   // 2. Sensor fehlt, Statistik von heute vorhanden: Wert aus dem Gesamtzähler (0,2+0,3 + 0 Zuwachs = 0,5 kWh), Hinweis sagt das
   e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(2.5),'sensor.di':S(1.4),'sensor.de':S('unavailable')}));await wait(1800);await tab(e,'day');
-  ok('Rückfall: Einspeisung aus dem Gesamtzähler',/0,5 kWh eingespeist/.test(t(e,'[data-f="feedSub"]')),t(e,'[data-f="feedSub"]'));
+  ok('Rückfall: Einspeisung aus dem Gesamtzähler',/Einspeisung\s*0,5 kWh/.test(t(e,'[data-f="feedSub"]')),t(e,'[data-f="feedSub"]'));
   ok('Rückfall: Hinweis sagt, woher der Wert kommt',/rechnet ihn aus dem Gesamtzähler/.test(hint(e)),hint(e));
   // 3. Ohne Tagessensoren: alles aus den Gesamtzählern. Bezug 0,5+0,5 + (5001,4−5001) = 1,4; PV 1+1,5 + (1003−1002,5) = 3,0
   e=mount(base,hassFor());await wait(1800);await tab(e,'day');
-  ok('ohne Tagessensoren: Bezug 1,4 kWh',/1,4 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
-  ok('ohne Tagessensoren: Solarstrom selbst genutzt 2,5 kWh',/2,5 kWh Solarstrom selbst genutzt/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
+  ok('ohne Tagessensoren: Bezug 1,4 kWh',/Bezug\s*1,4 kWh/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('ohne Tagessensoren: Solarstrom selbst genutzt 2,5 kWh',/Selbst genutzt\s*2,5 kWh/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
   ok('ohne Tagessensoren: kein Hinweis',hint(e)==='',hint(e));
   // 4. #26: Gesamtzähler im Tagesfeld (53.419 kWh)
   e=mount({...base,pv_today:'sensor.dpv',import_today:'sensor.di',export_today:'sensor.de'},hassFor({'sensor.dpv':S(3),'sensor.di':S(1.4),'sensor.de':S(53419)}));await wait(1800);await tab(e,'day');
@@ -72,13 +80,13 @@ async function run(){
   ok('ohne pv_lifetime: wie bisher aus pv_total',/0,003 ?MWh|0,0 ?MWh/.test(t(e,'[data-f="pvAll"]')),t(e,'[data-f="pvAll"]'));
   // 8. decimals (#25)
   e=mount({...base,decimals:2},hassFor());await wait(1800);
-  ok('decimals: 2 → 73,20 kWh bezogen',/73,20 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('decimals: 2 → 73,20 kWh bezogen',/Bezug\s*73,20 kWh/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
   ok('decimals: 2 → Monatszeile mit zwei Stellen',/Solar 20,00 kWh/.test(t(e,'.detail')),t(e,'.detail'));
   e=mount({...base,decimals:{energy:0,percentage:1}},hassFor());await wait(2600);
-  ok('decimals.energy 0 → 73 kWh',/^73 kWh bezogen/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
+  ok('decimals.energy 0 → 73 kWh',/^Bezug\s*73 kWh/.test(t(e,'[data-f="costSub"]')),t(e,'[data-f="costSub"]'));
   ok('decimals.percentage 1 → Autarkie mit einer Stelle',/^\d+,\d$/.test(t(e,'[data-t="aut"]')),t(e,'[data-t="aut"]'));
   e=mount(base,hassFor());await wait(1800);
-  ok('ohne decimals: wie bisher',/^73,2 kWh/.test(t(e,'[data-f="costSub"]'))&&/^\d+$/.test(t(e,'[data-t="aut"]')),t(e,'[data-f="costSub"]')+' / '+t(e,'[data-t="aut"]'));
+  ok('ohne decimals: wie bisher',/^Bezug\s*73,2 kWh/.test(t(e,'[data-f="costSub"]'))&&/^\d+$/.test(t(e,'[data-t="aut"]')),t(e,'[data-f="costSub"]')+' / '+t(e,'[data-t="aut"]'));
   document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
 }
 if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search),f=P.get('fall');

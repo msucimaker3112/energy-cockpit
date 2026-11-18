@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.33.5
+- **Energiefluss, 3D-Bilder wachsen mit der Schrift:** Mit großer `label_size` oder `text_size` wurde der Text in den Kacheln groß, die 3D-Bilder (Solarmodul, Zähler, Batterie) blieben aber klein. Auf großen Wandtablets sah das verloren aus. Jetzt wachsen die Bilder mit: über dem Text bis knapp zur doppelten Höhe, neben dem Text bis 1,4-mal so breit, auch in der Kurzansicht. Ohne große Schrift bleibt alles wie bisher. Gemeldet in [#67](https://github.com/msucimaker3112/energy-cockpit/issues/67).
+- **Energiefluss, „Inaktiv“ statt „Standby“:** Die Batterie-Kachel zeigt im Ruhezustand jetzt „Inaktiv“, wie die Solar-Kachel. Vorschlag aus [#68](https://github.com/msucimaker3112/energy-cockpit/issues/68).
+- **Statistik, Zeilen unter den Werten aufgeräumt:** Die Zeilen unter den großen Werten stehen jetzt wie in der Fußzeile, Beschriftung links und Wert rechts: „Selbst genutzt“ (Solar-Ersparnis und Solar-Eigenverbrauch), „Einspeisung“, „Bezug“, „davon Grundpreis“ und „davon …“ für den zweiten Zähler (Stromkosten Netz), „Eigenverbrauch“ und „Verbrauch“ (Autarkie). Vorschlag aus [#66](https://github.com/msucimaker3112/energy-cockpit/issues/66).
+- **Statistik, Hinweis unten mit Grundpreis:** Mit `grid_base_fee` stand unten weiter „reine Energiekosten ohne Grundgebühr“. Jetzt heißt es dann „Stromkosten Netz mit Grundpreis“.
+
 ## 0.33.4
 - **Statistik, Grundpreis:** Neu und optional: `grid_base_fee` (Euro pro Monat). Der Grundpreis zählt anteilig je Tag in „Stromkosten Netz“ mit, für Heute, Woche, Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „davon Grundpreis …“. Mit `grid_base_fee_history` lassen sich frühere Grundpreise eintragen (`until` wie bei `grid_price_history`). Einmalige Anschlusskosten und Wechselboni zählen bewusst nicht mit, Solar-Ersparnis und Amortisation bleiben unverändert. Ohne Eintrag ändert sich nichts. Anlass: [#57](https://github.com/msucimaker3112/energy-cockpit/issues/57).
 

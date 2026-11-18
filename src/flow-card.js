@@ -1079,7 +1079,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const nodes = [...wrap.querySelectorAll('.node[data-k]')];
     nodes.forEach((n) => n.classList.remove('d3tall'));
     const ts = parseFloat(getComputedStyle(wrap).getPropertyValue('--ts')) || 1;
-    const need = (this._cmp ? 185 : mode === 'wide' ? 320 : mode === 'narrow' ? 280 : 300) + (ts - 1) * 120;
+    // #67: Das Bild neben dem Text wächst mit der Schrift (bis 1,4×), also braucht die Kachel entsprechend mehr Breite
+    const need = (this._cmp ? 185 : mode === 'wide' ? 320 : mode === 'narrow' ? 280 : 300) + (ts - 1) * 120 + (Math.min(ts, 1.4) - 1) * (this._cmp ? 52 : 132);
     nodes.map((n) => n.offsetWidth).forEach((nw, i) => nodes[i].classList.toggle('d3tall', nw > 0 && nw < need));
     wrap.style.width = sw;
     this._forceFit = true;

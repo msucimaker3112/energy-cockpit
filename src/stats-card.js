@@ -47,6 +47,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .m .unit{font-size:.95rem;font-weight:700;color:rgb(var(--c));opacity:.8;margin-left:5px}
 .m .sub{font-size:.74rem;color:rgb(var(--mut));margin-top:7px}
 .m .sub b{color:var(--txt);font-weight:600}
+.m .sub .kv{display:flex;justify-content:space-between;align-items:baseline;column-gap:10px;min-width:0}
+.m .sub .kv+.kv{margin-top:3px}
+.m .sub .kv>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m .sub .kv>b{flex:none;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .m.aut .num{color:rgb(var(--home))}
 .m.selfc .num{color:rgb(var(--sav))}
 .ring2{display:flex;margin-top:8px}
@@ -848,12 +852,14 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
         this._count('cost', price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
-        this._f('pvsavSub', T('st.self', { kwh: this._fk(self) }));
-        this._f('feedSub', T('st.fed', { kwh: this._fk(p.exp) }));
+        // #66: Zeilen wie die Fußzeile, Text links, Wert rechts
+        const kv = (l, v) => `<div class="kv"><span>${l}</span><b>${v}</b></div>`;
+        this._f('pvsavSub', kv(T('st.r.self'), this._fk(self) + ' kWh'));
+        this._f('feedSub', kv(T('st.r.fed'), this._fk(p.exp) + ' kWh'));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
-        this._f('selfcSub', T('st.self', { kwh: this._fk(self) }));
-        this._f('costSub', T('st.drawn', { kwh: this._fk(impT) }) + (g2 > 0 && price2 > 0 ? ' · ' + T('st.g2of', { n: esc(c._g2n), eur: fEur(g2 * price2), cur: CUR }) : '') + (baseFee > 0 ? ' · ' + T('st.basefee', { eur: fEur(baseFee), cur: CUR }) : ''));
-        this._f('autSub', T('st.autsub', { self: p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—', cons: this._fk(cons) }));
+        this._f('selfcSub', kv(T('st.r.self'), this._fk(self) + ' kWh'));
+        this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
+        this._f('autSub', kv(T('st.r.selfq'), p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—') + kv(T('st.r.cons'), this._fk(cons) + ' kWh'));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)
         ['pvsav', 'feed', 'selfc', 'cost', 'aut'].forEach((k) => { this._count(k, null); this._f(k + 'Sub', T('st.nodata2')); });
@@ -948,7 +954,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const pvAll = this._m && this._m.pvAll !== undefined ? this._m.pvAll : pvT;
       if (pvAll !== null) this._f('pvAll', `${nf(pvAll / 1000, 1)}<small>MWh</small>`);
       // Preis unter 1 Cent: vermutlich in Euro statt Cent eingetragen (grid_price_ct erwartet Cent, z. B. 23.88)
-      this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1) }) + (price < 0.01 ? '<br>' + T('st.price.warn', { p: nf(price * 100, 2) }) : '') : T('st.noprice'));
+      this._f('note', price > 0 ? T('st.note', { p: nf(price * 100, 1), f: nf(feed * 100, 1), g: T(this._c._bf > 0 || this._c._bfh.length ? 'st.note.fee' : 'st.note.nofee') }) + (price < 0.01 ? '<br>' + T('st.price.warn', { p: nf(price * 100, 2) }) : '') : T('st.noprice'));
       if (this._fs) this._fitH(); else this._sched();
     }
 
