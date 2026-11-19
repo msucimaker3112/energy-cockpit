@@ -30,8 +30,19 @@ const load = (file) => vm.runInContext(readFileSync(path.join(root, file), 'utf8
 load('src/common.js');
 vm.runInContext('globalThis.WD = WD', context);
 load('src/i18n.js');
+// Alle Übersetzungen mitschneiden, um Platzhalter und Tags gegen die deutschen Texte zu prüfen
+const captured = { de: new Set(), tr: {} };
+{
+  const addStrings = context.WD.addStrings, addTranslations = context.WD.addTranslations;
+  context.WD.addStrings = (o) => { Object.keys(o).forEach((k) => captured.de.add(k)); addStrings(o); };
+  context.WD.addTranslations = (l, o) => { captured.tr[l] = Object.assign(captured.tr[l] || {}, o); addTranslations(l, o); };
+}
+load('src/devices-i18n.js');
+load('src/stats-i18n.js');
 load('src/i18n-en.js');
 load('src/i18n-nl.js');
+load('src/i18n-fr.js');
+load('src/i18n-fi.js');
 context.WD.D3 = { css: '' };
 load('src/flow-card.js');
 load('src/room-card.js');
@@ -65,13 +76,13 @@ test('selects English from a regional language tag and preserves placeholders', 
 
 test('uses German translations for unsupported languages while formatting with the HA locale', () => {
   WD.addStrings({ 'test.german-only': 'Nur auf Deutsch' });
-  WD.setLocale({ language: 'fr-FR' });
+  WD.setLocale({ language: 'es-ES' });
 
   assert.equal(WD.state.lang, 'de');
-  assert.equal(WD.state.loc, 'fr-FR');
+  assert.equal(WD.state.loc, 'es-ES');
   assert.equal(WD.T('flow.home'), 'Hausverbrauch');
   assert.equal(WD.T('test.german-only'), 'Nur auf Deutsch');
-  assert.equal(WD.nf(1234.5, 1), new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(1234.5));
+  assert.equal(WD.nf(1234.5, 1), new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(1234.5));
 });
 
 test('falls back to German locale for an invalid Home Assistant language tag', () => {
@@ -186,7 +197,7 @@ test('card option language overrides the Home Assistant language, auto follows i
   assert.equal(WD.state.lang, 'nl');
   WD.setLocale({ language: 'en-GB' }, { language: ' AUTO ' });
   assert.equal(WD.state.lang, 'en');
-  WD.setLocale({ language: 'en-GB' }, { language: 'fr' });
+  WD.setLocale({ language: 'en-GB' }, { language: 'es' });
   assert.equal(WD.state.lang, 'de');
   WD.setLocale({ language: 'en-GB' }, {});
   assert.equal(WD.state.lang, 'en');
@@ -226,4 +237,44 @@ test('time format of the Home Assistant profile is respected', () => {
   assert.match(WD.hhmm(t), /^16:49$/);
   WD.setLocale({ language: 'en-US' });
   assert.match(WD.hhmm(t), /4:49\s?pm/i);
+});
+
+test('selects French and Finnish from the Home Assistant language, with German for missing texts', () => {
+  WD.setLocale({ language: 'fr-FR' });
+  assert.equal(WD.state.lang, 'fr');
+  assert.equal(WD.T('flow.battery'), 'Batterie');
+  assert.equal(WD.nf(1234.5, 1).replace(/\s/g, ' '), '1 234,5');
+  WD.setLocale({ language: 'fi-FI' });
+  assert.equal(WD.state.lang, 'fi');
+  assert.equal(WD.T('flow.grid'), 'Verkko');
+  // ein Text, den die Sprache noch nicht hat, erscheint auf Deutsch
+  WD.addStrings({ 'test.noch-nicht-uebersetzt': 'Nur auf Deutsch' });
+  assert.equal(WD.T('test.noch-nicht-uebersetzt'), 'Nur auf Deutsch');
+  WD.setLocale({ language: 'en-GB' }, { language: 'fr' });
+  assert.equal(WD.state.lang, 'fr');
+  WD.setLocale({ language: 'en-GB' }, { language: 'fi' });
+  assert.equal(WD.state.lang, 'fi');
+});
+
+test('every translation keeps the placeholders and the HTML tags of the German text', () => {
+  WD.setLocale({ language: 'de-DE' });
+  const placeholders = (v) => (String(v).match(/\{[a-z0-9_]+\}/gi) || []).sort().join(',');
+  const tags = (v) => (String(v).match(/<\/?[a-z][^>]*>/gi) || []).map((t) => t.toLowerCase()).sort().join(',');
+  const allowed = /^<\/?(b|i|br|small|span|strong|em|div)(\s[^>]*)?>$/i;
+  const germanKeys = new Set(captured.de);
+  const baseBlock = readFileSync(path.join(root, 'src/i18n.js'), 'utf8').match(/de: \{([\s\S]*?)\n    \},\n    en:/)[1];
+  (baseBlock.match(/'([^']+)':/g) || []).forEach((k) => germanKeys.add(k.slice(1, -2)));
+  const problems = [];
+  for (const [lang, dict] of Object.entries(captured.tr)) {
+    for (const [key, value] of Object.entries(dict)) {
+      const german = WD.T(key);
+      if (!germanKeys.has(key)) { problems.push(`${lang} ${key}: Schlüssel gibt es auf Deutsch nicht (mehr)`); continue; }
+      if (placeholders(value) !== placeholders(german)) problems.push(`${lang} ${key}: Platzhalter ${placeholders(value)} statt ${placeholders(german)}`);
+      if (tags(value) !== tags(german)) problems.push(`${lang} ${key}: HTML-Tags passen nicht`);
+      const bad = (String(value).match(/<[^>]*>/g) || []).filter((t) => !allowed.test(t));
+      if (bad.length) problems.push(`${lang} ${key}: unzulässiges HTML ${bad.join(' ')}`);
+    }
+  }
+  assert.deepEqual(problems, []);
+  assert.ok(['en', 'nl', 'fr', 'fi'].every((l) => Object.keys(captured.tr[l] || {}).length > 100));
 });

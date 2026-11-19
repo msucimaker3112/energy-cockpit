@@ -1,7 +1,12 @@
 # Änderungsprotokoll
 
+## 0.37.0
+- **Französisch und Finnisch.** Die Karten sprechen jetzt auch Französisch (Beitrag von Shadowspocket, [#39](https://github.com/msucimaker3112/energy-cockpit/pull/39)) und Finnisch (Beitrag von [@omcberry](https://github.com/omcberry), [#30](https://github.com/msucimaker3112/energy-cockpit/issues/30), „Finnish translation: omcberry“). Beide Sprachen sind noch nicht vollständig: Rund die Hälfte der Texte, die seit den Beiträgen dazugekommen sind, erscheint vorerst auf Deutsch. `language: fr` oder `language: fi` legt die Sprache fest, sonst folgt die Karte dem Home-Assistant-Profil. Vielen Dank!
+- **`npm run missing -- fr`** listet die Texte, die in einer Sprache noch fehlen, mit der deutschen Vorlage. So lässt sich eine Übersetzung leicht ergänzen.
+- **Prüfung der Übersetzungen:** Ein neuer Test stellt sicher, dass jede Übersetzung die Platzhalter (`{n}`) und HTML-Tags des deutschen Textes behält und kein unzulässiges HTML enthält.
+
 ## 0.36.0
-- **Sprache der Karten: Deutsch, Englisch, Niederländisch.** Die Karten zeigen ihre Texte in der Sprache aus dem Home-Assistant-Profil. Andere Sprachen zeigen Deutsch. Editoren und Assistent bleiben deutsch. Die Übersetzungen und den Mechanismus haben [@bartjackbakker](https://github.com/bartjackbakker) (Texte, [#38](https://github.com/msucimaker3112/energy-cockpit/pull/38)) und [@aavdberg](https://github.com/aavdberg) (Umschaltung, [#74](https://github.com/msucimaker3112/energy-cockpit/pull/74)) beigesteuert. Vielen Dank!
+- **Sprache der Karten: Deutsch, Englisch, Niederländisch.** Die Karten zeigen ihre Texte in der Sprache aus dem Home-Assistant-Profil. Andere Sprachen zeigen Deutsch. Editoren und Assistent bleiben deutsch. Den Mechanismus und die englischen und niederländischen Texte hat [@aavdberg](https://github.com/aavdberg) beigesteuert ([#74](https://github.com/msucimaker3112/energy-cockpit/pull/74)). [@bartjackbakker](https://github.com/bartjackbakker) hat die niederländischen Texte geprüft, sein früherer Beitrag ([#38](https://github.com/msucimaker3112/energy-cockpit/pull/38)) war der Anstoß. Vielen Dank!
 - **Neu: `language`.** Wer Home Assistant auf Englisch betreibt, die Karte aber deutsch lesen will, legt in der Karte `language: de` fest (`auto` ist der Standard, dazu `en` und `nl`). Im Assistenten steht das Feld im Schritt „Aussehen“.
 - **Zahlen und Uhrzeit nach dem Profil:** Zahlenformat („1.234,5“ oder „1,234.5“) und 12-/24-Stunden-Uhr folgen den Einstellungen im Home-Assistant-Profil, unabhängig von der Sprache. Ohne eigene Einstellung bleibt für deutsche Nutzer alles wie bisher.
 

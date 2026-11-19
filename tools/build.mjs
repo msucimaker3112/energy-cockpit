@@ -26,6 +26,8 @@ const ORDER = [
   'stats-editor.js',
   'i18n-en.js',
   'i18n-nl.js',
+  'i18n-fr.js',
+  'i18n-fi.js',
 ];
 
 const parts = ORDER.filter((f) => existsSync(join(root, 'src', f))).map((f) => `/* ---- ${f} ---- */\n` + readFileSync(join(root, 'src', f), 'utf8'));

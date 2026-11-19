@@ -4,7 +4,7 @@ const WD = (() => {
 
   // Sprache, Zahlen- und Zeitformat und Währung. Standard: wie in Home Assistant eingestellt (Profil, Allgemein).
   // cfg.language ('de', 'en', 'nl' oder 'auto') legt die Sprache der Karte fest, unabhängig von Home Assistant
-  const LANG_OPTIONS = [{ value: 'auto', label: 'Automatisch, wie Home Assistant (Standard)' }, { value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }];
+  const LANG_OPTIONS = [{ value: 'auto', label: 'Automatisch, wie Home Assistant (Standard)' }, { value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }, { value: 'fr', label: 'Français' }, { value: 'fi', label: 'Suomi' }];
   const NUMBER_LOCALES = { comma_decimal: 'en-US', decimal_comma: 'de-DE', space_comma: 'fr-FR', none: 'en-US' };
   const setLocale = (hass, cfg) => {
     if (!hass) return;
@@ -12,7 +12,7 @@ const WD = (() => {
     const requested = forced || (typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE');
     try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
     const language = state.loc.split('-')[0].toLowerCase();
-    state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
+    state.lang = ['de', 'en', 'nl', 'fr', 'fi'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
     const hl = hass.locale || {}, nav = (typeof navigator !== 'undefined' && navigator.language) || state.loc;
     state.nloc = hl.number_format === 'system' ? nav : NUMBER_LOCALES[hl.number_format] || state.loc;
@@ -122,7 +122,7 @@ const WD = (() => {
   };
   const hhmm = (d) => new Date(d).toLocaleTimeString(state.loc, state.h12 === undefined ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', hour12: state.h12 });
   const clock = (ms) => hhmm(ms);
-  const nf = (v, d) => Number(v).toLocaleString(state.nloc, { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: state.group });
+  const nf = (v, d) => Number(v).toLocaleString(state.nloc, { minimumFractionDigits: d, maximumFractionDigits: d, ...(state.group ? {} : { useGrouping: false }) });
   // onlyW: immer in Watt, nie in kW umschalten (Option watt_only)
   // d (optional): feste Nachkommastellen aus der Option decimals; ohne d bleibt die bisherige Darstellung. Watt bleiben immer ganzzahlig
   const splitW = (w, onlyW, d) => {

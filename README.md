@@ -454,7 +454,7 @@ Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://gith
 
 **A personal request:** I build Energy-Cockpit in my free time, it is free and has no ads. If you like it, a ⭐ at the top right of this page means a lot to me. It helps others find the card and tells me the work is worth it. Thank you!
 
-Card runtime text is available in **German, English and Dutch**, selected from Home Assistant's language. Unsupported languages fall back to German. You can fix the language per card with `language: de`, `en`, `nl` or `auto` (default), and numbers and clock follow the number and time format of your Home Assistant profile. Card editors and the setup wizard are still German-only. Issues and pull requests in English are welcome.
+Card runtime text is available in **German, English, Dutch, French and Finnish**, selected from Home Assistant's language (French and Finnish are about half translated, the rest shows in German). Unsupported languages fall back to German. You can fix the language per card with `language: de`, `en`, `nl`, `fr`, `fi` or `auto` (default), and numbers and clock follow the number and time format of your Home Assistant profile. Card editors and the setup wizard are still German-only. Issues and pull requests in English are welcome.
 
 ## Lizenz
 
