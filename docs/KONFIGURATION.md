@@ -410,6 +410,8 @@ colors:
 | `battery_charge` | hellblau | Batterie lädt: Kachel, Ladebalken, Linie, 3D-Objekt |
 | `battery_discharge` | wie `battery` | Batterie entlädt: Kachel, Linie, 3D-Objekt, Ring und Zeile „Solar / Batterie / Netz“ |
 | `home` | türkis | Zahl beim Haus, Sammel-Linie |
+| `gas` | orange | Gas-Kachel und ihre Linie |
+| `water` | blau | Wasser-Kachel und ihre Linie |
 
 Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für die Karte, in der sie stehen, andere Karten bleiben unberührt.
 
@@ -431,6 +433,36 @@ colors:
 ```
 
 **Tipp:** Netzbezug ist standardmäßig rot. Wer die Batterie beim Entladen ebenfalls rot färbt, kann beides im Ring verwechseln. Dann hilft eine andere Farbe für `grid_import`, zum Beispiel Orange.
+
+### Gas und Wasser: `gas`, `water`
+
+Optional. Gas und Wasser bekommen je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie (ohne Batterie an ihrer Stelle, mit `pv_to_battery: direkt` unter dem Netz). Sie zählen **nicht** zum Strom: Hausverbrauch, Ring, Autarkie und Eigenverbrauch bleiben unverändert. In der 3D-Ansicht stehen dort eine Gastherme und ein Wasserzähler.
+
+![Gas- und Wasser-Kachel in der 3D-Ansicht](img/gas-wasser.png)
+
+```yaml
+gas:
+  entity: sensor.therme_leistung        # optional: aktuelle Leistung (W oder kW)
+  heating: sensor.gas_heizung_heute     # Heizung heute (kWh oder m³)
+  hot_water: sensor.gas_warmwasser_heute  # Warmwasser heute (kWh oder m³)
+  # daily: sensor.gas_heute             # oder nur eine Summe ohne Aufteilung
+  # kwh_per_m3: 10.3                    # nur bei Sensoren in m³
+water:
+  entity: sensor.wasser_durchfluss      # optional: Durchfluss (l/min, L/h oder m³/h)
+  daily: sensor.wasser_heute            # Verbrauch heute (Liter oder m³)
+```
+
+| Schlüssel | Wert | Wirkung |
+|---|---|---|
+| `gas.entity` | Sensor (W, kW) | Aktuelle Leistung der Therme. Dann steht sie groß in der Kachel, die Linie läuft nur beim Heizen („Heizt“), und darunter steht der Verbrauch von heute. Ohne steht groß der Verbrauch von heute, und die Linie läuft, sobald heute Gas verbraucht wurde |
+| `gas.heating`, `gas.hot_water` | Sensor (kWh oder m³) | Tageswerte für Heizung und Warmwasser, je eine Zeile. Die Summe ist der Tageswert der Kachel |
+| `gas.daily` | Sensor (kWh oder m³) | Gas heute gesamt, wenn es keine Aufteilung gibt |
+| `gas.kwh_per_m3` | Zahl | Umrechnung von m³ in kWh, steht auf der Gasrechnung (Brennwert × Zustandszahl, meist um 10). Ohne zeigt die Kachel m³ |
+| `water.entity` | Sensor (l/min, L/h, m³/h) | Durchfluss. Dann steht er groß in der Kachel („Fließt“), darunter der Verbrauch von heute |
+| `water.daily` | Sensor (L oder m³) | Wasser heute. Ab 1.000 Litern in m³ |
+| `name`, `icon` | Text | Eigener Name und Symbol (Standard: Gas mit `mdi:fire`, Wasser mit `mdi:water`) |
+
+Die Tageswerte brauchen Sensoren, die um Mitternacht neu beginnen, zum Beispiel einen Helfer „Verbrauchszähler“ (utility_meter) mit Zyklus täglich auf deinem Gas- oder Wasserzähler. Die Farben änderst du mit `colors.gas` und `colors.water`. Anlass: [#65](https://github.com/msucimaker3112/energy-cockpit/issues/65).
 
 ### Himmelsband: `weather`
 

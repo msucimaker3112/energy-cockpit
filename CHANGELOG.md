@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.35.0
+- **Energiefluss, Gas und Wasser:** Neu und optional sind `gas` und `water`, je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie. Gas zeigt groß die Leistung der Therme (wenn `gas.entity` eingetragen ist), sonst den Verbrauch von heute, darunter Heizung und Warmwasser getrennt (`heating`, `hot_water`) oder eine Summe (`daily`). Sensoren in m³ rechnet die Karte mit `kwh_per_m3` in kWh um, ohne Angabe zeigt sie m³. Wasser zeigt den Durchfluss in l/min und den Verbrauch von heute in Litern oder m³. Beides zählt nicht zum Strom: Hausverbrauch, Ring und Autarkie bleiben gleich. In der 3D-Ansicht stehen eine Gastherme mit Flamme und ein Wasserzähler mit drehendem Zeiger. Farben über `colors.gas` und `colors.water`, einstellbar im Editor und im Assistenten (Schritt „Gas/Wasser“). Wunsch aus [#65](https://github.com/msucimaker3112/energy-cockpit/issues/65).
+
 ## 0.34.0
 - **Geräte & Verbrauch, Messgeräte ohne Schalter:** `entity` ist jetzt optional. Fehlt sie, nimmt die Karte `power` (sonst `energy`), zum Beispiel für Shelly EM, die nur messen. Solche Geräte und alle mit einem Sensor als `entity` zeigen keinen Schalter, und ein Tipp schaltet nichts. Gemeldet in [#71](https://github.com/msucimaker3112/energy-cockpit/issues/71).
 - **Statistik, Erzeugung in „Solar-Ersparnis“:** Über „Selbst genutzt“ steht jetzt „Erzeugt … kWh“, die gesamte Solarproduktion im gewählten Zeitraum (auch in der Kachel Solar-Eigenverbrauch). Vorschlag aus [#72](https://github.com/msucimaker3112/energy-cockpit/issues/72).

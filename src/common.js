@@ -9,11 +9,11 @@ const WD = (() => {
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
-  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179' };
+  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179', gas: '249,115,22', wat: '59,130,246' };
   const TH = 10;
-  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home.
+  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home, gas, water.
   // Ohne battery_discharge entlaedt die Batterie in der Farbe der Batterie. Ungueltige Werte werden ignoriert
-  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home' };
+  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home', gas: 'gas', water: 'wat' };
   const palFor = (colors) => {
     const p = Object.assign({}, PAL), o = {};
     if (colors && typeof colors === 'object') {

@@ -290,6 +290,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Warum?-Erklärung** am Netz: wer braucht den Strom, warum liefert die Batterie nichts, warum kein Solar | `why: true` |
 | **Zweite Anlage durch einen Speicher**, zum Beispiel Anker SOLIX Solarbank mit eigenen Modulen und AC-Ladung aus dem Haus | `pv2.to_battery`, `batteries[].power_in` |
 | **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
+| **Gas und Wasser** als eigene Kacheln mit Linie zum Haus (Heizung und Warmwasser getrennt, kWh oder m³), ohne Einfluss auf den Strom | `gas`, `water` |
 | **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus, auch in Statistik und Geräte-Karte | `colors` |
 | **Textgröße** für Handy und Tablet (auch in der Statistik), auch als Zahl für größere Kachelwerte, und **Beschriftungsgröße** getrennt von den Zahlen | `text_size: gross`, `sehr_gross` oder `2`, `label_size: 1.5` |
 | **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele), auch eine schmalere Stufe | `consumers[].size: gross` oder `mittel` |

@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.34.0 - MIT License */
+/*! energy-cockpit v0.35.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -11,11 +11,11 @@ const WD = (() => {
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
-  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179' };
+  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179', gas: '249,115,22', wat: '59,130,246' };
   const TH = 10;
-  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home.
+  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home, gas, water.
   // Ohne battery_discharge entlaedt die Batterie in der Farbe der Batterie. Ungueltige Werte werden ignoriert
-  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home' };
+  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home', gas: 'gas', water: 'wat' };
   const palFor = (colors) => {
     const p = Object.assign({}, PAL), o = {};
     if (colors && typeof colors === 'object') {
@@ -257,6 +257,10 @@ const WD = (() => {
       else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
       else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
       else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));
+      // Gas: kWh oder m³, Wasser: Liter oder m³, Durchfluss: l/min, m³/h (#65)
+      else if (kind === 'gas') ok = dom === 'sensor' && (ENERGY_UNITS.indexOf(u) >= 0 || /^m(³|3)$/.test(u) || dc === 'gas' || dc === 'energy');
+      else if (kind === 'water') ok = dom === 'sensor' && (/^(l|L|m³|m3)$/.test(u) || dc === 'water');
+      else if (kind === 'flow') ok = dom === 'sensor' && (/^(l|L)\/(min|h|s)$|^m(³|3)\/h$/.test(u) || dc === 'volume_flow_rate');
       else if (kind === 'weather') ok = dom === 'weather';
       else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
       if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
@@ -909,7 +913,61 @@ function house(home,src,pre,form,detail,label){
   return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
 }
 
-const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
+/* Gas (#65): Wandtherme mit Flammenfenster. Leuchtet orange, solange sie heizt */
+function boiler(on,pre,large,text,label){
+  const W=70,D=34,H=100,BASE=34,z1=BASE+H,col=PAL.gas;
+  const defs=grad(pre+'bl','#e4e8ee','#bcc4cf')+grad(pre+'br','#a7b0bd','#87919f')+grad(pre+'bt','#f3f5f8','#d7dce3',1,1)+glow(pre+'sh','var(--shadow)',1)+glow(pre+'gl',`rgb(${col})`,.45)+grad(pre+'fo','#ffd27a',`rgb(${col})`);
+  let body='';
+  const ctr=P(W/2,D/2,0);
+  body+=`<ellipse cx="${ctr[0]+4}" cy="${ctr[1]+5}" rx="70" ry="40" fill="url(#${pre}sh)"/>`;
+  if(on)body+=`<ellipse cx="${ctr[0]}" cy="${ctr[1]-40}" rx="84" ry="70" fill="url(#${pre}gl)"/>`;
+  // Rohre nach unten
+  [16,30,44,56].forEach((x,i)=>{body+=seg([x,D/2,0],[x,D/2,BASE],`stroke:${i===1?'#b87333':'var(--alu1)'};stroke-width:4;stroke-linecap:round`);});
+  // Gehäuse
+  body+=poly([[0,D,BASE],[W,D,BASE],[W,D,z1],[0,D,z1]],`fill:url(#${pre}bl)`);
+  body+=poly([[W,D,BASE],[W,0,BASE],[W,0,z1],[W,D,z1]],`fill:url(#${pre}br)`);
+  body+=poly([[0,0,z1],[W,0,z1],[W,D,z1],[0,D,z1]],`fill:url(#${pre}bt)`);
+  body+=`<polyline points="${pts([[0,D,z1],[W,D,z1],[W,0,z1]])}" style="fill:none;stroke:#fff;stroke-opacity:.7;stroke-width:1"/>`;
+  // Front: Fenster mit Flamme, Anzeige
+  const o=P(0,D,BASE),y=(v)=>-H+v,fc=on?`url(#${pre}fo)`:'#7b8594';
+  let f=`<rect x="4" y="${y(4)}" width="${W-8}" height="${H-8}" rx="3" style="fill:none;stroke:#9aa3b0;stroke-width:1"/>`;
+  f+=`<rect x="${W/2-15}" y="${y(18)}" width="30" height="34" rx="4" style="fill:#141a24;stroke:#8d96a3;stroke-width:1.2"/>`;
+  f+=`<g transform="translate(${W/2},${y(44)})"${on?' class="d3-lamp" style="animation-duration:1.3s"':''}><path d="M0,-21 C8,-12 11,-5 7,2 C5,6 2,8 0,8 C-2,8 -5,6 -7,2 C-11,-5 -6,-10 -3,-15 C-2,-9 0,-8 1,-9 C3,-12 1,-17 0,-21Z" fill="${fc}"/>${on?'<path d="M0,-6 C3,-2 4,1 2,4 C1,6 -1,6 -2,4 C-4,1 -2,-2 0,-6Z" fill="#fff3c4"/>':''}</g>`;
+  f+=`<rect x="12" y="${y(64)}" width="${W-24}" height="16" rx="2" fill="#0a1410"/>`;
+  if(large&&text)f+=`<text x="${W/2}" y="${y(75.5)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="rgb(${on?col:'139,151,179'})" style="font-family:inherit;font-variant-numeric:tabular-nums">${text}</text>`;
+  f+=`<circle cx="${W-16}" cy="${y(88)}" r="3.2" fill="#55606f"/><circle cx="16" cy="${y(88)}" r="2.4" class="${on?'d3-lamp':''}" fill="${on?`rgb(${col})`:'#55606f'}"/>`;
+  body+=`<g transform="matrix(${C},${S},0,1,${o[0].toFixed(1)},${o[1].toFixed(1)})">${f}</g>`;
+  const xMin=P(0,D,0)[0]-14,xMax=P(W,0,0)[0]+14,yMin=P(0,0,z1)[1]-8,yMax=P(W,D,0)[1]+14;
+  return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
+}
+
+/* Wasser (#65): Wasserzähler in der Leitung. Der Zeiger dreht sich und die Punkte laufen, solange Wasser fließt */
+function wmeter(fl,pre,large,text,label){
+  const L=92,Y=26,Z=22,R=27,Z1=Z+30,run=fl>0.05,col=PAL.wat;
+  const dur=Math.max(.6,4-fl/4).toFixed(2)+'s';
+  const defs=grad(pre+'ms','#d9a65a','#8c5a22',1,0)+grad(pre+'mt','#f2c879','#b67a33',1,1)+glow(pre+'sh','var(--shadow)',1)+glow(pre+'gl',`rgb(${col})`,.4);
+  let body='';
+  const ctr=P(L/2,Y,0);
+  body+=`<ellipse cx="${ctr[0]+4}" cy="${ctr[1]+4}" rx="84" ry="42" fill="url(#${pre}sh)"/>`;
+  if(run)body+=`<ellipse cx="${ctr[0]}" cy="${ctr[1]-22}" rx="84" ry="60" fill="url(#${pre}gl)"/>`;
+  // Stützen und Leitung
+  [10,L-10].forEach((x)=>{body+=seg([x,Y,0],[x,Y,Z],'stroke:var(--alu1);stroke-width:4;stroke-linecap:round');});
+  body+=seg([0,Y,Z],[L,Y,Z],'stroke:#3b4a60;stroke-width:14;stroke-linecap:round');
+  body+=seg([0,Y,Z+2],[L,Y,Z+2],'stroke:#7d8da3;stroke-width:3;stroke-linecap:round;stroke-opacity:.8');
+  if(run){const a=P(0,Y,Z+3),b=P(L,Y,Z+3);body+=`<line class="d3-fl" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="rgb(${col})" style="animation-duration:${(parseFloat(dur)/3).toFixed(2)}s"/>`;}
+  // Zählergehäuse: Zylinder aus Messing mit Zifferblatt
+  const rx=R*1.2247,ry=R*.7071,b0=P(L/2,Y,Z-6),t0=P(L/2,Y,Z1);
+  body+=`<ellipse cx="${b0[0].toFixed(1)}" cy="${b0[1].toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="#6e4618"/>`;
+  body+=`<rect x="${(b0[0]-rx).toFixed(1)}" y="${t0[1].toFixed(1)}" width="${(2*rx).toFixed(1)}" height="${(b0[1]-t0[1]).toFixed(1)}" fill="url(#${pre}ms)"/>`;
+  body+=`<ellipse cx="${t0[0].toFixed(1)}" cy="${t0[1].toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="url(#${pre}mt)"/>`;
+  body+=`<ellipse cx="${t0[0].toFixed(1)}" cy="${t0[1].toFixed(1)}" rx="${(rx*.78).toFixed(1)}" ry="${(ry*.78).toFixed(1)}" fill="#e9eef5" stroke="#5b4320" stroke-width="1"/>`;
+  // Zeiger in der Ebene des Zifferblatts
+  body+=`<g transform="translate(${t0[0].toFixed(1)},${t0[1].toFixed(1)}) scale(1.2247,.7071)"><g${run?` class="d3-spin" style="animation-duration:${dur}"`:''}><polygon points="0,-12 2.2,0 -2.2,0" fill="#d23c3c"/><circle r="2.2" fill="#2b2f36"/></g>${[0,1,2,3,4,5,6,7].map((i)=>{const a=i*Math.PI/4;return `<line x1="${(Math.cos(a)*13).toFixed(1)}" y1="${(Math.sin(a)*13).toFixed(1)}" x2="${(Math.cos(a)*15).toFixed(1)}" y2="${(Math.sin(a)*15).toFixed(1)}" stroke="#5b6472" stroke-width="1.2"/>`;}).join('')}</g>`;
+  const xMin=Math.min(P(0,Y+8,Z)[0],t0[0]-rx)-12,xMax=Math.max(P(L,Y-8,Z)[0],t0[0]+rx)+12,yMin=t0[1]-ry-10,yMax=Math.max(P(L,Y,0)[1],b0[1]+ry)+14;
+  return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
+}
+
+const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n.d3-spin{animation:d3spin 2s linear infinite;transform-origin:0 0}\n@keyframes d3spin{to{transform:rotate(360deg)}}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl,.wrap:not(.anim-on) .d3-spin{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
 // Überträgt nur die Unterschiede in das vorhandene SVG, damit laufende Animationen nicht neu starten
 const tpl = document.createElement('template');
 const patch = (a, b) => {
@@ -941,7 +999,7 @@ const roof = (v) => {
 };
 // Maße des Rings aus house() (R = 92): für den Anschluss der Linien in der Karte
 const ring = { w: 2 * (92 * 1.23 + 6), bottom: 92 * 0.71 + 8, rx: 92 * Math.SQRT2 * C, ry: 92 * Math.SQRT2 * S };
-WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
+WD.D3 = { stack, solar, meter, house, boiler, wmeter, css, draw, ring, roof };
 })();
 
 
@@ -949,7 +1007,42 @@ WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+// Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
+WD.addStrings({ 'flow.gas': 'Gas', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
+// Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
+const gasVal = (h, id, f) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim();
+  if (/^kwh$/i.test(u)) return { kwh: v, m3: null };
+  if (/^wh$/i.test(u)) return { kwh: v / 1000, m3: null };
+  if (/^mwh$/i.test(u)) return { kwh: v * 1000, m3: null };
+  if (/^(m³|m3|m\^3)$/i.test(u)) return { kwh: f > 0 ? v * f : null, m3: v };
+  return { kwh: v, m3: null };
+};
+// Wasser in Litern (L, l, m³) und Durchfluss in l/min (l/min, L/h, m³/h)
+const waterL = (h, id) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim();
+  return /^(m³|m3|m\^3)$/i.test(u) ? v * 1000 : v;
+};
+const flowLmin = (h, id) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim().toLowerCase();
+  if (/^(m³|m3)\/h$/.test(u)) return v * 1000 / 60;
+  if (/^l\/h$/.test(u)) return v / 60;
+  if (/^l\/s$/.test(u)) return v * 60;
+  return v;
+};
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
 const CSS = `
@@ -1040,6 +1133,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
+.side{display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.side-bat{grid-area:bat}.side-grid{grid-area:grid}.side>.node,.side>.bats{grid-area:auto}
+.narrow .side{gap:16px 0}.wrap.cmp .side{gap:10px 0}
+.util .sub .sr b{white-space:nowrap}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
@@ -1800,13 +1896,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); if (this._via2 < 0) links.push('pv2'); }
-    if (c.grid) { nodes += node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : ''); links.push('grid'); }
+    let gridH = '', batH = '';
+    if (c.grid) { nodes += (gridH = node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '')); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
       const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
         `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
-      nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
+      nodes += (batH = nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml);
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
       if (this._via2 >= 0) links.push(`r:pv2:${this._bk(this._via2)}`);
@@ -1821,6 +1918,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
       });
     }
     if (this._s3d && c.grid) { if (c.pv) links.push('r:pv:grid'); if (hasPv2) links.push('r:pv2:grid'); }
+    // #65: Gas und Wasser stehen rechts unter der Batterie (mit pv_to_battery: direkt unter dem Netz), ohne Batterie an ihrer Stelle
+    const gas = c.gas && typeof c.gas === 'object' && (c.gas.entity || c.gas.daily || c.gas.heating || c.gas.hot_water) ? c.gas : null;
+    const wat = c.water && typeof c.water === 'object' && (c.water.entity || c.water.daily) ? c.water : null;
+    this._gas = gas; this._wat = wat;
+    let util = '';
+    if (gas) { util += node('gas', 'util gas', gas.icon || 'mdi:fire', gas.name || T('flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water); links.push('gas'); }
+    if (wat) { util += node('water', 'util water', wat.icon || 'mdi:water', wat.name || T('flow.water'), PAL.wat, wat.entity || wat.daily); links.push('water'); }
+    if (util) {
+      const tgt = this._via && gridH ? gridH : !this._via && batH ? batH : '';
+      if (tgt) nodes = nodes.replace(tgt, () => `<div class="side side-${this._via ? 'grid' : 'bat'}">${tgt}${util}</div>`);
+      else nodes += `<div class="side side-${this._via ? 'grid' : 'bat'}">${util}</div>`;
+    }
     // groups_columns: Gruppen pro Reihe (Standard: alle in einer Reihe). Stehen Gruppen untereinander,
     // liefen einzelne Linien durch die oberen Gruppen; ohne ausdrückliches groups_lines gilt dann die Sammel-Linie.
     const gc = Math.max(0, parseInt(c.groups_columns, 10) || 0);
@@ -2111,7 +2220,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
       // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
-      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid'].includes(L.k) || /^bat\d*$/.test(L.k));
+      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid', 'gas', 'water'].includes(L.k) || /^bat\d*$/.test(L.k));
       if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
       else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
@@ -2254,6 +2363,54 @@ class EnergyCockpitFlowCard extends HTMLElement {
     else if (expLeft > TH) this._link('grid', true, false, PAL.exp, expLeft);
     else this._link('grid', false, true, PAL.imp, 0);
   }
+  // #65: Gas und Wasser. Großer Wert: Leistung bzw. Durchfluss (entity), sonst der Verbrauch heute. Zählt nicht zum Strom
+  _utilUpdate() {
+    const h = this._hass, out = {};
+    const row = (label, v) => `<div class="sr"><span>${label}</span> <b>${v}</b></div>`;
+    const big = (el, n, u) => { const ne = el.querySelector('.num'), ue = el.querySelector('.unit'); if (ne.textContent !== n) ne.textContent = n; if (ue.textContent !== u) ue.textContent = u; };
+    const g = this._gas;
+    if (g) {
+      const el = this._$('[data-k="gas"]'), f = parseFloat(String(g.kwh_per_m3 || '').replace(',', '.')) || 0;
+      const p = g.entity ? watt(h, g.entity) : null;
+      const hv = g.heating ? gasVal(h, g.heating, f) : null, wv = g.hot_water ? gasVal(h, g.hot_water, f) : null, dv = g.daily ? gasVal(h, g.daily, f) : null;
+      const parts = [hv, wv].filter(Boolean), tot = dv || (parts.length ? { kwh: parts.some((x) => x.kwh === null) ? null : parts.reduce((a, x) => a + x.kwh, 0), m3: parts.every((x) => x.m3 !== null) ? parts.reduce((a, x) => a + x.m3, 0) : null } : null);
+      // m³ ohne kwh_per_m3: Anzeige in m³
+      const fmt = (x) => (!x ? '—' : x.kwh !== null ? this._fk(x.kwh) + ' kWh' : x.m3 !== null ? nf(x.m3, 2) + ' m³' : '—');
+      const on = p !== null ? p > TH : !!(tot && ((tot.kwh || 0) > 0 || (tot.m3 || 0) > 0));
+      el.classList.toggle('on', on);
+      el.style.setProperty('--c', on ? PAL.gas : PAL.mut);
+      if (p !== null) this._anim('gas', p, el);
+      else if (!tot) big(el, '—', '');
+      else if (tot.kwh !== null) { const t = this._fk(tot.kwh); big(el, t, 'kWh'); }
+      else big(el, nf(tot.m3, 2), 'm³');
+      this._set('.gas .tag', p !== null ? (p > TH ? T('tag.gas.on') : T('tag.idle')) : T('tag.today'));
+      const rows = [];
+      if (g.heating) rows.push(row(T('gas.heat'), fmt(hv)));
+      if (g.hot_water) rows.push(row(T('gas.hw'), fmt(wv)));
+      // Mit Leistung oben: Summe heute als Zeile, außer sie stünde schon als einzige Aufteilung da
+      if (p !== null && tot && (g.daily || rows.length !== 1)) rows.push(row(T('gas.today'), fmt(tot)));
+      this._set('.gas .sub', rows.join(''), true);
+      this._link('gas', on, true, PAL.gas, p !== null ? p : 0);
+      out.gas = { p, on };
+    }
+    const w = this._wat;
+    if (w) {
+      const el = this._$('[data-k="water"]');
+      const fl = w.entity ? flowLmin(h, w.entity) : null, dl = w.daily ? waterL(h, w.daily) : null;
+      const fmtL = (l) => (l === null ? '—' : l >= 1000 ? nf(l / 1000, 2) + ' m³' : nf(l, 0) + ' L');
+      const on = fl !== null ? fl > 0.05 : (dl || 0) > 0;
+      el.classList.toggle('on', on);
+      el.style.setProperty('--c', on ? PAL.wat : PAL.mut);
+      if (fl !== null) big(el, nf(fl, fl < 10 ? 1 : 0), 'l/min');
+      else if (dl !== null) { const [n, u] = fmtL(dl).split(' '); big(el, n, u); }
+      else big(el, '—', '');
+      this._set('.water .tag', fl !== null ? (fl > 0.05 ? T('tag.water.on') : T('tag.idle')) : T('tag.today'));
+      this._set('.water .sub', fl !== null && dl !== null ? row(T('gas.today'), fmtL(dl)) : '', true);
+      this._link('water', on, true, PAL.wat, fl !== null ? fl * 100 : 0);
+      out.water = { fl, on };
+    }
+    return out;
+  }
   // 3D-Objekte: nur neu zeichnen, wenn sich die gerundeten Werte ändern
   _draw3d(v) {
     const D3 = WD.D3, c = this._c, large = !this._cmp, q = (w) => (w === null || w === undefined ? 'x' : Math.round(w / (Math.abs(w) < 200 ? 5 : 25)));
@@ -2291,6 +2448,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         }
       }
     });
+    // #65: Gastherme und Wasserzähler
+    const u = v.util || {};
+    if (u.gas) { const gp = u.gas.p; put('gas', [u.gas.on, q(gp), large].join(), () => D3.boiler(u.gas.on, 'gas', large, gp !== null ? this._fW(gp) : '', (this._gas && this._gas.name) || T('flow.gas'))); }
+    if (u.water) { const fl = u.water.fl; put('water', [u.water.on, fl === null ? 'x' : Math.round(fl * 2), large].join(), () => D3.wmeter(fl || 0, 'water', large, fl !== null ? nf(fl, fl < 10 ? 1 : 0) + ' l/min' : '', (this._wat && this._wat.name) || T('flow.water'))); }
     const form = c.house_style === 'flach' ? 'modern' : 'sattel', s = v.src;
     put('home', [q(v.home), q(s.pv), q(s.bat), q(s.imp), form, large].join(), () => D3.house(v.home, s, 'home', form, large, (c.home && c.home.name) || T('flow.home')));
   }
@@ -2650,9 +2811,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
+    const util = this._utilUpdate();
     if (this._s3d) {
       this._routes3d({ bats, gImp: gImpM, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
-      this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
+      this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp }, util });
     }
     this._banner({ pv, grid, bat, soc, home, gImp: gImpM, gExp });
     // Momentaufnahme fuer die "Warum?"-Erklaerung (why)
@@ -2894,6 +3056,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'pv_to_battery', selector: { select: { mode: 'dropdown', options: PV_VIA } } },
       sec('batteries', 'Weitere Speicher (2. bis 5.)', slots(4, (n) => `Speicher ${n + 1}`, batteryFields)),
       sec('home', 'Haus (optional)', [ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor'])]),
+      sec('gas', 'Gas (eigene Kachel, zählt nicht zum Strom)', [Object.assign(ent('entity', ['sensor']), { label: 'Leistung der Therme (W oder kW, optional)' }), txt('name'), Object.assign(ent('heating', ['sensor']), { label: 'Heizung heute (kWh oder m³)' }), Object.assign(ent('hot_water', ['sensor']), { label: 'Warmwasser heute (kWh oder m³)' }), Object.assign(ent('daily', ['sensor']), { label: 'oder nur: Gas heute gesamt (kWh oder m³)' }), Object.assign(numb('kwh_per_m3', 0, 20, 0.01), { label: 'kWh je m³ (Brennwert × Zustandszahl, nur bei m³)' })]),
+      sec('water', 'Wasser (eigene Kachel)', [Object.assign(ent('entity', ['sensor']), { label: 'Durchfluss (l/min oder m³/h, optional)' }), txt('name'), Object.assign(ent('daily', ['sensor']), { label: 'Wasser heute (Liter oder m³)' })]),
       sec('consumers', 'Einzelverbraucher (bis zu 12)', slots(12, (n) => `Verbraucher ${n}`, consumerFields)),
       sec('consumer_groups', 'Gruppen (bis zu 10)', slots(10, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
@@ -2927,7 +3091,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('nav_path'),
       txt('nav_label'),
     ],
-    computeLabel: (s) => LABELS[s.name] || s.title || s.name,
+    computeLabel: (s) => s.label || LABELS[s.name] || s.title || s.name,
     computeHelper: (s) => (s.name === 'why' ? 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' : s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
   });
 
@@ -3017,6 +3181,15 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Haus', title: 'Hausverbrauch', text: 'Optional. Ohne Angabe wird der Verbrauch aus Solar, Netz und Batterie berechnet.', fields: [
       { path: 'home.entity', label: 'Hausverbrauch', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
       { path: 'home.daily', label: 'Hausverbrauch heute (kWh)', kind: 'energy', optional: true, help: 'Optional. Ohne Angabe berechnet die Karte den Wert aus PV-Ertrag, Netzbezug, Einspeisung und Batterie heute.' },
+    ] },
+    { short: 'Gas/Wasser', title: 'Gas und Wasser (optional)', text: 'Eigene Kacheln mit Linie zum Haus. Sie zählen nicht zum Strom: Hausverbrauch, Ring und Autarkie bleiben gleich. Überspringen, wenn du das nicht brauchst.', fields: [
+      { path: 'gas.entity', label: 'Gas: Leistung der Therme (W oder kW)', kind: 'power', optional: true, hints: H(/gas|therme|heiz|boiler|brenner/i), help: 'Optional. Dann zeigt die Kachel groß die aktuelle Leistung, und die Linie läuft nur beim Heizen. Ohne steht groß der Verbrauch von heute.' },
+      { path: 'gas.heating', label: 'Gas: Heizung heute (kWh oder m³)', kind: 'gas', optional: true, hints: H(/gas/i, /heiz|heating/i, /heute|today|daily|tag/i) },
+      { path: 'gas.hot_water', label: 'Gas: Warmwasser heute (kWh oder m³)', kind: 'gas', optional: true, hints: H(/gas/i, /warmwasser|hot.?water|dhw|ww/i, /heute|today|daily|tag/i) },
+      { path: 'gas.daily', label: 'oder nur: Gas heute gesamt (kWh oder m³)', kind: 'gas', optional: true, hints: H(/gas/i, /heute|today|daily|tag/i), help: 'Nur nötig, wenn es keine Aufteilung in Heizung und Warmwasser gibt.' },
+      { path: 'gas.kwh_per_m3', label: 'Gas: kWh je m³', kind: 'number', optional: true, help: 'Nur bei Sensoren in m³. Steht auf der Gasrechnung als Brennwert × Zustandszahl, meist um 10. Ohne zeigt die Kachel m³.' },
+      { path: 'water.entity', label: 'Wasser: Durchfluss (l/min oder m³/h)', kind: 'flow', optional: true, hints: H(/wasser|water/i, /fluss|flow|durchfluss/i) },
+      { path: 'water.daily', label: 'Wasser: Verbrauch heute (Liter oder m³)', kind: 'water', optional: true, hints: H(/wasser|water/i, /heute|today|daily|tag/i) },
     ] },
     { short: 'Verbraucher', title: 'Einzelverbraucher', text: 'Wähle Geräte mit eigenem Leistungssensor, zum Beispiel Wärmepumpe, Wallbox oder Trockner. Gruppen (z. B. je Raum) findest du unter "Alle Felder".', fields: [
       { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 12, minusKey: 'minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Haushaltszähler):' },
