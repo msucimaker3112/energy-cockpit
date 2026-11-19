@@ -1,0 +1,33 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Kurzansicht Prognose Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:500px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #69: compact_forecast zeigt in der Kurzansicht nur die Zeile "Prognose heute" in der Solar-Kachel. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(1800),'sensor.grid':S(-300),'sensor.bat':S(500),'sensor.soc':S(60,'%'),'sensor.fc':S(6,'kWh'),'sensor.s1':S(900),'sensor.s2':S(900)}};
+const base={pv:{entity:'sensor.pv',forecast:'sensor.fc',strings:[{entity:'sensor.s1',name:'Ost'},{entity:'sensor.s2',name:'West'}]},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10}};
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const vis=(el)=>!!el&&getComputedStyle(el).display!=='none'&&el.offsetHeight>0;
+async function run(){
+  let e=mount({...base,compact:true});await wait(600);
+  ok('Kurzansicht ohne Option: Zusatzzeilen weiterhin ausgeblendet',!vis(q(e,'.pv .sub')));
+  e=mount({...base,compact:true,compact_forecast:true});await wait(600);
+  const s=q(e,'.pv .sub');
+  ok('compact_forecast: Zeile sichtbar',vis(s),s&&s.className);
+  ok('compact_forecast: nur "Prognose heute 6,0 kWh"',/^Prognose heute\s*6,0 kWh$/.test(s.textContent.trim()),s.textContent.trim());
+  ok('compact_forecast: keine Strings, keine Aufteilung',!/Ost|West|Haus|Batterie/.test(s.textContent),s.textContent.trim());
+  ok('compact_forecast: andere Kacheln weiterhin ohne Zusatzzeilen',!vis(q(e,'.node[data-k="bat"] .sub')));
+  e=mount({...base,compact_forecast:true});await wait(600);
+  ok('ohne Kurzansicht: volle Zusatzzeilen wie bisher',/Ost/.test(q(e,'.pv .sub').textContent)&&/Prognose heute/.test(q(e,'.pv .sub').textContent),q(e,'.pv .sub').textContent.trim());
+  const nofc=JSON.parse(JSON.stringify(base));delete nofc.pv.forecast;
+  e=mount({...nofc,compact:true,compact_forecast:true});await wait(600);
+  ok('ohne Prognose-Sensor: keine leere Zeile',!vis(q(e,'.pv .sub')));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+run();
+</script></body></html>
