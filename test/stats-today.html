@@ -35,7 +35,7 @@ async function run(){
   ok('Monat: kein Hinweis',hint(e)==='',hint(e));
   // #66: Zeilen unter den großen Werten wie die Fußzeile, Text links, Wert rechts
   const rows=(k)=>[...q(e,`[data-f="${k}Sub"]`).querySelectorAll('.kv')].map((r)=>r.children[0].textContent+'|'+r.children[1].textContent);
-  ok('#66 Solar-Ersparnis: Zeile "Selbst genutzt | … kWh"',/^Selbst genutzt\|[\d,.]+ kWh$/.test(rows('pvsav').join()),rows('pvsav').join(' / '));
+  ok('#72 Solar-Ersparnis: Zeilen "Erzeugt" und "Selbst genutzt"',rows('pvsav').length===2&&/^Erzeugt\|[\d,.]+ kWh$/.test(rows('pvsav')[0])&&/^Selbst genutzt\|[\d,.]+ kWh$/.test(rows('pvsav')[1]),rows('pvsav').join(' / '));
   ok('#66 Einspeiseerlös: Zeile "Einspeisung | … kWh"',/^Einspeisung\|[\d,.]+ kWh$/.test(rows('feed').join()),rows('feed').join(' / '));
   ok('#66 Stromkosten Netz: Zeile "Bezug | 73,2 kWh"',rows('cost')[0]==='Bezug|73,2 kWh',rows('cost').join(' / '));
   ok('#66 Autarkie: Zeilen Eigenverbrauch und Verbrauch',rows('aut').length===2&&/^Eigenverbrauch\|/.test(rows('aut')[0])&&/^Verbrauch\|[\d,.]+ kWh$/.test(rows('aut')[1]),rows('aut').join(' / '));

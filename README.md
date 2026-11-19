@@ -154,7 +154,7 @@ Mehr dazu: [Zusatzwerte und Alarm in der Konfiguration](https://github.com/msuci
 
 ### Eigene Farben
 
-Zum Beispiel Grün beim Laden der Batterie und Rot beim Entladen. Auch Solar, Netz und Haus lassen sich umfärben.
+Zum Beispiel Grün beim Laden der Batterie und Rot beim Entladen. Auch Solar, Netz und Haus lassen sich umfärben. `colors` wirkt auch in der Statistik- und der Geräte-Karte, etwa für dunklere Töne im hellen Farbschema.
 
 ```yaml
 colors:
@@ -225,6 +225,7 @@ Die Energiefluss-Karte erkennt, wie breit der Bildschirm ist, und zeigt die pass
 ```yaml
 compact: auto    # Kurzansicht nur auf dem Handy (unter 600 px Breite)
 # compact: true  # Kurzansicht überall
+compact_forecast: true   # optional: Prognose heute auch in der Kurzansicht
 ```
 
 Die Umschaltung richtet sich nach der Breite, nicht nach dem Gerätetyp. Sie funktioniert also auch mit Android-Geräten.
@@ -289,8 +290,8 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Warum?-Erklärung** am Netz: wer braucht den Strom, warum liefert die Batterie nichts, warum kein Solar | `why: true` |
 | **Zweite Anlage durch einen Speicher**, zum Beispiel Anker SOLIX Solarbank mit eigenen Modulen und AC-Ladung aus dem Haus | `pv2.to_battery`, `batteries[].power_in` |
 | **Zusatzwerte und Alarm** an Solar, Netz und Speicher, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters | `extra`, `alarm` |
-| **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus | `colors` |
-| **Textgröße** für Handy und Tablet, auch als Zahl für größere Kachelwerte, und **Beschriftungsgröße** getrennt von den Zahlen | `text_size: gross`, `sehr_gross` oder `2`, `label_size: 1.5` |
+| **Eigene Farben** für Batterie (laden und entladen), Solar, Netz und Haus, auch in Statistik und Geräte-Karte | `colors` |
+| **Textgröße** für Handy und Tablet (auch in der Statistik), auch als Zahl für größere Kachelwerte, und **Beschriftungsgröße** getrennt von den Zahlen | `text_size: gross`, `sehr_gross` oder `2`, `label_size: 1.5` |
 | **Große Kacheln** für Wärmepumpe oder Wallboxen (beliebig viele), auch eine schmalere Stufe | `consumers[].size: gross` oder `mittel` |
 | **Linien zu den Verbrauchern:** eine je Gerät oder eine Sammel-Linie | `groups_lines: direkt` oder `sammel` |
 | **Gruppen pro Reihe,** damit Gerätenamen auch auf dem Handy lesbar sind | `groups_columns: 1` |

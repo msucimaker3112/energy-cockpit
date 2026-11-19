@@ -24,6 +24,11 @@ const WD = (() => {
     return { pal: p, set: Object.keys(o).length > 0 };
   };
 
+  // #73: colors auch in Statistik und Geräten: CSS-Variablen nur für gesetzte Schlüssel, z. B. { pv: '--pv' } -> "--pv:r,g,b;"
+  const colorVars = (colors, map) => {
+    if (!colors || typeof colors !== 'object') return '';
+    return Object.keys(map).map((k) => { const v = accentRgb(colors[k]); return v ? map[k] + ':' + v + ';' : ''; }).join('');
+  };
   // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
   const accentRgb = (a) => {
     if (typeof a !== 'string') return '';
@@ -181,5 +186,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, palFor, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();

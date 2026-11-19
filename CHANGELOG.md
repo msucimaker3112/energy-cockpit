@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.34.0
+- **Geräte & Verbrauch, Messgeräte ohne Schalter:** `entity` ist jetzt optional. Fehlt sie, nimmt die Karte `power` (sonst `energy`), zum Beispiel für Shelly EM, die nur messen. Solche Geräte und alle mit einem Sensor als `entity` zeigen keinen Schalter, und ein Tipp schaltet nichts. Gemeldet in [#71](https://github.com/msucimaker3112/energy-cockpit/issues/71).
+- **Statistik, Erzeugung in „Solar-Ersparnis“:** Über „Selbst genutzt“ steht jetzt „Erzeugt … kWh“, die gesamte Solarproduktion im gewählten Zeitraum (auch in der Kachel Solar-Eigenverbrauch). Vorschlag aus [#72](https://github.com/msucimaker3112/energy-cockpit/issues/72).
+- **Statistik, `text_size`:** Die Statistik-Karte versteht jetzt `text_size` wie die Energiefluss-Karte: `gross` und `sehr_gross` vergrößern die kleinen Texte, eine Zahl (zum Beispiel `2`) auch die großen Werte. Einstellbar auch im Assistenten unter „Aussehen“. Anlass: [#40](https://github.com/msucimaker3112/energy-cockpit/issues/40).
+- **Eigene Farben auch in Statistik und Geräte-Karte:** `colors` wirkt jetzt auch dort. Statistik: `pv`, `grid_import`, `grid_export`, `battery`, `home`. Geräte & Verbrauch: `pv`, `grid_import`. Hilft zum Beispiel im hellen Farbschema mit dunkleren Tönen. Vorschlag aus [#73](https://github.com/msucimaker3112/energy-cockpit/issues/73).
+- **Energiefluss, Prognose in der Kurzansicht:** Neu ist `compact_forecast: true`. In der Kurzansicht zeigt die Solar-Kachel dann die Zeile „Prognose heute … kWh“, alle anderen Zusatzzeilen bleiben ausgeblendet. Im Editor als Schalter. Vorschlag aus [#69](https://github.com/msucimaker3112/energy-cockpit/issues/69).
+- **Assistent, bis zu fünf Speicher:** Ein neuer Schritt „Speicher 4/5“ fragt den vierten und fünften Speicher ab, zum Beispiel mehrere Solarbänke. Bisher ging das nur unter „Alle Felder“ oder per YAML.
+
 ## 0.33.5
 - **Energiefluss, 3D-Bilder wachsen mit der Schrift:** Mit großer `label_size` oder `text_size` wurde der Text in den Kacheln groß, die 3D-Bilder (Solarmodul, Zähler, Batterie) blieben aber klein. Auf großen Wandtablets sah das verloren aus. Jetzt wachsen die Bilder mit: über dem Text bis knapp zur doppelten Höhe, neben dem Text bis 1,4-mal so breit, auch in der Kurzansicht. Ohne große Schrift bleibt alles wie bisher. Gemeldet in [#67](https://github.com/msucimaker3112/energy-cockpit/issues/67).
 - **Energiefluss, „Inaktiv“ statt „Standby“:** Die Batterie-Kachel zeigt im Ruhezustand jetzt „Inaktiv“, wie die Solar-Kachel. Vorschlag aus [#68](https://github.com/msucimaker3112/energy-cockpit/issues/68).

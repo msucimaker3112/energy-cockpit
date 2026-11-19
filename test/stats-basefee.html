@@ -56,8 +56,27 @@ async function run(){
   // Unsinn wird ignoriert
   e=mount({...base,grid_base_fee:'abc'});await wait(2500);
   ok('Grundpreis ungültig: ignoriert',tt(e,'cost')==='30,00',tt(e,'cost'));
+  // #40: text_size wirkt auch in der Statistik-Karte
+  { const fs=(e,sel)=>parseFloat(getComputedStyle(q(e,sel)).fontSize);
+    e=mount(base);await wait(800);const l0=fs(e,'.m .lbl'),n0=fs(e,'.m .num'),r0=fs(e,'.m .sub');
+    e=mount({...base,text_size:'sehr_gross'});await wait(800);
+    ok('#40 sehr_gross: Beschriftung 1,5× so groß',Math.abs(fs(e,'.m .lbl')/l0-1.5)<0.02,fs(e,'.m .lbl')+' / '+l0);
+    ok('#40 sehr_gross: Zeilen unter den Werten 1,5× so groß',Math.abs(fs(e,'.m .sub')/r0-1.5)<0.02,fs(e,'.m .sub')+' / '+r0);
+    ok('#40 sehr_gross: große Werte bleiben gleich',Math.abs(fs(e,'.m .num')-n0)<0.1,fs(e,'.m .num')+' / '+n0);
+    e=mount({...base,text_size:2});await wait(800);
+    ok('#40 text_size 2: Beschriftung und große Werte doppelt',Math.abs(fs(e,'.m .lbl')/l0-2)<0.02&&Math.abs(fs(e,'.m .num')/n0-2)<0.02,fs(e,'.m .lbl')+' / '+fs(e,'.m .num'));
+    e=mount({...base,text_size:'normal'});await wait(800);
+    ok('#40 normal: unverändert',fs(e,'.m .lbl')===l0&&fs(e,'.m .num')===n0); }
+  // #73: colors auch in der Statistik
+  { e=mount({...base,colors:{pv:'#112233',grid_import:'10,20,30',home:'kaputt'}});await wait(800);
+    const w=q(e,'.wrap'),cs=getComputedStyle(w);
+    ok('#73 colors.pv setzt --pv',cs.getPropertyValue('--pv').trim()==='17,34,51',cs.getPropertyValue('--pv'));
+    ok('#73 colors.grid_import setzt --imp',cs.getPropertyValue('--imp').trim()==='10,20,30',cs.getPropertyValue('--imp'));
+    ok('#73 ungültige Farbe wird ignoriert',cs.getPropertyValue('--home').trim()==='34,211,238',cs.getPropertyValue('--home'));
+    e=mount({...base,colors:{pv:'#112233'},text_size:'gross'});await wait(800);
+    ok('#73 colors und text_size zusammen',getComputedStyle(q(e,'.wrap')).getPropertyValue('--pv').trim()==='17,34,51'&&getComputedStyle(q(e,'.wrap')).getPropertyValue('--ts').trim()==='1.25'); }
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
 }
 const P=new URLSearchParams(location.search);
-if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,grid_base_fee:30});}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount({...base,grid_base_fee:30,...(P.get('ts')?{text_size:P.get('ts')}:{})});}
 </script></body></html>

@@ -342,7 +342,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .tag{margin-top:6px;font-size:calc(.54rem*var(--ts,1));padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
-.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
+.cmp .sub:not(.fco),.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
 .cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
@@ -1617,6 +1617,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       (c.pv.strings || []).forEach((s) => parts.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
+      // #69: compact_forecast zeigt in der Kurzansicht nur diese Zeile
+      const fco = this._cmp && c.compact_forecast === true;
+      if (fco) parts.length = 0;
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
       if (/^(k|m)?wh$/i.test(fUnit)) {
@@ -1628,6 +1631,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (fc !== null) parts.push(row(T('forecast'), this._fW(fc)));
       }
       this._set('.pv .sub', parts.join(''), true);
+      { const se = this._$('.pv .sub'); if (se) se.classList.toggle('fco', fco && parts.length > 0); }
       this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {

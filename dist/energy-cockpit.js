@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.33.5 - MIT License */
+/*! energy-cockpit v0.34.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -26,6 +26,11 @@ const WD = (() => {
     return { pal: p, set: Object.keys(o).length > 0 };
   };
 
+  // #73: colors auch in Statistik und Geräten: CSS-Variablen nur für gesetzte Schlüssel, z. B. { pv: '--pv' } -> "--pv:r,g,b;"
+  const colorVars = (colors, map) => {
+    if (!colors || typeof colors !== 'object') return '';
+    return Object.keys(map).map((k) => { const v = accentRgb(colors[k]); return v ? map[k] + ':' + v + ';' : ''; }).join('');
+  };
   // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
   const accentRgb = (a) => {
     if (typeof a !== 'string') return '';
@@ -183,7 +188,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, palFor, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();
 
 
@@ -1285,7 +1290,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .tag{margin-top:6px;font-size:calc(.54rem*var(--ts,1));padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
-.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
+.cmp .sub:not(.fco),.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
 .cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
@@ -2560,6 +2565,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       (c.pv.strings || []).forEach((s) => parts.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
+      // #69: compact_forecast zeigt in der Kurzansicht nur diese Zeile
+      const fco = this._cmp && c.compact_forecast === true;
+      if (fco) parts.length = 0;
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
       if (/^(k|m)?wh$/i.test(fUnit)) {
@@ -2571,6 +2579,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (fc !== null) parts.push(row(T('forecast'), this._fW(fc)));
       }
       this._set('.pv .sub', parts.join(''), true);
+      { const se = this._$('.pv .sub'); if (se) se.classList.toggle('fco', fco && parts.length > 0); }
       this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {
@@ -2837,7 +2846,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', why: 'Warum?-Erklärung (? an der Netz-Kachel)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', why: 'Warum?-Erklärung (? an der Netz-Kachel)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -2910,6 +2919,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'consumer_groups_sort', selector: { select: { mode: 'dropdown', options: [{ value: 'konfiguriert', label: 'Wie eingetragen (Standard)' }, { value: 'leistung', label: 'Nach Leistung, aktive Geräte oben' }] } } },
       numb('decimals', 0, 3, 1),
       { name: 'compact', selector: { select: { mode: 'dropdown', options: COMPACT } } },
+      bool('compact_forecast', false),
       { name: 'text_size', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }] } } },
       { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
@@ -2966,7 +2976,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'battery.daily_discharge', label: 'Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },
       { path: 'battery.behind_meter', label: 'Speicher hinter dem Zähler', kind: 'bool', help: 'Nur für Speicher, die der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Seine Ladung zählt als Verbrauch, seine Abgabe als Quelle im Ring und im Hausverbrauch.' },
     ] },
-    { short: 'Speicher', title: 'Weitere Speicher', text: 'Optional. Hast du mehr als einen Speicher, trage hier den zweiten und dritten ein. Jeder bekommt eine eigene Kachel, Ring und Tageswerte rechnen mit der Summe. Der erste Speicher steht im Schritt davor.', fields: [
+    { short: 'Speicher', title: 'Weitere Speicher', text: 'Optional. Hast du mehr als einen Speicher, trage hier den zweiten und dritten ein, im nächsten Schritt den vierten und fünften. Jeder bekommt eine eigene Kachel, Ring und Tageswerte rechnen mit der Summe. Der erste Speicher steht im Schritt davor.', fields: [
       { path: 'batteries.0.name', label: 'Name von Speicher 2', kind: 'text', optional: true },
       { path: 'batteries.0.power', label: 'Speicher 2: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i), help: 'Hat dein System getrennte Sensoren für Laden und Entladen, trägst du sie unter Alle Felder ein.' },
       { path: 'batteries.0.soc', label: 'Speicher 2: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
@@ -2985,6 +2995,24 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'batteries.1.daily_charge', label: 'Speicher 3: Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i) },
       { path: 'batteries.1.daily_discharge', label: 'Speicher 3: Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },
       { path: 'batteries.1.behind_meter', label: 'Speicher 3: hinter dem Zähler', kind: 'bool', help: 'Nur für Speicher, die der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Seine Ladung zählt als Verbrauch, seine Abgabe als Quelle im Ring und im Hausverbrauch.' },
+    ] },
+    { short: 'Speicher 4/5', title: 'Noch mehr Speicher', text: 'Optional. Nur wenn du einen vierten oder fünften Speicher hast, zum Beispiel mehrere Solarbänke. Sonst einfach weiter. Per YAML (batteries) gehen auch mehr.', fields: [
+      { path: 'batteries.2.name', label: 'Name von Speicher 4', kind: 'text', optional: true },
+      { path: 'batteries.2.power', label: 'Speicher 4: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i) },
+      { path: 'batteries.2.soc', label: 'Speicher 4: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
+      { path: 'batteries.2.capacity_kwh', label: 'Speicher 4: Kapazität (kWh)', kind: 'number', optional: true },
+      { path: 'batteries.2.temp', label: 'Speicher 4: Temperatur', kind: 'temp', optional: true, hints: H(/batter|akku|speicher|storage|bat\d/i, /temp/i) },
+      { path: 'batteries.2.daily_charge', label: 'Speicher 4: Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i) },
+      { path: 'batteries.2.daily_discharge', label: 'Speicher 4: Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },
+      { path: 'batteries.2.behind_meter', label: 'Speicher 4: hinter dem Zähler', kind: 'bool', help: 'Nur für Speicher, die der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Seine Ladung zählt als Verbrauch, seine Abgabe als Quelle im Ring und im Hausverbrauch.' },
+      { path: 'batteries.3.name', label: 'Name von Speicher 5', kind: 'text', optional: true },
+      { path: 'batteries.3.power', label: 'Speicher 5: Lade-/Entladeleistung', kind: 'power', optional: true, hints: H(/batter|akku|speicher|storage/i, /lade|charge|power|leistung/i) },
+      { path: 'batteries.3.soc', label: 'Speicher 5: Ladestand (%)', kind: 'percent', optional: true, hints: H(/soc|ladestand|ladung|charge|level/i, /batter|akku/i) },
+      { path: 'batteries.3.capacity_kwh', label: 'Speicher 5: Kapazität (kWh)', kind: 'number', optional: true },
+      { path: 'batteries.3.temp', label: 'Speicher 5: Temperatur', kind: 'temp', optional: true, hints: H(/batter|akku|speicher|storage|bat\d/i, /temp/i) },
+      { path: 'batteries.3.daily_charge', label: 'Speicher 5: Geladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /geladen|lade|charge/i) },
+      { path: 'batteries.3.daily_discharge', label: 'Speicher 5: Entladen heute (kWh)', kind: 'energy', optional: true, hints: H(/batter|akku|speicher|storage/i, /tag|daily|today|heute/i, /entlad|discharge/i) },
+      { path: 'batteries.3.behind_meter', label: 'Speicher 5: hinter dem Zähler', kind: 'bool', help: 'Nur für Speicher, die der Wechselrichter oder Netzzähler nicht kennt, zum Beispiel an der Steckdose. Seine Ladung zählt als Verbrauch, seine Abgabe als Quelle im Ring und im Hausverbrauch.' },
     ] },
     { short: 'Haus', title: 'Hausverbrauch', text: 'Optional. Ohne Angabe wird der Verbrauch aus Solar, Netz und Batterie berechnet.', fields: [
       { path: 'home.entity', label: 'Hausverbrauch', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
@@ -3011,6 +3039,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
+      { path: 'compact_forecast', label: 'Kurzansicht: Prognose heute zeigen', kind: 'bool', help: 'Nur mit Kurzansicht und eingetragener Prognose (pv.forecast): In der Solar-Kachel steht dann eine Zeile „Prognose heute … kWh“, alle anderen Zusatzzeilen bleiben ausgeblendet.' },
       { path: 'weather', label: 'Wetter (Himmelsband)', kind: 'weather', optional: true, hints: H(/forecast|home|haus|zuhause|dwd|met|wetter/i), help: 'Optional. Zeigt unter der Kopfzeile ein Band mit dem Wetter der nächsten Stunden, dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage (zum Beispiel Met.no oder Deutscher Wetterdienst). Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' },
       { path: 'why', label: 'Warum?-Erklärung an der Netz-Kachel', kind: 'bool', help: 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' },
       { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
@@ -3087,7 +3116,7 @@ WD.addStrings({
   const PAL = ['250,204,21', '56,189,248', '192,132,252', '34,211,238', '251,146,60', '129,140,248', '248,113,113', '52,211,153', '244,114,182', '217,151,84'];
 
   const CSS = `
-${WD.themeCss()}:host{display:block;--ok:52,211,153;--sun:250,204,21}
+${WD.themeCss()}:host{display:block;--ok:52,211,153;--sun:250,204,21;--imp:255,92,122}
 ha-card{background:radial-gradient(130% 90% at 50% 0%,var(--bg1) 0%,var(--bg0) 62%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px 26px;position:relative;transform-origin:0 0;box-sizing:border-box;display:flex;flex-direction:column}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(35% 30% at 12% 8%,rgba(250,204,21,.07),transparent 70%),radial-gradient(40% 35% at 90% 85%,rgba(56,189,248,.07),transparent 70%)}
@@ -3132,7 +3161,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .psum b{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums}
 .psum b u{text-decoration:none;font-size:.7rem;color:rgb(var(--mut));font-weight:650;margin-left:3px}
 .psum b u.mx{display:block;margin:2px 0 0}
-.psum .sun{color:rgb(var(--sun))}.psum .grd{color:rgb(255,92,122)}
+.psum .sun{color:rgb(var(--sun))}.psum .grd{color:rgb(var(--imp))}
 .rows{display:flex;flex-wrap:wrap;margin-top:8px}
 .rk{display:flex;align-items:center;font-size:.7rem;color:rgb(var(--mut));margin:3px 14px 0 0;white-space:nowrap}
 .rk i{font-style:normal;font-weight:800;color:rgb(var(--c));margin-right:5px}
@@ -3310,8 +3339,11 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       this._c.rooms.forEach((r, ri) => {
         (r.devices || []).forEach((d, di) => {
           const chans = (d.channels || []).filter((x) => ok(x.entity));
-          if (d.channels ? !chans.length : !ok(d.entity)) return;
-          out.push(Object.assign({}, d, { key: ri + '-' + di, room: ri, chans }));
+          // #71: Ohne entity (reine Messgeräte, z. B. Shelly EM) zählt der Leistungs- oder Energiesensor. Sensoren lassen sich nicht schalten
+          const entity = d.entity || (d.channels ? undefined : d.power || d.energy);
+          if (d.channels ? !chans.length : !ok(entity)) return;
+          const ro = !d.channels && d.type !== 'media' && /^sensor\./.test(entity || '');
+          out.push(Object.assign({}, d, { key: ri + '-' + di, room: ri, chans, entity, ro }));
         });
       });
       return out;
@@ -3329,7 +3361,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const c = this._c, devs = this._devs;
       const rooms = c.rooms.map((r, ri) => ({ r, ri, d: devs.filter((x) => x.room === ri) })).filter((x) => x.d.length);
       this.shadowRoot.innerHTML = `<style>${CSS}</style>
-      <ha-card><div class="wrap">
+      <ha-card><div class="wrap"${(() => { const st = WD.colorVars(this._c.colors, { pv: '--sun', grid_import: '--imp' }); return st ? ` style="${st}"` : ''; })()}>
         <header>
           <div class="title"><span class="ico"><ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon></span><div>${esc(c.title || T('dev.title'))}<small class="hsub"></small></div></div>
           ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('dev.next'))}</div>` : ''}
@@ -3368,10 +3400,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
-      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
+      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock || d.ro ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
         <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
-        ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
+        ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : d.ro ? '' : '<div class="tg"></div>'}
         ${d.power ? '<div class="pbar"><i></i></div>' : ''}
       </div>${d.type === 'media' && d.ambilight ? `<div class="seg15">${'<i></i>'.repeat(d.ambilight.segments || 15)}</div><div class="np" style="display:none"></div>` : ''}${d.chans.length ? `<div class="chs">${d.chans.map((x) => `<span class="ch" data-e="${esc(x.entity)}">${esc(x.name)}</span>`).join('')}</div>` : ''}${this._mediaChips(d)}`;
     }
@@ -3393,6 +3425,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       if (d.type === 'media') { if (d.toggle) return !!(h.states[d.toggle] && h.states[d.toggle].state === 'on'); return this._tvOn(d); }
       if (d.chans.length) return d.chans.some((x) => h.states[x.entity].state === 'on');
       if (d.entity && d.entity.indexOf('sensor.') === 0) {
+        if (!d.power && d.entity === d.energy) return false;
         const pw = num(h, d.power || d.entity);
         return pw !== null && pw > (d.run_w === undefined ? 3 : d.run_w);
       }
@@ -3405,7 +3438,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _toggle(d) {
       if (!d) return;
-      if (d.lock) {
+      if (d.lock || d.ro) {
         const le = this.shadowRoot.querySelector(`.dv[data-k="${d.key}"]`);
         if (le) { le.classList.remove('nope'); void le.offsetWidth; le.classList.add('nope'); }
         return;
@@ -3544,7 +3577,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         // PV-Überschuss: dieses Gerät könnte jetzt mit Sonnenstrom laufen
         el.classList.toggle('sunok', !!(d.pv_w && !run && surplus >= d.pv_w));
         // Standby-Detektiv: an, aber kaum Leistung
-        if (!d.lock && (d.type === 'media' ? !tvOn : on) && w !== null && w > 0.5 && w < c.standby_w && ['plug', 'strip', 'tv', 'console', 'media'].indexOf(d.type || 'plug') >= 0 && (!standby || w > standby.w)) standby = { d, w };
+        if (!d.lock && !d.ro && (d.type === 'media' ? !tvOn : on) && w !== null && w > 0.5 && w < c.standby_w && ['plug', 'strip', 'tv', 'console', 'media'].indexOf(d.type || 'plug') >= 0 && (!standby || w > standby.w)) standby = { d, w };
         if (d.type === 'media') { el.classList.toggle('tvon', tvOn); this._renderMedia(d, el, w, tvOn); }
       });
       // Schalter-Chips (Steckdosen-Kanäle, Ambilight, Ton aus …) und Szenen
@@ -4689,7 +4722,7 @@ WD.addStrings({
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',
-  'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
+  'st.r.pv': 'Erzeugt', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
   'st.earned': '<b>{e} {cur}</b> von {i} {cur} zurückverdient', 'st.eta': '<b>{y} {cur}/Jahr</b> · fertig ca. <b>{yr}</b>', 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
   'st.glcost': '≈ <b>{x} {cur}/Jahr</b>', 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': '100 W weniger ≈ {x} {cur}/Jahr',
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · {g} · Amortisation mit heutigen Preisen geschätzt', 'st.note.nofee': 'reine Energiekosten ohne Grundgebühr', 'st.note.fee': 'Stromkosten Netz mit Grundpreis',
@@ -4737,24 +4770,24 @@ ha-card{background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 6
 .wrap{padding:22px;position:relative;transform-origin:0 0;box-sizing:border-box}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(40% 30% at 15% 15%,rgba(var(--pv),.09),transparent 70%),radial-gradient(40% 35% at 85% 60%,rgba(var(--home),.08),transparent 70%)}
 header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-bottom:18px}
-.title{font-size:1.05rem;font-weight:650;margin-right:auto;display:flex;align-items:center}
+.title{font-size:calc(1.05rem*var(--ts,1));font-weight:650;margin-right:auto;display:flex;align-items:center}
 .title .ico{margin-right:10px}
 .ico{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c,var(--home)),.16);color:rgb(var(--c,var(--home)));flex:none}
 .ico ha-icon{--mdc-icon-size:19px;display:flex}
 .tabs{display:flex;background:rgba(var(--ov),.05);border:1px solid var(--stroke);border-radius:999px;padding:3px;margin-left:8px}
-.tab{padding:7px 14px;border-radius:999px;font-size:.8rem;font-weight:650;color:rgb(var(--mut));cursor:pointer;transition:all .35s;-webkit-tap-highlight-color:transparent}
+.tab{padding:7px 14px;border-radius:999px;font-size:calc(.8rem*var(--ts,1));font-weight:650;color:rgb(var(--mut));cursor:pointer;transition:all .35s;-webkit-tap-highlight-color:transparent}
 .tab.on{background:rgba(var(--home),.18);color:rgb(var(--home));box-shadow:0 0 0 1px rgba(var(--home),.35)}
-.navbtn{cursor:pointer;color:var(--txt);font-weight:650;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);padding:8px 14px;border-radius:999px;font-size:.8rem;margin-left:8px;-webkit-tap-highlight-color:transparent}
+.navbtn{cursor:pointer;color:var(--txt);font-weight:650;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);padding:8px 14px;border-radius:999px;font-size:calc(.8rem*var(--ts,1));margin-left:8px;-webkit-tap-highlight-color:transparent}
 .navbtn:active{background:rgba(var(--ov),.18)}
 .panel{position:relative;padding:16px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(var(--ov),.065),rgba(var(--ov),.015)),var(--panel);border:1px solid var(--stroke)}
-.lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut));display:flex;align-items:center}
+.lbl{font-size:calc(.68rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650;color:rgb(var(--mut));display:flex;align-items:center}
 .lbl i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:7px}
 .money{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:14px;gap:14px}
 .money.three{grid-template-columns:repeat(3,1fr)}
 .m .v{display:flex;align-items:baseline;margin-top:10px}
-.m .num{font-size:2rem;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:rgb(var(--c));text-shadow:none}
-.m .unit{font-size:.95rem;font-weight:700;color:rgb(var(--c));opacity:.8;margin-left:5px}
-.m .sub{font-size:.74rem;color:rgb(var(--mut));margin-top:7px}
+.m .num{font-size:calc(2rem*var(--vs,1));font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:rgb(var(--c));text-shadow:none}
+.m .unit{font-size:calc(.95rem*var(--ts,1));font-weight:700;color:rgb(var(--c));opacity:.8;margin-left:5px}
+.m .sub{font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));margin-top:7px}
 .m .sub b{color:var(--txt);font-weight:600}
 .m .sub .kv{display:flex;justify-content:space-between;align-items:baseline;column-gap:10px;min-width:0}
 .m .sub .kv+.kv{margin-top:3px}
@@ -4767,29 +4800,29 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .duo.one{grid-template-columns:1fr}
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
 .amo .big{display:flex;align-items:baseline;margin-top:10px}
-.amo .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
-.amo .big .unit{font-size:1rem;color:rgb(var(--sav));font-weight:700;margin-left:6px}
+.amo .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
+.amo .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--sav));font-weight:700;margin-left:6px}
 .pbar{position:relative;height:16px;border-radius:999px;background:rgba(var(--ov),.06);overflow:hidden;margin-top:12px}
 .pfill{position:absolute;top:0;left:0;bottom:0;width:0;border-radius:inherit;background:linear-gradient(90deg,rgba(var(--sav),.5),rgb(var(--sav)));box-shadow:0 0 0 1px rgba(var(--sav),.35);transition:width 1.6s cubic-bezier(.2,.8,.2,1);overflow:hidden}
 .pfill:after{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.14) 0 10px,transparent 10px 20px);animation:stripes 1.2s linear infinite}
 @keyframes stripes{from{background-position:0 0}to{background-position:28px 0}}
-.amo .meta{display:flex;justify-content:space-between;flex-wrap:wrap;font-size:.76rem;color:rgb(var(--mut));margin-top:9px}
+.amo .meta{display:flex;justify-content:space-between;flex-wrap:wrap;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));margin-top:9px}
 .amo .meta b{color:var(--txt);font-weight:600}
 .bud{margin-top:14px;--q:var(--exp)}
 .bud.s-warn{--q:var(--pv)}
 .bud.s-bad{--q:var(--imp)}
 .bud .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
-.bud .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--q));text-shadow:none;font-variant-numeric:tabular-nums}
-.bud .big .unit{font-size:1rem;color:rgb(var(--q));font-weight:700;margin-left:6px}
-.bud .big small{font-size:.78rem;color:rgb(var(--mut));margin-left:12px}
+.bud .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--q));text-shadow:none;font-variant-numeric:tabular-nums}
+.bud .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--q));font-weight:700;margin-left:6px}
+.bud .big small{font-size:calc(.78rem*var(--ts,1));color:rgb(var(--mut));margin-left:12px}
 .bud .pfill{background:linear-gradient(90deg,rgba(var(--q),.5),rgb(var(--q)));box-shadow:0 0 0 1px rgba(var(--q),.35)}
 .bud .mk{position:absolute;top:0;bottom:0;left:0;width:3px;margin-left:-1px;background:var(--txt);opacity:.85;border-radius:2px;transition:left 1.6s cubic-bezier(.2,.8,.2,1)}
 .bgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:12px;gap:12px;margin-top:14px}
-.bgrid small{display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));margin-bottom:3px}
-.bgrid b{font-size:1.05rem;font-weight:750;font-variant-numeric:tabular-nums}
-.bgrid em{display:block;font-style:normal;font-size:.7rem;color:rgb(var(--mut));margin-top:2px}
+.bgrid small{display:block;font-size:calc(.62rem*var(--ts,1));text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--mut));margin-bottom:3px}
+.bgrid b{font-size:calc(1.05rem*var(--ts,1));font-weight:750;font-variant-numeric:tabular-nums}
+.bgrid em{display:block;font-style:normal;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));margin-top:2px}
 .c-ok{color:rgb(var(--exp))}.c-warn{color:rgb(var(--pv))}.c-bad{color:rgb(var(--imp))}
-.bud .hint{font-size:.72rem;color:rgb(var(--mut));margin-top:10px}
+.bud .hint{font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));margin-top:10px}
 .h-money .money{display:none}
 .h-amo .amo,.h-gl .gl{display:none!important}
 .h-amo.h-gl .duo,.h-gl .duo.one{display:none}
@@ -4798,18 +4831,18 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .h-footer footer{display:none}
 .narrow .bgrid{grid-template-columns:1fr 1fr}
 .gl .big{display:flex;align-items:baseline;margin-top:10px}
-.gl .big .num{font-size:2.3rem;font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
-.gl .big .unit{font-size:1rem;color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
-.gl .big small{font-size:.85rem;color:rgb(var(--mut))}
+.gl .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
+.gl .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
+.gl .big small{font-size:calc(.85rem*var(--ts,1));color:rgb(var(--mut))}
 .gl .big small b{color:var(--txt)}
 .nights{display:flex;align-items:flex-end;height:46px;margin-top:12px}
 .nights div{flex:1;margin:0 3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,rgba(var(--pv),.9),rgba(var(--pv),.25));height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
-.nl{display:flex;margin-top:4px}.nl span{flex:1;text-align:center;font-size:.6rem;color:rgb(var(--mut))}
-.gl .tip{font-size:.72rem;color:rgb(var(--mut));margin-top:8px}
+.nl{display:flex;margin-top:4px}.nl span{flex:1;text-align:center;font-size:calc(.6rem*var(--ts,1));color:rgb(var(--mut))}
+.gl .tip{font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));margin-top:8px}
 .chart{margin-top:14px}
 .chart-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .chart-head .lbl{margin-right:auto}
-.leg{display:flex;align-items:center;font-size:.72rem;color:rgb(var(--mut));margin-left:14px}
+.leg{display:flex;align-items:center;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));margin-left:14px}
 .leg i{width:10px;height:10px;border-radius:3px;margin-right:6px;background:rgb(var(--pv))}
 .leg i.prev{background:transparent;border:1.5px dashed rgba(var(--ov),.35)}
 .bars{display:flex;align-items:flex-end;height:130px;border-bottom:1px solid var(--stroke)}
@@ -4821,32 +4854,32 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 @keyframes glowbar{50%{box-shadow:0 0 0 1px rgba(var(--pv),.35)}}
 .col.sel .b.cur{outline:2px solid rgba(var(--ov),.6);outline-offset:2px}
 .mlabels{display:flex;margin-top:6px}
-.mlabels span{flex:1;text-align:center;font-size:.64rem;color:rgb(var(--mut));font-weight:600}
+.mlabels span{flex:1;text-align:center;font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));font-weight:600}
 .mlabels span.now{color:rgb(var(--pv))}
-.detail{margin-top:10px;font-size:.78rem;color:rgb(var(--mut));text-align:center;min-height:18px}
+.detail{margin-top:10px;font-size:calc(.78rem*var(--ts,1));color:rgb(var(--mut));text-align:center;min-height:18px}
 .detail b{color:var(--txt);font-weight:600}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));grid-gap:10px;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--stroke)}
 .stat{display:flex;flex-direction:column;padding:10px 13px;border-radius:15px;background:rgba(var(--ov),.028);border:1px solid rgba(var(--ov),.04);min-width:0}
 .sv{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:10px;margin-top:auto;padding-top:6px;min-width:0}
-.sv>span{color:rgb(var(--mut));font-size:.74rem;font-weight:500}
-.stat b{margin-left:auto;text-align:right;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.stat small{color:rgb(var(--mut));font-weight:500;font-size:.72rem;margin-left:3px}
-.note{margin-top:10px;font-size:.64rem;color:rgba(139,151,179,.7);text-align:center}
-.dhint{display:flex;flex-direction:column;gap:4px;margin:-6px 0 14px;font-size:.72rem;color:#fbbf24;position:relative}
+.sv>span{color:rgb(var(--mut));font-size:calc(.74rem*var(--ts,1));font-weight:500}
+.stat b{margin-left:auto;text-align:right;font-size:calc(1.1rem*var(--ts,1));font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat small{color:rgb(var(--mut));font-weight:500;font-size:calc(.72rem*var(--ts,1));margin-left:3px}
+.note{margin-top:10px;font-size:calc(.64rem*var(--ts,1));color:rgba(139,151,179,.7);text-align:center}
+.dhint{display:flex;flex-direction:column;gap:4px;margin:-6px 0 14px;font-size:calc(.72rem*var(--ts,1));color:#fbbf24;position:relative}
 .dhint span{display:flex;align-items:flex-start;gap:6px;line-height:1.35}
 .dhint ha-icon{--mdc-icon-size:15px;flex:none;margin-top:1px}
 .yrnav{display:flex;align-items:center;margin-left:12px}
-.yb{cursor:pointer;padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);font-size:.8rem;font-weight:700;line-height:1.2;user-select:none;-webkit-tap-highlight-color:transparent}
+.yb{cursor:pointer;padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.07);border:1px solid rgba(var(--ov),.14);font-size:calc(.8rem*var(--ts,1));font-weight:700;line-height:1.2;user-select:none;-webkit-tap-highlight-color:transparent}
 .yb.off{opacity:.3;pointer-events:none}
-.yv{margin:0 8px;font-size:.8rem;font-weight:700;font-variant-numeric:tabular-nums}
+.yv{margin:0 8px;font-size:calc(.8rem*var(--ts,1));font-weight:700;font-variant-numeric:tabular-nums}
 .leg i.hist{background:rgb(var(--bat))}
 .b.cur.hist{background:linear-gradient(180deg,rgb(var(--bat)),rgba(var(--bat),.3));box-shadow:0 0 0 1px rgba(var(--bat),.35)}
 .col.gap:after{content:'';position:absolute;left:32%;right:32%;bottom:0;height:6px;border-radius:2px;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.35) 0 3px,transparent 3px 6px)}
-.cover{margin-top:6px;font-size:.7rem;line-height:1.45;min-height:2.9em;color:rgb(var(--mut));text-align:center}
+.cover{margin-top:6px;font-size:calc(.7rem*var(--ts,1));line-height:1.45;min-height:2.9em;color:rgb(var(--mut));text-align:center}
 .cc{margin-top:14px}
 .cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cc-head .lbl{margin-right:auto}
-.cc-sum{font-size:.76rem;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum{font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
 .cc-sum b{color:rgb(var(--imp));font-weight:700}
 .cc-sum b.s{color:rgb(var(--sav))}
 .cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));grid-gap:12px;gap:12px}
@@ -4855,36 +4888,36 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-top{display:flex;flex-wrap:wrap;align-items:center;min-width:0}
 .cc-top .ico{width:36px;height:36px;border-radius:12px;margin-right:10px}
 .cc-name{min-width:0;margin-right:auto}
-.cc-name b{display:block;font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cc-name small{display:block;white-space:nowrap;font-size:.62rem;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:rgb(var(--mut));margin-top:2px}
-.cc-live{display:none;align-items:center;flex:none;margin:4px 0 0 auto;padding:4px 9px;border-radius:999px;font-size:.68rem;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:rgb(var(--c));background:rgba(var(--c),.13)}
+.cc-name b{display:block;font-size:calc(.92rem*var(--ts,1));font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-name small{display:block;white-space:nowrap;font-size:calc(.62rem*var(--ts,1));font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:rgb(var(--mut));margin-top:2px}
+.cc-live{display:none;align-items:center;flex:none;margin:4px 0 0 auto;padding:4px 9px;border-radius:999px;font-size:calc(.68rem*var(--ts,1));font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:rgb(var(--c));background:rgba(var(--c),.13)}
 .cc-live.on{display:flex}
 .cc-live:before{content:'';width:6px;height:6px;border-radius:50%;background:rgb(var(--c));margin-right:6px;animation:ccdot 2s ease-in-out infinite}
 @keyframes ccdot{50%{opacity:.3}}
 .cc-main{display:flex;align-items:flex-end;justify-content:space-between;margin-top:13px}
 .cc-val{display:flex;align-items:baseline;font-variant-numeric:tabular-nums}
-.cc-val .num{font-size:1.95rem;font-weight:800;letter-spacing:-.025em;line-height:1;color:rgb(var(--imp))}
-.cc-val .unit{font-size:.95rem;font-weight:700;color:rgb(var(--imp));opacity:.8;margin-left:4px}
-.cc-cap{display:block;font-size:.66rem;color:rgb(var(--mut));margin-top:5px}
+.cc-val .num{font-size:calc(1.95rem*var(--vs,1));font-weight:800;letter-spacing:-.025em;line-height:1;color:rgb(var(--imp))}
+.cc-val .unit{font-size:calc(.95rem*var(--ts,1));font-weight:700;color:rgb(var(--imp));opacity:.8;margin-left:4px}
+.cc-cap{display:block;font-size:calc(.66rem*var(--ts,1));color:rgb(var(--mut));margin-top:5px}
 .cc-sav{text-align:right;font-variant-numeric:tabular-nums}
-.cc-sav b{font-size:1.02rem;font-weight:750;color:rgb(var(--sav))}
+.cc-sav b{font-size:calc(1.02rem*var(--ts,1));font-weight:750;color:rgb(var(--sav))}
 .cc-bar{display:flex;height:9px;border-radius:999px;overflow:hidden;background:rgba(var(--ov),.07);margin-top:12px}
 .cc-bar i{display:block;width:0;background:rgb(var(--s));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
 .cc-bar i+i{box-shadow:-1.5px 0 0 var(--panel)}
-.cc-leg{display:flex;flex-wrap:wrap;margin-top:8px;font-size:.7rem;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-leg{display:flex;flex-wrap:wrap;margin-top:8px;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
 .cc-leg span{display:flex;align-items:center;margin-right:11px}
 .cc-leg i{width:6px;height:6px;border-radius:50%;background:rgb(var(--s));margin-right:5px}
 .cc-leg b{color:var(--txt);font-weight:600;margin-left:3px}
 .ccard.bad{border-color:rgba(251,191,36,.45)}
-.cc-parts{margin-top:10px;padding-top:9px;border-top:1px solid rgba(var(--c),.16);display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:12px;row-gap:5px;font-size:.74rem;font-variant-numeric:tabular-nums;color:rgb(var(--mut))}
+.cc-parts{margin-top:10px;padding-top:9px;border-top:1px solid rgba(var(--c),.16);display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:12px;row-gap:5px;font-size:calc(.74rem*var(--ts,1));font-variant-numeric:tabular-nums;color:rgb(var(--mut))}
 .cc-parts span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-parts b{color:var(--txt);font-weight:600;text-align:right;white-space:nowrap}
 .cc-parts b.k{color:rgb(var(--mut));font-weight:500}
 .cc-leg .cc-warn{display:block;margin:0;color:#fbbf24;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .cc-warn ha-icon{--mdc-icon-size:14px;width:14px;height:14px;vertical-align:-2px;margin-right:5px}
 .wide{padding:24px 30px}
-.wide .title{font-size:1.25rem}
-.wide .m .num{font-size:2.4rem}
+.wide .title{font-size:calc(1.25rem*var(--vs,1))}
+.wide .m .num{font-size:calc(2.4rem*var(--vs,1))}
 .wide .bars{height:140px}
 .narrow{padding:16px}
 .narrow .money{grid-template-columns:1fr 1fr}
@@ -5042,7 +5075,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       fillMon();
       const m = (k, lbl, col, extra = '') => `<div class="panel m ${k}" style="--c:${col}"><span class="lbl"><i></i>${lbl}</span><div class="v"><span class="num" data-t="${k}">—</span><span class="unit">${k === 'aut' || k === 'selfc' ? '%' : cur()}</span></div><div class="sub" data-f="${k}Sub"></div>${extra}</div>`;
       this.shadowRoot.innerHTML = `<style>${CSS}</style>
-      <ha-card><div class="wrap${c._hc ? ' ' + c._hc : ''}">
+      <ha-card><div class="wrap${c._hc ? ' ' + c._hc : ''}"${this._tsStyle()}>
         <header>
           <div class="title"><span class="ico"><ha-icon icon="mdi:chart-box-outline"></ha-icon></span>${esc(c.title || T('st.title'))}</div>
           <div class="tabs">
@@ -5398,6 +5431,18 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     }
     _fk(v) { return fKwh(v, this._dec.e); }
     _fp(v) { return fPct(v, this._dec.q); }
+    // #40: text_size wie in der Energiefluss-Karte. gross/sehr_gross vergrößern die kleinen Texte, eine Zahl (z. B. 2) auch die großen Werte. #73: dazu eigene Farben (colors)
+    _tsStyle() {
+      const v = String(this._c.text_size == null ? '' : this._c.text_size).trim();
+      let st = WD.colorVars(this._c.colors, { pv: '--pv', grid_import: '--imp', grid_export: '--exp', battery: '--bat', home: '--home' });
+      if (v === 'gross') st += '--ts:1.25;';
+      else if (v === 'sehr_gross') st += '--ts:1.5;';
+      else if (v && v !== 'normal') {
+        const n = parseFloat(v.replace(',', '.'));
+        if (!isNaN(n) && n > 0) { const f = Math.min(4, Math.max(0.5, n)); st += `--ts:${f};--vs:${f};`; }
+      }
+      return st ? ` style="${st}"` : '';
+    }
     _f(f, txt) { const el = this._$(`[data-f="${f}"]`); if (el && el.innerHTML !== txt) el.innerHTML = txt; }
 
     // long_term: gewähltes Jahr und blätterbarer Bereich
@@ -5563,10 +5608,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         // #66: Zeilen wie die Fußzeile, Text links, Wert rechts
         const kv = (l, v) => `<div class="kv"><span>${l}</span><b>${v}</b></div>`;
-        this._f('pvsavSub', kv(T('st.r.self'), this._fk(self) + ' kWh'));
+        this._f('pvsavSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh')); // #72: auch die Erzeugung
         this._f('feedSub', kv(T('st.r.fed'), this._fk(p.exp) + ' kWh'));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
-        this._f('selfcSub', kv(T('st.r.self'), this._fk(self) + ' kWh'));
+        this._f('selfcSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh'));
         this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
         this._f('autSub', kv(T('st.r.selfq'), p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—') + kv(T('st.r.cons'), this._fk(cons) + ' kWh'));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
@@ -5701,7 +5746,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
-    nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
     cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
@@ -5735,6 +5780,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'pv_history', selector: { text: {} } }, { name: 'pv_history_until', selector: { text: {} } }, { name: 'pv_history_name', selector: { text: {} } },
       { name: 'fit_screen', default: true, selector: { boolean: {} } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
+      { name: 'text_size', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die großen Werte)' }, { value: '3', label: 'Dreifach (3)' }] } } },
       { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
     ],
     computeLabel: (s) => LABELS[s.name] || s.name,
@@ -5825,6 +5871,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die großen Werte)' }, { value: '3', label: 'Dreifach (3)' }], help: 'Groß und Sehr groß vergrößern die kleinen Texte (Beschriftungen, Zeilen unter den Werten, Fußzeile). Doppelt und Dreifach vergrößern auch die großen Werte.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder.', summary: (c) => [
       `PV gesamt: ${c.pv_total || 'nicht gewählt'}`,
