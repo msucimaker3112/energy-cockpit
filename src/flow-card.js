@@ -484,7 +484,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
     this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
-    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || T('flow.grid2'), icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
+    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || '', icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
       .filter((g) => g.name || g.items.length);
@@ -874,6 +874,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._xtC = [];
     const c = this._c;
     this._bl = WD.state.lang;
+    if (c.grid2 && c.consumers[0] && c.consumers[0]._g2) c.consumers[0].name = c.grid2.name || T('flow.grid2');
     // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
     const refit = () => { this._forceFit = true; this._schedLayout(); };
     clearTimeout(this._fitT);

@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "build": "node tools/build.mjs",
-    "check": "node --check dist/energy-cockpit.js"
+    "check": "node --check dist/energy-cockpit.js",
+    "test": "node --test test/i18n.test.js"
   }
 }

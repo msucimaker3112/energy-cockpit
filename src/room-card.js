@@ -3,10 +3,10 @@
    in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
   const { nf, esc, rgb, T, setLocale, cur } = WD;
-  const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-  const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const SRC = [['Netz', '255,92,122'], ['Batterie', '96,165,250'], ['PV', '255,197,61']];
+  const monthShort = (m) => new Date(2020, m, 1).toLocaleDateString(WD.state.loc, { month: 'short' }).replace(/\.$/, '');
+  const monthLong = (m) => new Date(2020, m, 1).toLocaleDateString(WD.state.loc, { month: 'long' });
+  const dayShort = (d) => new Date(2020, 0, 5 + d).toLocaleDateString(WD.state.loc, { weekday: 'short' }).replace(/\.$/, '');
+  const SRC = [['room.grid', '255,92,122'], ['room.battery', '96,165,250'], ['room.pv', '255,197,61']];
   const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const fk = (v) => nf(v, v < 10 ? 2 : v < 100 ? 1 : 0);
   const fe = (v) => nf(v, 2);
@@ -104,6 +104,30 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     'room.sum': 'Summe', 'room.loading': 'Daten werden geladen …',
     'room.noprice': 'Kein Preis eingestellt: Es werden nur kWh angezeigt.', 'room.csv': 'Als CSV kopieren', 'room.copied': 'Kopiert',
     'room.since': 'Daten seit', 'room.unconf': 'Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.',
+    'room.grid': 'Netz', 'room.battery': 'Batterie', 'room.pv': 'PV', 'room.csv.period': 'Zeitraum', 'room.csv.total': 'Summe kWh', 'room.csv.grid': 'Netz kWh', 'room.csv.battery': 'Batterie kWh', 'room.csv.pv': 'PV kWh', 'room.csv.cost': 'Kosten', 'room.csv.import_cost': 'bei Bezugspreis',
+    'room.credit': 'Guthaben {amount} {cur}', 'room.payment': 'Nachzahlung {amount} {cur}', 'room.year_summary': 'Jahr {year}: {cost} {cur} verbraucht, {count} × {advance} {cur} = {total} {cur} Abschlag, aktuell {balance}',
+    'room.invoice': 'Abrechnung', 'room.advance': 'Abschlag', 'room.no_advance': 'ohne Abschlag', 'room.month_forecast': 'Hochrechnung Monatsende', 'room.from_day2': 'ab dem 2. Messtag', 'room.previous_month': 'Vormonat', 'room.no_data': 'keine Daten',
+    'room.night_w': 'W nachts', 'room.night_total': 'Gesamt, 0 bis 5 Uhr', 'room.threshold': 'Schwelle {w} W', 'room.above': 'liegt darüber', 'room.ok': 'in Ordnung', 'room.night_note': 'Läuft das Tag und Nacht so weiter, sind das etwa <b>{energy} kWh{cost} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).',
+    'room.night_no_data': 'Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).', 'room.night_base': 'Grundlast nachts (Standby)',
+    'room.activity': 'Betriebszeiten', 'room.active_above': 'aktiv = über {w} W', 'room.active_today': 'Aktive Stunden heute', 'room.active_day': 'Aktivster Tag',
+    'room.activity_note': 'Mittlere Leistung je Wochentag und Stunde (letzte 8 Wochen). Hell bis kräftig orange: wenig bis viel. Die rechte Spalte nennt die aktiven Stunden pro Tag.',
+    'room.archive': 'Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)', 'room.month_label': 'Monat', 'room.grid_label': 'Netz', 'room.battery_label': 'Batterie', 'room.balance': 'Saldo',
+    'room.meter': 'Zähler', 'room.import': 'Bezug', 'room.feed': 'Einspeisung', 'room.archive.note': 'Saldo = Abschlag minus Kosten (positiv: Guthaben). Die Werte sind eingefroren und ändern sich nicht, wenn sich später Preise ändern.',
+    'room.archive.empty': 'Noch keine Einträge. Der erste Monat wird am 1. des nächsten Monats um 07:00 festgehalten.',
+    'room.day': 'Tag', 'room.chart': 'Verlauf und Kosten', 'room.area': 'Bereich', 'room.by_area': 'Je Bereich', 'room.included': 'inkl. {amount} {cur} Grundgebühr',
+    'room.fee': ' · Grundgebühr <b>{amount} {cur}</b>/Monat', 'room.price.all': 'Alles zum Bezugspreis <b>{price} ct/kWh</b>{fee}',
+    'room.explain.fixed': 'Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.',
+    'room.explain.no_sources': 'Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.',
+    'room.price.mix': 'Netz <b>{grid} ct</b> · Batterie <b>{battery} ct</b> · PV <b>{pv} ct/kWh</b>{fee}',
+    'room.explain.mix': 'Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).',
+    'room.price.opportunity': 'Netz, Batterie und PV, die das Haus gebraucht hätte: <b>{grid} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>{feed} ct/kWh</b>{fee}',
+    'room.explain.opportunity': 'Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.',
+    'room.full': '<br>Zum Vergleich, <b>alles zum Netzpreis</b> ({price} ct/kWh): <b>{cost} {cur}</b>.',
+    'room.subtitle': 'Stromverbrauch und Kosten', 'room.others': 'übrige Geräte', 'room.vs_previous_month': 'zum Vormonat',
+    'room.today': 'heute', 'room.hourly_curve': 'Kurve je Stunde', 'room.now_today': 'Jetzt und heute', 'room.low': 'ruhig', 'room.elevated': 'erhöht', 'room.high': 'hoch',
+    'room.no_use_today': 'heute noch kein Verbrauch', 'room.source_today': 'Herkunft heute',
+    'room.mix_tip': 'Am wenigsten Netzstrom brauchst du im Schnitt zwischen <b>{from} und {to} Uhr</b> (Ø {share} % aus dem Netz). Große Lasten legst du am besten dorthin.',
+    'room.mix_tip_missing': 'Für eine Empfehlung fehlen noch Tage mit Daten.', 'room.and_cost': ' und {amount} {cur}',
   });
 
   class EnergyCockpitRoomCard extends HTMLElement {
@@ -125,7 +149,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const devs = arr(c && c.devices).filter((d) => d && d.energy);
       if (!devs.length) {
         this._c = null;
-        this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Raum-Abrechnung</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
+        this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit ' + T('room.title') + '</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
         return;
       }
       // Unterposten (devices[].items): eigener Zähler innerhalb eines Bereichs, zählt nicht doppelt zur Summe
@@ -140,7 +164,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     set hass(h) {
       WD.applyTheme(this, null, h);
       setLocale(h);
+      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      const localeChanged = this._localeSignature !== localeSignature;
+      this._localeSignature = localeSignature;
       this._hass = h;
+      if (localeChanged && this._c) this._render();
       if (!this._c) return;
       if (!this._loading && Date.now() - this._loadedAt > 15 * 60 * 1000) this._load();
       this._liveUpd();
@@ -315,7 +343,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
         for (let i = 0; i < 7; i++) {
           const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-          out.push({ label: DAYS[d.getDay()] + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: false });
+          out.push({ label: dayShort(d.getDay()) + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: false });
         }
       } else if (tab === 'month') {
         const dim = new Date(y, m + 1, 0).getDate();
@@ -326,7 +354,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       } else {
         const yy = tab === 'year' ? y : y - 1;
         for (let i = 0; i < 12; i++) {
-          out.push({ label: MONTHS[i], from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: true });
+          out.push({ label: monthShort(i), from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: true });
         }
       }
       return out;
@@ -388,11 +416,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
-      const num = (v) => v.toFixed(3).replace('.', ',');
-      const head = ['Zeitraum', 'Summe kWh', 'Netz kWh', 'Batterie kWh', 'PV kWh', 'Kosten ' + cur(), 'bei Bezugspreis ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
+      const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+      const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
-        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
+        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), money(r.cost), money(r.costFull)]
           .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])), r.items.map((d) => num(d[0] + d[1] + d[2])));
       });
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
@@ -416,22 +445,22 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const proj = el >= 1 ? cm.fee + vc + vc / el * rem : null;
         const pct = adv > 0 ? clamp(cm.cost / adv * 100, 0, 100) : 0;
         const col = !adv ? '96,165,250' : cm.cost >= adv ? '255,92,122' : cm.cost >= adv * 0.8 ? '255,197,61' : '52,211,153';
-        const saldo = (v) => (v >= 0 ? `<b style="color:rgb(52,211,153)">Guthaben ${fe(v)} ${CUR}</b>` : `<b style="color:rgb(255,92,122)">Nachzahlung ${fe(-v)} ${CUR}</b>`);
+        const saldo = (v) => (v >= 0 ? `<b style="color:rgb(52,211,153)">${T('room.credit', { amount: fe(v), cur: CUR })}</b>` : `<b style="color:rgb(255,92,122)">${T('room.payment', { amount: fe(-v), cur: CUR })}</b>`);
         let yr = '';
         if (adv > 0 && this._first) {
           const f = new Date(this._first + 'T00:00:00');
           const n = f.getFullYear() === y ? m - f.getMonth() + 1 : m + 1;
           const cy = this._calc(new Date(y, 0, 1), new Date(y, 11, 31), true);
-          yr = `<div class="s2">Jahr ${y}: ${fe(cy.cost)} ${CUR} verbraucht, ${n} × ${fe(adv)} ${CUR} = ${fe(adv * n)} ${CUR} Abschlag, aktuell ${saldo(adv * n - cy.cost)}</div>`;
+          yr = `<div class="s2">${T('room.year_summary', { year: y, cost: fe(cy.cost), cur: CUR, count: n, advance: fe(adv), total: fe(adv * n), balance: saldo(adv * n - cy.cost) })}</div>`;
         }
         const dpct = proj !== null && pm.cost > 0 ? Math.round((proj / pm.cost - 1) * 100) : null;
-        top += `<div class="panel"><div class="ph"><span class="lbl">Abrechnung ${MONTHS_LONG[m]} ${y}</span><span class="lbl">${adv ? 'Abschlag ' + fe(adv) + ' ' + CUR : 'ohne Abschlag'}</span></div>
+        top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.invoice')} ${monthLong(m)} ${y}</span><span class="lbl">${adv ? T('room.advance') + ' ' + fe(adv) + ' ' + CUR : T('room.no_advance')}</span></div>
           <div class="big">${fe(cm.cost)} <small>${CUR}</small></div>
           ${adv ? `<div class="pbar"><i style="width:${pct}%;background:rgb(${col})"></i></div>` : ''}
           <div class="grid3">
-            <div class="mini"><div class="l">Hochrechnung Monatsende</div><div class="v">${proj === null ? '–' : fe(proj) + ' ' + CUR}</div><div class="s">${proj === null ? 'ab dem 2. Messtag' : (adv ? saldo(adv - proj) : (dpct === null ? '' : (dpct >= 0 ? '+' : '') + dpct + ' % zum Vormonat'))}</div></div>
-            <div class="mini"><div class="l">Vormonat</div><div class="v">${pm.kwh > 0 ? fe(pm.cost) + ' ' + CUR : '–'}</div><div class="s">${pm.kwh > 0 ? fk(pm.kwh) + ' kWh' : 'keine Daten'}</div></div>
-            <div class="mini"><div class="l">${MONTHS[m]} ${y - 1}</div><div class="v">${ly.kwh > 0 ? fe(ly.cost) + ' ' + CUR : '–'}</div><div class="s">${ly.kwh > 0 ? fk(ly.kwh) + ' kWh' : 'keine Daten'}</div></div>
+            <div class="mini"><div class="l">${T('room.month_forecast')}</div><div class="v">${proj === null ? '–' : fe(proj) + ' ' + CUR}</div><div class="s">${proj === null ? T('room.from_day2') : (adv ? saldo(adv - proj) : (dpct === null ? '' : (dpct >= 0 ? '+' : '') + dpct + ' % ' + T('room.vs_previous_month')))}</div></div>
+            <div class="mini"><div class="l">${T('room.previous_month')}</div><div class="v">${pm.kwh > 0 ? fe(pm.cost) + ' ' + CUR : '–'}</div><div class="s">${pm.kwh > 0 ? fk(pm.kwh) + ' kWh' : T('room.no_data')}</div></div>
+            <div class="mini"><div class="l">${monthShort(m)} ${y - 1}</div><div class="v">${ly.kwh > 0 ? fe(ly.cost) + ' ' + CUR : '–'}</div><div class="s">${ly.kwh > 0 ? fk(ly.kwh) + ' kWh' : T('room.no_data')}</div></div>
           </div>${yr}</div>`;
       }
 
@@ -447,26 +476,26 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const sub = c.items.map((x, j) => ({ x, j })).filter((o) => o.x.parent === i).map((o) => {
           const wi = this._watt(o.x);
           const tk = hrs.reduce((a, h2) => (key(new Date(h2.t)) === todayK ? a + (h2.idev ? h2.idev[o.j] || 0 : 0) : a), 0);
-          return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · heute ${fk(tk)} kWh</div>`;
+          return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · ${T('room.today')} ${fk(tk)} kWh</div>`;
         }).join('');
         return `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div>
-          <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
-          <div class="spark">${bars}</div><div class="s">heute ${fk(todayKwh)} kWh · Kurve je Stunde</div>${sub}</div>`;
+        <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
+        <div class="spark">${bars}</div><div class="s">${T('room.today')} ${fk(todayKwh)} kWh · ${T('room.hourly_curve')}</div>${sub}</div>`;
       }).join('');
-      top += `<div class="panel"><div class="ph"><span class="lbl">Jetzt und heute</span><span class="leg"><span style="--c:52,211,153"><i></i>ruhig</span><span style="--c:255,197,61"><i></i>erhöht</span><span style="--c:255,92,122"><i></i>hoch</span></span></div><div class="tiles">${tiles}</div></div>`;
+      top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.now_today')}</span><span class="leg"><span style="--c:52,211,153"><i></i>${T('room.low')}</span><span style="--c:255,197,61"><i></i>${T('room.elevated')}</span><span style="--c:255,92,122"><i></i>${T('room.high')}</span></span></div><div class="tiles">${tiles}</div></div>`;
 
       // 6: Herkunft heute und beste Zeit
       if (mix) {
         const t = this._calc(new Date(y, m, now.getDate()), new Date(y, m, now.getDate()), false);
         const tot = t.kwh;
-        let donut = '<div class="empty" style="padding:10px">heute noch kein Verbrauch</div>';
+        let donut = `<div class="empty" style="padding:10px">${T('room.no_use_today')}</div>`;
         if (tot > 0) {
           let off = 0;
           const R = 38, C = 2 * Math.PI * R;
           const seg = t.src.map((v, i) => { const len = v / tot * C; const s = `<circle r="${R}" cx="50" cy="50" fill="none" stroke="rgb(${SRC[i][1]})" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`; off += len; return s; }).join('');
           donut = `<svg viewBox="0 0 100 100" class="donut"><circle r="${R}" cx="50" cy="50" fill="none" stroke="rgba(var(--ov),.07)" stroke-width="14"/>${seg}<text x="50" y="54" text-anchor="middle" fill="var(--txt)" font-size="14" font-weight="800">${fk(tot)}</text></svg>`;
         }
-        const legend = t.src.map((v, i) => `<div><span style="--c:${SRC[i][1]}" class="dot"></span>${SRC[i][0]} <b>${tot > 0 ? nf(v / tot * 100, 0) : 0} %</b> <span class="mut">${fk(v)} kWh</span></div>`).join('');
+        const legend = t.src.map((v, i) => `<div><span style="--c:${SRC[i][1]}" class="dot"></span>${T(SRC[i][0])} <b>${tot > 0 ? nf(v / tot * 100, 0) : 0} %</b> <span class="mut">${fk(v)} kWh</span></div>`).join('');
         const mh = this._mixH || [];
         let best = null;
         for (let s = 0; s < 22; s++) {
@@ -475,8 +504,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const g = w.reduce((a, x) => a + x.g / x.n, 0) / 3;
           if (best === null || g < best.g) best = { s, g };
         }
-        const tip = best ? `Am wenigsten Netzstrom brauchst du im Schnitt zwischen <b>${best.s} und ${best.s + 3} Uhr</b> (Ø ${nf(best.g * 100, 0)} % aus dem Netz). Große Lasten legst du am besten dorthin.` : 'Für eine Empfehlung fehlen noch Tage mit Daten.';
-        top += `<div class="panel"><span class="lbl">Herkunft heute</span><div class="herk">${donut}<div class="hl">${legend}</div></div><div class="note">${tip}</div></div>`;
+        const tip = best ? T('room.mix_tip', { from: best.s, to: best.s + 3, share: nf(best.g * 100, 0) }) : T('room.mix_tip_missing');
+        top += `<div class="panel"><span class="lbl">${T('room.source_today')}</span><div class="herk">${donut}<div class="hl">${legend}</div></div><div class="note">${tip}</div></div>`;
       }
 
       // 3: Grundlast nachts
@@ -488,11 +517,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const totW = per.reduce((a, v) => a + v, 0);
         const kwhM = totW * 24 * 30 / 1000;
         const cls = totW > sb ? 'hi' : 'lo';
-        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>W nachts</small></div></div>`).join('')}
-          <div class="tile"><div class="l">Gesamt, 0 bis 5 Uhr</div><div class="wl"><span class="wv ${cls}">${nf(totW, 0)}</span><small>W</small></div><div class="s">Schwelle ${nf(sb, 0)} W · ${totW > sb ? 'liegt darüber' : 'in Ordnung'}</div></div></div>
-          <div class="note">Läuft das Tag und Nacht so weiter, sind das etwa <b>${fk(kwhM)} kWh${P.grid > 0 ? ' und ' + fe(kwhM * P.grid) + ' ' + CUR : ''} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).</div>`;
-      } else sbHtml = '<div class="note">Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).</div>';
-      top += `<div class="panel"><span class="lbl">Grundlast nachts (Standby)</span>${sbHtml}</div>`;
+        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>${T('room.night_w')}</small></div></div>`).join('')}
+          <div class="tile"><div class="l">${T('room.night_total')}</div><div class="wl"><span class="wv ${cls}">${nf(totW, 0)}</span><small>W</small></div><div class="s">${T('room.threshold', { w: nf(sb, 0) })} · ${totW > sb ? T('room.above') : T('room.ok')}</div></div></div>
+          <div class="note">${T('room.night_note', { energy: fk(kwhM), cost: P.grid > 0 ? T('room.and_cost', { amount: fe(kwhM * P.grid), cur: CUR }) : '' })}</div>`;
+      } else sbHtml = `<div class="note">${T('room.night_no_data')}</div>`;
+      top += `<div class="panel"><span class="lbl">${T('room.night_base')}</span>${sbHtml}</div>`;
 
       // 4: Betriebszeiten
       const since = Math.max(Date.now() - 56 * 864e5, this._firstTs || Date.now());
@@ -519,12 +548,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const mon = new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7));
         const sumAct = (from) => Object.keys(actDay).filter((k) => k >= key(from) && k <= todayK).reduce((a, k) => a + actDay[k], 0);
         const head = `<div class="hm hh"><span></span>${Array.from({ length: 24 }, (_, i) => `<span>${i % 3 ? '' : i}</span>`).join('')}</div>`;
-        const rowsH = order.map((wd, ri) => `<div class="hm"><span class="dl">${DAYS[wd]}</span>${hm[wd].map((v, hh) => `<span class="cell" title="${DAYS[wd]} ${hh}:00 · Ø ${nf(v, 0)} W" style="background:rgba(245,158,11,${v <= 0 ? 0.04 : 0.1 + v / hmax * 0.9})"></span>`).join('')}<span class="ah">${nf(wdAct[ri], 1)} h</span></div>`).join('');
-        top += `<div class="panel"><div class="ph"><span class="lbl">Betriebszeiten</span><span class="lbl">aktiv = über ${nf(act, 0)} W</span></div>
-          <div class="grid3"><div class="mini"><div class="l">Aktive Stunden heute</div><div class="v">${nf(actDay[todayK] || 0, 0)} h</div></div>
-            <div class="mini"><div class="l">Diese Woche</div><div class="v">${nf(sumAct(mon), 0)} h</div></div>
-            <div class="mini"><div class="l">Aktivster Tag</div><div class="v">${wdAct[topIdx] > 0 ? DAYS[order[topIdx]] + ' · ' + nf(wdAct[topIdx], 1) + ' h' : '–'}</div></div></div>
-          <div class="heat">${head}${rowsH}</div><div class="note">Mittlere Leistung je Wochentag und Stunde (letzte 8 Wochen). Hell bis kräftig orange: wenig bis viel. Die rechte Spalte nennt die aktiven Stunden pro Tag.</div></div>`;
+        const rowsH = order.map((wd, ri) => `<div class="hm"><span class="dl">${dayShort(wd)}</span>${hm[wd].map((v, hh) => `<span class="cell" title="${dayShort(wd)} ${hh}:00 · Ø ${nf(v, 0)} W" style="background:rgba(245,158,11,${v <= 0 ? 0.04 : 0.1 + v / hmax * 0.9})"></span>`).join('')}<span class="ah">${nf(wdAct[ri], 1)} h</span></div>`).join('');
+        top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.activity')}</span><span class="lbl">${T('room.active_above', { w: nf(act, 0) })}</span></div>
+          <div class="grid3"><div class="mini"><div class="l">${T('room.active_today')}</div><div class="v">${nf(actDay[todayK] || 0, 0)} h</div></div>
+            <div class="mini"><div class="l">${T('room.week')}</div><div class="v">${nf(sumAct(mon), 0)} h</div></div>
+            <div class="mini"><div class="l">${T('room.active_day')}</div><div class="v">${wdAct[topIdx] > 0 ? dayShort(order[topIdx]) + ' · ' + nf(wdAct[topIdx], 1) + ' h' : '–'}</div></div></div>
+          <div class="heat">${head}${rowsH}</div><div class="note">${T('room.activity_note')}</div></div>`;
       }
 
       // 8: Monatsarchiv (eingefrorene Werte, wird am 1. des Monats geschrieben)
@@ -536,12 +565,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         arr.forEach((r) => {
           const [yy, mm] = String(r.k).split('-');
           const saldo = typeof r.ab === 'number' && r.ab > 0 ? r.ab - r.cost : null;
-          rows += `<tr><td>${esc(MONTHS[+mm - 1] || mm)} ${esc(yy)}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
-            + `<tr class="sub"><td colspan="7">${(r.dev || []).map((d) => `${esc(d.n)}: Zähler ${nf(d.a, 2)} → ${nf(d.e, 2)} kWh (${fk(d.kwh)} kWh)`).join(' · ')} · Bezug ${nf((r.pg || 0) * 100, 1)} ct, Einspeisung ${nf((r.pf || 0) * 100, 1)} ct</td></tr>`;
+          rows += `<tr><td>${esc(monthShort(+mm - 1) || mm)} ${esc(yy)}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
+            + `<tr class="sub"><td colspan="7">${(r.dev || []).map((d) => `${esc(d.n)}: ${T('room.meter')} ${nf(d.a, 2)} → ${nf(d.e, 2)} kWh (${fk(d.kwh)} kWh)`).join(' · ')} · ${T('room.import')} ${nf((r.pg || 0) * 100, 1)} ct, ${T('room.feed')} ${nf((r.pf || 0) * 100, 1)} ct</td></tr>`;
         });
-        bottom = `<div class="panel"><span class="lbl">Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)</span>${arr.length
-          ? `<div class="tw"><table><thead><tr><th>Monat</th><th>kWh</th><th>Netz</th><th>Batt.</th><th>PV</th><th>${CUR}</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table></div><div class="note">Saldo = Abschlag minus Kosten (positiv: Guthaben). Die Werte sind eingefroren und ändern sich nicht, wenn sich später Preise ändern.</div>`
-          : '<div class="note">Noch keine Einträge. Der erste Monat wird am 1. des nächsten Monats um 07:00 festgehalten.</div>'}</div>`;
+        bottom = `<div class="panel"><span class="lbl">${T('room.archive')}</span>${arr.length
+          ? `<div class="tw"><table><thead><tr><th>${T('room.month_label')}</th><th>kWh</th><th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th><th>${CUR}</th><th>${T('room.balance')}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="note">${T('room.archive.note')}</div>`
+          : `<div class="note">${T('room.archive.empty')}</div>`}</div>`;
       }
       return { top, bottom };
     }
@@ -560,9 +589,9 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const p = per[k];
           const tot = p.kwh || 1;
           const mb = mix && p.kwh > 0 ? `<div class="mixbar">${p.src.map((v, i) => `<i style="--c:${SRC[i][1]};width:${v / tot * 100}%"></i>`).join('')}</div>` : '';
-          const sline = mix && p.kwh > 0 ? `Netz ${fk(p.src[0])} · Batt. ${fk(p.src[1])} · PV ${fk(p.src[2])} kWh` : '';
+          const sline = mix && p.kwh > 0 ? `${T('room.grid')} ${fk(p.src[0])} · ${T('room.battery')} ${fk(p.src[1])} · ${T('room.pv')} ${fk(p.src[2])} kWh` : '';
           return `<div class="kpi${tab === k ? ' on' : ''}" data-t="${k}"><div class="l">${T('room.' + k)}</div><div class="k">${fk(p.kwh)}<small>kWh</small></div>`
-            + `<div class="e">${P.grid > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>${mb}<div class="s">${sline}${p.fee ? `<br>inkl. ${fe(p.fee)} ${CUR} Grundgebühr` : ''}</div></div>`;
+            + `<div class="e">${P.grid > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>${mb}<div class="s">${sline}${p.fee ? `<br>${T('room.included', { amount: fe(p.fee), cur: CUR })}` : ''}</div></div>`;
         }).join('');
         const b = this._buckets(tab);
         const rows = b.map((x) => Object.assign({ x }, this._calc(x.from, x.to, x.fee)));
@@ -572,7 +601,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const sum = rows.reduce((a, r) => { a.kwh += r.kwh; a.cost += r.cost; a.full += r.costFull; r.src.forEach((v, i) => { a.src[i] += v; }); return a; }, { kwh: 0, cost: 0, full: 0, src: [0, 0, 0] });
         const cell = (v) => `<td class="${v ? '' : 'z'}">${v ? fk(v) : '–'}</td>`;
         const trs = rows.map((r) => `<tr class="${r.x.cur ? 'cur' : ''}"><td>${esc(r.x.label)}</td><td>${r.kwh ? fk(r.kwh) : '–'}</td>${mix ? r.src.map(cell).join('') : ''}<td>${r.cost ? fe(r.cost) : '–'}</td></tr>`).join('');
-        const th = `<tr><th>${tab === 'year' || tab === 'prev' ? 'Monat' : 'Tag'}</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr>`;
+        const th = `<tr><th>${T(tab === 'year' || tab === 'prev' ? 'room.month_label' : 'room.day')}</th><th>kWh</th>${mix ? `<th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th>` : ''}<th>${CUR}</th></tr>`;
         const sumRow = `<tr class="sum"><td>${T('room.sum')}</td><td>${fk(sum.kwh)}</td>${mix ? sum.src.map((v) => `<td>${fk(v)}</td>`).join('') : ''}<td>${fe(sum.cost)}</td></tr>`;
         // Je Gerät (im gewählten Zeitraum)
         const cur_ = per[tab];
@@ -589,37 +618,37 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
               restCost[0] -= cur_.itemCost[o.j];
             });
             const rv = rest.map((v) => Math.max(0, v));
-            out += `<tr class="ch"><td>↳ übrige Geräte</td><td>${fk(rv[0] + rv[1] + rv[2])}</td>${mix ? rv.map(cell).join('') : ''}<td>${fe(Math.max(0, restCost[0]))}</td></tr>`;
+            out += `<tr class="ch"><td>↳ ${T('room.others')}</td><td>${fk(rv[0] + rv[1] + rv[2])}</td>${mix ? rv.map(cell).join('') : ''}<td>${fe(Math.max(0, restCost[0]))}</td></tr>`;
           }
           return out;
         }).join('');
-        const title = { week: 'Diese Woche', month: MONTHS_LONG[new Date().getMonth()] + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
-        const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${s[0]}</span>`).join('') : '';
+        const title = { week: T('room.week'), month: monthLong(new Date().getMonth()) + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
+        const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${T(s[0])}</span>`).join('') : '';
         const mode = c.valuation || 'opportunity';
-        const fee = c.base_fee ? ` · Grundgebühr <b>${fe(parseFloat(c.base_fee))} ${CUR}</b>/Monat` : '';
+        const fee = c.base_fee ? T('room.fee', { amount: fe(parseFloat(c.base_fee)), cur: CUR }) : '';
         let priceTxt, explain;
         if (!(P.grid > 0)) { priceTxt = T('room.noprice'); explain = ''; }
         else if (!mix || mode === 'grid') {
-          priceTxt = `Alles zum Bezugspreis <b>${nf(P.grid * 100, 2)} ct/kWh</b>${fee}`;
-          explain = mix ? 'Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.' : 'Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.';
+          priceTxt = T('room.price.all', { price: nf(P.grid * 100, 2), fee });
+          explain = T(mix ? 'room.explain.fixed' : 'room.explain.no_sources');
         } else if (mode === 'mix') {
-          priceTxt = `Netz <b>${nf(P.grid * 100, 2)} ct</b> · Batterie <b>${nf(P.batt * 100, 2)} ct</b> · PV <b>${nf(P.pv * 100, 2)} ct/kWh</b>${fee}`;
-          explain = 'Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).';
+          priceTxt = T('room.price.mix', { grid: nf(P.grid * 100, 2), battery: nf(P.batt * 100, 2), pv: nf(P.pv * 100, 2), fee });
+          explain = T('room.explain.mix');
         } else {
-          priceTxt = `Netz, Batterie und PV, die das Haus gebraucht hätte: <b>${nf(P.grid * 100, 2)} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>${nf(P.feed * 100, 2)} ct/kWh</b>${fee}`;
-          explain = 'Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.';
+          priceTxt = T('room.price.opportunity', { grid: nf(P.grid * 100, 2), feed: nf(P.feed * 100, 2), fee });
+          explain = T('room.explain.opportunity');
         }
-        const full = P.grid > 0 ? `<br>Zum Vergleich, <b>alles zum Netzpreis</b> (${nf(P.grid * 100, 2)} ct/kWh): <b>${fe(sum.full)} ${CUR}</b>.` : '';
+        const full = P.grid > 0 ? T('room.full', { price: nf(P.grid * 100, 2), cost: fe(sum.full), cur: CUR }) : '';
         const ex = this._extra(P, CUR, mix);
         body = `<div class="kpis">${kp}</div>${ex.top}
           <div class="panel"><div class="ph"><span class="lbl">${esc(title)}</span><span class="leg">${leg}</span></div>
             <div class="bars">${bars}</div><div class="xl">${xl}</div></div>
-          <div class="panel"><span class="lbl">Verlauf und Kosten</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
-          <div class="panel"><span class="lbl">Je Bereich</span><div class="tw"><table><thead><tr><th>Bereich</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
+          <div class="panel"><span class="lbl">${T('room.chart')}</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
+          <div class="panel"><span class="lbl">${T('room.by_area')}</span><div class="tw"><table><thead><tr><th>${T('room.area')}</th><th>kWh</th>${mix ? `<th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th>` : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
             <div class="note">${priceTxt}${full}<br>${explain}</div>
-            <div class="foot"><span>${this._first ? `${T('room.since')} ${this._first.split('-').reverse().join('.')}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>${ex.bottom}`;
+            <div class="foot"><span>${this._first ? `${T('room.since')} ${new Date(this._first + 'T00:00:00').toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>${ex.bottom}`;
       }
-      const sub = c.subtitle !== undefined ? c.subtitle : 'Stromverbrauch und Kosten';
+      const sub = c.subtitle !== undefined ? c.subtitle : T('room.subtitle');
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card><div class="wrap">
         <header><div class="title">${c.image ? `<img src="${esc(c.image)}" alt="">` : ''}<div>${esc(c.title || T('room.title'))}<small>${esc(sub)}</small></div></div>
           <div class="tabs">${['week', 'month', 'year', 'prev'].map((k) => `<div class="tab${tab === k ? ' on' : ''}" data-t="${k}">${T('room.tab.' + k)}</div>`).join('')}</div></header>

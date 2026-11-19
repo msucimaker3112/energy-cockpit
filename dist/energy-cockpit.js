@@ -4,10 +4,13 @@
 const WD = (() => {
   const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
 
-  // Währung aus Home Assistant übernehmen (Sprache ist fest Deutsch)
+  // Sprache und Währung aus Home Assistant übernehmen
   const setLocale = (hass) => {
     if (!hass) return;
-    // Entscheidung: komplett deutsch (Texte und Zahlenformat), nur die Währung kommt aus Home Assistant
+    const requested = typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE';
+    try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
+    const language = state.loc.split('-')[0].toLowerCase();
+    state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
@@ -193,7 +196,7 @@ const WD = (() => {
 
 
 /* ---- i18n.js ---- */
-/* Texte (nur Deutsch). */
+/* Texte für Karten; Deutsch ist die Rückfallsprache. */
 (() => {
   const L = {
     de: {
@@ -217,14 +220,20 @@ const WD = (() => {
       'ban.running': '{name} läuft', 'ban.fromgrid': '{w} aus dem Netz', 'ban.cost': 'kostet gerade <b>{cost} {cur}/h</b>',
       'ban.batempty': 'Batterie leer', 'ban.batlimit': 'Batterie am Limit',
     },
+    en: {},
+    nl: {},
   };
-  // T('key', { n: 5 }) ersetzt {n}; fehlende Schlüssel fallen auf Englisch, dann auf den Schlüssel zurück
+  // T('key', { n: 5 }) ersetzt {n}; fehlende Übersetzungen fallen auf Deutsch zurück.
   WD.T = (k, vars) => {
-    let s = L.de[k] || k;
+    let s = (L[WD.state.lang] && L[WD.state.lang][k]) || L.de[k] || k;
     if (vars) Object.keys(vars).forEach((v) => { s = s.split('{' + v + '}').join(vars[v]); });
     return s;
   };
   WD.addStrings = (de) => { Object.assign(L.de, de); };
+  WD.addTranslations = (language, strings) => {
+    if (!L[language]) L[language] = {};
+    Object.assign(L[language], strings);
+  };
   WD.fDur = (hrs) => {
     if (!isFinite(hrs) || hrs <= 0) return '';
     if (hrs > 48) return WD.T('dur.2days');
@@ -1490,7 +1499,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
     this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
-    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || T('flow.grid2'), icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
+    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || '', icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
       .filter((g) => g.name || g.items.length);
@@ -1880,6 +1889,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._xtC = [];
     const c = this._c;
     this._bl = WD.state.lang;
+    if (c.grid2 && c.consumers[0] && c.consumers[0]._g2) c.consumers[0].name = c.grid2.name || T('flow.grid2');
     // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
     const refit = () => { this._forceFit = true; this._schedLayout(); };
     clearTimeout(this._fitT);
@@ -4141,10 +4151,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
    in jeder Stunde bekommt jeder Verbraucher denselben Anteil aus Netz, Batterie und PV wie das ganze Haus. */
 (() => {
   const { nf, esc, rgb, T, setLocale, cur } = WD;
-  const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-  const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const SRC = [['Netz', '255,92,122'], ['Batterie', '96,165,250'], ['PV', '255,197,61']];
+  const monthShort = (m) => new Date(2020, m, 1).toLocaleDateString(WD.state.loc, { month: 'short' }).replace(/\.$/, '');
+  const monthLong = (m) => new Date(2020, m, 1).toLocaleDateString(WD.state.loc, { month: 'long' });
+  const dayShort = (d) => new Date(2020, 0, 5 + d).toLocaleDateString(WD.state.loc, { weekday: 'short' }).replace(/\.$/, '');
+  const SRC = [['room.grid', '255,92,122'], ['room.battery', '96,165,250'], ['room.pv', '255,197,61']];
   const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const fk = (v) => nf(v, v < 10 ? 2 : v < 100 ? 1 : 0);
   const fe = (v) => nf(v, 2);
@@ -4242,6 +4252,30 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     'room.sum': 'Summe', 'room.loading': 'Daten werden geladen …',
     'room.noprice': 'Kein Preis eingestellt: Es werden nur kWh angezeigt.', 'room.csv': 'Als CSV kopieren', 'room.copied': 'Kopiert',
     'room.since': 'Daten seit', 'room.unconf': 'Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.',
+    'room.grid': 'Netz', 'room.battery': 'Batterie', 'room.pv': 'PV', 'room.csv.period': 'Zeitraum', 'room.csv.total': 'Summe kWh', 'room.csv.grid': 'Netz kWh', 'room.csv.battery': 'Batterie kWh', 'room.csv.pv': 'PV kWh', 'room.csv.cost': 'Kosten', 'room.csv.import_cost': 'bei Bezugspreis',
+    'room.credit': 'Guthaben {amount} {cur}', 'room.payment': 'Nachzahlung {amount} {cur}', 'room.year_summary': 'Jahr {year}: {cost} {cur} verbraucht, {count} × {advance} {cur} = {total} {cur} Abschlag, aktuell {balance}',
+    'room.invoice': 'Abrechnung', 'room.advance': 'Abschlag', 'room.no_advance': 'ohne Abschlag', 'room.month_forecast': 'Hochrechnung Monatsende', 'room.from_day2': 'ab dem 2. Messtag', 'room.previous_month': 'Vormonat', 'room.no_data': 'keine Daten',
+    'room.night_w': 'W nachts', 'room.night_total': 'Gesamt, 0 bis 5 Uhr', 'room.threshold': 'Schwelle {w} W', 'room.above': 'liegt darüber', 'room.ok': 'in Ordnung', 'room.night_note': 'Läuft das Tag und Nacht so weiter, sind das etwa <b>{energy} kWh{cost} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).',
+    'room.night_no_data': 'Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).', 'room.night_base': 'Grundlast nachts (Standby)',
+    'room.activity': 'Betriebszeiten', 'room.active_above': 'aktiv = über {w} W', 'room.active_today': 'Aktive Stunden heute', 'room.active_day': 'Aktivster Tag',
+    'room.activity_note': 'Mittlere Leistung je Wochentag und Stunde (letzte 8 Wochen). Hell bis kräftig orange: wenig bis viel. Die rechte Spalte nennt die aktiven Stunden pro Tag.',
+    'room.archive': 'Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)', 'room.month_label': 'Monat', 'room.grid_label': 'Netz', 'room.battery_label': 'Batterie', 'room.balance': 'Saldo',
+    'room.meter': 'Zähler', 'room.import': 'Bezug', 'room.feed': 'Einspeisung', 'room.archive.note': 'Saldo = Abschlag minus Kosten (positiv: Guthaben). Die Werte sind eingefroren und ändern sich nicht, wenn sich später Preise ändern.',
+    'room.archive.empty': 'Noch keine Einträge. Der erste Monat wird am 1. des nächsten Monats um 07:00 festgehalten.',
+    'room.day': 'Tag', 'room.chart': 'Verlauf und Kosten', 'room.area': 'Bereich', 'room.by_area': 'Je Bereich', 'room.included': 'inkl. {amount} {cur} Grundgebühr',
+    'room.fee': ' · Grundgebühr <b>{amount} {cur}</b>/Monat', 'room.price.all': 'Alles zum Bezugspreis <b>{price} ct/kWh</b>{fee}',
+    'room.explain.fixed': 'Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.',
+    'room.explain.no_sources': 'Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.',
+    'room.price.mix': 'Netz <b>{grid} ct</b> · Batterie <b>{battery} ct</b> · PV <b>{pv} ct/kWh</b>{fee}',
+    'room.explain.mix': 'Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).',
+    'room.price.opportunity': 'Netz, Batterie und PV, die das Haus gebraucht hätte: <b>{grid} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>{feed} ct/kWh</b>{fee}',
+    'room.explain.opportunity': 'Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.',
+    'room.full': '<br>Zum Vergleich, <b>alles zum Netzpreis</b> ({price} ct/kWh): <b>{cost} {cur}</b>.',
+    'room.subtitle': 'Stromverbrauch und Kosten', 'room.others': 'übrige Geräte', 'room.vs_previous_month': 'zum Vormonat',
+    'room.today': 'heute', 'room.hourly_curve': 'Kurve je Stunde', 'room.now_today': 'Jetzt und heute', 'room.low': 'ruhig', 'room.elevated': 'erhöht', 'room.high': 'hoch',
+    'room.no_use_today': 'heute noch kein Verbrauch', 'room.source_today': 'Herkunft heute',
+    'room.mix_tip': 'Am wenigsten Netzstrom brauchst du im Schnitt zwischen <b>{from} und {to} Uhr</b> (Ø {share} % aus dem Netz). Große Lasten legst du am besten dorthin.',
+    'room.mix_tip_missing': 'Für eine Empfehlung fehlen noch Tage mit Daten.', 'room.and_cost': ' und {amount} {cur}',
   });
 
   class EnergyCockpitRoomCard extends HTMLElement {
@@ -4263,7 +4297,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       const devs = arr(c && c.devices).filter((d) => d && d.energy);
       if (!devs.length) {
         this._c = null;
-        this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Raum-Abrechnung</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
+        this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit ' + T('room.title') + '</b><div style="margin-top:8px;opacity:.8">' + T('room.unconf') + '</div></ha-card>';
         return;
       }
       // Unterposten (devices[].items): eigener Zähler innerhalb eines Bereichs, zählt nicht doppelt zur Summe
@@ -4278,7 +4312,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     set hass(h) {
       WD.applyTheme(this, null, h);
       setLocale(h);
+      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      const localeChanged = this._localeSignature !== localeSignature;
+      this._localeSignature = localeSignature;
       this._hass = h;
+      if (localeChanged && this._c) this._render();
       if (!this._c) return;
       if (!this._loading && Date.now() - this._loadedAt > 15 * 60 * 1000) this._load();
       this._liveUpd();
@@ -4453,7 +4491,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
         for (let i = 0; i < 7; i++) {
           const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-          out.push({ label: DAYS[d.getDay()] + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: false });
+          out.push({ label: dayShort(d.getDay()) + ' ' + d.getDate() + '.', from: d, to: d, cur: key(d) === key(now), fee: false });
         }
       } else if (tab === 'month') {
         const dim = new Date(y, m + 1, 0).getDate();
@@ -4464,7 +4502,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       } else {
         const yy = tab === 'year' ? y : y - 1;
         for (let i = 0; i < 12; i++) {
-          out.push({ label: MONTHS[i], from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: true });
+          out.push({ label: monthShort(i), from: new Date(yy, i, 1), to: new Date(yy, i + 1, 0), cur: tab === 'year' && i === m, fee: true });
         }
       }
       return out;
@@ -4526,11 +4564,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
-      const num = (v) => v.toFixed(3).replace('.', ',');
-      const head = ['Zeitraum', 'Summe kWh', 'Netz kWh', 'Batterie kWh', 'PV kWh', 'Kosten ' + cur(), 'bei Bezugspreis ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
+      const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+      const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
-        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
+        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), money(r.cost), money(r.costFull)]
           .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])), r.items.map((d) => num(d[0] + d[1] + d[2])));
       });
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
@@ -4554,22 +4593,22 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const proj = el >= 1 ? cm.fee + vc + vc / el * rem : null;
         const pct = adv > 0 ? clamp(cm.cost / adv * 100, 0, 100) : 0;
         const col = !adv ? '96,165,250' : cm.cost >= adv ? '255,92,122' : cm.cost >= adv * 0.8 ? '255,197,61' : '52,211,153';
-        const saldo = (v) => (v >= 0 ? `<b style="color:rgb(52,211,153)">Guthaben ${fe(v)} ${CUR}</b>` : `<b style="color:rgb(255,92,122)">Nachzahlung ${fe(-v)} ${CUR}</b>`);
+        const saldo = (v) => (v >= 0 ? `<b style="color:rgb(52,211,153)">${T('room.credit', { amount: fe(v), cur: CUR })}</b>` : `<b style="color:rgb(255,92,122)">${T('room.payment', { amount: fe(-v), cur: CUR })}</b>`);
         let yr = '';
         if (adv > 0 && this._first) {
           const f = new Date(this._first + 'T00:00:00');
           const n = f.getFullYear() === y ? m - f.getMonth() + 1 : m + 1;
           const cy = this._calc(new Date(y, 0, 1), new Date(y, 11, 31), true);
-          yr = `<div class="s2">Jahr ${y}: ${fe(cy.cost)} ${CUR} verbraucht, ${n} × ${fe(adv)} ${CUR} = ${fe(adv * n)} ${CUR} Abschlag, aktuell ${saldo(adv * n - cy.cost)}</div>`;
+          yr = `<div class="s2">${T('room.year_summary', { year: y, cost: fe(cy.cost), cur: CUR, count: n, advance: fe(adv), total: fe(adv * n), balance: saldo(adv * n - cy.cost) })}</div>`;
         }
         const dpct = proj !== null && pm.cost > 0 ? Math.round((proj / pm.cost - 1) * 100) : null;
-        top += `<div class="panel"><div class="ph"><span class="lbl">Abrechnung ${MONTHS_LONG[m]} ${y}</span><span class="lbl">${adv ? 'Abschlag ' + fe(adv) + ' ' + CUR : 'ohne Abschlag'}</span></div>
+        top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.invoice')} ${monthLong(m)} ${y}</span><span class="lbl">${adv ? T('room.advance') + ' ' + fe(adv) + ' ' + CUR : T('room.no_advance')}</span></div>
           <div class="big">${fe(cm.cost)} <small>${CUR}</small></div>
           ${adv ? `<div class="pbar"><i style="width:${pct}%;background:rgb(${col})"></i></div>` : ''}
           <div class="grid3">
-            <div class="mini"><div class="l">Hochrechnung Monatsende</div><div class="v">${proj === null ? '–' : fe(proj) + ' ' + CUR}</div><div class="s">${proj === null ? 'ab dem 2. Messtag' : (adv ? saldo(adv - proj) : (dpct === null ? '' : (dpct >= 0 ? '+' : '') + dpct + ' % zum Vormonat'))}</div></div>
-            <div class="mini"><div class="l">Vormonat</div><div class="v">${pm.kwh > 0 ? fe(pm.cost) + ' ' + CUR : '–'}</div><div class="s">${pm.kwh > 0 ? fk(pm.kwh) + ' kWh' : 'keine Daten'}</div></div>
-            <div class="mini"><div class="l">${MONTHS[m]} ${y - 1}</div><div class="v">${ly.kwh > 0 ? fe(ly.cost) + ' ' + CUR : '–'}</div><div class="s">${ly.kwh > 0 ? fk(ly.kwh) + ' kWh' : 'keine Daten'}</div></div>
+            <div class="mini"><div class="l">${T('room.month_forecast')}</div><div class="v">${proj === null ? '–' : fe(proj) + ' ' + CUR}</div><div class="s">${proj === null ? T('room.from_day2') : (adv ? saldo(adv - proj) : (dpct === null ? '' : (dpct >= 0 ? '+' : '') + dpct + ' % ' + T('room.vs_previous_month')))}</div></div>
+            <div class="mini"><div class="l">${T('room.previous_month')}</div><div class="v">${pm.kwh > 0 ? fe(pm.cost) + ' ' + CUR : '–'}</div><div class="s">${pm.kwh > 0 ? fk(pm.kwh) + ' kWh' : T('room.no_data')}</div></div>
+            <div class="mini"><div class="l">${monthShort(m)} ${y - 1}</div><div class="v">${ly.kwh > 0 ? fe(ly.cost) + ' ' + CUR : '–'}</div><div class="s">${ly.kwh > 0 ? fk(ly.kwh) + ' kWh' : T('room.no_data')}</div></div>
           </div>${yr}</div>`;
       }
 
@@ -4585,26 +4624,26 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const sub = c.items.map((x, j) => ({ x, j })).filter((o) => o.x.parent === i).map((o) => {
           const wi = this._watt(o.x);
           const tk = hrs.reduce((a, h2) => (key(new Date(h2.t)) === todayK ? a + (h2.idev ? h2.idev[o.j] || 0 : 0) : a), 0);
-          return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · heute ${fk(tk)} kWh</div>`;
+          return `<div class="s">↳ ${esc(o.x.name || o.x.energy)}: <span class="wv ${this._wcls(wi)}" data-wi="${o.j}">${wi === null ? '–' : nf(wi, 0)}</span> W · ${T('room.today')} ${fk(tk)} kWh</div>`;
         }).join('');
         return `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div>
-          <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
-          <div class="spark">${bars}</div><div class="s">heute ${fk(todayKwh)} kWh · Kurve je Stunde</div>${sub}</div>`;
+        <div class="wl"><span class="wv ${this._wcls(w)}" data-w="${i}">${w === null ? '–' : nf(w, 0)}</span><small>W</small></div>
+        <div class="spark">${bars}</div><div class="s">${T('room.today')} ${fk(todayKwh)} kWh · ${T('room.hourly_curve')}</div>${sub}</div>`;
       }).join('');
-      top += `<div class="panel"><div class="ph"><span class="lbl">Jetzt und heute</span><span class="leg"><span style="--c:52,211,153"><i></i>ruhig</span><span style="--c:255,197,61"><i></i>erhöht</span><span style="--c:255,92,122"><i></i>hoch</span></span></div><div class="tiles">${tiles}</div></div>`;
+      top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.now_today')}</span><span class="leg"><span style="--c:52,211,153"><i></i>${T('room.low')}</span><span style="--c:255,197,61"><i></i>${T('room.elevated')}</span><span style="--c:255,92,122"><i></i>${T('room.high')}</span></span></div><div class="tiles">${tiles}</div></div>`;
 
       // 6: Herkunft heute und beste Zeit
       if (mix) {
         const t = this._calc(new Date(y, m, now.getDate()), new Date(y, m, now.getDate()), false);
         const tot = t.kwh;
-        let donut = '<div class="empty" style="padding:10px">heute noch kein Verbrauch</div>';
+        let donut = `<div class="empty" style="padding:10px">${T('room.no_use_today')}</div>`;
         if (tot > 0) {
           let off = 0;
           const R = 38, C = 2 * Math.PI * R;
           const seg = t.src.map((v, i) => { const len = v / tot * C; const s = `<circle r="${R}" cx="50" cy="50" fill="none" stroke="rgb(${SRC[i][1]})" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`; off += len; return s; }).join('');
           donut = `<svg viewBox="0 0 100 100" class="donut"><circle r="${R}" cx="50" cy="50" fill="none" stroke="rgba(var(--ov),.07)" stroke-width="14"/>${seg}<text x="50" y="54" text-anchor="middle" fill="var(--txt)" font-size="14" font-weight="800">${fk(tot)}</text></svg>`;
         }
-        const legend = t.src.map((v, i) => `<div><span style="--c:${SRC[i][1]}" class="dot"></span>${SRC[i][0]} <b>${tot > 0 ? nf(v / tot * 100, 0) : 0} %</b> <span class="mut">${fk(v)} kWh</span></div>`).join('');
+        const legend = t.src.map((v, i) => `<div><span style="--c:${SRC[i][1]}" class="dot"></span>${T(SRC[i][0])} <b>${tot > 0 ? nf(v / tot * 100, 0) : 0} %</b> <span class="mut">${fk(v)} kWh</span></div>`).join('');
         const mh = this._mixH || [];
         let best = null;
         for (let s = 0; s < 22; s++) {
@@ -4613,8 +4652,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const g = w.reduce((a, x) => a + x.g / x.n, 0) / 3;
           if (best === null || g < best.g) best = { s, g };
         }
-        const tip = best ? `Am wenigsten Netzstrom brauchst du im Schnitt zwischen <b>${best.s} und ${best.s + 3} Uhr</b> (Ø ${nf(best.g * 100, 0)} % aus dem Netz). Große Lasten legst du am besten dorthin.` : 'Für eine Empfehlung fehlen noch Tage mit Daten.';
-        top += `<div class="panel"><span class="lbl">Herkunft heute</span><div class="herk">${donut}<div class="hl">${legend}</div></div><div class="note">${tip}</div></div>`;
+        const tip = best ? T('room.mix_tip', { from: best.s, to: best.s + 3, share: nf(best.g * 100, 0) }) : T('room.mix_tip_missing');
+        top += `<div class="panel"><span class="lbl">${T('room.source_today')}</span><div class="herk">${donut}<div class="hl">${legend}</div></div><div class="note">${tip}</div></div>`;
       }
 
       // 3: Grundlast nachts
@@ -4626,11 +4665,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const totW = per.reduce((a, v) => a + v, 0);
         const kwhM = totW * 24 * 30 / 1000;
         const cls = totW > sb ? 'hi' : 'lo';
-        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>W nachts</small></div></div>`).join('')}
-          <div class="tile"><div class="l">Gesamt, 0 bis 5 Uhr</div><div class="wl"><span class="wv ${cls}">${nf(totW, 0)}</span><small>W</small></div><div class="s">Schwelle ${nf(sb, 0)} W · ${totW > sb ? 'liegt darüber' : 'in Ordnung'}</div></div></div>
-          <div class="note">Läuft das Tag und Nacht so weiter, sind das etwa <b>${fk(kwhM)} kWh${P.grid > 0 ? ' und ' + fe(kwhM * P.grid) + ' ' + CUR : ''} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).</div>`;
-      } else sbHtml = '<div class="note">Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).</div>';
-      top += `<div class="panel"><span class="lbl">Grundlast nachts (Standby)</span>${sbHtml}</div>`;
+        sbHtml = `<div class="tiles">${c.devices.map((d, i) => `<div class="tile" style="--c:${rgb(d.color, '96,165,250')}"><div class="l">${esc(d.name || d.energy)}</div><div class="wl"><span class="wv ${per[i] > sb ? 'hi' : 'lo'}">${nf(per[i], 0)}</span><small>${T('room.night_w')}</small></div></div>`).join('')}
+          <div class="tile"><div class="l">${T('room.night_total')}</div><div class="wl"><span class="wv ${cls}">${nf(totW, 0)}</span><small>W</small></div><div class="s">${T('room.threshold', { w: nf(sb, 0) })} · ${totW > sb ? T('room.above') : T('room.ok')}</div></div></div>
+          <div class="note">${T('room.night_note', { energy: fk(kwhM), cost: P.grid > 0 ? T('room.and_cost', { amount: fe(kwhM * P.grid), cur: CUR }) : '' })}</div>`;
+      } else sbHtml = `<div class="note">${T('room.night_no_data')}</div>`;
+      top += `<div class="panel"><span class="lbl">${T('room.night_base')}</span>${sbHtml}</div>`;
 
       // 4: Betriebszeiten
       const since = Math.max(Date.now() - 56 * 864e5, this._firstTs || Date.now());
@@ -4657,12 +4696,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const mon = new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7));
         const sumAct = (from) => Object.keys(actDay).filter((k) => k >= key(from) && k <= todayK).reduce((a, k) => a + actDay[k], 0);
         const head = `<div class="hm hh"><span></span>${Array.from({ length: 24 }, (_, i) => `<span>${i % 3 ? '' : i}</span>`).join('')}</div>`;
-        const rowsH = order.map((wd, ri) => `<div class="hm"><span class="dl">${DAYS[wd]}</span>${hm[wd].map((v, hh) => `<span class="cell" title="${DAYS[wd]} ${hh}:00 · Ø ${nf(v, 0)} W" style="background:rgba(245,158,11,${v <= 0 ? 0.04 : 0.1 + v / hmax * 0.9})"></span>`).join('')}<span class="ah">${nf(wdAct[ri], 1)} h</span></div>`).join('');
-        top += `<div class="panel"><div class="ph"><span class="lbl">Betriebszeiten</span><span class="lbl">aktiv = über ${nf(act, 0)} W</span></div>
-          <div class="grid3"><div class="mini"><div class="l">Aktive Stunden heute</div><div class="v">${nf(actDay[todayK] || 0, 0)} h</div></div>
-            <div class="mini"><div class="l">Diese Woche</div><div class="v">${nf(sumAct(mon), 0)} h</div></div>
-            <div class="mini"><div class="l">Aktivster Tag</div><div class="v">${wdAct[topIdx] > 0 ? DAYS[order[topIdx]] + ' · ' + nf(wdAct[topIdx], 1) + ' h' : '–'}</div></div></div>
-          <div class="heat">${head}${rowsH}</div><div class="note">Mittlere Leistung je Wochentag und Stunde (letzte 8 Wochen). Hell bis kräftig orange: wenig bis viel. Die rechte Spalte nennt die aktiven Stunden pro Tag.</div></div>`;
+        const rowsH = order.map((wd, ri) => `<div class="hm"><span class="dl">${dayShort(wd)}</span>${hm[wd].map((v, hh) => `<span class="cell" title="${dayShort(wd)} ${hh}:00 · Ø ${nf(v, 0)} W" style="background:rgba(245,158,11,${v <= 0 ? 0.04 : 0.1 + v / hmax * 0.9})"></span>`).join('')}<span class="ah">${nf(wdAct[ri], 1)} h</span></div>`).join('');
+        top += `<div class="panel"><div class="ph"><span class="lbl">${T('room.activity')}</span><span class="lbl">${T('room.active_above', { w: nf(act, 0) })}</span></div>
+          <div class="grid3"><div class="mini"><div class="l">${T('room.active_today')}</div><div class="v">${nf(actDay[todayK] || 0, 0)} h</div></div>
+            <div class="mini"><div class="l">${T('room.week')}</div><div class="v">${nf(sumAct(mon), 0)} h</div></div>
+            <div class="mini"><div class="l">${T('room.active_day')}</div><div class="v">${wdAct[topIdx] > 0 ? dayShort(order[topIdx]) + ' · ' + nf(wdAct[topIdx], 1) + ' h' : '–'}</div></div></div>
+          <div class="heat">${head}${rowsH}</div><div class="note">${T('room.activity_note')}</div></div>`;
       }
 
       // 8: Monatsarchiv (eingefrorene Werte, wird am 1. des Monats geschrieben)
@@ -4674,12 +4713,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         arr.forEach((r) => {
           const [yy, mm] = String(r.k).split('-');
           const saldo = typeof r.ab === 'number' && r.ab > 0 ? r.ab - r.cost : null;
-          rows += `<tr><td>${esc(MONTHS[+mm - 1] || mm)} ${esc(yy)}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
-            + `<tr class="sub"><td colspan="7">${(r.dev || []).map((d) => `${esc(d.n)}: Zähler ${nf(d.a, 2)} → ${nf(d.e, 2)} kWh (${fk(d.kwh)} kWh)`).join(' · ')} · Bezug ${nf((r.pg || 0) * 100, 1)} ct, Einspeisung ${nf((r.pf || 0) * 100, 1)} ct</td></tr>`;
+          rows += `<tr><td>${esc(monthShort(+mm - 1) || mm)} ${esc(yy)}</td><td>${fk(r.kwh)}</td><td>${fk(r.g)}</td><td>${fk(r.b)}</td><td>${fk(r.p)}</td><td>${fe(r.cost)}</td><td>${saldo === null ? '–' : (saldo >= 0 ? '+' : '−') + fe(Math.abs(saldo))}</td></tr>`
+            + `<tr class="sub"><td colspan="7">${(r.dev || []).map((d) => `${esc(d.n)}: ${T('room.meter')} ${nf(d.a, 2)} → ${nf(d.e, 2)} kWh (${fk(d.kwh)} kWh)`).join(' · ')} · ${T('room.import')} ${nf((r.pg || 0) * 100, 1)} ct, ${T('room.feed')} ${nf((r.pf || 0) * 100, 1)} ct</td></tr>`;
         });
-        bottom = `<div class="panel"><span class="lbl">Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)</span>${arr.length
-          ? `<div class="tw"><table><thead><tr><th>Monat</th><th>kWh</th><th>Netz</th><th>Batt.</th><th>PV</th><th>${CUR}</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table></div><div class="note">Saldo = Abschlag minus Kosten (positiv: Guthaben). Die Werte sind eingefroren und ändern sich nicht, wenn sich später Preise ändern.</div>`
-          : '<div class="note">Noch keine Einträge. Der erste Monat wird am 1. des nächsten Monats um 07:00 festgehalten.</div>'}</div>`;
+        bottom = `<div class="panel"><span class="lbl">${T('room.archive')}</span>${arr.length
+          ? `<div class="tw"><table><thead><tr><th>${T('room.month_label')}</th><th>kWh</th><th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th><th>${CUR}</th><th>${T('room.balance')}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="note">${T('room.archive.note')}</div>`
+          : `<div class="note">${T('room.archive.empty')}</div>`}</div>`;
       }
       return { top, bottom };
     }
@@ -4698,9 +4737,9 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
           const p = per[k];
           const tot = p.kwh || 1;
           const mb = mix && p.kwh > 0 ? `<div class="mixbar">${p.src.map((v, i) => `<i style="--c:${SRC[i][1]};width:${v / tot * 100}%"></i>`).join('')}</div>` : '';
-          const sline = mix && p.kwh > 0 ? `Netz ${fk(p.src[0])} · Batt. ${fk(p.src[1])} · PV ${fk(p.src[2])} kWh` : '';
+          const sline = mix && p.kwh > 0 ? `${T('room.grid')} ${fk(p.src[0])} · ${T('room.battery')} ${fk(p.src[1])} · ${T('room.pv')} ${fk(p.src[2])} kWh` : '';
           return `<div class="kpi${tab === k ? ' on' : ''}" data-t="${k}"><div class="l">${T('room.' + k)}</div><div class="k">${fk(p.kwh)}<small>kWh</small></div>`
-            + `<div class="e">${P.grid > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>${mb}<div class="s">${sline}${p.fee ? `<br>inkl. ${fe(p.fee)} ${CUR} Grundgebühr` : ''}</div></div>`;
+            + `<div class="e">${P.grid > 0 || p.fee ? fe(p.cost) + ' ' + CUR : '—'}</div>${mb}<div class="s">${sline}${p.fee ? `<br>${T('room.included', { amount: fe(p.fee), cur: CUR })}` : ''}</div></div>`;
         }).join('');
         const b = this._buckets(tab);
         const rows = b.map((x) => Object.assign({ x }, this._calc(x.from, x.to, x.fee)));
@@ -4710,7 +4749,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
         const sum = rows.reduce((a, r) => { a.kwh += r.kwh; a.cost += r.cost; a.full += r.costFull; r.src.forEach((v, i) => { a.src[i] += v; }); return a; }, { kwh: 0, cost: 0, full: 0, src: [0, 0, 0] });
         const cell = (v) => `<td class="${v ? '' : 'z'}">${v ? fk(v) : '–'}</td>`;
         const trs = rows.map((r) => `<tr class="${r.x.cur ? 'cur' : ''}"><td>${esc(r.x.label)}</td><td>${r.kwh ? fk(r.kwh) : '–'}</td>${mix ? r.src.map(cell).join('') : ''}<td>${r.cost ? fe(r.cost) : '–'}</td></tr>`).join('');
-        const th = `<tr><th>${tab === 'year' || tab === 'prev' ? 'Monat' : 'Tag'}</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr>`;
+        const th = `<tr><th>${T(tab === 'year' || tab === 'prev' ? 'room.month_label' : 'room.day')}</th><th>kWh</th>${mix ? `<th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th>` : ''}<th>${CUR}</th></tr>`;
         const sumRow = `<tr class="sum"><td>${T('room.sum')}</td><td>${fk(sum.kwh)}</td>${mix ? sum.src.map((v) => `<td>${fk(v)}</td>`).join('') : ''}<td>${fe(sum.cost)}</td></tr>`;
         // Je Gerät (im gewählten Zeitraum)
         const cur_ = per[tab];
@@ -4727,37 +4766,37 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
               restCost[0] -= cur_.itemCost[o.j];
             });
             const rv = rest.map((v) => Math.max(0, v));
-            out += `<tr class="ch"><td>↳ übrige Geräte</td><td>${fk(rv[0] + rv[1] + rv[2])}</td>${mix ? rv.map(cell).join('') : ''}<td>${fe(Math.max(0, restCost[0]))}</td></tr>`;
+            out += `<tr class="ch"><td>↳ ${T('room.others')}</td><td>${fk(rv[0] + rv[1] + rv[2])}</td>${mix ? rv.map(cell).join('') : ''}<td>${fe(Math.max(0, restCost[0]))}</td></tr>`;
           }
           return out;
         }).join('');
-        const title = { week: 'Diese Woche', month: MONTHS_LONG[new Date().getMonth()] + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
-        const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${s[0]}</span>`).join('') : '';
+        const title = { week: T('room.week'), month: monthLong(new Date().getMonth()) + ' ' + new Date().getFullYear(), year: String(new Date().getFullYear()), prev: String(new Date().getFullYear() - 1) }[tab];
+        const leg = mix ? SRC.map((s) => `<span style="--c:${s[1]}"><i></i>${T(s[0])}</span>`).join('') : '';
         const mode = c.valuation || 'opportunity';
-        const fee = c.base_fee ? ` · Grundgebühr <b>${fe(parseFloat(c.base_fee))} ${CUR}</b>/Monat` : '';
+        const fee = c.base_fee ? T('room.fee', { amount: fe(parseFloat(c.base_fee)), cur: CUR }) : '';
         let priceTxt, explain;
         if (!(P.grid > 0)) { priceTxt = T('room.noprice'); explain = ''; }
         else if (!mix || mode === 'grid') {
-          priceTxt = `Alles zum Bezugspreis <b>${nf(P.grid * 100, 2)} ct/kWh</b>${fee}`;
-          explain = mix ? 'Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.' : 'Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.';
+          priceTxt = T('room.price.all', { price: nf(P.grid * 100, 2), fee });
+          explain = T(mix ? 'room.explain.fixed' : 'room.explain.no_sources');
         } else if (mode === 'mix') {
-          priceTxt = `Netz <b>${nf(P.grid * 100, 2)} ct</b> · Batterie <b>${nf(P.batt * 100, 2)} ct</b> · PV <b>${nf(P.pv * 100, 2)} ct/kWh</b>${fee}`;
-          explain = 'Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).';
+          priceTxt = T('room.price.mix', { grid: nf(P.grid * 100, 2), battery: nf(P.batt * 100, 2), pv: nf(P.pv * 100, 2), fee });
+          explain = T('room.explain.mix');
         } else {
-          priceTxt = `Netz, Batterie und PV, die das Haus gebraucht hätte: <b>${nf(P.grid * 100, 2)} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>${nf(P.feed * 100, 2)} ct/kWh</b>${fee}`;
-          explain = 'Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.';
+          priceTxt = T('room.price.opportunity', { grid: nf(P.grid * 100, 2), feed: nf(P.feed * 100, 2), fee });
+          explain = T('room.explain.opportunity');
         }
-        const full = P.grid > 0 ? `<br>Zum Vergleich, <b>alles zum Netzpreis</b> (${nf(P.grid * 100, 2)} ct/kWh): <b>${fe(sum.full)} ${CUR}</b>.` : '';
+        const full = P.grid > 0 ? T('room.full', { price: nf(P.grid * 100, 2), cost: fe(sum.full), cur: CUR }) : '';
         const ex = this._extra(P, CUR, mix);
         body = `<div class="kpis">${kp}</div>${ex.top}
           <div class="panel"><div class="ph"><span class="lbl">${esc(title)}</span><span class="leg">${leg}</span></div>
             <div class="bars">${bars}</div><div class="xl">${xl}</div></div>
-          <div class="panel"><span class="lbl">Verlauf und Kosten</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
-          <div class="panel"><span class="lbl">Je Bereich</span><div class="tw"><table><thead><tr><th>Bereich</th><th>kWh</th>${mix ? '<th>Netz</th><th>Batterie</th><th>PV</th>' : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
+          <div class="panel"><span class="lbl">${T('room.chart')}</span><div class="tw"><table><thead>${th}</thead><tbody>${trs}${sumRow}</tbody></table></div></div>
+          <div class="panel"><span class="lbl">${T('room.by_area')}</span><div class="tw"><table><thead><tr><th>${T('room.area')}</th><th>kWh</th>${mix ? `<th>${T('room.grid_label')}</th><th>${T('room.battery_label')}</th><th>${T('room.pv')}</th>` : ''}<th>${CUR}</th></tr></thead><tbody>${devRows}</tbody></table></div>
             <div class="note">${priceTxt}${full}<br>${explain}</div>
-            <div class="foot"><span>${this._first ? `${T('room.since')} ${this._first.split('-').reverse().join('.')}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>${ex.bottom}`;
+            <div class="foot"><span>${this._first ? `${T('room.since')} ${new Date(this._first + 'T00:00:00').toLocaleDateString(WD.state.loc, { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ''}</span><span class="btn" data-csv="1">${T('room.csv')}</span></div></div>${ex.bottom}`;
       }
-      const sub = c.subtitle !== undefined ? c.subtitle : 'Stromverbrauch und Kosten';
+      const sub = c.subtitle !== undefined ? c.subtitle : T('room.subtitle');
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card><div class="wrap">
         <header><div class="title">${c.image ? `<img src="${esc(c.image)}" alt="">` : ''}<div>${esc(c.title || T('room.title'))}<small>${esc(sub)}</small></div></div>
           <div class="tabs">${['week', 'month', 'year', 'prev'].map((k) => `<div class="tab${tab === k ? ' on' : ''}" data-t="${k}">${T('room.tab.' + k)}</div>`).join('')}</div></header>
@@ -5155,7 +5194,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._ccY = null; this._ccV = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
-      this._c._g2n = typeof c.grid2_name === 'string' && c.grid2_name.trim() ? c.grid2_name.trim() : T('st.g2name');
+      this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
       // budget_kwh (optional): Jahresziel für den Netzbezug in kWh (Zahl oder Sensor). budget_profile: linear (Standard) oder history (Soll folgt dem Verlauf des Vorjahres)
       this._c._bud = typeof c.budget_kwh === 'number' ? c.budget_kwh : typeof c.budget_kwh === 'string' && c.budget_kwh.trim() ? c.budget_kwh.trim() : null;
       this._c._budHist = c.budget_profile === 'history';
@@ -5178,12 +5217,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const first = !this._hass;
       setLocale(h);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
-      if (this._c && this._bl !== WD.state.lang) { this._bl = WD.state.lang; fillMon(); this._build(); }
+      const languageChanged = this._bl !== WD.state.lang;
+      if (languageChanged) { this._bl = WD.state.lang; fillMon(); this._build(); }
       this._hass = h;
       // Neuer Tag: Stunden seit Mitternacht neu laden, sonst fehlt "Heute" aus den Gesamtzählern bis zum nächsten Laden
       const dn = new Date(), today = new Date(dn.getFullYear(), dn.getMonth(), dn.getDate()).getTime();
       if (!this._loading && (Date.now() - (this._loaded || 0) > 30 * 60 * 1000 || (this._loaded && this._tdDay !== today))) { this._tdDay = today; this._load(); return; }
-      if (first || Date.now() - (this._lastR || 0) > 30000) { this._lastR = Date.now(); this._render(); }
+      if (first || languageChanged || Date.now() - (this._lastR || 0) > 30000) { this._lastR = Date.now(); this._render(); }
     }
     getCardSize() { return 10; }
     getGridOptions() { return { columns: 'full', min_columns: 6 }; }
@@ -5785,7 +5825,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._f('feedSub', kv(T('st.r.fed'), this._fk(p.exp) + ' kWh'));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh'));
-        this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
+        this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n || T('st.g2name')) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
         this._f('autSub', kv(T('st.r.selfq'), p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—') + kv(T('st.r.cons'), this._fk(cons) + ' kWh'));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)
@@ -6063,4 +6103,240 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     form: () => WD.statsForm(),
   });
 })();
+
+
+/* ---- i18n-en.js ---- */
+/* Englische Übersetzungen für Kartentexte während der Laufzeit. */
+WD.addTranslations('en', {
+  'flow.title': 'Energy flow', 'flow.pv': 'Solar', 'flow.pv2': 'Solar 2', 'flow.grid2': 'Second meter', 'flow.grid': 'Grid', 'flow.battery': 'Battery', 'flow.home': 'House consumption',
+  'flow.cons_total': 'Consumers', 'flow.rest': 'Unaccounted', 'flow.restpct': '{n} % measured', 'flow.soc': 'Charge level', 'flow.temp': 'Temperature',
+  'flow.next': 'Next →', 'flow.error': 'Configure at least pv or grid',
+  'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Heating', 'gas.hw': 'Hot water', 'gas.today': 'Today', 'tag.gas.on': 'Heating', 'tag.water.on': 'Flowing', 'tag.today': 'Today',
+  'pill.aut': 'Current energy independence', 'pill.self': 'Current self-consumption', 'pv.use.home': 'Home', 'pv.use.bat': 'Battery', 'pv.use.grid': 'Grid', 'pv.use.store': 'Storage',
+  'stat.pv': 'Solar today', 'stat.fc1': 'Solar tomorrow', 'stat.fc2': 'Solar the day after tomorrow', 'stat.imp': 'Grid import today', 'stat.exp': 'Grid export', 'stat.bat': 'Battery ± today', 'stat.aut': 'Energy independence today',
+  'mix.pv': 'Solar', 'mix.bat': 'Battery', 'mix.grid': 'Grid',
+  'tag.offline': 'Offline', 'tag.producing': 'Producing', 'tag.idle': 'Idle', 'tag.balanced': 'Balanced',
+  'tag.import': 'Importing', 'tag.export': 'Exporting', 'tag.standby': 'Standby', 'tag.charging': 'Charging', 'tag.discharging': 'Discharging', 'tag.passthrough': 'Passing through',
+  'bat.io': 'Input <b>{in}</b> · output <b>{out}</b>', 'bat.split': ' (home <b>{home}</b> · grid <b>{grid}</b>)', 'bat.shared': 'Shared sensor with <b>{name}</b>',
+  'forecast': 'Forecast', 'forecast.day': 'Forecast today', 'offline': 'offline',
+  'ka.on': '● Awake', 'ka.wait': '☝ Tap once to keep the screen on',
+  'waste.today': 'Today', 'waste.tomorrow': 'Tomorrow',
+  'bat.usable_pct': 'usable', 'bat.usable_slow': '<div class="sr"><span>Usable</span> <b>{kwh} kWh</b></div><div class="sr"><span>Charging</span> <b>slowly</b></div>', 'bat.full_at': '<div class="sr"><span>Full at</span> <b>{time}</b></div><div class="sr"><span>Full in</span> <b>{dur}</b></div>',
+  'bat.last_24': '<div class="sr"><span>Lasts</span> <b>over 24 h</b></div><div class="sr"><span>Usable</span> <b>{kwh} kWh</b></div>', 'bat.last_until': '<div class="sr"><span>Empty at</span> <b>{time}</b></div><div class="sr"><span>Empty in</span> <b>{dur}</b></div>',
+  'bat.full': '<div class="sr"><span>Usable</span> <b>{kwh} kWh</b></div>', 'bat.usable': '<div class="sr"><span>Usable</span> <b>{kwh} kWh</b></div><div class="sr"><span>Reserve</span> <b>{res} %</b></div>', 'bat.usable0': '<div class="sr"><span>Usable</span> <b>{kwh} kWh</b></div>',
+  'dur.2days': '> 2 days',
+  'ban.surplus': '{w} surplus', 'ban.batfull': 'Battery full – ', 'ban.tonet': 'Power is flowing to the grid · using it yourself saves <b>{gain} {cur}/h</b>',
+  'ban.running': '{name} is running', 'ban.fromgrid': '{w} from the grid', 'ban.cost': 'currently costs <b>{cost} {cur}/h</b>',
+  'ban.batempty': 'Battery empty', 'ban.batlimit': 'Battery at its limit',
+
+  'why.q.bal': 'Why is there no grid import?', 'why.q.baldis': 'Why is the battery discharging?', 'why.q.balchg': 'Why is the battery charging?',
+  'why.bal.both': 'Solar produces {pv} and the battery supplies {bat}. Together they cover the home ({home}).',
+  'why.bal.sun': 'Solar produces {pv} and covers the home ({home}) on its own.',
+  'why.bal.bat': 'The battery ({soc} %) supplies {bat} and covers the home ({home}) on its own.',
+  'why.bal.low': 'The home is currently using very little power ({home}).',
+  'why.bal.dis': 'Solar alone is not enough for {home}. The battery supplies the rest ({bat}); charge level {soc} %.',
+  'why.bal.chg': 'Solar is producing more than the home needs. The surplus ({w}) is charging the battery.',
+  'why.imp': 'Why {w} of grid import?', 'why.exp': 'Why {w} of grid export?', 'why.bal': 'Grid balanced', 'why.asof': 'As of {t}',
+  'why.cover': 'The home needs {home}. Supplied by: {parts}', 'why.solar': 'Solar', 'why.batt': 'Battery', 'why.grid': 'Grid', 'why.bm': 'Battery charging',
+  'why.row.pv': 'Solar production', 'why.row.home': 'Home consumption', 'why.row.chg': 'Battery charging', 'why.row.exp': 'Grid export',
+  'why.q.bat': 'Why not use the battery?', 'why.q.sun': 'Why not use solar?', 'why.q.feed': 'Why not charge the battery?', 'why.q.tip': 'Tip', 'why.q.hint': 'Note',
+  'why.bat.empty': 'The battery is empty ({soc} %, discharge limit {res} %).',
+  'why.bat.idle': 'The battery is at {soc} % but is not supplying power. Check its operating mode or scheduled lockout.',
+  'why.bat.dis': 'The battery is already supplying {w}.',
+  'why.sun.night': 'It is night. Sunrise is at {t}.', 'why.sun.fc': ' Forecast for tomorrow: {kwh} kWh.', 'why.sun.low': 'Solar is currently producing only {w}.', 'why.sun.zero': 'Solar is not producing anything right now.', 'why.sun.wx': ' Weather: {cnd}.',
+  'why.sun.part': 'Solar is producing {pv}, which is not enough for {home}.',
+  'why.rest': 'A large amount ({w}) is not assigned to a consumer. Add more consumers to the card.',
+  'why.full': 'The battery is full ({soc} %) and is no longer charging.',
+  'why.notfull': 'The battery is not charging, although it has room ({soc} %). Check its operating mode.',
+  'why.charging': 'The battery is already charging at {w}.', 'why.tip.sug': '{w} surplus: {names} would be a good fit now.',
+  'why.bal.txt': 'Solar and the battery cover the home ({home}) without using the grid.',
+  'why.none': 'There is no data to explain this right now.', 'why.top': 'including {n} {w}', 'bat.in2': ' (solar 2 <b>{pv}</b> · home <b>{ac}</b>)',
+  'xt.alarm': 'Alarm',
+  'sky.sunny': 'Sunny', 'sky.clear-night': 'Clear night', 'sky.partlycloudy': 'Partly cloudy', 'sky.cloudy': 'Cloudy', 'sky.fog': 'Fog', 'sky.rainy': 'Rain', 'sky.pouring': 'Heavy rain', 'sky.snowy': 'Snow', 'sky.snowy-rainy': 'Sleet', 'sky.lightning': 'Thunderstorm', 'sky.lightning-rainy': 'Thunderstorm with rain', 'sky.hail': 'Hail', 'sky.windy': 'Windy', 'sky.windy-variant': 'Windy and cloudy', 'sky.exceptional': 'Exceptional weather', 'sky.cloud': 'Cloud cover', 'sky.wind': 'Wind', 'sky.nofc': 'No forecast available from the weather entity',
+  'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'close': 'Close',
+
+  'dev.title': 'Devices & consumption', 'dev.room': 'Room', 'dev.err': 'rooms is missing: configure at least one room', 'dev.next': 'Next →',
+  'dev.days': 'days', 'dev.p.day': 'Today', 'dev.p.week': 'Week', 'dev.p.month': 'Month', 'dev.p.year': 'Year',
+  'dev.l.day': 'Today', 'dev.l.week': 'This week', 'dev.l.month': 'This month', 'dev.l.year': 'This year', 'dev.measured': 'measured',
+  'dev.cost': 'Cost', 'dev.home_total': 'Home total', 'dev.none': 'No reachable devices', 'dev.locked': 'protected – display only', 'dev.now': 'NOW',
+  'dev.ambilight': 'Ambilight', 'dev.music': 'Music', 'dev.mute': 'Muted', 'dev.light': 'Light',
+  'dev.on': 'on', 'dev.off': 'off', 'dev.tv_on': 'TV on', 'dev.tv_off': 'TV off', 'dev.extra': 'Extra device', 'dev.cooling': 'cooling', 'dev.pause': 'Paused', 'dev.since': 'since',
+  'dev.unmeasured': 'unaccounted', 'dev.live': 'Now · <b>{n} %</b> measured', 'dev.sub': '{on} of {all} devices on · {w} measured',
+  'dev.cent': '¢/kWh', 'dev.grid': 'Grid', 'dev.selfsup': 'Solar/battery', 'dev.standby': 'Standby', 'dev.year': 'year', 'dev.tap_off': 'tap to turn off', 'dev.surplus': 'Surplus',
+  'dev.playing': 'playing',
+  'dev.st.ready': 'ready', 'dev.st.brewing': 'brewing', 'dev.st.inactive': 'inactive', 'dev.st.finished': 'finished', 'dev.st.pause': 'paused',
+  'dev.st.action': 'Action required', 'dev.st.error': 'Error', 'dev.st.playing': 'playing', 'dev.st.standby': 'standby',
+
+  'st.title': 'Statistics', 'st.err': 'pv_total, grid_import_total and grid_export_total are required', 'st.today': 'Today', 'st.next': 'Next →',
+  'st.pvsav': 'Solar savings', 'st.feed': 'Export revenue', 'st.selfc': 'Solar self-consumption', 'st.cost': 'Grid electricity costs', 'st.aut': 'Energy independence',
+  'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
+  'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',
+  'st.r.pv': 'Generated', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
+  'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
+  'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
+  'st.full': '× full', 'st.note': 'Grid electricity {p} ¢/kWh · export {f} ¢/kWh · {g} · payback estimated using today’s prices', 'st.note.nofee': 'energy costs only, excluding fixed charges', 'st.note.fee': 'grid electricity costs including fixed charges',
+  'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
+  'st.import': 'Grid import', 'st.export': 'Grid export',
+  'st.week': 'Week', 'st.g2name': 'Second meter', 'st.g2of': 'including {n}', 'st.basefee': 'including fixed charge', 'st.bud.title': 'Annual grid import budget', 'st.bud.of': '{ist} of {goal} kWh grid import', 'st.bud.soll': 'Target by today', 'st.bud.abw': 'Actual − target', 'st.bud.fc': 'Projection', 'st.bud.fcabw': 'Difference from target', 'st.bud.lin': 'Target spread evenly over the year', 'st.bud.hist': 'Target follows {y} usage', 'st.bud.goal': 'Annual target', 'st.bud.since': 'Measurements only available since {d}: target and projection cover this period and are provisional',
+  'st.cc.group': 'Group', 'st.cc.title': 'Cost per consumer', 'st.cc.meas': 'measured', 'st.cc.est': 'estimated from home mix', 'st.cc.cost': 'Grid cost', 'st.cc.saved': 'saved', 'st.cc.nohist': 'Only available for today, week, month, and the current year. No values are available for “Total”.', 'st.cc.grid': 'Grid', 'st.cc.bat': 'Battery', 'st.cc.pv': 'Solar', 'st.cc.upto': 'up to {x} {cur}/h', 'st.cc.unitW': '{id} measures power ({u}). An energy meter in kWh is required.', 'st.cc.nostat': 'No kWh statistics for {id}. A meter with state_class total_increasing is required.', 'st.cc.missing': '{id} does not exist.',
+  'st.n.pv': 'Solar today', 'st.n.imp': 'Grid import today', 'st.n.exp': 'Grid export today', 'st.n.chg': 'Battery charged today', 'st.n.dis': 'Battery discharged today',
+  'st.d.none': '{n}: {id} is not providing a value right now.', 'st.d.nonefb': '{n}: {id} is not providing a value right now. The card calculates it from the total meter.',
+  'st.d.big': '{n}: {id} shows {v} kWh, more than the total meter since midnight. Is this a total meter rather than a daily meter?',
+  'st.d.exp': 'More energy was exported ({e} kWh) than generated ({p} kWh) today. Check the export sensor.',
+  'st.all': 'Total', 'st.hist': 'History', 'st.nodata2': 'no data',
+  'st.lt.from': 'Data from {d}', 'st.lt.gaps': 'No data for: {m}', 'st.lt.skip': '{n} month(s) without complete data are excluded from totals',
+  'st.lt.hist': 'History: solar yield only, without grid or battery values', 'st.lt.price': 'Financial values calculated using today’s prices',
+
+  'room.title': 'Room billing', 'room.week': 'This week', 'room.month': 'This month', 'room.year': 'This year', 'room.prev': 'Previous year',
+  'room.tab.week': 'Week', 'room.tab.month': 'Month', 'room.tab.year': 'Year', 'room.tab.prev': 'Previous year',
+  'room.sum': 'Total', 'room.loading': 'Loading data …',
+  'room.noprice': 'No price configured: showing kWh only.', 'room.csv': 'Copy as CSV', 'room.copied': 'Copied',
+  'room.since': 'Data since', 'room.unconf': 'Not set up yet. Edit the card (pencil): the <b>wizard</b> will help you select meters.',
+});
+
+WD.addTranslations('en', {
+  'room.grid': 'Grid', 'room.battery': 'Battery', 'room.pv': 'Solar',
+  'room.csv.period': 'Period', 'room.csv.total': 'Total kWh', 'room.csv.grid': 'Grid kWh', 'room.csv.battery': 'Battery kWh', 'room.csv.pv': 'Solar kWh', 'room.csv.cost': 'Cost', 'room.csv.import_cost': 'at import price',
+  'room.credit': 'Credit {amount} {cur}', 'room.payment': 'Additional payment {amount} {cur}', 'room.year_summary': 'Year {year}: {cost} {cur} used, {count} × {advance} {cur} = {total} {cur} in advance payments, current balance {balance}',
+  'room.invoice': 'Billing', 'room.advance': 'Advance payment', 'room.no_advance': 'no advance payment', 'room.month_forecast': 'Month-end projection', 'room.from_day2': 'from the second day of measurements', 'room.previous_month': 'Previous month', 'room.no_data': 'no data',
+  'room.night_w': 'W at night', 'room.night_total': 'Total, 00:00–05:00', 'room.threshold': 'Threshold {w} W', 'room.above': 'above threshold', 'room.ok': 'within range',
+  'room.night_note': 'If this continues day and night, that is about <b>{energy} kWh{cost} per month</b> while idle (average of the last 14 nights).', 'room.night_no_data': 'Not enough night-time data yet (at least one night is required).', 'room.night_base': 'Overnight base load (standby)',
+  'room.activity': 'Operating hours', 'room.active_above': 'active = above {w} W', 'room.active_today': 'Active hours today', 'room.active_day': 'Most active day',
+  'room.activity_note': 'Average power by day of week and hour (last 8 weeks). Lighter to deeper orange indicates lower to higher usage. The right column shows active hours per day.',
+  'room.archive': 'Monthly archive (meter readings and amounts saved on the first of each month)', 'room.month_label': 'Month', 'room.grid_label': 'Grid', 'room.battery_label': 'Battery', 'room.balance': 'Balance',
+  'room.meter': 'Meter', 'room.import': 'Import', 'room.feed': 'Export', 'room.archive.note': 'Balance = advance payments minus costs (positive means credit). These values are fixed and will not change if prices change later.',
+  'room.archive.empty': 'No entries yet. The first month will be saved at 07:00 on the first day of next month.',
+  'room.day': 'Day', 'room.chart': 'History and costs', 'room.area': 'Area', 'room.by_area': 'By area', 'room.included': 'including {amount} {cur} fixed charge',
+  'room.fee': ' · fixed charge <b>{amount} {cur}</b>/month', 'room.price.all': 'Everything at the import price <b>{price} ¢/kWh</b>{fee}',
+  'room.explain.fixed': 'Valuation: every kWh costs the import price, regardless of its source.',
+  'room.explain.no_sources': 'Without home energy sources (home_energy), all consumption is valued at the grid price.',
+  'room.price.mix': 'Grid <b>{grid} ¢</b> · battery <b>{battery} ¢</b> · solar <b>{pv} ¢/kWh</b>{fee}',
+  'room.explain.mix': 'Valuation: each source has a fixed price (grid at the import price, battery and solar at their configured prices).',
+  'room.price.opportunity': 'Grid, battery and solar that the home would have needed: <b>{grid} ¢/kWh</b> · surplus solar (otherwise exported): <b>{feed} ¢/kWh</b>{fee}',
+  'room.explain.opportunity': 'Opportunity-cost valuation: grid and battery power, plus solar power your home could have used itself, costs the import price. Only solar power from hours with exports is valued at the feed-in rate.',
+  'room.full': '<br>For comparison, <b>everything at the grid price</b> ({price} ¢/kWh): <b>{cost} {cur}</b>.',
+  'room.subtitle': 'Electricity use and costs', 'room.others': 'other devices', 'room.vs_previous_month': 'vs. previous month',
+  'room.today': 'today', 'room.hourly_curve': 'hourly profile', 'room.now_today': 'Now and today', 'room.low': 'low', 'room.elevated': 'elevated', 'room.high': 'high',
+  'room.no_use_today': 'No consumption yet today', 'room.source_today': 'Energy sources today',
+  'room.mix_tip': 'On average, the least grid power is needed between <b>{from}:00 and {to}:00</b> (Ø {share} % from the grid). Schedule larger loads during that time.',
+  'room.mix_tip_missing': 'More days of data are needed to make a recommendation.', 'room.and_cost': ' and {amount} {cur}',
+});
+
+
+/* ---- i18n-nl.js ---- */
+/* Niederländische Übersetzungen für Kartentexte während der Laufzeit. */
+WD.addTranslations('nl', {
+  'flow.title': 'Energiestroom', 'flow.pv': 'Zonne-energie', 'flow.pv2': 'Zonne-energie 2', 'flow.grid2': 'Tweede meter', 'flow.grid': 'Net', 'flow.battery': 'Batterij', 'flow.home': 'Huisverbruik',
+  'flow.cons_total': 'Verbruikers', 'flow.rest': 'Niet toegewezen', 'flow.restpct': '{n} % gemeten', 'flow.soc': 'Laadniveau', 'flow.temp': 'Temperatuur',
+  'flow.next': 'Volgende →', 'flow.error': 'Configureer ten minste pv of grid',
+  'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Verwarming', 'gas.hw': 'Warm water', 'gas.today': 'Vandaag', 'tag.gas.on': 'Verwarmt', 'tag.water.on': 'Stroomt', 'tag.today': 'Vandaag',
+  'pill.aut': 'Zelfvoorziening nu', 'pill.self': 'Zelfverbruik nu', 'pv.use.home': 'Huis', 'pv.use.bat': 'Batterij', 'pv.use.grid': 'Net', 'pv.use.store': 'Opslag',
+  'stat.pv': 'Zonne-energie vandaag', 'stat.fc1': 'Zonne-energie morgen', 'stat.fc2': 'Zonne-energie overmorgen', 'stat.imp': 'Netafname vandaag', 'stat.exp': 'Teruglevering', 'stat.bat': 'Batterij ± vandaag', 'stat.aut': 'Zelfvoorziening vandaag',
+  'mix.pv': 'Zonne-energie', 'mix.bat': 'Batterij', 'mix.grid': 'Net',
+  'tag.offline': 'Offline', 'tag.producing': 'Opwekking', 'tag.idle': 'Inactief', 'tag.balanced': 'In balans',
+  'tag.import': 'Netafname', 'tag.export': 'Teruglevering', 'tag.standby': 'Stand-by', 'tag.charging': 'Laden', 'tag.discharging': 'Ontladen', 'tag.passthrough': 'Doorgifte',
+  'bat.io': 'Ingang <b>{in}</b> · uitgang <b>{out}</b>', 'bat.split': ' (huis <b>{home}</b> · net <b>{grid}</b>)', 'bat.shared': 'Gedeelde sensor met <b>{name}</b>',
+  'forecast': 'Prognose', 'forecast.day': 'Prognose vandaag', 'offline': 'offline',
+  'ka.on': '● Actief', 'ka.wait': '☝ Tik één keer om het scherm aan te houden',
+  'waste.today': 'Vandaag', 'waste.tomorrow': 'Morgen',
+  'bat.usable_pct': 'bruikbaar', 'bat.usable_slow': '<div class="sr"><span>Bruikbaar</span> <b>{kwh} kWh</b></div><div class="sr"><span>Laden</span> <b>langzaam</b></div>', 'bat.full_at': '<div class="sr"><span>Vol om</span> <b>{time}</b></div><div class="sr"><span>Vol over</span> <b>{dur}</b></div>',
+  'bat.last_24': '<div class="sr"><span>Gaat mee</span> <b>langer dan 24 uur</b></div><div class="sr"><span>Bruikbaar</span> <b>{kwh} kWh</b></div>', 'bat.last_until': '<div class="sr"><span>Leeg om</span> <b>{time}</b></div><div class="sr"><span>Leeg over</span> <b>{dur}</b></div>',
+  'bat.full': '<div class="sr"><span>Bruikbaar</span> <b>{kwh} kWh</b></div>', 'bat.usable': '<div class="sr"><span>Bruikbaar</span> <b>{kwh} kWh</b></div><div class="sr"><span>Reserve</span> <b>{res} %</b></div>', 'bat.usable0': '<div class="sr"><span>Bruikbaar</span> <b>{kwh} kWh</b></div>',
+  'dur.2days': '> 2 dagen',
+  'ban.surplus': '{w} overschot', 'ban.batfull': 'Batterij vol – ', 'ban.tonet': 'Stroom gaat naar het net · zelf gebruiken bespaart <b>{gain} {cur}/uur</b>',
+  'ban.running': '{name} is actief', 'ban.fromgrid': '{w} van het net', 'ban.cost': 'kost nu <b>{cost} {cur}/uur</b>',
+  'ban.batempty': 'Batterij leeg', 'ban.batlimit': 'Batterij op de grens',
+
+  'why.q.bal': 'Waarom is er geen netafname?', 'why.q.baldis': 'Waarom ontlaadt de batterij?', 'why.q.balchg': 'Waarom laadt de batterij?',
+  'why.bal.both': 'Zonne-energie levert {pv} en de batterij levert {bat}. Samen voorzien ze het huis van stroom ({home}).',
+  'why.bal.sun': 'Zonne-energie levert {pv} en voorziet het huis zelfstandig van stroom ({home}).',
+  'why.bal.bat': 'De batterij ({soc} %) levert {bat} en voorziet het huis zelfstandig van stroom ({home}).',
+  'why.bal.low': 'Het huis verbruikt op dit moment weinig stroom ({home}).',
+  'why.bal.dis': 'Zonne-energie is niet genoeg voor {home}. De batterij levert de rest ({bat}); laadniveau {soc} %.',
+  'why.bal.chg': 'Er wordt meer zonne-energie opgewekt dan het huis verbruikt. Het overschot ({w}) laadt de batterij op.',
+  'why.imp': 'Waarom {w} netafname?', 'why.exp': 'Waarom {w} teruglevering?', 'why.bal': 'Net in balans', 'why.asof': 'Stand om {t}',
+  'why.cover': 'Het huis verbruikt {home}. Afkomstig van: {parts}', 'why.solar': 'Zonne-energie', 'why.batt': 'Batterij', 'why.grid': 'Net', 'why.bm': 'Batterij laadt',
+  'why.row.pv': 'Opwekking zonne-energie', 'why.row.home': 'Huisverbruik', 'why.row.chg': 'Batterij laadt', 'why.row.exp': 'Teruglevering',
+  'why.q.bat': 'Waarom niet uit de batterij?', 'why.q.sun': 'Waarom niet uit zonne-energie?', 'why.q.feed': 'Waarom laadt de batterij niet?', 'why.q.tip': 'Tip', 'why.q.hint': 'Opmerking',
+  'why.bat.empty': 'De batterij is leeg ({soc} %, ontlaadgrens {res} %).',
+  'why.bat.idle': 'De batterij is {soc} %, maar levert op dit moment geen stroom. Controleer de bedrijfsmodus of ingestelde blokkering.',
+  'why.bat.dis': 'De batterij levert al {w}.',
+  'why.sun.night': 'Het is nacht. Zonsopkomst om {t}.', 'why.sun.fc': ' Prognose voor morgen: {kwh} kWh.', 'why.sun.low': 'Zonne-energie levert nu slechts {w}.', 'why.sun.zero': 'Er wordt op dit moment geen zonne-energie opgewekt.', 'why.sun.wx': ' Weer: {cnd}.',
+  'why.sun.part': 'Zonne-energie levert {pv}, niet genoeg voor {home}.',
+  'why.rest': 'Een groot deel ({w}) is niet aan een verbruiker toegewezen. Voeg meer verbruikers toe aan de kaart.',
+  'why.full': 'De batterij is vol ({soc} %) en laadt niet verder op.',
+  'why.notfull': 'De batterij laadt niet op, hoewel er nog ruimte is ({soc} %). Controleer de bedrijfsmodus.',
+  'why.charging': 'De batterij laadt al met {w}.', 'why.tip.sug': '{w} overschot: {names} is nu een goede keuze.',
+  'why.bal.txt': 'Zonne-energie en de batterij voorzien het huis van stroom ({home}), zonder het net te gebruiken.',
+  'why.none': 'Er zijn op dit moment geen gegevens voor een uitleg.', 'why.top': 'waarvan {n} {w}', 'bat.in2': ' (zonne-energie 2 <b>{pv}</b> · huis <b>{ac}</b>)',
+  'xt.alarm': 'Alarm',
+  'sky.sunny': 'Zonnig', 'sky.clear-night': 'Heldere nacht', 'sky.partlycloudy': 'Half bewolkt', 'sky.cloudy': 'Bewolkt', 'sky.fog': 'Mist', 'sky.rainy': 'Regen', 'sky.pouring': 'Stortregen', 'sky.snowy': 'Sneeuw', 'sky.snowy-rainy': 'Natte sneeuw', 'sky.lightning': 'Onweer', 'sky.lightning-rainy': 'Onweer met regen', 'sky.hail': 'Hagel', 'sky.windy': 'Winderig', 'sky.windy-variant': 'Winderig en bewolkt', 'sky.exceptional': 'Uitzonderlijk weer', 'sky.cloud': 'Bewolking', 'sky.wind': 'Wind', 'sky.nofc': 'Geen prognose beschikbaar van de weerentiteit',
+  'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'close': 'Sluiten',
+
+  'dev.title': 'Apparaten en verbruik', 'dev.room': 'Ruimte', 'dev.err': 'rooms ontbreekt: configureer ten minste één ruimte', 'dev.next': 'Volgende →',
+  'dev.days': 'dagen', 'dev.p.day': 'Vandaag', 'dev.p.week': 'Week', 'dev.p.month': 'Maand', 'dev.p.year': 'Jaar',
+  'dev.l.day': 'Vandaag', 'dev.l.week': 'Deze week', 'dev.l.month': 'Deze maand', 'dev.l.year': 'Dit jaar', 'dev.measured': 'gemeten',
+  'dev.cost': 'Kosten', 'dev.home_total': 'Huis totaal', 'dev.none': 'Geen bereikbare apparaten', 'dev.locked': 'beveiligd – alleen weergave', 'dev.now': 'NU',
+  'dev.ambilight': 'Ambilight', 'dev.music': 'Muziek', 'dev.mute': 'Geluid uit', 'dev.light': 'Licht',
+  'dev.on': 'aan', 'dev.off': 'uit', 'dev.tv_on': 'Tv aan', 'dev.tv_off': 'Tv uit', 'dev.extra': 'Extra apparaat', 'dev.cooling': 'koelt', 'dev.pause': 'Gepauzeerd', 'dev.since': 'sinds',
+  'dev.unmeasured': 'niet toegewezen', 'dev.live': 'Nu · <b>{n} %</b> gemeten', 'dev.sub': '{on} van {all} apparaten aan · {w} gemeten',
+  'dev.cent': 'ct/kWh', 'dev.grid': 'Net', 'dev.selfsup': 'Zonne-energie/batterij', 'dev.standby': 'Stand-by', 'dev.year': 'jaar', 'dev.tap_off': 'tik om uit te schakelen', 'dev.surplus': 'Overschot',
+  'dev.playing': 'speelt af',
+  'dev.st.ready': 'gereed', 'dev.st.brewing': 'zet koffie', 'dev.st.inactive': 'inactief', 'dev.st.finished': 'gereed', 'dev.st.pause': 'gepauzeerd',
+  'dev.st.action': 'Actie nodig', 'dev.st.error': 'Fout', 'dev.st.playing': 'speelt af', 'dev.st.standby': 'stand-by',
+
+  'st.title': 'Statistieken', 'st.err': 'pv_total, grid_import_total en grid_export_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
+  'st.pvsav': 'Besparing door zonne-energie', 'st.feed': 'Opbrengst teruglevering', 'st.selfc': 'Zelfverbruik zonne-energie', 'st.cost': 'Kosten netstroom', 'st.aut': 'Zelfvoorziening',
+  'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
+  'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',
+  'st.r.pv': 'Opgewekt', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
+  'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
+  'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
+  'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · teruglevering {f} ct/kWh · {g} · terugverdientijd geschat met de huidige prijzen', 'st.note.nofee': 'alleen energiekosten, zonder vastrecht', 'st.note.fee': 'kosten netstroom inclusief vastrecht',
+  'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparingen te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
+  'st.import': 'Netafname', 'st.export': 'Teruglevering',
+  'st.week': 'Week', 'st.g2name': 'Tweede meter', 'st.g2of': 'waarvan {n}', 'st.basefee': 'waarvan vastrecht', 'st.bud.title': 'Jaarbudget netafname', 'st.bud.of': '{ist} van {goal} kWh netafname', 'st.bud.soll': 'Doel tot vandaag', 'st.bud.abw': 'Werkelijk − doel', 'st.bud.fc': 'Prognose', 'st.bud.fcabw': 'Afwijking van doel', 'st.bud.lin': 'Doel gelijkmatig verdeeld over het jaar', 'st.bud.hist': 'Doel volgt het verbruik van {y}', 'st.bud.goal': 'Jaardoel', 'st.bud.since': 'Meetgegevens zijn pas beschikbaar vanaf {d}: doel en prognose gelden voor deze periode en zijn voorlopig',
+  'st.cc.group': 'Groep', 'st.cc.title': 'Kosten per verbruiker', 'st.cc.meas': 'gemeten', 'st.cc.est': 'geschat op basis van de huisverdeling', 'st.cc.cost': 'Netkosten', 'st.cc.saved': 'bespaard', 'st.cc.nohist': 'Alleen beschikbaar voor vandaag, week, maand en het lopende jaar. Voor “Totaal” zijn hier geen waarden.', 'st.cc.grid': 'Net', 'st.cc.bat': 'Batterij', 'st.cc.pv': 'Zonne-energie', 'st.cc.upto': 'tot {x} {cur}/uur', 'st.cc.unitW': '{id} meet vermogen ({u}). Een energiemeter in kWh is vereist.', 'st.cc.nostat': 'Geen kWh-statistieken voor {id}. Een meter met state_class total_increasing is vereist.', 'st.cc.missing': '{id} bestaat niet.',
+  'st.n.pv': 'Zonne-energie vandaag', 'st.n.imp': 'Netafname vandaag', 'st.n.exp': 'Teruglevering vandaag', 'st.n.chg': 'Batterij geladen vandaag', 'st.n.dis': 'Batterij ontladen vandaag',
+  'st.d.none': '{n}: {id} levert op dit moment geen waarde.', 'st.d.nonefb': '{n}: {id} levert op dit moment geen waarde. De kaart berekent dit op basis van de totaalmeter.',
+  'st.d.big': '{n}: {id} toont {v} kWh. Dat is meer dan de totaalmeter sinds middernacht. Is dit een totaalmeter in plaats van een dagmeter?',
+  'st.d.exp': 'Vandaag is meer teruggeleverd ({e} kWh) dan opgewekt ({p} kWh). Controleer de sensor voor teruglevering.',
+  'st.all': 'Totaal', 'st.hist': 'Geschiedenis', 'st.nodata2': 'geen gegevens',
+  'st.lt.from': 'Gegevens vanaf {d}', 'st.lt.gaps': 'Geen gegevens voor: {m}', 'st.lt.skip': '{n} maand(en) zonder volledige gegevens ontbreken in de totalen',
+  'st.lt.hist': 'Geschiedenis: alleen opbrengst zonne-energie, zonder net- en batterijwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen',
+
+  'room.title': 'Ruimteafrekening', 'room.week': 'Deze week', 'room.month': 'Deze maand', 'room.year': 'Dit jaar', 'room.prev': 'Vorig jaar',
+  'room.tab.week': 'Week', 'room.tab.month': 'Maand', 'room.tab.year': 'Jaar', 'room.tab.prev': 'Vorig jaar',
+  'room.sum': 'Totaal', 'room.loading': 'Gegevens laden …',
+  'room.noprice': 'Geen prijs ingesteld: alleen kWh worden getoond.', 'room.csv': 'Kopiëren als CSV', 'room.copied': 'Gekopieerd',
+  'room.since': 'Gegevens sinds', 'room.unconf': 'Nog niet ingesteld. Bewerk de kaart (potlood): de <b>wizard</b> helpt je de meters te selecteren.',
+});
+
+WD.addTranslations('nl', {
+  'room.grid': 'Net', 'room.battery': 'Batterij', 'room.pv': 'Zonne-energie',
+  'room.csv.period': 'Periode', 'room.csv.total': 'Totaal kWh', 'room.csv.grid': 'Net kWh', 'room.csv.battery': 'Batterij kWh', 'room.csv.pv': 'Zonne-energie kWh', 'room.csv.cost': 'Kosten', 'room.csv.import_cost': 'tegen afnametarief',
+  'room.credit': 'Tegoed {amount} {cur}', 'room.payment': 'Bijbetaling {amount} {cur}', 'room.year_summary': 'Jaar {year}: {cost} {cur} verbruikt, {count} × {advance} {cur} = {total} {cur} voorschot, huidig saldo {balance}',
+  'room.invoice': 'Afrekening', 'room.advance': 'Voorschot', 'room.no_advance': 'geen voorschot', 'room.month_forecast': 'Prognose einde maand', 'room.from_day2': 'vanaf de tweede meetdag', 'room.previous_month': 'Vorige maand', 'room.no_data': 'geen gegevens',
+  'room.night_w': 'W ’s nachts', 'room.night_total': 'Totaal, 00:00–05:00', 'room.threshold': 'Grens {w} W', 'room.above': 'boven de grens', 'room.ok': 'binnen de grens',
+  'room.night_note': 'Als dit dag en nacht zo doorgaat, is dat ongeveer <b>{energy} kWh{cost} per maand</b> in stand-by (gemiddelde van de laatste 14 nachten).', 'room.night_no_data': 'Nog onvoldoende nachtgegevens (ten minste één nacht is nodig).', 'room.night_base': 'Basisverbruik ’s nachts (stand-by)',
+  'room.activity': 'Bedrijfsuren', 'room.active_above': 'actief = boven {w} W', 'room.active_today': 'Actieve uren vandaag', 'room.active_day': 'Actiefste dag',
+  'room.activity_note': 'Gemiddeld vermogen per weekdag en uur (laatste 8 weken). Licht tot donkeroranje staat voor laag tot hoog verbruik. De rechterkolom toont het aantal actieve uren per dag.',
+  'room.archive': 'Maandarchief (meterstanden en bedragen opgeslagen op de eerste dag van de maand)', 'room.month_label': 'Maand', 'room.grid_label': 'Net', 'room.battery_label': 'Batterij', 'room.balance': 'Saldo',
+  'room.meter': 'Meter', 'room.import': 'Afname', 'room.feed': 'Teruglevering', 'room.archive.note': 'Saldo = voorschotten min kosten (positief betekent tegoed). Deze waarden staan vast en veranderen niet als de prijzen later wijzigen.',
+  'room.archive.empty': 'Nog geen gegevens. De eerste maand wordt om 07:00 op de eerste dag van de volgende maand opgeslagen.',
+  'room.day': 'Dag', 'room.chart': 'Verloop en kosten', 'room.area': 'Ruimte', 'room.by_area': 'Per ruimte', 'room.included': 'inclusief {amount} {cur} vastrecht',
+  'room.fee': ' · vastrecht <b>{amount} {cur}</b>/maand', 'room.price.all': 'Alles tegen het afnametarief <b>{price} ct/kWh</b>{fee}',
+  'room.explain.fixed': 'Waardering: elke kWh kost het afnametarief, ongeacht de bron.',
+  'room.explain.no_sources': 'Zonder energiebronnen van het huis (home_energy) wordt al het verbruik tegen het nettarief berekend.',
+  'room.price.mix': 'Net <b>{grid} ct</b> · batterij <b>{battery} ct</b> · zonne-energie <b>{pv} ct/kWh</b>{fee}',
+  'room.explain.mix': 'Waardering: elke bron heeft een vast tarief (net tegen het afnametarief, batterij en zonne-energie tegen de ingestelde tarieven).',
+  'room.price.opportunity': 'Net, batterij en zonne-energie die het huis nodig zou hebben: <b>{grid} ct/kWh</b> · overtollige zonne-energie (anders teruggeleverd): <b>{feed} ct/kWh</b>{fee}',
+  'room.explain.opportunity': 'Waardering op basis van gemiste opbrengst: stroom van het net en de batterij, plus zonne-energie die het huis zelf had kunnen gebruiken, kost het afnametarief. Alleen zonne-energie uit uren met teruglevering wordt tegen het teruglevertarief gewaardeerd.',
+  'room.full': '<br>Ter vergelijking, <b>alles tegen het nettarief</b> ({price} ct/kWh): <b>{cost} {cur}</b>.',
+  'room.subtitle': 'Stroomverbruik en kosten', 'room.others': 'overige apparaten', 'room.vs_previous_month': 't.o.v. vorige maand',
+  'room.today': 'vandaag', 'room.hourly_curve': 'verloop per uur', 'room.now_today': 'Nu en vandaag', 'room.low': 'laag', 'room.elevated': 'verhoogd', 'room.high': 'hoog',
+  'room.no_use_today': 'Vandaag nog geen verbruik', 'room.source_today': 'Herkomst vandaag',
+  'room.mix_tip': 'Gemiddeld is tussen <b>{from}:00 en {to}:00</b> de minste netstroom nodig (Ø {share} % van het net). Plan grote verbruikers bij voorkeur op dat moment.',
+  'room.mix_tip_missing': 'Er zijn meer dagen met gegevens nodig voor een aanbeveling.', 'room.and_cost': ' en {amount} {cur}',
+});
 

@@ -1,4 +1,4 @@
-/* Texte (nur Deutsch). */
+/* Texte für Karten; Deutsch ist die Rückfallsprache. */
 (() => {
   const L = {
     de: {
@@ -22,14 +22,20 @@
       'ban.running': '{name} läuft', 'ban.fromgrid': '{w} aus dem Netz', 'ban.cost': 'kostet gerade <b>{cost} {cur}/h</b>',
       'ban.batempty': 'Batterie leer', 'ban.batlimit': 'Batterie am Limit',
     },
+    en: {},
+    nl: {},
   };
-  // T('key', { n: 5 }) ersetzt {n}; fehlende Schlüssel fallen auf Englisch, dann auf den Schlüssel zurück
+  // T('key', { n: 5 }) ersetzt {n}; fehlende Übersetzungen fallen auf Deutsch zurück.
   WD.T = (k, vars) => {
-    let s = L.de[k] || k;
+    let s = (L[WD.state.lang] && L[WD.state.lang][k]) || L.de[k] || k;
     if (vars) Object.keys(vars).forEach((v) => { s = s.split('{' + v + '}').join(vars[v]); });
     return s;
   };
   WD.addStrings = (de) => { Object.assign(L.de, de); };
+  WD.addTranslations = (language, strings) => {
+    if (!L[language]) L[language] = {};
+    Object.assign(L[language], strings);
+  };
   WD.fDur = (hrs) => {
     if (!isFinite(hrs) || hrs <= 0) return '';
     if (hrs > 48) return WD.T('dur.2days');

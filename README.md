@@ -452,7 +452,7 @@ Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://gith
 
 **A personal request:** I build Energy-Cockpit in my free time, it is free and has no ads. If you like it, a ⭐ at the top right of this page means a lot to me. It helps others find the card and tells me the work is worth it. Thank you!
 
-The user interface is currently **German only**. An English translation is planned and a good way to contribute, see the issues labelled [good first issue](https://github.com/msucimaker3112/energy-cockpit/labels/good%20first%20issue) and [CONTRIBUTING.md](https://github.com/msucimaker3112/energy-cockpit/blob/main/CONTRIBUTING.md). Issues and pull requests in English are welcome.
+Card runtime text is available in **German, English and Dutch**, selected from Home Assistant's language. Unsupported languages fall back to German. Card editors and the setup wizard are still German-only. Issues and pull requests in English are welcome.
 
 ## Lizenz
 

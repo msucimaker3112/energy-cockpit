@@ -2,10 +2,13 @@
 const WD = (() => {
   const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
 
-  // Währung aus Home Assistant übernehmen (Sprache ist fest Deutsch)
+  // Sprache und Währung aus Home Assistant übernehmen
   const setLocale = (hass) => {
     if (!hass) return;
-    // Entscheidung: komplett deutsch (Texte und Zahlenformat), nur die Währung kommt aus Home Assistant
+    const requested = typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE';
+    try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
+    const language = state.loc.split('-')[0].toLowerCase();
+    state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
