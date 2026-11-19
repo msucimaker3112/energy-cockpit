@@ -1,0 +1,43 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Geräte ohne Schalter Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #71: Geräte ohne entity (reine Messgeräte wie Shelly EM) erscheinen, gelten über die Leistung als an und lassen sich nicht schalten. Aufruf: ?test=1&still=1 */
+const S=(state,attrs)=>({state:String(state),attributes:Object.assign({},attrs||{}),last_changed:new Date(Date.now()-3600e3).toISOString(),last_updated:'x'});
+const calls=[];
+const hass={states:{'sensor.house':S(1400,{unit_of_measurement:'W'}),'switch.fridge':S('on'),'sensor.fridge_p':S(48,{unit_of_measurement:'W'}),
+ 'sensor.wp_p':S(850,{unit_of_measurement:'W'}),'sensor.wp_e':S(1234,{unit_of_measurement:'kWh'}),'sensor.em_p':S(0,{unit_of_measurement:'W'}),'sensor.only_e':S(55,{unit_of_measurement:'kWh'}),'sensor.sens_p':S(20,{unit_of_measurement:'W'})},
+ language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({}),callService:async(d,s,data)=>{calls.push(d+'.'+s+' '+JSON.stringify(data));}};
+const cfg={home:'sensor.house',rooms:[{name:'Technik',devices:[
+ {name:'Kühlschrank',type:'fridge',entity:'switch.fridge',power:'sensor.fridge_p'},
+ {name:'Heizung',type:'heat',power:'sensor.wp_p',energy:'sensor.wp_e',run_w:0},
+ {name:'Kreis 2',power:'sensor.em_p'},
+ {name:'Nur Zähler',energy:'sensor.only_e'},
+ {name:'Sensor als entity',entity:'sensor.sens_p'}]}]};
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const e=document.createElement('energy-cockpit-devices-card');e.setConfig(cfg);document.getElementById('host').appendChild(e);e.hass=hass;await wait(800);
+  const dv=(n)=>[...e.shadowRoot.querySelectorAll('.dv')].find((x)=>x.querySelector('.nm').textContent.indexOf(n)===0);
+  ok('ohne entity, mit power: Gerät erscheint',!!dv('Heizung'));
+  ok('ohne entity, nur energy: Gerät erscheint',!!dv('Nur Zähler'));
+  ok('mit Schalter: weiterhin Schalter',!!dv('Kühlschrank')&&!!dv('Kühlschrank').querySelector('.tg'));
+  ok('ohne entity: kein Schalter',!dv('Heizung').querySelector('.tg')&&!dv('Heizung').querySelector('.lk'));
+  ok('Sensor als entity: kein Schalter',!dv('Sensor als entity').querySelector('.tg'));
+  ok('Heizung 850 W gilt als an',dv('Heizung').classList.contains('on'),dv('Heizung').className);
+  ok('Kreis 2 mit 0 W gilt als aus',!dv('Kreis 2').classList.contains('on'),dv('Kreis 2').className);
+  ok('Nur Zähler (55 kWh) gilt nicht als an',!dv('Nur Zähler').classList.contains('on'),dv('Nur Zähler').className);
+  dv('Heizung').click();dv('Sensor als entity').click();await wait(100);
+  ok('Tippen schaltet nichts',calls.length===0,calls.join(' | '));
+  dv('Kühlschrank').click();await wait(100);
+  ok('Schalter-Gerät schaltet weiterhin',calls.some((c)=>/switch\.turn_off/.test(c)),calls.join(' | '));
+  // #73: colors auch in der Geräte-Karte
+  const e2=document.createElement('energy-cockpit-devices-card');e2.setConfig({...cfg,colors:{pv:'#112233',grid_import:'#445566'}});document.getElementById('host').appendChild(e2);e2.hass=hass;await wait(600);
+  const cs=getComputedStyle(e2.shadowRoot.querySelector('.wrap'));
+  ok('#73 Geräte: colors.pv und grid_import',cs.getPropertyValue('--sun').trim()==='17,34,51'&&cs.getPropertyValue('--imp').trim()==='68,85,102',cs.getPropertyValue('--sun')+' / '+cs.getPropertyValue('--imp'));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+run();
+</script></body></html>

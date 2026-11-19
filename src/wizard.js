@@ -20,6 +20,10 @@
       else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
       else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
       else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));
+      // Gas: kWh oder m³, Wasser: Liter oder m³, Durchfluss: l/min, m³/h (#65)
+      else if (kind === 'gas') ok = dom === 'sensor' && (ENERGY_UNITS.indexOf(u) >= 0 || /^m(³|3)$/.test(u) || dc === 'gas' || dc === 'energy');
+      else if (kind === 'water') ok = dom === 'sensor' && (/^(l|L|m³|m3)$/.test(u) || dc === 'water');
+      else if (kind === 'flow') ok = dom === 'sensor' && (/^(l|L)\/(min|h|s)$|^m(³|3)\/h$/.test(u) || dc === 'volume_flow_rate');
       else if (kind === 'weather') ok = dom === 'weather';
       else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
       if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });

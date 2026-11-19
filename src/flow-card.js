@@ -1,7 +1,42 @@
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+// Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
+WD.addStrings({ 'flow.gas': 'Gas', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
+// Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
+const gasVal = (h, id, f) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim();
+  if (/^kwh$/i.test(u)) return { kwh: v, m3: null };
+  if (/^wh$/i.test(u)) return { kwh: v / 1000, m3: null };
+  if (/^mwh$/i.test(u)) return { kwh: v * 1000, m3: null };
+  if (/^(m³|m3|m\^3)$/i.test(u)) return { kwh: f > 0 ? v * f : null, m3: v };
+  return { kwh: v, m3: null };
+};
+// Wasser in Litern (L, l, m³) und Durchfluss in l/min (l/min, L/h, m³/h)
+const waterL = (h, id) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim();
+  return /^(m³|m3|m\^3)$/i.test(u) ? v * 1000 : v;
+};
+const flowLmin = (h, id) => {
+  const s = id && h.states[id];
+  if (!s) return null;
+  const v = parseFloat(s.state);
+  if (isNaN(v)) return null;
+  const u = String(s.attributes.unit_of_measurement || '').trim().toLowerCase();
+  if (/^(m³|m3)\/h$/.test(u)) return v * 1000 / 60;
+  if (/^l\/h$/.test(u)) return v / 60;
+  if (/^l\/s$/.test(u)) return v * 60;
+  return v;
+};
 // Ab welcher Leistung ein Verbraucher oder eine Gruppe als aktiv gilt (Rahmen, Linie): on_w, sonst 10 W
 const onW = (x) => { const v = parseFloat(x && x.on_w); return isNaN(v) || v < 0 ? TH : v; };
 const CSS = `
@@ -92,6 +127,9 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .pv{grid-area:pv}.pv2{grid-area:pv2}.grid{grid-area:grid}.bat{grid-area:bat}
 .bats{grid-area:bat;display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.bats .bat{grid-area:auto}
 .narrow .bats{gap:16px 0}
+.side{display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.side-bat{grid-area:bat}.side-grid{grid-area:grid}.side>.node,.side>.bats{grid-area:auto}
+.narrow .side{gap:16px 0}.wrap.cmp .side{gap:10px 0}
+.util .sub .sr b{white-space:nowrap}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
@@ -342,7 +380,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .tag{margin-top:6px;font-size:calc(.54rem*var(--ts,1));padding:2px 7px}
 .cmp .soc{margin-top:8px;height:7px}
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
-.cmp .sub,.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
+.cmp .sub:not(.fco),.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
 .cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
 .cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
@@ -852,13 +890,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); if (this._via2 < 0) links.push('pv2'); }
-    if (c.grid) { nodes += node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : ''); links.push('grid'); }
+    let gridH = '', batH = '';
+    if (c.grid) { nodes += (gridH = node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '')); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
       const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
         `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
-      nodes += nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml;
+      nodes += (batH = nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml);
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
       if (this._via2 >= 0) links.push(`r:pv2:${this._bk(this._via2)}`);
@@ -873,6 +912,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
       });
     }
     if (this._s3d && c.grid) { if (c.pv) links.push('r:pv:grid'); if (hasPv2) links.push('r:pv2:grid'); }
+    // #65: Gas und Wasser stehen rechts unter der Batterie (mit pv_to_battery: direkt unter dem Netz), ohne Batterie an ihrer Stelle
+    const gas = c.gas && typeof c.gas === 'object' && (c.gas.entity || c.gas.daily || c.gas.heating || c.gas.hot_water) ? c.gas : null;
+    const wat = c.water && typeof c.water === 'object' && (c.water.entity || c.water.daily) ? c.water : null;
+    this._gas = gas; this._wat = wat;
+    let util = '';
+    if (gas) { util += node('gas', 'util gas', gas.icon || 'mdi:fire', gas.name || T('flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water); links.push('gas'); }
+    if (wat) { util += node('water', 'util water', wat.icon || 'mdi:water', wat.name || T('flow.water'), PAL.wat, wat.entity || wat.daily); links.push('water'); }
+    if (util) {
+      const tgt = this._via && gridH ? gridH : !this._via && batH ? batH : '';
+      if (tgt) nodes = nodes.replace(tgt, () => `<div class="side side-${this._via ? 'grid' : 'bat'}">${tgt}${util}</div>`);
+      else nodes += `<div class="side side-${this._via ? 'grid' : 'bat'}">${util}</div>`;
+    }
     // groups_columns: Gruppen pro Reihe (Standard: alle in einer Reihe). Stehen Gruppen untereinander,
     // liefen einzelne Linien durch die oberen Gruppen; ohne ausdrückliches groups_lines gilt dann die Sammel-Linie.
     const gc = Math.max(0, parseInt(c.groups_columns, 10) || 0);
@@ -1163,7 +1214,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
       // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
-      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid'].includes(L.k) || /^bat\d*$/.test(L.k));
+      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid', 'gas', 'water'].includes(L.k) || /^bat\d*$/.test(L.k));
       if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
       else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
@@ -1306,6 +1357,54 @@ class EnergyCockpitFlowCard extends HTMLElement {
     else if (expLeft > TH) this._link('grid', true, false, PAL.exp, expLeft);
     else this._link('grid', false, true, PAL.imp, 0);
   }
+  // #65: Gas und Wasser. Großer Wert: Leistung bzw. Durchfluss (entity), sonst der Verbrauch heute. Zählt nicht zum Strom
+  _utilUpdate() {
+    const h = this._hass, out = {};
+    const row = (label, v) => `<div class="sr"><span>${label}</span> <b>${v}</b></div>`;
+    const big = (el, n, u) => { const ne = el.querySelector('.num'), ue = el.querySelector('.unit'); if (ne.textContent !== n) ne.textContent = n; if (ue.textContent !== u) ue.textContent = u; };
+    const g = this._gas;
+    if (g) {
+      const el = this._$('[data-k="gas"]'), f = parseFloat(String(g.kwh_per_m3 || '').replace(',', '.')) || 0;
+      const p = g.entity ? watt(h, g.entity) : null;
+      const hv = g.heating ? gasVal(h, g.heating, f) : null, wv = g.hot_water ? gasVal(h, g.hot_water, f) : null, dv = g.daily ? gasVal(h, g.daily, f) : null;
+      const parts = [hv, wv].filter(Boolean), tot = dv || (parts.length ? { kwh: parts.some((x) => x.kwh === null) ? null : parts.reduce((a, x) => a + x.kwh, 0), m3: parts.every((x) => x.m3 !== null) ? parts.reduce((a, x) => a + x.m3, 0) : null } : null);
+      // m³ ohne kwh_per_m3: Anzeige in m³
+      const fmt = (x) => (!x ? '—' : x.kwh !== null ? this._fk(x.kwh) + ' kWh' : x.m3 !== null ? nf(x.m3, 2) + ' m³' : '—');
+      const on = p !== null ? p > TH : !!(tot && ((tot.kwh || 0) > 0 || (tot.m3 || 0) > 0));
+      el.classList.toggle('on', on);
+      el.style.setProperty('--c', on ? PAL.gas : PAL.mut);
+      if (p !== null) this._anim('gas', p, el);
+      else if (!tot) big(el, '—', '');
+      else if (tot.kwh !== null) { const t = this._fk(tot.kwh); big(el, t, 'kWh'); }
+      else big(el, nf(tot.m3, 2), 'm³');
+      this._set('.gas .tag', p !== null ? (p > TH ? T('tag.gas.on') : T('tag.idle')) : T('tag.today'));
+      const rows = [];
+      if (g.heating) rows.push(row(T('gas.heat'), fmt(hv)));
+      if (g.hot_water) rows.push(row(T('gas.hw'), fmt(wv)));
+      // Mit Leistung oben: Summe heute als Zeile, außer sie stünde schon als einzige Aufteilung da
+      if (p !== null && tot && (g.daily || rows.length !== 1)) rows.push(row(T('gas.today'), fmt(tot)));
+      this._set('.gas .sub', rows.join(''), true);
+      this._link('gas', on, true, PAL.gas, p !== null ? p : 0);
+      out.gas = { p, on };
+    }
+    const w = this._wat;
+    if (w) {
+      const el = this._$('[data-k="water"]');
+      const fl = w.entity ? flowLmin(h, w.entity) : null, dl = w.daily ? waterL(h, w.daily) : null;
+      const fmtL = (l) => (l === null ? '—' : l >= 1000 ? nf(l / 1000, 2) + ' m³' : nf(l, 0) + ' L');
+      const on = fl !== null ? fl > 0.05 : (dl || 0) > 0;
+      el.classList.toggle('on', on);
+      el.style.setProperty('--c', on ? PAL.wat : PAL.mut);
+      if (fl !== null) big(el, nf(fl, fl < 10 ? 1 : 0), 'l/min');
+      else if (dl !== null) { const [n, u] = fmtL(dl).split(' '); big(el, n, u); }
+      else big(el, '—', '');
+      this._set('.water .tag', fl !== null ? (fl > 0.05 ? T('tag.water.on') : T('tag.idle')) : T('tag.today'));
+      this._set('.water .sub', fl !== null && dl !== null ? row(T('gas.today'), fmtL(dl)) : '', true);
+      this._link('water', on, true, PAL.wat, fl !== null ? fl * 100 : 0);
+      out.water = { fl, on };
+    }
+    return out;
+  }
   // 3D-Objekte: nur neu zeichnen, wenn sich die gerundeten Werte ändern
   _draw3d(v) {
     const D3 = WD.D3, c = this._c, large = !this._cmp, q = (w) => (w === null || w === undefined ? 'x' : Math.round(w / (Math.abs(w) < 200 ? 5 : 25)));
@@ -1343,6 +1442,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         }
       }
     });
+    // #65: Gastherme und Wasserzähler
+    const u = v.util || {};
+    if (u.gas) { const gp = u.gas.p; put('gas', [u.gas.on, q(gp), large].join(), () => D3.boiler(u.gas.on, 'gas', large, gp !== null ? this._fW(gp) : '', (this._gas && this._gas.name) || T('flow.gas'))); }
+    if (u.water) { const fl = u.water.fl; put('water', [u.water.on, fl === null ? 'x' : Math.round(fl * 2), large].join(), () => D3.wmeter(fl || 0, 'water', large, fl !== null ? nf(fl, fl < 10 ? 1 : 0) + ' l/min' : '', (this._wat && this._wat.name) || T('flow.water'))); }
     const form = c.house_style === 'flach' ? 'modern' : 'sattel', s = v.src;
     put('home', [q(v.home), q(s.pv), q(s.bat), q(s.imp), form, large].join(), () => D3.house(v.home, s, 'home', form, large, (c.home && c.home.name) || T('flow.home')));
   }
@@ -1617,6 +1720,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
       }
       (c.pv.strings || []).forEach((s) => parts.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
       // Prognose: Leistung (W, kW) oder Tagesprognose in kWh (z. B. Solcast "heute")
+      // #69: compact_forecast zeigt in der Kurzansicht nur diese Zeile
+      const fco = this._cmp && c.compact_forecast === true;
+      if (fco) parts.length = 0;
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
       if (/^(k|m)?wh$/i.test(fUnit)) {
@@ -1628,6 +1734,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (fc !== null) parts.push(row(T('forecast'), this._fW(fc)));
       }
       this._set('.pv .sub', parts.join(''), true);
+      { const se = this._$('.pv .sub'); if (se) se.classList.toggle('fco', fco && parts.length > 0); }
       this._link('pv', on, true, PAL.pv, pv1);
     }
     if (c.grid) {
@@ -1698,9 +1805,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
+    const util = this._utilUpdate();
     if (this._s3d) {
       this._routes3d({ bats, gImp: gImpM, gExp, p1Home: p1Home + p1Rest, p2Home: p2Home + p2Rest, p1Bat, p1Exp, p2Exp, pv2Bat: p2Bat });
-      this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp } });
+      this._draw3d({ pv1, pv2, grid, home, bats, src: { pv: pvHome, bat: bDis, imp: gImp }, util });
     }
     this._banner({ pv, grid, bat, soc, home, gImp: gImpM, gExp });
     // Momentaufnahme fuer die "Warum?"-Erklaerung (why)

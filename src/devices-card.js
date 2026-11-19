@@ -33,7 +33,7 @@
   const PAL = ['250,204,21', '56,189,248', '192,132,252', '34,211,238', '251,146,60', '129,140,248', '248,113,113', '52,211,153', '244,114,182', '217,151,84'];
 
   const CSS = `
-${WD.themeCss()}:host{display:block;--ok:52,211,153;--sun:250,204,21}
+${WD.themeCss()}:host{display:block;--ok:52,211,153;--sun:250,204,21;--imp:255,92,122}
 ha-card{background:radial-gradient(130% 90% at 50% 0%,var(--bg1) 0%,var(--bg0) 62%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px 26px;position:relative;transform-origin:0 0;box-sizing:border-box;display:flex;flex-direction:column}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(35% 30% at 12% 8%,rgba(250,204,21,.07),transparent 70%),radial-gradient(40% 35% at 90% 85%,rgba(56,189,248,.07),transparent 70%)}
@@ -78,7 +78,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .psum b{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums}
 .psum b u{text-decoration:none;font-size:.7rem;color:rgb(var(--mut));font-weight:650;margin-left:3px}
 .psum b u.mx{display:block;margin:2px 0 0}
-.psum .sun{color:rgb(var(--sun))}.psum .grd{color:rgb(255,92,122)}
+.psum .sun{color:rgb(var(--sun))}.psum .grd{color:rgb(var(--imp))}
 .rows{display:flex;flex-wrap:wrap;margin-top:8px}
 .rk{display:flex;align-items:center;font-size:.7rem;color:rgb(var(--mut));margin:3px 14px 0 0;white-space:nowrap}
 .rk i{font-style:normal;font-weight:800;color:rgb(var(--c));margin-right:5px}
@@ -256,8 +256,11 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       this._c.rooms.forEach((r, ri) => {
         (r.devices || []).forEach((d, di) => {
           const chans = (d.channels || []).filter((x) => ok(x.entity));
-          if (d.channels ? !chans.length : !ok(d.entity)) return;
-          out.push(Object.assign({}, d, { key: ri + '-' + di, room: ri, chans }));
+          // #71: Ohne entity (reine Messgeräte, z. B. Shelly EM) zählt der Leistungs- oder Energiesensor. Sensoren lassen sich nicht schalten
+          const entity = d.entity || (d.channels ? undefined : d.power || d.energy);
+          if (d.channels ? !chans.length : !ok(entity)) return;
+          const ro = !d.channels && d.type !== 'media' && /^sensor\./.test(entity || '');
+          out.push(Object.assign({}, d, { key: ri + '-' + di, room: ri, chans, entity, ro }));
         });
       });
       return out;
@@ -275,7 +278,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       const c = this._c, devs = this._devs;
       const rooms = c.rooms.map((r, ri) => ({ r, ri, d: devs.filter((x) => x.room === ri) })).filter((x) => x.d.length);
       this.shadowRoot.innerHTML = `<style>${CSS}</style>
-      <ha-card><div class="wrap">
+      <ha-card><div class="wrap"${(() => { const st = WD.colorVars(this._c.colors, { pv: '--sun', grid_import: '--imp' }); return st ? ` style="${st}"` : ''; })()}>
         <header>
           <div class="title"><span class="ico"><ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon></span><div>${esc(c.title || T('dev.title'))}<small class="hsub"></small></div></div>
           ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('dev.next'))}</div>` : ''}
@@ -314,10 +317,10 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _devHtml(d) {
       const t = TYPES[d.type] || TYPES.plug;
-      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
+      return `<div class="dv t-${esc(d.type || 'plug')}${t.spin ? ' spin' : ''}${d.lock || d.ro ? ' lock' : ''}" data-k="${d.key}" style="--c:${rgb(d.color, t.c)}">
         <div class="ic"><div class="fx"></div>${d.type === 'coffee' ? '<div class="steam"><i></i><i></i><i></i></div>' : ''}${d.image ? `<img class="dlogo" src="${esc(d.image)}" alt="">` : `<ha-icon icon="${esc(d.icon || t.i)}"></ha-icon>`}</div>
         <div class="tx"><div class="nm">${esc(d.name)}<span class="sunb">☀ ${T('dev.now')}</span></div><div class="sb"></div></div>
-        ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : '<div class="tg"></div>'}
+        ${d.lock ? '<div class="lk" title="' + esc(T('dev.locked')) + '"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></div>' : d.ro ? '' : '<div class="tg"></div>'}
         ${d.power ? '<div class="pbar"><i></i></div>' : ''}
       </div>${d.type === 'media' && d.ambilight ? `<div class="seg15">${'<i></i>'.repeat(d.ambilight.segments || 15)}</div><div class="np" style="display:none"></div>` : ''}${d.chans.length ? `<div class="chs">${d.chans.map((x) => `<span class="ch" data-e="${esc(x.entity)}">${esc(x.name)}</span>`).join('')}</div>` : ''}${this._mediaChips(d)}`;
     }
@@ -339,6 +342,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       if (d.type === 'media') { if (d.toggle) return !!(h.states[d.toggle] && h.states[d.toggle].state === 'on'); return this._tvOn(d); }
       if (d.chans.length) return d.chans.some((x) => h.states[x.entity].state === 'on');
       if (d.entity && d.entity.indexOf('sensor.') === 0) {
+        if (!d.power && d.entity === d.energy) return false;
         const pw = num(h, d.power || d.entity);
         return pw !== null && pw > (d.run_w === undefined ? 3 : d.run_w);
       }
@@ -351,7 +355,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     _toggle(d) {
       if (!d) return;
-      if (d.lock) {
+      if (d.lock || d.ro) {
         const le = this.shadowRoot.querySelector(`.dv[data-k="${d.key}"]`);
         if (le) { le.classList.remove('nope'); void le.offsetWidth; le.classList.add('nope'); }
         return;
@@ -490,7 +494,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
         // PV-Überschuss: dieses Gerät könnte jetzt mit Sonnenstrom laufen
         el.classList.toggle('sunok', !!(d.pv_w && !run && surplus >= d.pv_w));
         // Standby-Detektiv: an, aber kaum Leistung
-        if (!d.lock && (d.type === 'media' ? !tvOn : on) && w !== null && w > 0.5 && w < c.standby_w && ['plug', 'strip', 'tv', 'console', 'media'].indexOf(d.type || 'plug') >= 0 && (!standby || w > standby.w)) standby = { d, w };
+        if (!d.lock && !d.ro && (d.type === 'media' ? !tvOn : on) && w !== null && w > 0.5 && w < c.standby_w && ['plug', 'strip', 'tv', 'console', 'media'].indexOf(d.type || 'plug') >= 0 && (!standby || w > standby.w)) standby = { d, w };
         if (d.type === 'media') { el.classList.toggle('tvon', tvOn); this._renderMedia(d, el, w, tvOn); }
       });
       // Schalter-Chips (Steckdosen-Kanäle, Ambilight, Ton aus …) und Szenen

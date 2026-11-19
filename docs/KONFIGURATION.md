@@ -410,10 +410,59 @@ colors:
 | `battery_charge` | hellblau | Batterie lädt: Kachel, Ladebalken, Linie, 3D-Objekt |
 | `battery_discharge` | wie `battery` | Batterie entlädt: Kachel, Linie, 3D-Objekt, Ring und Zeile „Solar / Batterie / Netz“ |
 | `home` | türkis | Zahl beim Haus, Sammel-Linie |
+| `gas` | orange | Gas-Kachel und ihre Linie |
+| `water` | blau | Wasser-Kachel und ihre Linie |
 
-Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für diese Karte, andere Karten bleiben unberührt, und sie wirken nur in der Energiefluss-Karte.
+Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für die Karte, in der sie stehen, andere Karten bleiben unberührt.
+
+**Auch in Statistik und Geräte & Verbrauch:** Denselben Schlüssel `colors` verstehen auch die Statistik-Karte und die Geräte-Karte, zum Beispiel für dunklere Töne im hellen Farbschema. Trag ihn dort ebenfalls ein, die Karten übernehmen ihn nicht voneinander.
+
+| Karte | Schlüssel, die wirken |
+|---|---|
+| Statistik | `pv` (Solar), `grid_import` (Stromkosten Netz, Bezug), `grid_export` (Einspeisung), `battery`, `home` (Autarkie) |
+| Geräte & Verbrauch | `pv` (Solaranteil, „Jetzt mit Sonne“), `grid_import` (Netzanteil) |
+
+```yaml
+type: custom:energy-cockpit-stats-card
+theme: hell
+colors:
+  pv: "#b7791f"
+  grid_import: "#c53030"
+  grid_export: "#2f855a"
+  home: "#0e7490"
+```
 
 **Tipp:** Netzbezug ist standardmäßig rot. Wer die Batterie beim Entladen ebenfalls rot färbt, kann beides im Ring verwechseln. Dann hilft eine andere Farbe für `grid_import`, zum Beispiel Orange.
+
+### Gas und Wasser: `gas`, `water`
+
+Optional. Gas und Wasser bekommen je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie (ohne Batterie an ihrer Stelle, mit `pv_to_battery: direkt` unter dem Netz). Sie zählen **nicht** zum Strom: Hausverbrauch, Ring, Autarkie und Eigenverbrauch bleiben unverändert. In der 3D-Ansicht stehen dort eine Gastherme und ein Wasserzähler.
+
+![Gas- und Wasser-Kachel in der 3D-Ansicht](img/gas-wasser.png)
+
+```yaml
+gas:
+  entity: sensor.therme_leistung        # optional: aktuelle Leistung (W oder kW)
+  heating: sensor.gas_heizung_heute     # Heizung heute (kWh oder m³)
+  hot_water: sensor.gas_warmwasser_heute  # Warmwasser heute (kWh oder m³)
+  # daily: sensor.gas_heute             # oder nur eine Summe ohne Aufteilung
+  # kwh_per_m3: 10.3                    # nur bei Sensoren in m³
+water:
+  entity: sensor.wasser_durchfluss      # optional: Durchfluss (l/min, L/h oder m³/h)
+  daily: sensor.wasser_heute            # Verbrauch heute (Liter oder m³)
+```
+
+| Schlüssel | Wert | Wirkung |
+|---|---|---|
+| `gas.entity` | Sensor (W, kW) | Aktuelle Leistung der Therme. Dann steht sie groß in der Kachel, die Linie läuft nur beim Heizen („Heizt“), und darunter steht der Verbrauch von heute. Ohne steht groß der Verbrauch von heute, und die Linie läuft, sobald heute Gas verbraucht wurde |
+| `gas.heating`, `gas.hot_water` | Sensor (kWh oder m³) | Tageswerte für Heizung und Warmwasser, je eine Zeile. Die Summe ist der Tageswert der Kachel |
+| `gas.daily` | Sensor (kWh oder m³) | Gas heute gesamt, wenn es keine Aufteilung gibt |
+| `gas.kwh_per_m3` | Zahl | Umrechnung von m³ in kWh, steht auf der Gasrechnung (Brennwert × Zustandszahl, meist um 10). Ohne zeigt die Kachel m³ |
+| `water.entity` | Sensor (l/min, L/h, m³/h) | Durchfluss. Dann steht er groß in der Kachel („Fließt“), darunter der Verbrauch von heute |
+| `water.daily` | Sensor (L oder m³) | Wasser heute. Ab 1.000 Litern in m³ |
+| `name`, `icon` | Text | Eigener Name und Symbol (Standard: Gas mit `mdi:fire`, Wasser mit `mdi:water`) |
+
+Die Tageswerte brauchen Sensoren, die um Mitternacht neu beginnen, zum Beispiel einen Helfer „Verbrauchszähler“ (utility_meter) mit Zyklus täglich auf deinem Gas- oder Wasserzähler. Die Farben änderst du mit `colors.gas` und `colors.water`. Anlass: [#65](https://github.com/msucimaker3112/energy-cockpit/issues/65).
 
 ### Himmelsband: `weather`
 
@@ -464,6 +513,7 @@ waste:
 | `weather` | | Himmelsband mit dem Wetter des Tages, siehe [Himmelsband](#himmelsband-weather) |
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
+| `compact_forecast` | `false` | Nur mit Kurzansicht: `true` zeigt in der Solar-Kachel die Zeile „Prognose heute … kWh“ (aus `pv.forecast`), alle anderen Zusatzzeilen bleiben ausgeblendet. Gut für die Startseite auf dem Wandtablet ([#69](https://github.com/msucimaker3112/energy-cockpit/issues/69)) |
 | `label_size` | | Zahl (0,5 bis 4, zum Beispiel `1.5`): vergrößert **nur die kleinen Texte** (Namen, Zusatzwerte, Beschriftungen), die Zahlen in den Kacheln bleiben. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Bei den kleinen Texten gilt `label_size` vor `text_size` |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
 | `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |
@@ -507,7 +557,7 @@ rooms:
 |---|---|
 | `name`, `icon`, `color` | Anzeige |
 | `type` | `plug` (Standard), `light`, `pump`, `fridge`, `dryer`, `ac`, `strip`, `tv`, `media`, `console`, `coffee`, `heat` |
-| `entity` | Schalter (`switch`, `light`, `input_boolean`) oder Binärsensor |
+| `entity` | Schalter (`switch`, `light`, `input_boolean`) oder Binärsensor. Optional: Fehlt `entity`, nimmt die Karte `power` (sonst `energy`), für reine Messgeräte ohne Schalter wie Shelly EM. Geräte mit einem Sensor statt eines Schalters lassen sich nicht schalten und zeigen keinen Schalter |
 | `power`, `energy` | Leistungs- und Energiesensor (kWh) |
 | `max_w` | Leistung für voll ausgeschlagenen Balken |
 | `run_w` | ab dieser Leistung gilt das Gerät als laufend (Standard 3 W) |
@@ -560,6 +610,8 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
 # hide: [monthly, footer]                  # Bereiche ausblenden: monthly, amortisation, baseload, footer, money
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
+# text_size: sehr_gross                     # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die großen Werte)
+# colors: { pv: "#b7791f" }                # eigene Farben, siehe "Eigene Farben: colors"
 # grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
 # grid2_price_ct: 25.45                     # eigener Preis in Cent, oder grid2_price (Sensor/Helfer); grid2_name: Wärmepumpe
 # budget_kwh: 8000                         # Jahresziel für den Netzbezug in kWh (Zahl oder Sensor), siehe unten

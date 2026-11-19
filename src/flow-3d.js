@@ -284,7 +284,61 @@ function house(home,src,pre,form,detail,label){
   return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
 }
 
-const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
+/* Gas (#65): Wandtherme mit Flammenfenster. Leuchtet orange, solange sie heizt */
+function boiler(on,pre,large,text,label){
+  const W=70,D=34,H=100,BASE=34,z1=BASE+H,col=PAL.gas;
+  const defs=grad(pre+'bl','#e4e8ee','#bcc4cf')+grad(pre+'br','#a7b0bd','#87919f')+grad(pre+'bt','#f3f5f8','#d7dce3',1,1)+glow(pre+'sh','var(--shadow)',1)+glow(pre+'gl',`rgb(${col})`,.45)+grad(pre+'fo','#ffd27a',`rgb(${col})`);
+  let body='';
+  const ctr=P(W/2,D/2,0);
+  body+=`<ellipse cx="${ctr[0]+4}" cy="${ctr[1]+5}" rx="70" ry="40" fill="url(#${pre}sh)"/>`;
+  if(on)body+=`<ellipse cx="${ctr[0]}" cy="${ctr[1]-40}" rx="84" ry="70" fill="url(#${pre}gl)"/>`;
+  // Rohre nach unten
+  [16,30,44,56].forEach((x,i)=>{body+=seg([x,D/2,0],[x,D/2,BASE],`stroke:${i===1?'#b87333':'var(--alu1)'};stroke-width:4;stroke-linecap:round`);});
+  // Gehäuse
+  body+=poly([[0,D,BASE],[W,D,BASE],[W,D,z1],[0,D,z1]],`fill:url(#${pre}bl)`);
+  body+=poly([[W,D,BASE],[W,0,BASE],[W,0,z1],[W,D,z1]],`fill:url(#${pre}br)`);
+  body+=poly([[0,0,z1],[W,0,z1],[W,D,z1],[0,D,z1]],`fill:url(#${pre}bt)`);
+  body+=`<polyline points="${pts([[0,D,z1],[W,D,z1],[W,0,z1]])}" style="fill:none;stroke:#fff;stroke-opacity:.7;stroke-width:1"/>`;
+  // Front: Fenster mit Flamme, Anzeige
+  const o=P(0,D,BASE),y=(v)=>-H+v,fc=on?`url(#${pre}fo)`:'#7b8594';
+  let f=`<rect x="4" y="${y(4)}" width="${W-8}" height="${H-8}" rx="3" style="fill:none;stroke:#9aa3b0;stroke-width:1"/>`;
+  f+=`<rect x="${W/2-15}" y="${y(18)}" width="30" height="34" rx="4" style="fill:#141a24;stroke:#8d96a3;stroke-width:1.2"/>`;
+  f+=`<g transform="translate(${W/2},${y(44)})"${on?' class="d3-lamp" style="animation-duration:1.3s"':''}><path d="M0,-21 C8,-12 11,-5 7,2 C5,6 2,8 0,8 C-2,8 -5,6 -7,2 C-11,-5 -6,-10 -3,-15 C-2,-9 0,-8 1,-9 C3,-12 1,-17 0,-21Z" fill="${fc}"/>${on?'<path d="M0,-6 C3,-2 4,1 2,4 C1,6 -1,6 -2,4 C-4,1 -2,-2 0,-6Z" fill="#fff3c4"/>':''}</g>`;
+  f+=`<rect x="12" y="${y(64)}" width="${W-24}" height="16" rx="2" fill="#0a1410"/>`;
+  if(large&&text)f+=`<text x="${W/2}" y="${y(75.5)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="rgb(${on?col:'139,151,179'})" style="font-family:inherit;font-variant-numeric:tabular-nums">${text}</text>`;
+  f+=`<circle cx="${W-16}" cy="${y(88)}" r="3.2" fill="#55606f"/><circle cx="16" cy="${y(88)}" r="2.4" class="${on?'d3-lamp':''}" fill="${on?`rgb(${col})`:'#55606f'}"/>`;
+  body+=`<g transform="matrix(${C},${S},0,1,${o[0].toFixed(1)},${o[1].toFixed(1)})">${f}</g>`;
+  const xMin=P(0,D,0)[0]-14,xMax=P(W,0,0)[0]+14,yMin=P(0,0,z1)[1]-8,yMax=P(W,D,0)[1]+14;
+  return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
+}
+
+/* Wasser (#65): Wasserzähler in der Leitung. Der Zeiger dreht sich und die Punkte laufen, solange Wasser fließt */
+function wmeter(fl,pre,large,text,label){
+  const L=92,Y=26,Z=22,R=27,Z1=Z+30,run=fl>0.05,col=PAL.wat;
+  const dur=Math.max(.6,4-fl/4).toFixed(2)+'s';
+  const defs=grad(pre+'ms','#d9a65a','#8c5a22',1,0)+grad(pre+'mt','#f2c879','#b67a33',1,1)+glow(pre+'sh','var(--shadow)',1)+glow(pre+'gl',`rgb(${col})`,.4);
+  let body='';
+  const ctr=P(L/2,Y,0);
+  body+=`<ellipse cx="${ctr[0]+4}" cy="${ctr[1]+4}" rx="84" ry="42" fill="url(#${pre}sh)"/>`;
+  if(run)body+=`<ellipse cx="${ctr[0]}" cy="${ctr[1]-22}" rx="84" ry="60" fill="url(#${pre}gl)"/>`;
+  // Stützen und Leitung
+  [10,L-10].forEach((x)=>{body+=seg([x,Y,0],[x,Y,Z],'stroke:var(--alu1);stroke-width:4;stroke-linecap:round');});
+  body+=seg([0,Y,Z],[L,Y,Z],'stroke:#3b4a60;stroke-width:14;stroke-linecap:round');
+  body+=seg([0,Y,Z+2],[L,Y,Z+2],'stroke:#7d8da3;stroke-width:3;stroke-linecap:round;stroke-opacity:.8');
+  if(run){const a=P(0,Y,Z+3),b=P(L,Y,Z+3);body+=`<line class="d3-fl" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="rgb(${col})" style="animation-duration:${(parseFloat(dur)/3).toFixed(2)}s"/>`;}
+  // Zählergehäuse: Zylinder aus Messing mit Zifferblatt
+  const rx=R*1.2247,ry=R*.7071,b0=P(L/2,Y,Z-6),t0=P(L/2,Y,Z1);
+  body+=`<ellipse cx="${b0[0].toFixed(1)}" cy="${b0[1].toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="#6e4618"/>`;
+  body+=`<rect x="${(b0[0]-rx).toFixed(1)}" y="${t0[1].toFixed(1)}" width="${(2*rx).toFixed(1)}" height="${(b0[1]-t0[1]).toFixed(1)}" fill="url(#${pre}ms)"/>`;
+  body+=`<ellipse cx="${t0[0].toFixed(1)}" cy="${t0[1].toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="url(#${pre}mt)"/>`;
+  body+=`<ellipse cx="${t0[0].toFixed(1)}" cy="${t0[1].toFixed(1)}" rx="${(rx*.78).toFixed(1)}" ry="${(ry*.78).toFixed(1)}" fill="#e9eef5" stroke="#5b4320" stroke-width="1"/>`;
+  // Zeiger in der Ebene des Zifferblatts
+  body+=`<g transform="translate(${t0[0].toFixed(1)},${t0[1].toFixed(1)}) scale(1.2247,.7071)"><g${run?` class="d3-spin" style="animation-duration:${dur}"`:''}><polygon points="0,-12 2.2,0 -2.2,0" fill="#d23c3c"/><circle r="2.2" fill="#2b2f36"/></g>${[0,1,2,3,4,5,6,7].map((i)=>{const a=i*Math.PI/4;return `<line x1="${(Math.cos(a)*13).toFixed(1)}" y1="${(Math.sin(a)*13).toFixed(1)}" x2="${(Math.cos(a)*15).toFixed(1)}" y2="${(Math.sin(a)*15).toFixed(1)}" stroke="#5b6472" stroke-width="1.2"/>`;}).join('')}</g>`;
+  const xMin=Math.min(P(0,Y+8,Z)[0],t0[0]-rx)-12,xMax=Math.max(P(L,Y-8,Z)[0],t0[0]+rx)+12,yMin=t0[1]-ry-10,yMax=Math.max(P(L,Y,0)[1],b0[1]+ry)+14;
+  return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
+}
+
+const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n.d3-spin{animation:d3spin 2s linear infinite;transform-origin:0 0}\n@keyframes d3spin{to{transform:rotate(360deg)}}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl,.wrap:not(.anim-on) .d3-spin{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
 // Überträgt nur die Unterschiede in das vorhandene SVG, damit laufende Animationen nicht neu starten
 const tpl = document.createElement('template');
 const patch = (a, b) => {
@@ -316,5 +370,5 @@ const roof = (v) => {
 };
 // Maße des Rings aus house() (R = 92): für den Anschluss der Linien in der Karte
 const ring = { w: 2 * (92 * 1.23 + 6), bottom: 92 * 0.71 + 8, rx: 92 * Math.SQRT2 * C, ry: 92 * Math.SQRT2 * S };
-WD.D3 = { stack, solar, meter, house, css, draw, ring, roof };
+WD.D3 = { stack, solar, meter, house, boiler, wmeter, css, draw, ring, roof };
 })();

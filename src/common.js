@@ -2,18 +2,21 @@
 const WD = (() => {
   const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
 
-  // Währung aus Home Assistant übernehmen (Sprache ist fest Deutsch)
+  // Sprache und Währung aus Home Assistant übernehmen
   const setLocale = (hass) => {
     if (!hass) return;
-    // Entscheidung: komplett deutsch (Texte und Zahlenformat), nur die Währung kommt aus Home Assistant
+    const requested = typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE';
+    try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
+    const language = state.loc.split('-')[0].toLowerCase();
+    state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
   };
 
-  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179' };
+  const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179', gas: '249,115,22', wat: '59,130,246' };
   const TH = 10;
-  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home.
+  // colors (optional, Energiefluss): eigene Farben je Karte. Schluessel: pv, grid_import, grid_export, battery, battery_charge, battery_discharge, home, gas, water.
   // Ohne battery_discharge entlaedt die Batterie in der Farbe der Batterie. Ungueltige Werte werden ignoriert
-  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home' };
+  const COLOR_KEYS = { pv: 'pv', grid_import: 'imp', grid_export: 'exp', battery: 'bat', battery_charge: 'chg', battery_discharge: 'dis', home: 'home', gas: 'gas', water: 'wat' };
   const palFor = (colors) => {
     const p = Object.assign({}, PAL), o = {};
     if (colors && typeof colors === 'object') {
@@ -24,6 +27,11 @@ const WD = (() => {
     return { pal: p, set: Object.keys(o).length > 0 };
   };
 
+  // #73: colors auch in Statistik und Geräten: CSS-Variablen nur für gesetzte Schlüssel, z. B. { pv: '--pv' } -> "--pv:r,g,b;"
+  const colorVars = (colors, map) => {
+    if (!colors || typeof colors !== 'object') return '';
+    return Object.keys(map).map((k) => { const v = accentRgb(colors[k]); return v ? map[k] + ':' + v + ';' : ''; }).join('');
+  };
   // Farbe "#hex" oder "r,g,b" -> "r,g,b"; alles andere wird verworfen
   const accentRgb = (a) => {
     if (typeof a !== 'string') return '';
@@ -181,5 +189,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, palFor, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();
