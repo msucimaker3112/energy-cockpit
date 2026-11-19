@@ -20,6 +20,8 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <sub>Alle Bilder zeigen Beispieldaten.</sub>
 
+🇬🇧 <b><a href="#english">English version below</a></b> · The cards also speak English and Dutch, set automatically from your Home Assistant language.
+
 <b>Gefällt dir die Karte? Ein ⭐ oben rechts hilft mehr, als du denkst.</b> <a href="#ein-stern-hilft-mehr-als-du-denkst">Warum mir das wichtig ist</a>
 
 **[Neu: Gas und Wasser](#neu-gas-und-wasser)** · **[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
