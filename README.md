@@ -5,6 +5,7 @@
 <p><b>Deine Energie auf einen Blick, auch in 3D.</b><br>
 Energiefluss, Geräte, Statistik und Raum-Abrechnung für Home Assistant.<br>
 Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kein YAML.<br>
+<b>Neu: Gas und Wasser.</b> Eigene Kacheln für Therme und Wasserzähler, mit Linie zum Haus.<br>
 <b>Neu: Die Karte erklärt sich selbst.</b> Ein „?“ sagt dir, warum gerade Strom aus dem Netz kommt.<br>
 <b>Neu: Auch für ioBroker.</b> Als Community-Projekt von Andreas (<a href="https://github.com/Landixus">Landixus</a>), <a href="#auch-für-iobroker">mehr dazu unten</a>.</p>
 
@@ -21,7 +22,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <b>Gefällt dir die Karte? Ein ⭐ oben rechts hilft mehr, als du denkst.</b> <a href="#ein-stern-hilft-mehr-als-du-denkst">Warum mir das wichtig ist</a>
 
-**[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Neu: Gas und Wasser](#neu-gas-und-wasser)** · **[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -35,6 +36,32 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 <td width="25%" valign="top"><b>Passt zu deiner Anlage</b><br>Balkonkraftwerk, mehrere Speicher, Hybrid-Wechselrichter, Handy oder Wandtablet: Vieles davon kam direkt von Nutzern.</td>
 </tr>
 </table>
+
+## Neu: Gas und Wasser
+
+Heizt du mit Gas oder willst du sehen, wie viel Wasser durchs Haus läuft? Die Energiefluss-Karte zeigt beides als **eigene Kacheln mit Linie zum Haus**, rechts unter der Batterie.
+
+![Gas- und Wasser-Kachel in der 3D-Ansicht](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/gas-wasser.png)
+
+- **Gas:** groß die aktuelle Leistung der Therme („Heizt“), darunter **Heizung und Warmwasser getrennt** und die Summe von heute. Ohne Leistungssensor steht groß der Verbrauch von heute.
+- **kWh oder m³:** Zähler in m³ rechnet die Karte mit deinem Brennwert (`kwh_per_m3`, steht auf der Gasrechnung) in kWh um. Ohne Angabe zeigt sie m³.
+- **Wasser:** Durchfluss in l/min („Fließt“) und der Verbrauch von heute in Litern oder m³.
+- **Strom bleibt Strom:** Gas und Wasser zählen nicht in die Strombilanz. Hausverbrauch, Ring und Autarkie bleiben gleich.
+- **In 3D** stehen dort eine Gastherme, deren Flamme beim Heizen leuchtet, und ein Wasserzähler mit drehendem Zeiger.
+
+**Einschalten:** im Assistenten Schritt **Gas/Wasser**, oder im YAML:
+
+```yaml
+gas:
+  entity: sensor.therme_leistung          # optional: aktuelle Leistung
+  heating: sensor.gas_heizung_heute       # kWh oder m³
+  hot_water: sensor.gas_warmwasser_heute
+water:
+  entity: sensor.wasser_durchfluss        # optional: l/min
+  daily: sensor.wasser_heute              # Liter oder m³
+```
+
+Mehr dazu: [Gas und Wasser in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#gas-und-wasser-gas-water).
 
 ## Neu: Die Karte erklärt sich selbst
 
@@ -414,6 +441,7 @@ Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://gith
 
 - **Energy flow:** animated solar, grid, one or more batteries (with discharge limit and forecast), home and consumers, surplus hint, second PV system (e.g. balcony solar). Optional 3D view with `style: 3d`.
 - **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
+- **New: gas and water.** Own tiles for a gas boiler (heating and hot water, kWh or m³) and water (flow and daily use), each with a line to the house. They do not count towards electricity. In 3D: a boiler with a flame and a water meter (`gas`, `water`).
 - **New: the card explains itself.** A "?" on the grid tile tells you in plain language why power is coming from the grid or going to it: which consumers use it, why the battery is not delivering, why there is no solar (night, weather, forecast). Rule-based, no AI, no cloud. Turn it on with `why: true`.
 - **Optional extras:** a weather band under the header (`weather`), extra values and an alarm on the solar, grid and battery tiles (`extra`, `alarm`), your own colors (`colors`), large consumer tiles (`size: gross`), separate label size (`label_size`) and a storage with its own solar modules such as the Anker SOLIX Solarbank (`pv2.to_battery`). See the [configuration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md) (German).
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
