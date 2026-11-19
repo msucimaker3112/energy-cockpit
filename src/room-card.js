@@ -163,10 +163,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      const previousLanguage = WD.state.lang;
       setLocale(h);
+      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      const localeChanged = this._localeSignature !== localeSignature;
+      this._localeSignature = localeSignature;
       this._hass = h;
-      if (previousLanguage !== WD.state.lang && this._c) this._render();
+      if (localeChanged && this._c) this._render();
       if (!this._c) return;
       if (!this._loading && Date.now() - this._loadedAt > 15 * 60 * 1000) this._load();
       this._liveUpd();
@@ -415,10 +417,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
       const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
       const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
-        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
+        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), money(r.cost), money(r.costFull)]
           .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])), r.items.map((d) => num(d[0] + d[1] + d[2])));
       });
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
