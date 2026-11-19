@@ -1499,7 +1499,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
     this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
-    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || T('flow.grid2'), icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
+    if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || '', icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
       .filter((g) => g.name || g.items.length);
@@ -1889,6 +1889,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._xtC = [];
     const c = this._c;
     this._bl = WD.state.lang;
+    if (c.grid2 && c.consumers[0] && c.consumers[0]._g2) c.consumers[0].name = c.grid2.name || T('flow.grid2');
     // Nach dem Laden der Schrift und nach der Anlaufzeit einmal sicher neu einpassen, auch wenn der Maßstab gerade gehalten wird
     const refit = () => { this._forceFit = true; this._schedLayout(); };
     clearTimeout(this._fitT);
@@ -4310,10 +4311,12 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      const previousLanguage = WD.state.lang;
       setLocale(h);
+      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      const localeChanged = this._localeSignature !== localeSignature;
+      this._localeSignature = localeSignature;
       this._hass = h;
-      if (previousLanguage !== WD.state.lang && this._c) this._render();
+      if (localeChanged && this._c) this._render();
       if (!this._c) return;
       if (!this._loading && Date.now() - this._loadedAt > 15 * 60 * 1000) this._load();
       this._liveUpd();
@@ -4562,10 +4565,11 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
       const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
       const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
-        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), r.cost.toFixed(2).replace('.', ','), r.costFull.toFixed(2).replace('.', ',')]
+        return [x.label, num(r.kwh), num(r.src[0]), num(r.src[1]), num(r.src[2]), money(r.cost), money(r.costFull)]
           .concat(r.dev.map((d) => num(d[0] + d[1] + d[2])), r.items.map((d) => num(d[0] + d[1] + d[2])));
       });
       return [head].concat(rows).map((r) => r.join(';')).join('\n');
@@ -5190,7 +5194,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._ccY = null; this._ccV = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
-      this._c._g2n = typeof c.grid2_name === 'string' && c.grid2_name.trim() ? c.grid2_name.trim() : T('st.g2name');
+      this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
       // budget_kwh (optional): Jahresziel für den Netzbezug in kWh (Zahl oder Sensor). budget_profile: linear (Standard) oder history (Soll folgt dem Verlauf des Vorjahres)
       this._c._bud = typeof c.budget_kwh === 'number' ? c.budget_kwh : typeof c.budget_kwh === 'string' && c.budget_kwh.trim() ? c.budget_kwh.trim() : null;
       this._c._budHist = c.budget_profile === 'history';
@@ -5213,12 +5217,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const first = !this._hass;
       setLocale(h);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
-      if (this._c && this._bl !== WD.state.lang) { this._bl = WD.state.lang; fillMon(); this._build(); }
+      const languageChanged = this._bl !== WD.state.lang;
+      if (languageChanged) { this._bl = WD.state.lang; fillMon(); this._build(); }
       this._hass = h;
       // Neuer Tag: Stunden seit Mitternacht neu laden, sonst fehlt "Heute" aus den Gesamtzählern bis zum nächsten Laden
       const dn = new Date(), today = new Date(dn.getFullYear(), dn.getMonth(), dn.getDate()).getTime();
       if (!this._loading && (Date.now() - (this._loaded || 0) > 30 * 60 * 1000 || (this._loaded && this._tdDay !== today))) { this._tdDay = today; this._load(); return; }
-      if (first || Date.now() - (this._lastR || 0) > 30000) { this._lastR = Date.now(); this._render(); }
+      if (first || languageChanged || Date.now() - (this._lastR || 0) > 30000) { this._lastR = Date.now(); this._render(); }
     }
     getCardSize() { return 10; }
     getGridOptions() { return { columns: 'full', min_columns: 6 }; }
@@ -5820,7 +5825,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._f('feedSub', kv(T('st.r.fed'), this._fk(p.exp) + ' kWh'));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh'));
-        this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
+        this._f('costSub', kv(T('st.r.drawn'), this._fk(impT) + ' kWh') + (g2 > 0 && price2 > 0 ? kv(T('st.g2of', { n: esc(c._g2n || T('st.g2name')) }), fEur(g2 * price2) + ' ' + CUR) : '') + (baseFee > 0 ? kv(T('st.basefee'), fEur(baseFee) + ' ' + CUR) : ''));
         this._f('autSub', kv(T('st.r.selfq'), p.pv > 0 ? this._fp(1 - p.exp / p.pv) : '—') + kv(T('st.r.cons'), this._fk(cons) + ' kWh'));
       } else if (this._period === 'day' || (this._m && (c._lt || this._period === 'week'))) {
         // Zeitraum ohne Werte: keine 0 und keinen Wert aus dem vorigen Zeitraum stehen lassen (#28: "Heute" zeigte sonst den Monat)
