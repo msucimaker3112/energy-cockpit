@@ -1,15 +1,23 @@
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
-  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
+  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR', nloc: 'de-DE', group: true, h12: undefined };
 
-  // Sprache und Währung aus Home Assistant übernehmen
-  const setLocale = (hass) => {
+  // Sprache, Zahlen- und Zeitformat und Währung. Standard: wie in Home Assistant eingestellt (Profil, Allgemein).
+  // cfg.language ('de', 'en', 'nl' oder 'auto') legt die Sprache der Karte fest, unabhängig von Home Assistant
+  const LANG_OPTIONS = [{ value: 'auto', label: 'Automatisch, wie Home Assistant (Standard)' }, { value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }];
+  const NUMBER_LOCALES = { comma_decimal: 'en-US', decimal_comma: 'de-DE', space_comma: 'fr-FR', none: 'en-US' };
+  const setLocale = (hass, cfg) => {
     if (!hass) return;
-    const requested = typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE';
+    const forced = cfg && typeof cfg.language === 'string' && cfg.language.trim().toLowerCase() !== 'auto' ? cfg.language.trim() : '';
+    const requested = forced || (typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE');
     try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
     const language = state.loc.split('-')[0].toLowerCase();
     state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
+    const hl = hass.locale || {}, nav = (typeof navigator !== 'undefined' && navigator.language) || state.loc;
+    state.nloc = hl.number_format === 'system' ? nav : NUMBER_LOCALES[hl.number_format] || state.loc;
+    state.group = hl.number_format !== 'none';
+    state.h12 = hl.time_format === 'am_pm' ? true : hl.time_format === 'twenty_four' ? false : hl.time_format === 'system' ? new Intl.DateTimeFormat(nav, { hour: 'numeric' }).resolvedOptions().hour12 : undefined;
   };
 
   const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179', gas: '249,115,22', wat: '59,130,246' };
@@ -112,8 +120,9 @@ const WD = (() => {
     const a = accentRgb(el._ecAccent);
     if (a) el.style.setProperty('--acc', a); else el.style.removeProperty('--acc');
   };
-  const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
-  const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const hhmm = (d) => new Date(d).toLocaleTimeString(state.loc, state.h12 === undefined ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', hour12: state.h12 });
+  const clock = (ms) => hhmm(ms);
+  const nf = (v, d) => Number(v).toLocaleString(state.nloc, { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: state.group });
   // onlyW: immer in Watt, nie in kW umschalten (Option watt_only)
   // d (optional): feste Nachkommastellen aus der Option decimals; ohne d bleibt die bisherige Darstellung. Watt bleiben immer ganzzahlig
   const splitW = (w, onlyW, d) => {
@@ -136,7 +145,7 @@ const WD = (() => {
   // Währungssymbol aus Home Assistant (€, $, £ …)
   const cur = () => {
     try {
-      const p = new Intl.NumberFormat(state.loc, { style: 'currency', currency: state.currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
+      const p = new Intl.NumberFormat(state.nloc, { style: 'currency', currency: state.currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
       const x = p.find((q) => q.type === 'currency');
       return x ? x.value : state.currency;
     } catch (e) { return state.currency; }
@@ -189,5 +198,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();

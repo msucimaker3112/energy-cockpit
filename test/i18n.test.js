@@ -170,3 +170,60 @@ test('room CSV uses consistent locale-specific decimals without grouping', () =>
     assert.equal(card._csv().split('\n')[1], row);
   }
 });
+
+test('card option language overrides the Home Assistant language, auto follows it', () => {
+  WD.setLocale({ language: 'en-GB' }, { language: 'de' });
+  assert.equal(WD.state.lang, 'de');
+  assert.equal(WD.state.loc, 'de');
+  assert.equal(WD.T('flow.home'), 'Hausverbrauch');
+  assert.equal(WD.nf(1234.5, 1), '1.234,5');
+
+  WD.setLocale({ language: 'de-DE' }, { language: 'nl' });
+  assert.equal(WD.state.lang, 'nl');
+  assert.equal(WD.T('flow.home'), 'Huisverbruik');
+
+  WD.setLocale({ language: 'nl-NL' }, { language: 'auto' });
+  assert.equal(WD.state.lang, 'nl');
+  WD.setLocale({ language: 'en-GB' }, { language: ' AUTO ' });
+  assert.equal(WD.state.lang, 'en');
+  WD.setLocale({ language: 'en-GB' }, { language: 'fr' });
+  assert.equal(WD.state.lang, 'de');
+  WD.setLocale({ language: 'en-GB' }, {});
+  assert.equal(WD.state.lang, 'en');
+  WD.setLocale({ language: 'en-GB' }, null);
+  assert.equal(WD.state.lang, 'en');
+});
+
+test('number format of the Home Assistant profile is respected, independent of the language', () => {
+  WD.setLocale({ language: 'en-GB', locale: { language: 'en-GB', number_format: 'decimal_comma' } });
+  assert.equal(WD.state.lang, 'en');
+  assert.equal(WD.nf(1234.5, 1), '1.234,5');
+
+  WD.setLocale({ language: 'de-DE', locale: { language: 'de-DE', number_format: 'comma_decimal' } });
+  assert.equal(WD.state.lang, 'de');
+  assert.equal(WD.nf(1234.5, 1), '1,234.5');
+
+  WD.setLocale({ language: 'en-GB', locale: { language: 'en-GB', number_format: 'none' } });
+  assert.equal(WD.nf(1234567.5, 1), '1234567.5');
+
+  WD.setLocale({ language: 'nl-NL', locale: { language: 'nl-NL', number_format: 'language' } });
+  assert.equal(WD.nf(1234.5, 1), '1.234,5');
+
+  // ohne Einstellung: wie bisher nach der Sprache; mit festgelegter Kartensprache nach dieser Sprache
+  WD.setLocale({ language: 'en-GB' });
+  assert.equal(WD.nf(1234.5, 1), '1,234.5');
+  WD.setLocale({ language: 'en-GB', locale: { language: 'en-GB', number_format: 'language' } }, { language: 'de' });
+  assert.equal(WD.nf(1234.5, 1), '1.234,5');
+});
+
+test('time format of the Home Assistant profile is respected', () => {
+  const t = new Date(2026, 10, 19, 16, 49).getTime();
+  WD.setLocale({ language: 'en-GB', locale: { language: 'en-GB', time_format: 'am_pm' } });
+  assert.match(WD.hhmm(t), /4:49\s?pm/i);
+  WD.setLocale({ language: 'en-US', locale: { language: 'en-US', time_format: 'twenty_four' } });
+  assert.match(WD.hhmm(t), /^16:49$/);
+  WD.setLocale({ language: 'de-DE', locale: { language: 'de-DE', time_format: 'language' } });
+  assert.match(WD.hhmm(t), /^16:49$/);
+  WD.setLocale({ language: 'en-US' });
+  assert.match(WD.hhmm(t), /4:49\s?pm/i);
+});

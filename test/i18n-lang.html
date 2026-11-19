@@ -1,0 +1,51 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Sprache und Formate Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft: Kartenoption language (de/en/nl/auto), Zahlenformat und Uhrzeitformat aus dem HA-Profil (hass.locale). Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const mk=(lang,loc)=>({states:{'sensor.pv':S(2570),'sensor.grid':S(-300),'sensor.h':S(1200)},language:lang,locale:Object.assign({language:lang},loc||{}),config:{currency:'EUR'},themes:{}});
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.h'},show_clock:true};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(base,mk('en-GB'));await wait(700);
+  const hub=()=>q(e,'.hub-lbl').textContent.trim();
+  ok('HA englisch, auto: Texte englisch',/house consumption/i.test(hub()),hub());
+  e=mount({...base,language:'de'},mk('en-GB'));await wait(700);
+  ok('HA englisch, language de: Texte deutsch',/hausverbrauch/i.test(hub()),hub());
+  e=mount({...base,language:'nl'},mk('de-DE'));await wait(700);
+  ok('HA deutsch, language nl: Texte niederländisch',/huisverbruik/i.test(hub()),hub());
+  e=mount({...base,language:'auto'},mk('nl-NL'));await wait(700);
+  ok('language auto: folgt Home Assistant (nl)',/huisverbruik/i.test(hub()),hub());
+  e=mount({...base,language:'xx'},mk('en-GB'));await wait(700);
+  ok('language unbekannt: Deutsch als Rückfall',/hausverbrauch/i.test(hub()),hub());
+  // Zahlenformat
+  const pvNum=()=>q(e,'[data-k="pv"] .num').textContent.replace(/\s+/g,'');
+  e=mount(base,mk('en-GB'));await wait(700);
+  ok('HA englisch ohne Profil: Zahl 2.57 (Punkt)',/^2\.57/.test(pvNum()),pvNum());
+  e=mount(base,mk('en-GB',{number_format:'decimal_comma'}));await wait(700);
+  ok('HA englisch, Profil Komma: Zahl 2,57',/^2,57/.test(pvNum()),pvNum());
+  e=mount(base,mk('de-DE',{number_format:'comma_decimal'}));await wait(700);
+  ok('HA deutsch, Profil Punkt: Zahl 2.57',/^2\.57/.test(pvNum()),pvNum());
+  e=mount({...base,language:'de'},mk('en-GB',{number_format:'language'}));await wait(700);
+  ok('language de bei englischem HA: Zahl 2,57',/^2,57/.test(pvNum()),pvNum());
+  // Uhrzeit
+  const clk=()=>q(e,'.clock').textContent.trim();
+  e=mount(base,mk('en-US',{time_format:'twenty_four'}));await wait(700);
+  ok('Profil 24 Stunden: kein AM/PM',/^\d{2}:\d{2}$/.test(clk()),clk());
+  e=mount(base,mk('de-DE',{time_format:'am_pm'}));await wait(700);
+  ok('Profil 12 Stunden: AM/PM',/(am|pm)/i.test(clk()),clk());
+  e=mount(base,mk('de-DE'));await wait(700);
+  ok('ohne Profil, deutsch: 24 Stunden',/^\d{2}:\d{2}$/.test(clk()),clk());
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount({...base,language:P.get('l')||'auto'},mk(P.get('h')||'en-GB'));}
+</script></body></html>

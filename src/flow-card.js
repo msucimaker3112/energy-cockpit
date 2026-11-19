@@ -502,10 +502,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _applyHass(h) {
     this._hLast = Date.now();
       WD.applyTheme(this, null, h);
-    setLocale(h);
+    setLocale(h, this._c);
     // Sprache aus Home Assistant erst jetzt bekannt: statische Texte neu aufbauen
     if (this._c && this._bl !== WD.state.lang) this._build();
     this._hass = h;
+    this._clock();
     this._update();
     this._loadDaily();
     if (this._c && this._c.weather) { if (!this._skyLoading && Date.now() - (this._skyLoaded || 0) > 30 * 60 * 1000) this._loadSky(); this._sky(true); }
@@ -599,7 +600,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._skyKey = key; this._skyMin = minute;
     const tod = (v) => { const d = new Date(v); return v && !isNaN(d) ? d.getHours() + d.getMinutes() / 60 : null; };
     const sr = tod(sa.next_rising), ss = tod(sa.next_setting);
-    const fmtT = (x) => { let hh = Math.floor(x), mm = Math.round((x - hh) * 60); if (mm === 60) { hh += 1; mm = 0; } return new Date(2000, 0, 1, hh, mm).toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' }); };
+    const fmtT = (x) => { let hh = Math.floor(x), mm = Math.round((x - hh) * 60); if (mm === 60) { hh += 1; mm = 0; } return WD.hhmm(new Date(2000, 0, 1, hh, mm)); };
     const COL = { sunny: '#ffc93d', 'clear-night': '#3a4a7a', partlycloudy: 'linear-gradient(#ffc93d 50%,#8d9ab3 50%)', cloudy: '#8d9ab3', fog: '#b7c0cf', rainy: '#4f86d9', pouring: '#2f63c4', snowy: '#cfe3ff', 'snowy-rainy': 'linear-gradient(#cfe3ff 50%,#4f86d9 50%)', lightning: '#8b6fd6', 'lightning-rainy': '#8b6fd6', hail: '#9fc3e8', windy: '#7f95b3', 'windy-variant': '#7f95b3', exceptional: '#e07a5f' };
     const lab = (cnd) => { const k = 'sky.' + cnd, v = T(k); return v === k ? String(cnd || '') : v; };
     const today = now.toDateString(), byHour = {};
@@ -628,7 +629,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const nextH = (this._skyFc || []).filter((f) => new Date(f.datetime) > new Date(now.getTime() - 36e5)).slice(0, 6);
     const rows = nextH.map((f) => {
       const d = new Date(f.datetime), pr = parseFloat(f.precipitation), p = pr > 0 ? ` · ${nf(pr, 1)} mm` : '';
-      return `<span><span class="ht">${d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' })}</span><span><b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span></span>`;
+      return `<span><span class="ht">${WD.hhmm(d)}</span><span><b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span></span>`;
     }).join('');
     this._$('.sky-det').innerHTML = bits.join(' &nbsp;·&nbsp; ') + (rows ? `<div class="g">${rows}</div>` : (hasFc ? '' : `<div>${T('sky.nofc')}</div>`));
     el.hidden = false;
@@ -714,7 +715,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const items = (this._wyItems || []).filter((x) => x.w >= 5).slice().sort((a, b) => b.w - a.w);
     const known = (this._wyItems || []).reduce((a, x) => a + x.w, 0);
     const rest = Math.max(0, y.home - known - y.bmChg);
-    const now = new Date(), clk = now.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' });
+    const now = new Date(), clk = WD.hhmm(now);
     const rowsHtml = (rows) => { const max = Math.max(1, ...rows.map((r) => r.w)); return rows.map((r) => `<div class="wr"><span class="wn">${esc(r.n)}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span><span class="wbar"><i style="width:${Math.max(2, Math.round(r.w / max * 100))}%;background:${r.c}"></i></span><span class="wv">${fW(r.w)}</span></div>`).join(''); };
     const col = (x, d) => `rgb(${rgb(x, d)})`;
     const hint = (q, txt, cls) => (txt ? `<div class="wh${cls ? ' ' + cls : ''}"><b>${q}</b><span>${txt}</span></div>` : '');
@@ -723,7 +724,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const sunSt = h.states['sun.sun'], night = sunSt && sunSt.state === 'below_horizon';
     const wxId = this._skyEnt(), wx = wxId && h.states[wxId];
     const fcT = c.pv && c.pv.forecast_tomorrow ? kwh(h, c.pv.forecast_tomorrow, rawUnits(c)) : null;
-    const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' }); };
+    const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : WD.hhmm(d); };
     const consRows = () => {
       const r = items.map((x) => ({ n: x.n, w: x.w, c: col(x.c, '167,139,250'), sub: x.top ? T('why.top', { n: x.top.n, w: fW(x.top.w) }) : '' }));
       if (y.bmChg > TH) r.push({ n: T('why.bm'), w: y.bmChg, c: `rgb(${PAL.chg})` });
@@ -858,7 +859,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
   _clock() {
     const el = this._$('.clock');
-    if (el && this._c.show_clock !== false) el.textContent = new Date().toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' });
+    if (el && this._c.show_clock !== false) el.textContent = WD.hhmm(new Date());
   }
 
   // Eigene Farben (colors) gelten nur waehrend _build und _update dieser Karte, danach steht die Standardpalette wieder

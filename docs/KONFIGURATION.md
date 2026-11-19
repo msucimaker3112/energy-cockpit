@@ -59,6 +59,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `home.entity`, `home.name` | Sensor, Text | Hausverbrauch (sonst berechnet). Bei einem negativen Sensorwert rechnet die Karte den Verbrauch selbst |
 | `home.daily` | Sensor | Hausverbrauch heute (kWh) für die Kachel "Haus heute". Ohne Angabe berechnet die Karte ihn aus PV-Ertrag, Bezug, Einspeisung und Batterie heute (sobald `pv.daily` und `grid.daily_import` gesetzt sind) |
 | `grid_price`, `feed_in` | Sensor, `input_number` oder Zahl | Preis je kWh (Euro) für Kostenangaben |
+| `language` | Text | Sprache der Karte: `auto` (Standard, folgt der Sprache in deinem Home-Assistant-Profil), `de`, `en` oder `nl`. Andere Sprachen zeigen Deutsch. Gilt für alle vier Karten, die Editoren bleiben deutsch |
 | `theme` | Text | Farbschema: `dunkel` (Standard), `graphit`, `hell`, `warm`, `auto` (folgt dem Home-Assistant-Design hell/dunkel) oder `ha` (Farben des HA-Designs). Gilt für alle vier Karten |
 | `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
 | `grid_base_fee` | Zahl | Nur Statistik: Grundpreis Strom in Euro pro Monat, zählt anteilig in „Stromkosten Netz“ mit (siehe Abschnitt Statistik), mit `grid_base_fee_history` auch für frühere Grundpreise |
@@ -968,3 +969,19 @@ Auf dem Handy bleibt die Linie in der Lücke zwischen den Kacheln:
 ![Sammel-Linie, schmale Ansicht](img/sammel-schmal.png)
 
 Die Summe in der Plakette ist die Summe der Messwerte der Einzelverbraucher und Gruppen. Der Anteil "nicht erfasst" ist nicht enthalten.
+
+## Sprache, Zahlen und Uhrzeit
+
+Die Karten sprechen **Deutsch, Englisch und Niederländisch**. Welche Sprache sie zeigen, bestimmt die Sprache in deinem **Home-Assistant-Profil** (Profil → Allgemein). Jede andere Sprache zeigt Deutsch. Die Editoren und der Einrichtungsassistent bleiben deutsch.
+
+Läuft dein Home Assistant auf Englisch, du möchtest die Karte aber auf Deutsch lesen, legst du die Sprache in der Karte fest:
+
+```yaml
+language: de        # auto (Standard), de, en oder nl
+```
+
+Im Assistenten steht das Feld im Schritt „Aussehen“ als **Sprache der Karte**. Jede Karte hat ihre eigene Einstellung. Mischst du Karten mit verschiedenen Sprachen auf einer Ansicht, sind Texte, die erst beim Antippen entstehen (zum Beispiel das „?“-Fenster), unter Umständen in der Sprache der zuletzt aktualisierten Karte.
+
+**Zahlen und Uhrzeit** richten sich nach deinem Profil in Home Assistant: **Zahlenformat** („1.234,5“, „1,234.5“ oder „1 234,5“) und **Uhrzeitformat** (12 oder 24 Stunden). Steht dort „Sprache“, gilt das Format der Kartensprache. Ohne Eintrag ändert sich für dich nichts, wenn Home Assistant auf Deutsch läuft.
+
+Die englischen und niederländischen Texte sind ein erster Durchgang (Dank an [@bartjackbakker](https://github.com/bartjackbakker) und [@aavdberg](https://github.com/aavdberg)). Verbesserungen sind willkommen, am liebsten als kleiner Pull Request für `src/i18n-en.js` und `src/i18n-nl.js`.

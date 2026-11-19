@@ -1,17 +1,25 @@
-/*! energy-cockpit v0.35.0 - MIT License */
+/*! energy-cockpit v0.36.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
-  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR' };
+  const state = { loc: 'de-DE', lang: 'de', currency: 'EUR', nloc: 'de-DE', group: true, h12: undefined };
 
-  // Sprache und Währung aus Home Assistant übernehmen
-  const setLocale = (hass) => {
+  // Sprache, Zahlen- und Zeitformat und Währung. Standard: wie in Home Assistant eingestellt (Profil, Allgemein).
+  // cfg.language ('de', 'en', 'nl' oder 'auto') legt die Sprache der Karte fest, unabhängig von Home Assistant
+  const LANG_OPTIONS = [{ value: 'auto', label: 'Automatisch, wie Home Assistant (Standard)' }, { value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }];
+  const NUMBER_LOCALES = { comma_decimal: 'en-US', decimal_comma: 'de-DE', space_comma: 'fr-FR', none: 'en-US' };
+  const setLocale = (hass, cfg) => {
     if (!hass) return;
-    const requested = typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE';
+    const forced = cfg && typeof cfg.language === 'string' && cfg.language.trim().toLowerCase() !== 'auto' ? cfg.language.trim() : '';
+    const requested = forced || (typeof hass.language === 'string' && hass.language ? hass.language : 'de-DE');
     try { state.loc = Intl.getCanonicalLocales(requested)[0] || 'de-DE'; } catch (e) { state.loc = 'de-DE'; }
     const language = state.loc.split('-')[0].toLowerCase();
     state.lang = ['de', 'en', 'nl'].includes(language) ? language : 'de';
     state.currency = (hass.config && hass.config.currency) || state.currency;
+    const hl = hass.locale || {}, nav = (typeof navigator !== 'undefined' && navigator.language) || state.loc;
+    state.nloc = hl.number_format === 'system' ? nav : NUMBER_LOCALES[hl.number_format] || state.loc;
+    state.group = hl.number_format !== 'none';
+    state.h12 = hl.time_format === 'am_pm' ? true : hl.time_format === 'twenty_four' ? false : hl.time_format === 'system' ? new Intl.DateTimeFormat(nav, { hour: 'numeric' }).resolvedOptions().hour12 : undefined;
   };
 
   const PAL = { pv: '255,197,61', imp: '255,92,122', exp: '52,211,153', bat: '96,165,250', chg: '56,189,248', dis: '96,165,250', home: '34,211,238', mut: '139,151,179', gas: '249,115,22', wat: '59,130,246' };
@@ -114,8 +122,9 @@ const WD = (() => {
     const a = accentRgb(el._ecAccent);
     if (a) el.style.setProperty('--acc', a); else el.style.removeProperty('--acc');
   };
-  const clock = (ms) => new Date(ms).toLocaleTimeString(state.loc, { hour: '2-digit', minute: '2-digit' });
-  const nf = (v, d) => Number(v).toLocaleString(state.loc, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const hhmm = (d) => new Date(d).toLocaleTimeString(state.loc, state.h12 === undefined ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', hour12: state.h12 });
+  const clock = (ms) => hhmm(ms);
+  const nf = (v, d) => Number(v).toLocaleString(state.nloc, { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: state.group });
   // onlyW: immer in Watt, nie in kW umschalten (Option watt_only)
   // d (optional): feste Nachkommastellen aus der Option decimals; ohne d bleibt die bisherige Darstellung. Watt bleiben immer ganzzahlig
   const splitW = (w, onlyW, d) => {
@@ -138,7 +147,7 @@ const WD = (() => {
   // Währungssymbol aus Home Assistant (€, $, £ …)
   const cur = () => {
     try {
-      const p = new Intl.NumberFormat(state.loc, { style: 'currency', currency: state.currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
+      const p = new Intl.NumberFormat(state.nloc, { style: 'currency', currency: state.currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
       const x = p.find((q) => q.type === 'currency');
       return x ? x.value : state.currency;
     } catch (e) { return state.currency; }
@@ -191,7 +200,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();
 
 
@@ -1517,10 +1526,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _applyHass(h) {
     this._hLast = Date.now();
       WD.applyTheme(this, null, h);
-    setLocale(h);
+    setLocale(h, this._c);
     // Sprache aus Home Assistant erst jetzt bekannt: statische Texte neu aufbauen
     if (this._c && this._bl !== WD.state.lang) this._build();
     this._hass = h;
+    this._clock();
     this._update();
     this._loadDaily();
     if (this._c && this._c.weather) { if (!this._skyLoading && Date.now() - (this._skyLoaded || 0) > 30 * 60 * 1000) this._loadSky(); this._sky(true); }
@@ -1614,7 +1624,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._skyKey = key; this._skyMin = minute;
     const tod = (v) => { const d = new Date(v); return v && !isNaN(d) ? d.getHours() + d.getMinutes() / 60 : null; };
     const sr = tod(sa.next_rising), ss = tod(sa.next_setting);
-    const fmtT = (x) => { let hh = Math.floor(x), mm = Math.round((x - hh) * 60); if (mm === 60) { hh += 1; mm = 0; } return new Date(2000, 0, 1, hh, mm).toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' }); };
+    const fmtT = (x) => { let hh = Math.floor(x), mm = Math.round((x - hh) * 60); if (mm === 60) { hh += 1; mm = 0; } return WD.hhmm(new Date(2000, 0, 1, hh, mm)); };
     const COL = { sunny: '#ffc93d', 'clear-night': '#3a4a7a', partlycloudy: 'linear-gradient(#ffc93d 50%,#8d9ab3 50%)', cloudy: '#8d9ab3', fog: '#b7c0cf', rainy: '#4f86d9', pouring: '#2f63c4', snowy: '#cfe3ff', 'snowy-rainy': 'linear-gradient(#cfe3ff 50%,#4f86d9 50%)', lightning: '#8b6fd6', 'lightning-rainy': '#8b6fd6', hail: '#9fc3e8', windy: '#7f95b3', 'windy-variant': '#7f95b3', exceptional: '#e07a5f' };
     const lab = (cnd) => { const k = 'sky.' + cnd, v = T(k); return v === k ? String(cnd || '') : v; };
     const today = now.toDateString(), byHour = {};
@@ -1643,7 +1653,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const nextH = (this._skyFc || []).filter((f) => new Date(f.datetime) > new Date(now.getTime() - 36e5)).slice(0, 6);
     const rows = nextH.map((f) => {
       const d = new Date(f.datetime), pr = parseFloat(f.precipitation), p = pr > 0 ? ` · ${nf(pr, 1)} mm` : '';
-      return `<span><span class="ht">${d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' })}</span><span><b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span></span>`;
+      return `<span><span class="ht">${WD.hhmm(d)}</span><span><b>${isNaN(parseFloat(f.temperature)) ? '' : nf(parseFloat(f.temperature), 0) + '°'}</b> ${esc(lab(f.condition))}${p}</span></span>`;
     }).join('');
     this._$('.sky-det').innerHTML = bits.join(' &nbsp;·&nbsp; ') + (rows ? `<div class="g">${rows}</div>` : (hasFc ? '' : `<div>${T('sky.nofc')}</div>`));
     el.hidden = false;
@@ -1729,7 +1739,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const items = (this._wyItems || []).filter((x) => x.w >= 5).slice().sort((a, b) => b.w - a.w);
     const known = (this._wyItems || []).reduce((a, x) => a + x.w, 0);
     const rest = Math.max(0, y.home - known - y.bmChg);
-    const now = new Date(), clk = now.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' });
+    const now = new Date(), clk = WD.hhmm(now);
     const rowsHtml = (rows) => { const max = Math.max(1, ...rows.map((r) => r.w)); return rows.map((r) => `<div class="wr"><span class="wn">${esc(r.n)}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span><span class="wbar"><i style="width:${Math.max(2, Math.round(r.w / max * 100))}%;background:${r.c}"></i></span><span class="wv">${fW(r.w)}</span></div>`).join(''); };
     const col = (x, d) => `rgb(${rgb(x, d)})`;
     const hint = (q, txt, cls) => (txt ? `<div class="wh${cls ? ' ' + cls : ''}"><b>${q}</b><span>${txt}</span></div>` : '');
@@ -1738,7 +1748,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const sunSt = h.states['sun.sun'], night = sunSt && sunSt.state === 'below_horizon';
     const wxId = this._skyEnt(), wx = wxId && h.states[wxId];
     const fcT = c.pv && c.pv.forecast_tomorrow ? kwh(h, c.pv.forecast_tomorrow, rawUnits(c)) : null;
-    const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : d.toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' }); };
+    const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : WD.hhmm(d); };
     const consRows = () => {
       const r = items.map((x) => ({ n: x.n, w: x.w, c: col(x.c, '167,139,250'), sub: x.top ? T('why.top', { n: x.top.n, w: fW(x.top.w) }) : '' }));
       if (y.bmChg > TH) r.push({ n: T('why.bm'), w: y.bmChg, c: `rgb(${PAL.chg})` });
@@ -1873,7 +1883,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
   _clock() {
     const el = this._$('.clock');
-    if (el && this._c.show_clock !== false) el.textContent = new Date().toLocaleTimeString(WD.state.loc, { hour: '2-digit', minute: '2-digit' });
+    if (el && this._c.show_clock !== false) el.textContent = WD.hhmm(new Date());
   }
 
   // Eigene Farben (colors) gelten nur waehrend _build und _update dieser Karte, danach steht die Standardpalette wieder
@@ -3017,7 +3027,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
-    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
+    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', why: 'Warum?-Erklärung (? an der Netz-Kachel)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
@@ -3098,11 +3108,12 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
+      { name: 'language', selector: { select: { mode: 'dropdown', options: WD.LANG_OPTIONS } } },
       txt('nav_path'),
       txt('nav_label'),
     ],
     computeLabel: (s) => s.label || LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'why' ? 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' : s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
+    computeHelper: (s) => (s.name === 'language' ? 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' : s.name === 'why' ? 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' : s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
   });
 
   // Assistent: Schritte mit Sensor-Vorschlägen
@@ -3217,6 +3228,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'language', label: 'Sprache der Karte', kind: 'choice', options: WD.LANG_OPTIONS, help: 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' },
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
@@ -3447,7 +3459,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      setLocale(h);
+      setLocale(h, this._c);
       if (!this._c) { this._hass = h; return; }
       // Sprache erst jetzt bekannt: statische Texte neu aufbauen
       if (this._bl !== WD.state.lang) { this._bl = WD.state.lang; this._sig = null; }
@@ -3896,7 +3908,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
   const { T, setLocale } = WD;
 
   WD.addStrings({
-    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)', 'ed.d.theme': 'Farbschema', 'ed.d.price_ct': 'oder fester Strompreis (Cent pro kWh)', 'ed.d.feed_ct': 'oder feste Einspeisevergütung (Cent pro kWh)',
+    'ed.d.title': 'Titel', 'ed.d.home': 'Hausverbrauch (Leistung)', 'ed.d.price': 'Strompreis Bezug (Sensor, pro kWh)', 'ed.d.feed': 'Einspeisevergütung (Sensor, pro kWh)', 'ed.d.theme': 'Farbschema', 'ed.d.language': 'Sprache der Karte', 'ed.d.price_ct': 'oder fester Strompreis (Cent pro kWh)', 'ed.d.feed_ct': 'oder feste Einspeisevergütung (Cent pro kWh)',
     'ed.d.surplus': 'PV-Überschuss (Leistung)', 'ed.d.standby': 'Standby-Schwelle (W)', 'ed.d.fit': 'Auf Bildschirmhöhe skalieren',
     'ed.d.nav_path': 'Weiter-Schaltfläche: Pfad', 'ed.d.nav_label': 'Weiter-Schaltfläche: Text',
     'ed.d.room': 'Raum', 'ed.d.room_name': 'Name', 'ed.d.icon': 'Symbol', 'ed.d.color': 'Farbe (z. B. 248,113,113)', 'ed.d.image': 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -4065,7 +4077,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       }
       const c = this._c;
       const lbl = {
-        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', grid_price_ct: 'ed.d.price_ct', feed_in_ct: 'ed.d.feed_ct', theme: 'ed.d.theme', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
+        title: 'ed.d.title', home: 'ed.d.home', grid_price: 'ed.d.price', feed_in: 'ed.d.feed', grid_price_ct: 'ed.d.price_ct', feed_in_ct: 'ed.d.feed_ct', theme: 'ed.d.theme', language: 'ed.d.language', surplus: 'ed.d.surplus', standby_w: 'ed.d.standby',
         fit_screen: 'ed.d.fit', nav_path: 'ed.d.nav_path', nav_label: 'ed.d.nav_label', icon: 'ed.d.icon', color: 'ed.d.color', image: 'ed.d.image', type: 'ed.d.type',
         entity: 'ed.d.entity', power: 'ed.d.power', energy: 'ed.d.energy', max_w: 'ed.d.max_w', run_w: 'ed.d.run_w', lock: 'ed.d.lock',
       };
@@ -4074,7 +4086,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
       // Allgemein
       const top = this._form([
         txt('title'), ent('home', ['sensor']), ent('grid_price', ['sensor', 'input_number']), numb('grid_price_ct', 0, 200, 0.1), ent('feed_in', ['sensor', 'input_number']), numb('feed_in_ct', 0, 200, 0.1),
-        ent('surplus', ['sensor']), numb('standby_w', 0, 200, 1), bool('fit_screen'), { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } }, txt('nav_path'), txt('nav_label'),
+        ent('surplus', ['sensor']), numb('standby_w', 0, 200, 1), bool('fit_screen'), { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } }, { name: 'language', selector: { select: { mode: 'dropdown', options: WD.LANG_OPTIONS } } }, txt('nav_path'), txt('nav_label'),
       ], {
         title: c.title || '', home: c.home || '', grid_price: c.grid_price || '', feed_in: c.feed_in || '', surplus: c.surplus || '', grid_price_ct: c.grid_price_ct === undefined ? '' : c.grid_price_ct, feed_in_ct: c.feed_in_ct === undefined ? '' : c.feed_in_ct,
         standby_w: c.standby_w === undefined ? 15 : c.standby_w, theme: c.theme || 'dunkel', fit_screen: c.fit_screen !== false, nav_path: c.nav_path || '', nav_label: c.nav_label || '',
@@ -4311,8 +4323,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      setLocale(h);
-      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      setLocale(h, this._c);
+      const localeSignature = [WD.state.loc, WD.state.nloc, WD.state.lang, WD.state.currency, WD.state.h12].join('|');
       const localeChanged = this._localeSignature !== localeSignature;
       this._localeSignature = localeSignature;
       this._hass = h;
@@ -4564,8 +4576,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
-      const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
-      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+      const num = (v) => v.toLocaleString(WD.state.nloc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.nloc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
       const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
@@ -4848,7 +4860,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     energy_minus: 'Differenz: abziehen (Zähler, kWh), z. B. Zähler 2 einer Zählerkaskade', energy_plus: 'Differenz: dazurechnen (Zähler, kWh, optional)', power_minus: 'Differenz live: abziehen (Sensor, W)', power_plus: 'Differenz live: dazurechnen (Sensor, W, optional)',
     power: 'Leistungssensor (W, für die Live-Anzeige)', advance: 'Abschlag je Monat (Zahl in € oder input_number)', archive: 'Monatsarchiv (Sensor, optional)',
     standby_w: 'Standby-Schwelle nachts (W, Zahl oder input_number)', active_w: 'Ab wie viel Watt gilt ein Bereich als aktiv (W)',
-    theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 245,158,11 oder #f59e0b)',
+    theme: 'Farbschema', language: 'Sprache der Karte', accent: 'Akzentfarbe (z. B. 245,158,11 oder #f59e0b)',
     watt_warn: 'Live-Anzeige: erhöht ab (W)', watt_high: 'Live-Anzeige: hoch ab (W)',
   };
 
@@ -4871,6 +4883,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
       numb('watt_warn', 0, 20000, 10),
       numb('watt_high', 0, 20000, 10),
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
+      { name: 'language', selector: { select: { mode: 'dropdown', options: WD.LANG_OPTIONS } } },
       txt('accent'),
     ],
     computeLabel: (s) => LABELS[s.name] || s.title || s.name,
@@ -4909,6 +4922,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'language', label: 'Sprache der Karte', kind: 'choice', options: WD.LANG_OPTIONS, help: 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' },
       { path: 'accent', label: 'Akzentfarbe (optional, z. B. 34,197,94 oder #22c55e)', kind: 'text', optional: true },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert.', summary: (c) => [
@@ -5215,7 +5229,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       WD.applyTheme(this, null, h);
       if (!this._c) { this._hass = h; return; }
       const first = !this._hass;
-      setLocale(h);
+      setLocale(h, this._c);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
       const languageChanged = this._bl !== WD.state.lang;
       if (languageChanged) { this._bl = WD.state.lang; fillMon(); this._build(); }
@@ -5958,7 +5972,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', pv_lifetime: 'PV-Zähler ohne Zurücksetzen für Amortisation (optional, wenn der PV-Zähler täglich auf 0 geht)', decimals: 'Nachkommastellen bei kWh (leer = automatisch)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
-    feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
+    language: 'Sprache der Karte', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
     cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
@@ -5993,6 +6007,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'pv_history', selector: { text: {} } }, { name: 'pv_history_until', selector: { text: {} } }, { name: 'pv_history_name', selector: { text: {} } },
       { name: 'fit_screen', default: true, selector: { boolean: {} } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
+      { name: 'language', selector: { select: { mode: 'dropdown', options: WD.LANG_OPTIONS } } },
       { name: 'text_size', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die großen Werte)' }, { value: '3', label: 'Dreifach (3)' }] } } },
       { name: 'nav_path', selector: { text: {} } }, { name: 'nav_label', selector: { text: {} } },
     ],
@@ -6084,6 +6099,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     ] },
     { short: 'Aussehen', title: 'Farbschema', text: 'Dunkel ist die Voreinstellung. Mit "Automatisch" folgt die Karte dem hellen oder dunklen Design von Home Assistant, "Home Assistant" übernimmt dessen Farben.', fields: [
       { path: 'theme', label: 'Farbschema', kind: 'theme' },
+      { path: 'language', label: 'Sprache der Karte', kind: 'choice', options: WD.LANG_OPTIONS, help: 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' },
       { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die großen Werte)' }, { value: '3', label: 'Dreifach (3)' }], help: 'Groß und Sehr groß vergrößern die kleinen Texte (Beschriftungen, Zeilen unter den Werten, Fußzeile). Doppelt und Dreifach vergrößern auch die großen Werte.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder.', summary: (c) => [

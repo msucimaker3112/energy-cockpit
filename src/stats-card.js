@@ -261,7 +261,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       WD.applyTheme(this, null, h);
       if (!this._c) { this._hass = h; return; }
       const first = !this._hass;
-      setLocale(h);
+      setLocale(h, this._c);
       // Sprache erst jetzt bekannt: Monatsnamen und statische Texte neu aufbauen
       const languageChanged = this._bl !== WD.state.lang;
       if (languageChanged) { this._bl = WD.state.lang; fillMon(); this._build(); }

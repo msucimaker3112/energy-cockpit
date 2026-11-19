@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.36.0
+- **Sprache der Karten: Deutsch, Englisch, Niederländisch.** Die Karten zeigen ihre Texte in der Sprache aus dem Home-Assistant-Profil. Andere Sprachen zeigen Deutsch. Editoren und Assistent bleiben deutsch. Die Übersetzungen und den Mechanismus haben [@bartjackbakker](https://github.com/bartjackbakker) (Texte, [#38](https://github.com/msucimaker3112/energy-cockpit/pull/38)) und [@aavdberg](https://github.com/aavdberg) (Umschaltung, [#74](https://github.com/msucimaker3112/energy-cockpit/pull/74)) beigesteuert. Vielen Dank!
+- **Neu: `language`.** Wer Home Assistant auf Englisch betreibt, die Karte aber deutsch lesen will, legt in der Karte `language: de` fest (`auto` ist der Standard, dazu `en` und `nl`). Im Assistenten steht das Feld im Schritt „Aussehen“.
+- **Zahlen und Uhrzeit nach dem Profil:** Zahlenformat („1.234,5“ oder „1,234.5“) und 12-/24-Stunden-Uhr folgen den Einstellungen im Home-Assistant-Profil, unabhängig von der Sprache. Ohne eigene Einstellung bleibt für deutsche Nutzer alles wie bisher.
+
 ## 0.35.0
 - **Energiefluss, Gas und Wasser:** Neu und optional sind `gas` und `water`, je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie. Gas zeigt groß die Leistung der Therme (wenn `gas.entity` eingetragen ist), sonst den Verbrauch von heute, darunter Heizung und Warmwasser getrennt (`heating`, `hot_water`) oder eine Summe (`daily`). Sensoren in m³ rechnet die Karte mit `kwh_per_m3` in kWh um, ohne Angabe zeigt sie m³. Wasser zeigt den Durchfluss in l/min und den Verbrauch von heute in Litern oder m³. Beides zählt nicht zum Strom: Hausverbrauch, Ring und Autarkie bleiben gleich. In der 3D-Ansicht stehen eine Gastherme mit Flamme und ein Wasserzähler mit drehendem Zeiger. Farben über `colors.gas` und `colors.water`, einstellbar im Editor und im Assistenten (Schritt „Gas/Wasser“). Wunsch aus [#65](https://github.com/msucimaker3112/energy-cockpit/issues/65).
 

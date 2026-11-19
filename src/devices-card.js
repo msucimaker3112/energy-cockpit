@@ -181,7 +181,7 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      setLocale(h);
+      setLocale(h, this._c);
       if (!this._c) { this._hass = h; return; }
       // Sprache erst jetzt bekannt: statische Texte neu aufbauen
       if (this._bl !== WD.state.lang) { this._bl = WD.state.lang; this._sig = null; }

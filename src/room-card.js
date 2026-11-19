@@ -163,8 +163,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     set hass(h) {
       WD.applyTheme(this, null, h);
-      setLocale(h);
-      const localeSignature = [WD.state.loc, WD.state.lang, WD.state.currency].join('|');
+      setLocale(h, this._c);
+      const localeSignature = [WD.state.loc, WD.state.nloc, WD.state.lang, WD.state.currency, WD.state.h12].join('|');
       const localeChanged = this._localeSignature !== localeSignature;
       this._localeSignature = localeSignature;
       this._hass = h;
@@ -416,8 +416,8 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
     }
     _csv() {
       const c = this._c, tab = this._tab, b = this._buckets(tab);
-      const num = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
-      const money = (v) => v.toLocaleString(WD.state.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+      const num = (v) => v.toLocaleString(WD.state.nloc, { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+      const money = (v) => v.toLocaleString(WD.state.nloc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
       const head = [T('room.csv.period'), T('room.csv.total'), T('room.csv.grid'), T('room.csv.battery'), T('room.csv.pv'), T('room.csv.cost') + ' ' + cur(), T('room.csv.import_cost') + ' ' + cur()].concat(c.devices.map((d) => (d.name || d.energy) + ' kWh'), c.items.map((x) => (c.devices[x.parent].name || c.devices[x.parent].energy) + ': ' + (x.name || x.energy) + ' kWh'));
       const rows = b.map((x) => {
         const r = this._calc(x.from, x.to, x.fee);
