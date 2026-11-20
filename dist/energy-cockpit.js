@@ -5504,7 +5504,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._bfh = lst(c.grid_base_fee_history).filter((x) => x && x.until && !isNaN(parseFloat(String(x.eur).replace(',', '.')))).map((x) => ({ until: String(x.until), eur: Math.max(0, parseFloat(String(x.eur).replace(',', '.'))) })).sort((a, b) => (a.until < b.until ? -1 : 1));
       // hourly_pricing (optional): Geldkacheln Stunde für Stunde mit dem Stundenmittel des Preis-Sensors. Standard: an, wenn grid_price ein Sensor ist
       this._c._hp = c.hourly_pricing !== false && typeof c.grid_price === 'string' && !!c.grid_price.trim();
-      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null;
+      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {};
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
       this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
@@ -5722,11 +5722,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           });
         });
       };
-      const means = async (start, end, id = priceId) => {
+      // split (optional): sammelt die Stunden, in denen der Preis gewechselt hat (Minimum ungleich Maximum)
+      const means = async (start, end, id = priceId, split = null) => {
         const out = {};
         if (!id) return out;
-        const r = await stat('hour', ['mean'], [id], start, end).catch(() => ({}));
-        (r[id] || []).forEach((x) => { if (typeof x.mean === 'number') out[stamp(x)] = x.mean; });
+        const r = await stat('hour', split ? ['mean', 'min', 'max'] : ['mean'], [id], start, end).catch(() => ({}));
+        (r[id] || []).forEach((x) => {
+          if (typeof x.mean === 'number') out[stamp(x)] = x.mean;
+          if (split && typeof x.min === 'number' && typeof x.max === 'number' && x.max - x.min > 1e-9) split.add(stamp(x));
+        });
         return out;
       };
       // hourly_pricing: Geldkacheln je Stunde. Bezug (ohne grid2) und selbst genutzter Solarstrom zum Preis der Stunde, Einspeisung zur Vergütung der Stunde.
@@ -5734,9 +5738,48 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const feedId = c._hp && typeof c.feed_in === 'string' && c.feed_in ? c.feed_in : null, feedNow = WD.price(h, c.feed_in, c.feed_in_ct, 0);
       const hz = () => ({ imp: 0, cost: 0, self: 0, sav: 0, exp: 0, feed: 0, n: 0, fn: 0 });
       const hMon = (o, t) => { const d = new Date(t), k = key(d.getFullYear(), d.getMonth()); return o[k] || (o[k] = hz()); };
-      const hAdd = (b, t, x, m, fm) => {
-        const pr = rate(t, m), s = Math.max(0, x.pv - x.exp);
-        b.imp += x.imp0; b.cost += x.imp0 * pr; b.self += s; b.sav += s * pr; b.exp += x.exp; b.feed += x.exp * (fm[t] !== undefined ? fm[t] : feedNow);
+      // Stunden mit Preiswechsel (z. B. Tarifwechsel um 23:30): Bezug und Einspeisung in 5-Minuten-Scheiben bewerten. Ergebnis je Stunde: pi, pf
+      // (nach kWh gewichteter Preis), null ohne Bezug bzw. Einspeisung. Die Kurzzeitstatistik gibt es nur purge_keep_days lang (Standard 10 Tage),
+      // ältere Stunden behalten das Stundenmittel. Abgeschlossene Stunden merkt sich die Karte (_h5). Neueste zuerst, nahe Stunden in einer Abfrage;
+      // ist ein Abschnitt älter als alle mit Daten leer, ist der Rest schon gelöscht
+      const HR = 36e5, ids5 = [c.grid_import_total, c.grid_export_total, priceId, feedId].filter(Boolean);
+      const slice5 = async (split, m, fm) => {
+        const out = {}, todo = [], done = (t) => t + HR <= Date.now();
+        [...split].sort((a, b) => b - a).forEach((t) => { const x = this._h5[t]; if (x === undefined || !done(t)) todo.push(t); else if (x) out[t] = x; });
+        const ranges = [];
+        todo.forEach((t) => { const r = ranges[ranges.length - 1]; if (r && r.a - (t + HR) <= 3 * HR && r.b - t <= 24 * HR) { r.a = t; r.ts.push(t); } else ranges.push({ a: t, b: t + HR, ts: [t] }); });
+        for (let i = 0; i < ranges.length; i += 4) {
+          const part = ranges.slice(i, i + 4), res = await Promise.all(part.map((r) => stat('5minute', ['mean', 'change'], ids5, new Date(r.a), new Date(r.b)).catch(() => null)));
+          const has = res.map((rows) => !!rows && ids5.some((id) => (rows[id] || []).length > 0)), last = has.lastIndexOf(true);
+          let gone = false;
+          part.forEach((r, j) => {
+            const rows = res[j];
+            if (!has[j]) {
+              // Leer und älter als alles mit Daten: gelöscht. Leer dazwischen (z. B. Recorder aus): nicht merken, nächstes Mal neu versuchen
+              if (rows && j > last) { gone = true; r.ts.forEach((t) => { this._h5[t] = null; }); }
+              return;
+            }
+            const at = (id, f) => { const o = {}; (rows[id] || []).forEach((x) => { if (typeof x[f] === 'number') o[stamp(x)] = x[f]; }); return o; };
+            const pM = at(priceId, 'mean'), fM = feedId ? at(feedId, 'mean') : {}, iC = at(c.grid_import_total, 'change'), eC = at(c.grid_export_total, 'change');
+            const w = (t, C, P, def) => {
+              let e = 0, v = 0;
+              Object.keys(C).forEach((k) => { const k1 = +k; if (k1 >= t && k1 < t + HR) { const q = Math.max(0, C[k]); e += q; v += q * (P[k] !== undefined ? P[k] : def); } });
+              return e > 0 ? v / e : null;
+            };
+            r.ts.forEach((t) => {
+              const x = { pi: w(t, iC, pM, rate(t, m)), pf: feedId ? w(t, eC, fM, fm[t] !== undefined ? fm[t] : feedNow) : null };
+              out[t] = x;
+              if (done(t)) this._h5[t] = x;
+            });
+          });
+          if (gone) { ranges.slice(i + 4).forEach((r) => r.ts.forEach((t) => { this._h5[t] = null; })); break; }
+        }
+        return out;
+      };
+      const hAdd = (b, t, x, m, fm, s5) => {
+        const pr = rate(t, m), q = s5 && s5[t], pi = q && typeof q.pi === 'number' ? q.pi : pr, s = Math.max(0, x.pv - x.exp);
+        const pf = q && typeof q.pf === 'number' ? q.pf : fm[t] !== undefined ? fm[t] : feedNow;
+        b.imp += x.imp0; b.cost += x.imp0 * pi; b.self += s; b.sav += s * pr; b.exp += x.exp; b.feed += x.exp * pf;
         if (m[t] !== undefined) b.n++;
         if (fm[t] !== undefined) b.fn++;
       };
@@ -5745,28 +5788,28 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         let hasStat = false;
         // Langzeit-Ansicht: Jahre vor dem laufenden einmal je Jahr laden, erst ab der ersten Stunde mit Preisstatistik
         if (c._hp && c._lt && (!this._hpOld || this._hpOld.y !== y0.getFullYear())) {
-          const ho = {}, m = await means(new Date(2000, 0, 1), y0), t1 = Object.keys(m).reduce((a, k) => Math.min(a, +k), Infinity);
+          const ho = {}, sp = new Set(), m = await means(new Date(2000, 0, 1), y0, priceId, sp), t1 = Object.keys(m).reduce((a, k) => Math.min(a, +k), Infinity);
           if (isFinite(t1)) {
-            const s0 = new Date(t1), a0 = new Date(s0.getFullYear(), s0.getMonth(), 1), fm = feedId ? await means(a0, y0, feedId) : {};
-            add(await stat('hour', ['change'], house.concat(c._g2 ? [c._g2] : []), a0, y0), m, () => [], (t, x) => hAdd(hMon(ho, t), t, x, m, fm));
+            const s0 = new Date(t1), a0 = new Date(s0.getFullYear(), s0.getMonth(), 1), fm = feedId ? await means(a0, y0, feedId, sp) : {}, s5 = await slice5(sp, m, fm);
+            add(await stat('hour', ['change'], house.concat(c._g2 ? [c._g2] : []), a0, y0), m, () => [], (t, x) => hAdd(hMon(ho, t), t, x, m, fm, s5));
           }
           this._hpOld = { y: y0.getFullYear(), h: ho };
         }
         if (!this._ccY || this._ccY.k !== mk) {
           const past = zero(), hp = {};
           if (m0 > y0) {
-            const m = await means(y0, m0), fm = feedId ? await means(y0, m0, feedId) : {};
+            const sp = c._hp ? new Set() : null, m = await means(y0, m0, priceId, sp), fm = feedId ? await means(y0, m0, feedId, sp) : {}, s5 = sp ? await slice5(sp, m, fm) : {};
             hasStat = Object.keys(m).length > 0;
-            add(await stat('hour', ['change'], ids, y0, m0), m, () => [past], c._hp ? (t, x) => hAdd(hMon(hp, t), t, x, m, fm) : null);
+            add(await stat('hour', ['change'], ids, y0, m0), m, () => [past], c._hp ? (t, x) => hAdd(hMon(hp, t), t, x, m, fm, s5) : null);
           }
           this._ccY = { k: mk, past, hasStat, h: hp };
         }
         const day = zero(), week = zero(), month = zero(), wk = { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 };
         const hd = hz(), hw = hz(), hm = {};
-        const m = await means(first), fm = feedId ? await means(first, null, feedId) : {};
+        const sp = c._hp ? new Set() : null, m = await means(first, null, priceId, sp), fm = feedId ? await means(first, null, feedId, sp) : {}, s5 = sp ? await slice5(sp, m, fm) : {};
         add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => {
           if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; });
-          if (c._hp) { if (t >= m0) hAdd(hMon(hm, t), t, x, m, fm); if (t >= w0) hAdd(hw, t, x, m, fm); if (t >= d0) hAdd(hd, t, x, m, fm); }
+          if (c._hp) { if (t >= m0) hAdd(hMon(hm, t), t, x, m, fm, s5); if (t >= w0) hAdd(hw, t, x, m, fm, s5); if (t >= d0) hAdd(hd, t, x, m, fm, s5); }
         });
         this._ccW = wk;
         this._hpV = c._hp ? { day: hd, week: hw, mon: Object.assign({}, this._hpOld ? this._hpOld.h : {}, this._ccY.h, hm) } : null;
