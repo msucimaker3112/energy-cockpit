@@ -5502,7 +5502,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_base_fee (optional, #57): Grundpreis in Euro pro Monat. grid_base_fee_history: frühere Grundpreise {until, eur}, "until" wie bei grid_price_history
       { const bf = parseFloat(String(c.grid_base_fee).replace(',', '.')); this._c._bf = bf > 0 ? bf : 0; }
       this._c._bfh = lst(c.grid_base_fee_history).filter((x) => x && x.until && !isNaN(parseFloat(String(x.eur).replace(',', '.')))).map((x) => ({ until: String(x.until), eur: Math.max(0, parseFloat(String(x.eur).replace(',', '.'))) })).sort((a, b) => (a.until < b.until ? -1 : 1));
-      this._ccY = null; this._ccV = null;
+      // hourly_pricing (optional): Geldkacheln Stunde für Stunde mit dem Stundenmittel des Preis-Sensors. Standard: an, wenn grid_price ein Sensor ist
+      this._c._hp = c.hourly_pricing !== false && typeof c.grid_price === 'string' && !!c.grid_price.trim();
+      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
       this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
@@ -5681,7 +5683,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     // Kosten je Verbraucher: Stundenwerte des Jahres. Abgeschlossene Monate nur einmal laden, den laufenden bei jeder Aktualisierung
     async _loadCC() {
       const c = this._c, h = this._hass;
-      if (!c._cc.length || !h || !h.callWS) return;
+      if ((!c._cc.length && !c._hp) || !h || !h.callWS) return;
       const now = new Date(), y0 = new Date(now.getFullYear(), 0, 1), m0 = new Date(now.getFullYear(), now.getMonth(), 1), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
       const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
@@ -5708,7 +5710,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         ids.forEach((id) => (rows[id] || []).forEach((r) => { if (r.change === null || r.change === undefined) return; const t = stamp(r); (at[t] = at[t] || {})[id] = Math.max(0, r.change); }));
         Object.keys(at).forEach((k) => {
           const t = +k, v = at[k], sum = (l) => l.reduce((a, id) => a + (v[id] || 0), 0), pv = v[c.pv_total] || 0, imp0 = v[c.grid_import_total] || 0, g2 = c._g2 ? (v[c._g2] || 0) : 0, imp = imp0 + g2, exp = v[c.grid_export_total] || 0, chg = sum(c._chg), dis = sum(c._dis);
-          if (onHour) onHour(t, { pv, imp, exp, chg, dis });
+          if (onHour) onHour(t, { pv, imp, exp, chg, dis, imp0 });
           const home = c._ac ? pv + imp - exp : pv + imp - exp - chg + dis, pr0 = rate(t, means), pr = imp > 0 && g2 > 0 ? (imp0 * pr0 + g2 * price2) / imp : pr0;
           const g = home > 0 ? Math.min(1, imp / home) : (imp > 0 ? 1 : 0), b = home > 0 ? Math.min(1 - g, dis / home) : 0;
           c._cc.forEach((x, i) => {
@@ -5720,25 +5722,53 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           });
         });
       };
-      const means = async (start, end) => {
+      const means = async (start, end, id = priceId) => {
         const out = {};
-        if (!priceId) return out;
-        const r = await stat('hour', ['mean'], [priceId], start, end).catch(() => ({}));
-        (r[priceId] || []).forEach((x) => { if (typeof x.mean === 'number') out[stamp(x)] = x.mean; });
+        if (!id) return out;
+        const r = await stat('hour', ['mean'], [id], start, end).catch(() => ({}));
+        (r[id] || []).forEach((x) => { if (typeof x.mean === 'number') out[stamp(x)] = x.mean; });
         return out;
+      };
+      // hourly_pricing: Geldkacheln je Stunde. Bezug (ohne grid2) und selbst genutzter Solarstrom zum Preis der Stunde, Einspeisung zur Vergütung der Stunde.
+      // n zählt die Stunden mit Preisstatistik, ohne sie bleibt die Karte bei der Rechnung je Monat
+      const feedId = c._hp && typeof c.feed_in === 'string' && c.feed_in ? c.feed_in : null, feedNow = WD.price(h, c.feed_in, c.feed_in_ct, 0);
+      const hz = () => ({ imp: 0, cost: 0, self: 0, sav: 0, exp: 0, feed: 0, n: 0 });
+      const hMon = (o, t) => { const d = new Date(t), k = key(d.getFullYear(), d.getMonth()); return o[k] || (o[k] = hz()); };
+      const hAdd = (b, t, x, m, fm) => {
+        const pr = rate(t, m), s = Math.max(0, x.pv - x.exp);
+        b.imp += x.imp0; b.cost += x.imp0 * pr; b.self += s; b.sav += s * pr; b.exp += x.exp; b.feed += x.exp * (fm[t] !== undefined ? fm[t] : feedNow);
+        if (m[t] !== undefined) b.n++;
       };
       try {
         const mk = key(now.getFullYear(), now.getMonth());
         let hasStat = false;
+        // Langzeit-Ansicht: Jahre vor dem laufenden einmal je Jahr laden, erst ab der ersten Stunde mit Preisstatistik
+        if (c._hp && c._lt && (!this._hpOld || this._hpOld.y !== y0.getFullYear())) {
+          const ho = {}, m = await means(new Date(2000, 0, 1), y0), t1 = Object.keys(m).reduce((a, k) => Math.min(a, +k), Infinity);
+          if (isFinite(t1)) {
+            const s0 = new Date(t1), a0 = new Date(s0.getFullYear(), s0.getMonth(), 1), fm = feedId ? await means(a0, y0, feedId) : {};
+            add(await stat('hour', ['change'], house.concat(c._g2 ? [c._g2] : []), a0, y0), m, () => [], (t, x) => hAdd(hMon(ho, t), t, x, m, fm));
+          }
+          this._hpOld = { y: y0.getFullYear(), h: ho };
+        }
         if (!this._ccY || this._ccY.k !== mk) {
-          const past = zero();
-          if (m0 > y0) { const m = await means(y0, m0); hasStat = Object.keys(m).length > 0; add(await stat('hour', ['change'], ids, y0, m0), m, () => [past]); }
-          this._ccY = { k: mk, past, hasStat };
+          const past = zero(), hp = {};
+          if (m0 > y0) {
+            const m = await means(y0, m0), fm = feedId ? await means(y0, m0, feedId) : {};
+            hasStat = Object.keys(m).length > 0;
+            add(await stat('hour', ['change'], ids, y0, m0), m, () => [past], c._hp ? (t, x) => hAdd(hMon(hp, t), t, x, m, fm) : null);
+          }
+          this._ccY = { k: mk, past, hasStat, h: hp };
         }
         const day = zero(), week = zero(), month = zero(), wk = { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 };
-        const m = await means(first);
-        add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => { if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; }); });
+        const hd = hz(), hw = hz(), hm = {};
+        const m = await means(first), fm = feedId ? await means(first, null, feedId) : {};
+        add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => {
+          if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; });
+          if (c._hp) { if (t >= m0) hAdd(hMon(hm, t), t, x, m, fm); if (t >= w0) hAdd(hw, t, x, m, fm); if (t >= d0) hAdd(hd, t, x, m, fm); }
+        });
         this._ccW = wk;
+        this._hpV = c._hp ? { day: hd, week: hw, mon: Object.assign({}, this._hpOld ? this._hpOld.h : {}, this._ccY.h, hm) } : null;
         // Typische Einrichtungsfehler sichtbar machen, statt still 0 € zu zeigen: Leistungssensor statt Zähler, Sensor ohne Statistik
         // "Keine Statistik" nur melden, wenn die Zähler des Hauses Werte haben. Kurz nach Monats- oder Wochenbeginn gibt es sonst noch gar keine Stunde
         const anyHouse = house.some((id) => seen.has(id));
@@ -6087,6 +6117,23 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       }
       return (p && p.ks ? p.ks : []).reduce((a, k) => a + monthFee(k), 0);
     }
+    // hourly_pricing: Geldwerte aus den Stundensummen. Was die Stunden noch nicht enthalten (laufende Stunde, Lücken), zählt zum heutigen Preis,
+    // Monate ohne Preisstatistik wie bisher. null, wenn im Zeitraum keine Stunde eine Preisstatistik hat
+    _hourly(p, price, feed) {
+      const V = this._hpV;
+      if (!V || !this._c._hp) return null;
+      const one = (b, imp, self, exp, pr) => (b && b.n ? { cost: b.cost + Math.max(0, imp - b.imp) * pr, sav: b.sav + Math.max(0, self - b.self) * pr, feed: b.feed + Math.max(0, exp - b.exp) * feed } : null);
+      if (!p.ks) return one(this._period === 'day' ? V.day : this._period === 'week' ? V.week : null, p.imp, Math.max(0, p.pv - p.exp), p.exp, price);
+      const M = this._m, out = { cost: 0, sav: 0, feed: 0 };
+      let any = false;
+      p.ks.forEach((k) => {
+        const mp = this._monthPrice(k, price), pr = mp === null ? price : mp, imp = M.imp[k] || 0, exp = M.exp[k] || 0, self = Math.max(0, (M.pv[k] || 0) - exp);
+        const r = one(V.mon[k], imp, self, exp, pr) || { cost: imp * pr, sav: self * pr, feed: exp * feed };
+        if (V.mon[k] && V.mon[k].n) any = true;
+        out.cost += r.cost; out.sav += r.sav; out.feed += r.feed;
+      });
+      return any ? out : null;
+    }
     // Werte für einen Zeitraum: pv, imp, exp, chg, dis (kWh)
     _periodVals() {
       const c = this._c, h = this._hass, M = this._m, now = new Date();
@@ -6119,8 +6166,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         // grid2: Bezug des zweiten Zählers zählt zum Netzbezug und zum Verbrauch, zu seinem eigenen Preis
         const g2 = p.g2 || 0, price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, price), impT = p.imp + g2;
         // #53: Mit grid_price_history zählt jeder Monat mit seinem damaligen Preis (Bezug und selbst genutzter Solarstrom), sonst der heutige Preis
-        let impEur = p.imp * price, savEur = self * price;
-        if (p.ks && c._ph.length && price > 0) {
+        let impEur = p.imp * price, savEur = self * price, feedEur = p.exp * feed;
+        const hr = this._hourly(p, price, feed);
+        if (hr) { impEur = hr.cost; savEur = hr.sav; feedEur = hr.feed; } else if (p.ks && c._ph.length && price > 0) {
           const M = this._m;
           let ie = 0, se = 0, sk = 0;
           p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
@@ -6129,7 +6177,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         this._count('pvsav', price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
-        this._count('feed', feed > 0 ? p.exp * feed : null, p.exp * feed < 100 ? 2 : 0);
+        this._count('feed', feed > 0 ? feedEur : null, feedEur < 100 ? 2 : 0);
         this._count('cost', price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         // #66: Zeilen wie die Fußzeile, Text links, Wert rechts
@@ -6273,7 +6321,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -6301,6 +6349,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'pv_ac', selector: { boolean: {} } },
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
+      { name: 'hourly_pricing', default: true, selector: { boolean: {} } },
       { name: 'grid_base_fee', selector: { number: { min: 0, max: 1000, step: 'any', mode: 'box' } } },
       { name: 'grid_base_fee_history', selector: { object: {} } },
       { name: 'long_term', selector: { boolean: {} } },

@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+- **Statistik, Geldwerte Stunde für Stunde: `hourly_pricing`.** Ist `grid_price` ein Sensor mit Langzeitstatistik, rechnen Stromkosten Netz, Solar-Ersparnis und Einspeiseerlös jetzt je Stunde mit dem Preis dieser Stunde (Einspeisung mit dem Stundenmittel von `feed_in`, wenn es ein Sensor ist), für Heute, Woche, Monat, Jahr und Gesamt. Bei Zeittarifen mit günstigem Nachtstrom zeigen die Kacheln so die echten Kosten statt Menge mal heutigem Preis. Stunden ohne Preisstatistik zählen wie bei den Kosten je Verbraucher mit `grid_price_history`, danach mit dem heutigen Preis. Ohne Preisstatistik bleibt alles wie bisher. `hourly_pricing: false` schaltet es ab, auch im Editor unter „Alle Felder“.
+
 ## 0.42.1
 - **Fehler behoben, Energiefluss mit `pv_to_battery: direkt`: Laden aus dem Netz wurde nicht angezeigt.** Lud der Speicher (zum Beispiel Zendure Hyper 2000) nachts oder bei wenig Sonne aus dem Netz, fehlten Linie und Hinweis. Jetzt zeigt die Batterie-Kachel die Zeile „Laden vom Netz“, und die Linie zwischen Haus und Batterie läuft in Netzfarbe zum Speicher. Mit `battery.power_in` (AC-Eingangsleistung) gilt der Sensorwert, sonst schätzt die Karte aus dem Ladesensor: Ladung minus Solar-Überschuss. Ohne Ladesensor bleibt alles wie bisher. Der Hausverbrauch war schon richtig. Anlass: [#94](https://github.com/msucimaker3112/energy-cockpit/issues/94).
 - Die Versionsnummer im Bundle stimmt wieder (0.42.0 meldete intern noch 0.41.0).

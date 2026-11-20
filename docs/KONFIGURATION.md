@@ -719,6 +719,7 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # feed_in_card: pv_self_consumption         # Anlage ohne Vergütung: Eigenverbrauch statt Einspeiseerlös, oder: hidden
 # hide: [monthly, footer]                  # Bereiche ausblenden: monthly, amortisation, baseload, footer, money
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
+# hourly_pricing: false                    # Geldwerte nicht Stunde für Stunde rechnen (Standard: an mit Preis-Sensor), siehe unten
 # text_size: sehr_gross                     # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die großen Werte)
 # colors: { pv: "#b7791f" }                # eigene Farben, siehe "Eigene Farben: colors"
 # grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
@@ -740,6 +741,8 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den Solar-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
 **`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+
+**Geldwerte Stunde für Stunde: `hourly_pricing`.** Ist `grid_price` ein Sensor mit Langzeitstatistik, etwa bei einem Zeittarif oder dynamischen Tarif, rechnet die Karte **Stromkosten Netz**, **Solar-Ersparnis** und **Einspeiseerlös** je Stunde: Bezug und selbst genutzter Solarstrom der Stunde mal dem Strompreis dieser Stunde, Einspeisung mal der Vergütung dieser Stunde (Stundenmittel, wenn `feed_in` ein Sensor mit Statistik ist, sonst der feste Wert). Wer nachts günstig lädt, sieht so die echten Kosten statt der Menge mal dem heutigen Preis. Das gilt für Heute, Woche, Monat, Jahr und Gesamt. Stunden ohne Preisstatistik zählen mit `grid_price_history`, danach mit dem heutigen Preis, wie bei den Kosten je Verbraucher. Die laufende Stunde rechnet mit dem heutigen Preis. Monate ganz ohne Preisstatistik rechnen wie bisher. Hat der Sensor gar keine Statistik (zum Beispiel ein Helfer `input_number`), bleibt alles wie bisher. Der zweite Zähler (`grid2_total`) zählt weiter zu seinem eigenen Preis, Grundpreis und Amortisation bleiben unverändert. Ohne `cost_consumers` lädt die Karte dafür die Stundenwerte des laufenden Jahres, mit `long_term` auch frühere Jahre ab der ersten Stunde mit Preisstatistik. `hourly_pricing: false` schaltet die Rechnung je Stunde ab.
 
 **`hide`:** Blendet einzelne Bereiche der Statistik aus, die du nicht brauchst. Eine Liste mit diesen Namen, auch im Editor unter „Alle Felder“ auswählbar:
 
@@ -769,7 +772,7 @@ grid2_price_ct: 25.45
 
 Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht.
 
-**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis.
+**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis. Ist `grid_price` ein Sensor, dessen Preis je Stunde wechselt, rechnen sie Stunde für Stunde, siehe `hourly_pricing`.
 
 ### Jahresbudget (optional): `budget_kwh`
 
@@ -857,7 +860,7 @@ cost_consumers:
       ct: 36
   ```
 
-  Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **Solar-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf.
+  Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **Solar-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf. Mit einem Preis-Sensor mit Langzeitstatistik rechnen die Geldwerte oben dagegen Stunde für Stunde, siehe `hourly_pricing`.
 - **Grundpreis (optional): `grid_base_fee`.** Trägst du den Grundpreis aus deiner Rechnung ein (Euro pro Monat, zum Beispiel `12.5`, ein Jahresbetrag geteilt durch 12), zählt er in **Stromkosten Netz** mit: anteilig je Tag für Heute, Woche (ab Montag), Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „davon Grundpreis …“. Hat sich der Grundpreis geändert, trägst du den früheren in `grid_base_fee_history` ein, wie beim Preisverlauf:
 
   ```yaml
