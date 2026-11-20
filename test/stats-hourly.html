@@ -94,6 +94,16 @@ async function run(){
   ok('Vergütung 0 ohne Statistik: Einspeiseerlös ausgeblendet wie bisher',tt(z,'feed')==='—',tt(z,'feed'));
   z=mount({...base,grid_price:'sensor.pricez',hourly_pricing:false});await wait(2500);
   ok('Preis 0, hourly_pricing: false: ausgeblendet wie bisher',tt(z,'cost')==='—',tt(z,'cost'));
+  // Fußzeile: mit Stundenpreisen kein "Preise konfigurieren" und kein Cent-Hinweis bei Preis 0 oder negativ
+  const nt=(e)=>(q(e,'[data-f="note"]')||{textContent:''}).textContent;
+  z=mount({...base,grid_price:'sensor.pricez'});await wait(2500);
+  ok('Fußzeile Preis 0 mit Stundenpreisen: Preiszeile statt "konfigurieren"',nt(z).includes('Netzstrom 0,0 ct/kWh')&&!nt(z).includes('konfigurieren')&&!nt(z).includes('Cent'),nt(z));
+  z=mount({...base,grid_price:'sensor.priceneg'});await wait(2500);
+  ok('Fußzeile Preis negativ mit Stundenpreisen: Preiszeile',nt(z).includes('-5,0 ct/kWh')&&!nt(z).includes('konfigurieren')&&!nt(z).includes('Cent'),nt(z));
+  z=mount({...base,grid_price:'sensor.price0'});await wait(2500);
+  ok('Fußzeile Preis 0 ohne Statistik: "konfigurieren" wie bisher',nt(z).includes('konfigurieren'),nt(z));
+  z=mount({...base,grid_price:'sensor.pricez',hourly_pricing:false});await wait(2500);
+  ok('Fußzeile Preis 0, hourly_pricing: false: "konfigurieren" wie bisher',nt(z).includes('konfigurieren'),nt(z));
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
 }
 const P=new URLSearchParams(location.search);
