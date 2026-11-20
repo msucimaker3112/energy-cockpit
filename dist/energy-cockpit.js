@@ -6167,16 +6167,16 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _hourly(p, price, feed) {
       const V = this._hpV;
       if (!V || !this._c._hp) return null;
-      const one = (b, imp, self, exp, pr) => (b && b.n ? { cost: b.cost + Math.max(0, imp - b.imp) * pr, sav: b.sav + Math.max(0, self - b.self) * pr, feed: b.feed + Math.max(0, exp - b.exp) * feed, fs: b.fn > 0 } : null);
+      const one = (b, imp, self, exp, pr) => (b && b.n ? { cost: b.cost + Math.max(0, imp - b.imp) * pr, sav: b.sav + Math.max(0, self - b.self) * pr, feed: b.feed + Math.max(0, exp - b.exp) * feed, fs: b.fn > 0, self: Math.max(b.self, self) } : null);
       if (!p.ks) return one(this._period === 'day' ? V.day : this._period === 'week' ? V.week : null, p.imp, Math.max(0, p.pv - p.exp), p.exp, price);
-      const M = this._m, out = { cost: 0, sav: 0, feed: 0, fs: false };
+      const M = this._m, out = { cost: 0, sav: 0, feed: 0, fs: false, self: 0 };
       let any = false;
       p.ks.forEach((k) => {
         const mp = this._monthPrice(k, price), pr = mp === null ? price : mp, imp = M.imp[k] || 0, exp = M.exp[k] || 0, self = Math.max(0, (M.pv[k] || 0) - exp);
-        const r = one(V.mon[k], imp, self, exp, pr) || { cost: imp * pr, sav: self * pr, feed: exp * feed };
+        const r = one(V.mon[k], imp, self, exp, pr) || { cost: imp * pr, sav: self * pr, feed: exp * feed, self };
         if (V.mon[k] && V.mon[k].n) any = true;
         if (V.mon[k] && V.mon[k].fn) out.fs = true;
-        out.cost += r.cost; out.sav += r.sav; out.feed += r.feed;
+        out.cost += r.cost; out.sav += r.sav; out.feed += r.feed; out.self += r.self;
       });
       return any ? out : null;
     }
@@ -6231,7 +6231,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         // #66: Zeilen wie die Fußzeile, Text links, Wert rechts
         const kv = (l, v) => `<div class="kv"><span>${l}</span><b>${v}</b></div>`;
-        this._f('pvsavSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh')); // #72: auch die Erzeugung
+        // Mit Stundenwerten die selbst genutzten kWh, auf denen die Ersparnis beruht: Einspeisung aus der Batterie außerhalb der Solarstunden zieht dann nichts ab
+        this._f('pvsavSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(hr ? hr.self : self) + ' kWh')); // #72: auch die Erzeugung
         this._f('feedSub', kv(T('st.r.fed'), this._fk(p.exp) + ' kWh'));
         this._count('selfc', p.pv > 0 ? Math.max(0, Math.min(1, 1 - p.exp / p.pv)) * 100 : null, this._dec.q || 0);
         this._f('selfcSub', kv(T('st.r.pv'), this._fk(p.pv) + ' kWh') + kv(T('st.r.self'), this._fk(self) + ' kWh'));
