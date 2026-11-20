@@ -3,10 +3,10 @@
   const L = {
     de: {
       'flow.title': 'Energiefluss', 'flow.pv': 'Solar', 'flow.pv2': 'Solar 2', 'flow.grid2': 'Zweiter Zähler', 'flow.grid': 'Netz', 'flow.battery': 'Batterie', 'flow.home': 'Hausverbrauch',
-      'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand', 'flow.temp': 'Temperatur',
+      'flow.cons_total': 'Verbraucher', 'flow.rest': 'Nicht erfasst', 'flow.grest': 'Rest', 'flow.restpct': '{n} % gemessen', 'flow.soc': 'Ladestand', 'flow.temp': 'Temperatur',
       'flow.next': 'Weiter →', 'flow.error': 'Mindestens pv oder grid konfigurieren',
       'pill.aut': 'Autarkie jetzt', 'pill.self': 'Eigenverbrauch jetzt', 'pv.use.home': 'Haus', 'pv.use.bat': 'Batterie', 'pv.use.grid': 'Netz', 'pv.use.store': 'Speicher',
-      'stat.pv': 'Solar heute', 'stat.fc1': 'Solar morgen', 'stat.fc2': 'Solar übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
+      'stat.pv': 'Solar heute', 'stat.fc1': 'Solar morgen', 'stat.fc2': 'Solar übermorgen', 'stat.fc0': 'Prognose heute', 'stat.fc1p': 'Prognose morgen', 'stat.fc2p': 'Prognose übermorgen', 'stat.imp': 'Bezug heute', 'stat.exp': 'Einspeisung', 'stat.bat': 'Batterie ± heute', 'stat.aut': 'Autarkie heute',
       'mix.pv': 'Solar', 'mix.bat': 'Batterie', 'mix.grid': 'Netz',
       'tag.offline': 'Offline', 'tag.producing': 'Erzeugung', 'tag.idle': 'Inaktiv', 'tag.balanced': 'Ausgeglichen',
       'tag.import': 'Bezug', 'tag.export': 'Einspeisung', 'tag.standby': 'Inaktiv', 'tag.charging': 'Ladung', 'tag.discharging': 'Entladung', 'tag.passthrough': 'Durchleitung',

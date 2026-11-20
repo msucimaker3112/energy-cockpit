@@ -179,7 +179,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .mix i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
 .mix b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600;margin-left:4px}
 .consumers{position:relative;z-index:1;display:grid;justify-content:center;grid-template-columns:repeat(auto-fit,minmax(max(140px,calc(140px*var(--ts,1))),max(240px,calc(240px*var(--ts,1)))));grid-gap:12px;gap:12px;margin-top:54px}
-.cons{display:flex;align-items:center;padding:11px 12px;border-radius:17px;background:var(--glass);border:1px solid var(--stroke);cursor:pointer;transition:all .5s;min-width:0}
+.cons{display:flex;align-items:center;padding:11px 12px;border-radius:17px;background:var(--glass);border:1px solid var(--stroke);cursor:pointer;transition:all .5s,order 0s;min-width:0}
 .cons .ico{margin-right:10px}
 .cons.on{border-color:rgba(var(--c),.55);background:rgba(var(--c),.07);box-shadow:0 0 0 1px rgba(var(--c),.35)}
 .cons.on .ico,.grp.on .ico{position:relative}
@@ -483,6 +483,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._lsn = !isNaN(lsn) && lsn > 0 ? Math.min(4, Math.max(0.5, lsn)) : 0;
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
+    this._topCur = null; this._topPend = 0;
     // grid2 (optional, #29): zweiter Netzzähler, z. B. Wärmepumpe mit eigenem Zähler und Tarif (nur Bezug). Erscheint als Kachel bei den Verbrauchern,
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
@@ -509,6 +510,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Sprache aus Home Assistant erst jetzt bekannt: statische Texte neu aufbauen
     if (this._c && this._bl !== WD.state.lang) this._build();
     this._hass = h;
+    // #80: Erst mit hass ist die Einheit von pv.forecast bekannt; passt die Anordnung nicht, neu aufbauen
+    if (this._c && this._fsw !== undefined && this._fcSwap() !== this._fsw) this._build();
     this._clock();
     this._update();
     this._loadDaily();
@@ -948,6 +951,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
+    this._topDirty = true;
     // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn show_rest: true oder hide_rest: false ausdrücklich gesetzt ist (#34, #58)
     const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && (c.hide_rest === false || (c.show_rest === true && c.hide_rest !== true)) && c.rest !== false;
     if (restC && !sam) links.push('crest');
@@ -962,7 +966,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         return `<div class="grp" data-k="g${i}" style="--c:${rgb(g.color, '167,139,250')}">
           <div class="g-hd">${g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`}<span class="lbl">${esc(g.name)}</span></div>
           <div class="val"><span class="num">—</span><span class="unit"></span></div>
-          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`).join('')}</div>
+          <div class="its">${(g.items || []).map((x, j) => `<div class="it" data-i="${i}-${j}" data-e="${esc(x.entity || x.secondary)}"><i></i><span class="in">${esc(x.name || x.entity)}</span><b></b></div>`).join('')}${g.entity ? `<div class="it grr" data-gr="${i}" data-e="${esc(g.entity)}" style="order:999"><i></i><span class="in">${esc(g.rest_name || T('flow.grest'))}</span><b></b></div>` : ''}</div>
         </div>`;
       }).join('');
       const showRest = c.rest !== false && !c.hide_rest;
@@ -979,10 +983,14 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }
     const d = (k, lbl, color, e) => `<div class="stat${e ? ' fc' : ''}" data-s="${k}"${e ? ` data-e="${esc(e)}" role="button"` : ''} style="--c:${color}"><span><i></i>${lbl}</span><b>—</b></div>`;
     let stats = '';
-    if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
+    // #80 forecast_swap: Unten stehen die Prognosen für heute, morgen und übermorgen nebeneinander, der bisherige Ertrag "Solar heute" wandert
+    // in die Solar-Kachel. Nur wenn pv.forecast eine Tagesprognose in kWh (oder Wh) ist
+    const fsw = this._fsw = this._fcSwap();
+    if (fsw) stats += d('fc0', T('stat.fc0'), PAL.pv, c.pv.forecast);
+    else if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
     // PV-Prognose für morgen und übermorgen (optional, z. B. Forecast.Solar oder Solcast). Antippen öffnet den Verlauf. Wunsch aus #22
-    if (c.pv && c.pv.forecast_tomorrow) stats += d('fc1', T('stat.fc1'), PAL.pv, c.pv.forecast_tomorrow);
-    if (c.pv && c.pv.forecast_day_after) stats += d('fc2', T('stat.fc2'), PAL.pv, c.pv.forecast_day_after);
+    if (c.pv && c.pv.forecast_tomorrow) stats += d('fc1', T(fsw ? 'stat.fc1p' : 'stat.fc1'), PAL.pv, c.pv.forecast_tomorrow);
+    if (c.pv && c.pv.forecast_day_after) stats += d('fc2', T(fsw ? 'stat.fc2p' : 'stat.fc2'), PAL.pv, c.pv.forecast_day_after);
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
@@ -1287,6 +1295,54 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._raf = running ? requestAnimationFrame((n) => this._tick(n)) : null;
   }
 
+  // Tagesprognose aus pv.forecast in kWh (Einheit Wh, kWh oder MWh), sonst null
+  _fcDay() {
+    const c = this._c, h = this._hass, id = c.pv && c.pv.forecast, st = id && h ? h.states[id] : null;
+    const u = st ? String(st.attributes.unit_of_measurement || '') : '';
+    if (!/^(k|m)?wh$/i.test(u)) return null;
+    const e = num(h, id);
+    return e === null ? null : /^mwh$/i.test(u) ? e * 1000 : /^kwh$/i.test(u) ? e : e / 1000;
+  }
+  // #80: forecast_swap gilt nur mit einer Tagesprognose in Wh/kWh/MWh. Ohne hass (erster Aufbau) zählt die Einstellung allein
+  _fcSwap() {
+    const c = this._c;
+    if (c.forecast_swap !== true || !c.pv || !c.pv.forecast) return false;
+    const st = this._hass && this._hass.states[c.pv.forecast];
+    return !st || /^(k|m)?wh$/i.test(String(st.attributes.unit_of_measurement || ''));
+  }
+
+  // consumers_top (#76): Von den Einzelverbrauchern nur die N mit der höchsten Leistung zeigen, absteigend sortiert. Damit die Kacheln nicht springen,
+  // wechselt die Auswahl oder Reihenfolge erst, wenn sie consumers_top_delay Sekunden (Standard 30) anders bleibt, sofort dagegen, wenn ein
+  // ausgeblendeter Verbraucher den kleinsten sichtbaren deutlich übertrifft (mehr als doppelt so viel und mindestens 100 W mehr).
+  // Ausgeblendete Verbraucher zählen weiter zum Hausverbrauch und zu "Nicht erfasst"; ihre Linien verschwinden mit der Kachel (_layout)
+  _topCons(pw) {
+    const n = parseInt(this._c.consumers_top, 10);
+    if (!(n > 0) || !pw.length) return;
+    const want = pw.map((w, i) => i).sort((a, b) => pw[b] - pw[a] || a - b).slice(0, n);
+    const cur = this._topCur, now = Date.now();
+    let changed = false;
+    if (cur && cur.length === want.length && cur.every((v, j) => v === want[j])) this._topPend = 0;
+    else {
+      const d0 = parseFloat(this._c.consumers_top_delay), dl = (isNaN(d0) ? 30 : Math.max(0, d0)) * 1000;
+      const minShown = cur ? Math.min(...cur.map((i) => Math.max(0, pw[i] === undefined ? 0 : pw[i]))) : 0;
+      const jump = !!cur && want.some((i) => !cur.includes(i) && pw[i] > minShown * 2 && pw[i] - minShown >= 100);
+      if (!this._topPend) this._topPend = now;
+      if (!cur || cur.some((i) => i >= pw.length) || jump || now - this._topPend >= dl) { this._topCur = want; this._topPend = 0; changed = true; }
+    }
+    if (!changed && !this._topDirty) return;
+    this._topDirty = false;
+    pw.forEach((w, i) => {
+      const el = this._$(`[data-k="c${i}"]`);
+      if (!el) return;
+      const pos = this._topCur.indexOf(i);
+      el.style.display = pos < 0 ? 'none' : '';
+      el.style.order = pos < 0 ? '' : String(pos);
+    });
+    const rest = this._$('[data-k="crest"]');
+    if (rest) rest.style.order = '999';
+    this._schedLayout();
+  }
+
   _link(k, active, forward, color, power) {
     const L = this._links && this._links.find((x) => x.k === k);
     if (!L) return;
@@ -1563,7 +1619,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     }).join('');
     const ico = g.image ? `<span class="ico logo"><img src="${esc(g.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(g.icon || 'mdi:door')}"></ha-icon></span>`;
     dl.style.setProperty('--c', rgb(g.color, '167,139,250'));
-    dl.innerHTML = `<div class="d-hd">${ico}<span class="d-name">${esc(g.name)}</span><b class="d-sum"></b><button class="d-x" aria-label="${T('close')}">×</button></div><div class="d-its">${rows}</div>`;
+    const rr = g.entity ? `<div class="d-it" data-j="r" data-e="${esc(g.entity)}" style="order:999"><i></i><span class="in">${esc(g.rest_name || T('flow.grest'))}</span><b></b></div>` : '';
+    dl.innerHTML = `<div class="d-hd">${ico}<span class="d-name">${esc(g.name)}</span><b class="d-sum"></b><button class="d-x" aria-label="${T('close')}">×</button></div><div class="d-its">${rows}${rr}</div>`;
     this._dlg = i;
     this._dlgUpd();
     if (dl.showModal) dl.showModal(); else dl.setAttribute('open', '');
@@ -1581,13 +1638,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const sec = x.secondary && h.states[x.secondary];
       if (!txt && sec && !['unavailable', 'unknown'].includes(sec.state)) {
         txt = `${nf(parseFloat(sec.state) || 0, x.secondary_decimals === undefined ? 1 : x.secondary_decimals)} ${sec.attributes.unit_of_measurement || ''}`.trim();
+        if (x.secondary_name) txt = x.secondary_name + ' ' + txt;
       }
       it.classList.toggle('on', (p || 0) > onW(x));
       const b = it.querySelector('b');
       if (b.textContent !== txt) b.textContent = txt;
     });
+    const tot = g.entity ? watt(h, g.entity) : null, rr = dl.querySelector('[data-j="r"]');
+    if (rr) {
+      const rw = tot === null ? null : Math.max(0, tot - sum);
+      rr.style.display = rw === null ? 'none' : '';
+      rr.classList.toggle('on', (rw || 0) > TH);
+      rr.querySelector('b').textContent = rw === null ? '' : this._fW(rw);
+    }
     const s = dl.querySelector('.d-sum');
-    if (s) s.textContent = any ? this._fW(sum) : '';
+    if (s) s.textContent = tot !== null ? this._fW(tot) : any ? this._fW(sum) : '';
   }
 
   // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
@@ -1732,9 +1797,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (fco) parts.length = 0;
       const fst = c.pv.forecast ? h.states[c.pv.forecast] : null;
       const fUnit = fst ? String(fst.attributes.unit_of_measurement || '') : '';
-      if (/^(k|m)?wh$/i.test(fUnit)) {
-        const e = num(h, c.pv.forecast);
-        const kwh = e === null ? null : /^mwh$/i.test(fUnit) ? e * 1000 : /^kwh$/i.test(fUnit) ? e : e / 1000;
+      if (this._fsw) {
+        // #80: Prognose steht unten, hier der bisherige Ertrag von heute
+        if (this._dPv !== null && this._dPv !== undefined) parts.push(row(T('stat.pv'), this._fk(this._dPv) + ' kWh'));
+      } else if (/^(k|m)?wh$/i.test(fUnit)) {
+        const kwh = this._fcDay();
         if (kwh !== null) parts.push(row(T('forecast.day'), this._fk(kwh) + ' kWh'));
       } else {
         const fc = c.pv.forecast ? watt(h, c.pv.forecast) : null;
@@ -1848,6 +1915,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     });
     let sumAll = 0;
     this._wyItems = [];
+    const pw = c.consumers.map(() => -1);
     c.consumers.forEach((x, i) => {
       const el = this._$(`[data-k="c${i}"]`);
       if (!el) return;
@@ -1860,10 +1928,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
         // grid2: Kosten pro Stunde mit dem eigenen Preis
         if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
+        pw[i] = p || 0;
         this._wyItems.push({ n: x.name || x.entity, w: p || 0, c: x.color });
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
-        this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt);
+        // #83: secondary_name steht vor dem Wert des Zusatzsensors, z. B. "SoC eAuto 80 %"
+        this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt && x.secondary_name ? x.secondary_name + ' ' + secTxt : secTxt);
         this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
       } else {
         el.classList.add('on');
@@ -1872,6 +1942,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._set(`[data-k="c${i}"] .unit`, parts.slice(1).join(' '));
       }
     });
+    this._topCons(pw);
     // Kachel "Nicht erfasst" bei einzelnen Verbrauchern (show_rest: true): Hausverbrauch minus Summe der Verbraucher
     const crel = this._$('[data-k="crest"]');
     if (crel) {
@@ -1902,23 +1973,35 @@ class EnergyCockpitFlowCard extends HTMLElement {
           if (!txt && sec && !['unavailable', 'unknown'].includes(sec.state)) {
             const dec = x.secondary_decimals === undefined ? 1 : x.secondary_decimals;
             txt = `${nf(parseFloat(sec.state) || 0, dec)} ${sec.attributes.unit_of_measurement || ''}`.trim();
+            if (x.secondary_name) txt = x.secondary_name + ' ' + txt;
           }
           it.classList.toggle('on', (p || 0) > onW(x));
           const b = it.querySelector('b');
           if (b.textContent !== txt) b.textContent = txt;
         });
         if (this._gSort) this._sortGroup(i, g);
-        known += sum;
-        sumAll += sum;
+        // #79: Gesamtsensor der Gruppe (entity, z. B. Zwischenzähler). Die Gruppe zeigt dann dessen Wert, die Zeile "Rest" die Differenz
+        // zur Summe der Geräte (nie negativ). Erfasst ist dann der Messwert, nicht die Summe: So zählt nichts doppelt
+        const tot = g.entity ? watt(h, g.entity) : null, gv = tot !== null ? tot : sum;
+        const rr = g.entity ? this._$(`[data-gr="${i}"]`) : null;
+        if (rr) {
+          const rw = tot === null ? null : Math.max(0, tot - sum), sp = rw === null ? null : this._sw(rw), txt = sp ? sp[0] + ' ' + sp[1] : '';
+          rr.style.display = rw === null ? 'none' : '';
+          rr.classList.toggle('on', (rw || 0) > TH);
+          const b = rr.querySelector('b');
+          if (b.textContent !== txt) b.textContent = txt;
+        }
+        known += gv;
+        sumAll += gv;
         const wi = (g.items || []).map((x) => ({ n: x.name || x.entity, w: x.entity ? (this._cw(x) || 0) : 0 })).filter((x) => x.w > TH).sort((a, b) => b.w - a.w);
-        this._wyItems.push({ n: g.name, w: sum, c: g.color, top: wi.length > 1 && wi[0].w >= sum * 0.5 ? wi[0] : null });
-        const shown = (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
+        this._wyItems.push({ n: g.name, w: gv, c: g.color, top: wi.length > 1 && wi[0].w >= gv * 0.5 ? wi[0] : null });
+        const shown = tot !== null || (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
         el.style.display = shown ? '' : 'none';
         if (shown) vis++;
-        const on = shown && sum > onW(g);
+        const on = shown && gv > onW(g);
         el.classList.toggle('on', on);
-        this._anim('g' + i, any ? sum : null, el);
-        this._link('g' + i, on, false, rgb(g.color, '167,139,250'), sum);
+        this._anim('g' + i, any || tot !== null ? gv : null, el);
+        this._link('g' + i, on, false, rgb(g.color, '167,139,250'), gv);
       });
       const rel = this._$('[data-k="grest"]');
       const restW = Math.max(0, home - known - bmChg);
@@ -1963,6 +2046,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv.daily_ac: Der Tagesertrag zählt nur die Abgabe des Wechselrichters. Die Batterie-Ladung fehlt darin, die Entladung steckt darin
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${this._fk(dPv)}<small>kWh</small>`, true);
+    this._dPv = dPv;
+    if (this._fsw) { const f0 = this._fcDay(); this._set('[data-s="fc0"] b', `${this._fk(f0)}<small>kWh</small>`, true); }
     if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${this._fk(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
     if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${this._fk(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${this._fk(dImp)}<small>kWh</small>`, true);

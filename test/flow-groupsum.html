@@ -1,0 +1,63 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Gesamtsensor je Gruppe, secondary_name, forecast_swap, Ersparnis</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #79 (consumer_groups[].entity mit Zeile "Rest"), #83 (secondary_name), #80 (forecast_swap) und #81 (Statistik: Batteriefarbe aus battery_charge).
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&case=gruppe|swap) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u===undefined?'W':u},last_updated:'x'});
+const V={'sensor.pv':S(800),'sensor.grid':S(100),'sensor.home':S(900),'sensor.keller':S(500),'sensor.wm':S(250),'sensor.gf':S(70),'sensor.wb':S(0),'sensor.soc':S(80,'%'),
+  'sensor.dpv':S(12.3,'kWh'),'sensor.fc':S(25.4,'kWh'),'sensor.fc1':S(30,'kWh'),'sensor.fc2':S(18,'kWh'),'sensor.fcw':S(1800,'W')};
+let lang='de';
+const hassOf=(x)=>({states:Object.assign({},V,x||{}),language:lang});
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'}};
+const grp=(g)=>Object.assign({},base,{consumer_groups:[Object.assign({name:'Keller',entity:'sensor.keller',items:[{name:'Waschmaschine',entity:'sensor.wm'},{name:'Gefrierschrank',entity:'sensor.gf'}]},g||{})]});
+const swap=(x)=>Object.assign({},base,{pv:Object.assign({entity:'sensor.pv',daily:'sensor.dpv',forecast:'sensor.fc',forecast_tomorrow:'sensor.fc1',forecast_day_after:'sensor.fc2'},x||{}),forecast_swap:true});
+function mount(tag,c,hx,w){const host=document.getElementById('host');host.style.width=(w||1000)+'px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hassOf(hx);return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const tx=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const F='energy-cockpit-flow-card';
+async function run(){
+  // #79
+  let e=mount(F,grp());await wait(800);
+  ok('Gruppe zeigt den Gesamtsensor (500 W)',tx(e,'[data-k="g0"] > .val .num')==='500',tx(e,'[data-k="g0"] > .val'));
+  ok('Zeile „Rest“ = 500 − 250 − 70 = 180 W',tx(e,'[data-gr="0"]')==='Rest180 W',tx(e,'[data-gr="0"]'));
+  ok('„Rest“ steht als letzte Zeile',(()=>{const its=[...e.shadowRoot.querySelectorAll('[data-k="g0"] .it')].filter(x=>x.offsetParent);return its[its.length-1].dataset.gr==='0';})());
+  ok('„Nicht erfasst“ zählt den Messwert einmal: 900 − 500 = 400 W',tx(e,'[data-k="grest"] > .val .num')==='400',tx(e,'[data-k="grest"] > .val'));
+  e=mount(F,grp({entity:undefined}));await wait(600);
+  ok('ohne Gesamtsensor: Summe der Geräte, keine Zeile „Rest“',tx(e,'[data-k="g0"] > .val .num')==='320'&&!q(e,'[data-gr]'),tx(e,'[data-k="g0"] > .val'));
+  e=mount(F,grp(),{'sensor.keller':S('unavailable')});await wait(600);
+  ok('Gesamtsensor nicht verfügbar: Summe, „Rest“ ausgeblendet',tx(e,'[data-k="g0"] > .val .num')==='320'&&!q(e,'[data-gr="0"]').offsetParent,tx(e,'[data-k="g0"] > .val'));
+  e=mount(F,grp({rest_name:'Sonstiges'}),{'sensor.keller':S(200)});await wait(600);
+  ok('rest_name und nie negativ (200 < 320 → 0 W)',tx(e,'[data-gr="0"]')==='Sonstiges0 W',tx(e,'[data-gr="0"]'));
+  lang='en';e=mount(F,grp());await wait(600);
+  ok('Englisch: „Other“',/^Other\d/.test(tx(e,'[data-gr="0"]')||''),tx(e,'[data-gr="0"]'));
+  lang='de';
+  // #83
+  e=mount(F,Object.assign({},base,{consumers:[{name:'Wallbox',entity:'sensor.wb',secondary:'sensor.soc',secondary_name:'SoC eAuto'}],
+    consumer_groups:[{name:'Garage',items:[{name:'Auto',secondary:'sensor.soc',secondary_name:'SoC'}]}]}));await wait(600);
+  ok('secondary_name vor dem Zusatzwert',tx(e,'[data-k="c0"] .c-sec')==='SoC eAuto 80,0 %',tx(e,'[data-k="c0"] .c-sec'));
+  ok('secondary_name auch in der Gruppe',tx(e,'[data-i="0-0"] b')==='SoC 80,0 %',tx(e,'[data-i="0-0"] b'));
+  // #80
+  e=mount(F,swap());await wait(600);e.hass=hassOf();await wait(1300);
+  ok('forecast_swap: unten „Prognose heute“ 25,4 kWh',/Prognose heute/.test(tx(e,'[data-s="fc0"]')||'')&&/25,4/.test(tx(e,'[data-s="fc0"]')),tx(e,'[data-s="fc0"]'));
+  ok('forecast_swap: „Prognose morgen“ und „Prognose übermorgen“, kein „Solar heute“ unten',/Prognose morgen/.test(tx(e,'[data-s="fc1"]'))&&/Prognose übermorgen/.test(tx(e,'[data-s="fc2"]'))&&!q(e,'[data-s="pv"]'));
+  ok('forecast_swap: Reihenfolge heute, morgen, übermorgen',(()=>{const k=[...e.shadowRoot.querySelectorAll('.stat')].map(x=>x.dataset.s);return k.indexOf('fc0')+1===k.indexOf('fc1')&&k.indexOf('fc1')+1===k.indexOf('fc2');})());
+  ok('forecast_swap: Solar-Kachel zeigt „Solar heute 12,3 kWh“',/Solar heute 12,3 kWh/.test(tx(e,'.pv .sub')||'')&&!/Prognose/.test(tx(e,'.pv .sub')),tx(e,'.pv .sub'));
+  e=mount(F,Object.assign(swap(),{forecast_swap:false}));await wait(600);
+  ok('ohne forecast_swap: wie bisher',!!q(e,'[data-s="pv"]')&&!q(e,'[data-s="fc0"]')&&/Prognose heute/.test(tx(e,'.pv .sub')),tx(e,'.pv .sub'));
+  e=mount(F,swap({forecast:'sensor.fcw'}));await wait(600);
+  ok('forecast_swap mit Prognose in W: bleibt wie bisher',!!q(e,'[data-s="pv"]')&&!q(e,'[data-s="fc0"]'));
+  // #81
+  const s=mount('energy-cockpit-stats-card',{colors:{battery_charge:'#22c55e'},pv_total:'sensor.dpv',grid_import_total:'sensor.dpv',grid_export_total:'sensor.dpv'});await wait(400);
+  ok('Statistik: Batteriefarbe aus colors.battery_charge',/--bat:\s*34,\s*197,\s*94/.test(q(s,'.wrap').getAttribute('style')||''),q(s,'.wrap').getAttribute('style'));
+  const s2=mount('energy-cockpit-stats-card',{colors:{battery:'#ff0000',battery_charge:'#22c55e'},pv_total:'sensor.dpv',grid_import_total:'sensor.dpv',grid_export_total:'sensor.dpv'});await wait(400);
+  ok('Statistik: colors.battery hat Vorrang',/--bat:\s*255,\s*0,\s*0/.test(q(s2,'.wrap').getAttribute('style')||''),q(s2,'.wrap').getAttribute('style'));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+if(P.get('test'))run();else{const k=P.get('case')||'gruppe';const e=mount(F,k==='swap'?swap():Object.assign(grp(),{consumers:[{name:'Wallbox',entity:'sensor.wb',secondary:'sensor.soc',secondary_name:'SoC eAuto'}]}),null,+(P.get('w')||1000));setTimeout(()=>e.hass=hassOf(),1200);}
+</script></body></html>

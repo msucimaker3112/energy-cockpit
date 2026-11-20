@@ -158,7 +158,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-val .unit{font-size:calc(.95rem*var(--ts,1));font-weight:700;color:rgb(var(--imp));opacity:.8;margin-left:4px}
 .cc-cap{display:block;font-size:calc(.66rem*var(--ts,1));color:rgb(var(--mut));margin-top:5px}
 .cc-sav{text-align:right;font-variant-numeric:tabular-nums}
-.cc-sav b{font-size:calc(1.02rem*var(--ts,1));font-weight:750;color:rgb(var(--sav))}
+.cc-sav .cc-val{justify-content:flex-end}.cc-val.s .num,.cc-val.s .unit{color:rgb(var(--sav))}
 .cc-bar{display:flex;height:9px;border-radius:999px;overflow:hidden;background:rgba(var(--ov),.07);margin-top:12px}
 .cc-bar i{display:block;width:0;background:rgb(var(--s));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
 .cc-bar i+i{box-shadow:-1.5px 0 0 var(--panel)}
@@ -377,7 +377,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
           <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
             <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid || T('st.cc.group'))}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
-            <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><b data-f="ccS${i}">—</b><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
+            <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><div class="cc-val s"><span class="num" data-t="ccS${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
             <div class="cc-bar">${['--imp', '--bat', '--pv'].map((s) => `<i style="--s:var(${s})"></i>`).join('')}</div>
             <div class="cc-leg" data-f="ccK${i}"></div>${x._parts ? `<div class="cc-parts" data-f="ccD${i}"></div>` : ''}
           </div>`).join('')}</div>
@@ -556,7 +556,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const bad = this._ccBad && this._ccBad[i];
         if (!bad) { cost += cost1; sav += sav1; }
         this._count(`ccC${i}`, priced && !bad ? cost1 : null, dec(cost1));
-        this._f(`ccS${i}`, priced && !bad ? `${nf(sav1, dec(sav1))} ${CUR}` : '—');
+        this._count(`ccS${i}`, priced && !bad ? sav1 : null, dec(sav1));
         card.classList.toggle('idle', tot < 0.05 && !bad);
         card.classList.toggle('bad', !!bad);
         if (bad) {
@@ -693,7 +693,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     // #40: text_size wie in der Energiefluss-Karte. gross/sehr_gross vergrößern die kleinen Texte, eine Zahl (z. B. 2) auch die großen Werte. #73: dazu eigene Farben (colors)
     _tsStyle() {
       const v = String(this._c.text_size == null ? '' : this._c.text_size).trim();
-      let st = WD.colorVars(this._c.colors, { pv: '--pv', grid_import: '--imp', grid_export: '--exp', battery: '--bat', home: '--home' });
+      // #81: ohne colors.battery gilt colors.battery_charge (wie die Ladefarbe im Energiefluss)
+      const col = this._c.colors && typeof this._c.colors === 'object' && !this._c.colors.battery && this._c.colors.battery_charge ? Object.assign({}, this._c.colors, { battery: this._c.colors.battery_charge }) : this._c.colors;
+      let st = WD.colorVars(col, { pv: '--pv', grid_import: '--imp', grid_export: '--exp', battery: '--bat', home: '--home' });
       if (v === 'gross') st += '--ts:1.25;';
       else if (v === 'sehr_gross') st += '--ts:1.5;';
       else if (v && v !== 'normal') {

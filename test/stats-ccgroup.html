@@ -25,7 +25,7 @@ const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?
 async function run(){
   let e=mount(base);await wait(600);q(e,'.tab[data-p="day"]').click();await wait(1500);
   ok('Gruppe: Netzkosten (1 + 0,5 kWh aus dem Netz) × 0,40 = 0,60',t(e,'[data-t="ccC0"]')==='0,60',t(e,'[data-t="ccC0"]'));
-  ok('Gruppe: gespart (0,5 + 1 kWh Solar) × 0,40 = 0,60 €',t(e,'[data-f="ccS0"]')==='0,60 €',t(e,'[data-f="ccS0"]'));
+  ok('Gruppe: gespart (0,5 + 1 kWh Solar) × 0,40 = 0,60 €',t(e,'[data-t="ccS0"]')==='0,60',t(e,'[data-t="ccS0"]'));
   const rows=[...e.shadowRoot.querySelectorAll('.ccard[data-c="0"] .cc-parts > *')].map(x=>x.textContent.replace(/\s+/g,' ').trim());
   ok('Teile darunter: eigener Name, sonst Name aus Home Assistant',rows[0]==='Büro'&&rows[3]==='Klima Schlafzimmer',rows.join(' | '));
   ok('Teil 1: 1,5 kWh, Kosten 1 × 0,40 = 0,40 €',rows[1]==='1,5 kWh'&&rows[2]==='0,40 €',rows.slice(0,3).join(' | '));

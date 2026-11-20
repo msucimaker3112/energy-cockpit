@@ -328,6 +328,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Alles in Watt** statt ab 1000 W in kW | `watt_only: true` |
 | **Feste Nachkommastellen,** zum Beispiel immer `10,80 kWh` | `decimals: 2` |
 | **Geräte in Gruppen nach Leistung,** die aktiven oben | `consumer_groups_sort: leistung` |
+| **Nur die größten Einzelverbraucher,** absteigend nach Leistung, zum Beispiel 8 von 25 | `consumers_top: 8` |
 | **Dachfarbe** in der 3D-Ansicht | `roof_color: anthrazit` |
 | **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen, bei einzelnen Verbrauchern ohne Gruppen mit `show_rest: true` einschalten | `hide_rest`, `show_rest`, `rest_min: 10` |
 | **Farbe der Zahl beim Haus** nach der größten Quelle (PV gelb, Speicher blau, Netz rot) | `home_color: source` |
@@ -335,6 +336,9 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Aktiv ab:** ab welcher Leistung Rahmen und Linie erscheinen | `on_w` |
 | **Batterie:** Entladegrenze und Maximalladung, Ladestand im nutzbaren Bereich, Temperatur | `reserve_soc`, `max_soc`, `soc_display: nutzbar`, `temp` |
 | **PV-Prognose** für morgen und übermorgen, zum Beispiel von Forecast.Solar oder Solcast | `pv.forecast_tomorrow`, `pv.forecast_day_after` |
+| **Prognosen nebeneinander:** unten heute, morgen, übermorgen, „Solar heute“ in der Solar-Kachel | `forecast_swap: true` |
+| **Gesamtsensor je Gruppe** (z. B. Zwischenzähler) mit Zeile „Rest“ unter den Geräten | `consumer_groups[].entity`, `rest_name` |
+| **Name vor dem Zusatzwert,** zum Beispiel „SoC eAuto 80 %“ | `secondary_name` |
 | **Himmelsband** mit dem Wetter des Tages (24 Stunden, Sonnenaufgang und -untergang) | `weather` |
 | **Haus heute** aus einem eigenen Sensor | `home.daily` |
 | **Unterposten** in der Raum-Abrechnung | `devices[].items` |

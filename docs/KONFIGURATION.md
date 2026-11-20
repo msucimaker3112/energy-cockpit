@@ -49,6 +49,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `rest_min` | Zahl in % | Zeigt die Kachel "Nicht erfasst" erst, wenn mindestens so viel Prozent des Hausverbrauchs keiner Gruppe zugeordnet sind (zum Beispiel `10`). Standard: immer anzeigen |
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, schaltet die Kachel mit `show_rest: true` ein (im grafischen Editor: „Kachel "Nicht erfasst" zeigen“, `hide_rest: false` geht weiterhin). Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
 | `show_rest` | `true` / `false` (Standard) | Zeigt die Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern (`consumers`) ohne Gruppen: Hausverbrauch minus Summe der Verbraucher. Bei Gruppen erscheint sie ohnehin. `hide_rest: true` hat Vorrang |
+| `consumers_top` | Zahl, z. B. `8` | Zeigt von den Einzelverbrauchern (`consumers`) nur die mit der höchsten Leistung, nach Leistung absteigend. So lassen sich viele Geräte eintragen (bis zu 30 im Editor, per YAML beliebig viele), ohne dass die Karte voll wird. Ausgeblendete Geräte zählen weiter zum Hausverbrauch und zu "Nicht erfasst". Damit die Kacheln nicht ständig springen, wechselt die Reihenfolge erst, wenn sie 30 Sekunden anders bleibt, sofort dagegen, wenn ein ausgeblendetes Gerät das kleinste sichtbare deutlich übertrifft (mehr als doppelt so viel und mindestens 100 W mehr). Gilt nicht für Geräte in Gruppen (dafür `consumer_groups_sort`). Standard: alle zeigen |
+| `consumers_top_delay` | Sekunden, Standard `30` | Wie lange eine neue Reihenfolge bestehen muss, bevor `consumers_top` umsortiert. `0` sortiert sofort |
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
 | `groups_lines` | `direkt` (Standard) oder `sammel` | Linien zu Einzelverbrauchern und Gruppen. `sammel` zeichnet nur **eine** Linie vom Ring zu einer Plakette "Verbraucher" mit der Summe und fasst den Bereich in einem Rahmen zusammen. Die Kacheln zeigen ihre Aktivität weiter mit Farbrand und Wert, bekommen aber keine eigene Linie. Gut bei vielen Geräten, auch auf dem Handy |
 | `battery.soc_display` | `brutto` (Standard) oder `nutzbar` | `nutzbar` zeigt den Ladestand relativ zum nutzbaren Bereich (0 % = Entladegrenze, 100 % = Maximalladung). Mit `brutto` bleibt die Anzeige wie die Batterie, die Grenzen erscheinen als schraffierte Bereiche auf dem Balken |
@@ -80,6 +82,9 @@ pv:
 - **Forecast.Solar** hat einen Sensor für morgen, aber keinen für übermorgen. **Solcast** liefert auch weitere Tage. Die genaue Sensor-ID steht bei der Integration unter den Entitäten.
 - Einstellbar im Assistenten (Schritt *Solar*) und unter "Alle Felder". Ohne Eintrag erscheinen die Kacheln nicht.
 - `pv.forecast` bleibt wie bisher: die Prognose für jetzt oder für heute in der Solar-Kachel.
+- **Prognosen nebeneinander (`forecast_swap: true`):** Liefert `pv.forecast` eine Tagesprognose in kWh (zum Beispiel Solcast „heute“), stehen unten „Prognose heute“, „Prognose morgen“ und „Prognose übermorgen“ in einer Reihe. Der bisherige Ertrag „Solar heute“ erscheint dann als Zeile in der Solar-Kachel. So liest sich die Reihe nicht mehr wie eine Dreitagesprognose mit „Solar heute“ vorne. Ist `pv.forecast` eine Leistung (W), bleibt alles wie bisher. Im Editor unter „Alle Felder“ und im Assistenten (Schritt *Solar*). Wunsch aus [#80](https://github.com/msucimaker3112/energy-cockpit/issues/80).
+
+![Prognosen nebeneinander](img/prognose-tauschen.png)
 
 ### Tagesertrag von Hybrid-Wechselrichtern
 
@@ -200,10 +205,13 @@ consumers:
     color: "#a78bfa"
     secondary: sensor.waermepumpe_temperatur   # Zusatzwert
     secondary_decimals: 1
+    secondary_name: Vorlauf                    # optional: Name vor dem Zusatzwert, z. B. "SoC eAuto"
     on_w: 3                                    # aktiv (Rahmen, Linie) ab 3 W, Standard 10 W
 ```
 
 `on_w` gibt es auch für Gruppen und ihre Einträge. Damit bekommt zum Beispiel eine Zirkulationspumpe mit 6 W einen Rahmen.
+
+`secondary_name` setzt einen Namen vor den Zusatzwert, zum Beispiel bei der Wallbox `secondary: sensor.eauto_soc` mit `secondary_name: SoC eAuto` → „SoC eAuto 80 %“. Das geht auch für Einträge in Gruppen. Wunsch aus [#83](https://github.com/msucimaker3112/energy-cockpit/issues/83).
 
 **Große Kacheln (optional, `size: gross`):** Große Verbraucher wie Wärmepumpe oder Wallbox erscheinen als breite, hervorgehobene Kachel mit großer Zahl. Das geht für beliebig viele Verbraucher gleichzeitig.
 
@@ -261,6 +269,21 @@ rest:                               # false = ausblenden
   name: Nicht erfasst
 ```
 
+**Gesamtsensor je Gruppe (optional, `entity` an der Gruppe):** Misst ein Zwischenzähler die ganze Gruppe, trägst du ihn als `entity` der Gruppe ein. Die Gruppe zeigt dann dessen Wert, und unter den Geräten steht als letzte Zeile „Rest“: Messwert minus Summe der Geräte, nie unter 0 W. Die Leistung zählt dabei nur einmal, auch bei „Nicht erfasst“. Mit `rest_name` lässt sich die Zeile umbenennen. Ist der Sensor nicht verfügbar, zeigt die Gruppe wie bisher die Summe. Ein eigener Template-Sensor je Gruppe ist damit nicht nötig. Wunsch aus [#79](https://github.com/msucimaker3112/energy-cockpit/issues/79).
+
+```yaml
+consumer_groups:
+  - name: Keller
+    entity: sensor.zwischenzaehler_keller_leistung   # misst 500 W
+    rest_name: Rest                                  # optional
+    items:
+      - { entity: sensor.waschmaschine_leistung, name: Waschmaschine }   # 250 W
+      - { entity: sensor.gefrierschrank_leistung, name: Gefrierschrank } # 70 W
+# Gruppe: 500 W, darunter „Rest 180 W“
+```
+
+![Gesamtsensor je Gruppe mit Zeile Rest](img/gruppe-gesamtsensor.png)
+
 Gruppen untereinander, eine pro Reihe (`groups_columns: 1`):
 
 ```yaml
@@ -279,6 +302,21 @@ rest_min: 10           # "Nicht erfasst" erst ab 10 % des Hausverbrauchs
 show_rest: true        # "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen
 hide_rest: false       # true blendet die Kachel immer aus
 ```
+
+Viele Einzelverbraucher, aber nur die größten zeigen (`consumers_top`, Bild: `docs/img/consumers-top.png`):
+
+```yaml
+consumers_top: 4       # nur die 4 Geräte mit der höchsten Leistung, absteigend
+consumers_top_delay: 30 # Reihenfolge wechselt erst nach 30 s (Standard)
+consumers:
+  - entity: sensor.wallbox_leistung
+    name: Wallbox
+  - entity: sensor.waermepumpe_leistung
+    name: Wärmepumpe
+  # … beliebig viele weitere
+```
+
+![Nur die vier größten Verbraucher](img/consumers-top.png)
 
 Die Netz-Kachel zeigt "Bezug" oder "Einspeisung" ab 0,5 W Leistung und "Ausgeglichen" nur, wenn praktisch nichts fließt.
 
@@ -422,7 +460,7 @@ Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94
 
 | Karte | Schlüssel, die wirken |
 |---|---|
-| Statistik | `pv` (Solar), `grid_import` (Stromkosten Netz, Bezug), `grid_export` (Einspeisung), `battery`, `home` (Autarkie) |
+| Statistik | `pv` (Solar), `grid_import` (Stromkosten Netz, Bezug), `grid_export` (Einspeisung), `battery` (ohne Angabe gilt `battery_charge`, so passt derselbe `colors`-Block aus dem Energiefluss), `home` (Autarkie) |
 | Geräte & Verbrauch | `pv` (Solaranteil, „Jetzt mit Sonne“), `grid_import` (Netzanteil) |
 
 `text_muted` und `text` wirken in allen Karten (Energiefluss, Statistik, Geräte & Verbrauch, Raum-Abrechnung) und in jedem Farbschema.
@@ -525,6 +563,7 @@ waste:
 | `fit_screen` | `true` | auf Bildschirmhöhe skalieren (Statistik: nicht auf dem Handy) |
 | `compact` | `false` | Kurzansicht für den schnellen Blick: Solar, Netz und Batterie stehen neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte (Aufteilung, Prognose, Herkunft). `auto`: nur auf schmalen Bildschirmen unter 600 px (Handy), Tablet und PC zeigen weiter alles. `true` (oder `immer`): überall. Ein Tipp auf eine Gruppe öffnet ein Fenster mit allen Geräten der Gruppe und ihren aktuellen Werten. Ist `groups_lines` nicht gesetzt, zeichnet die Kurzansicht die Sammel-Linie, `groups_columns` gilt in der Kurzansicht nicht |
 | `compact_forecast` | `false` | Nur mit Kurzansicht: `true` zeigt in der Solar-Kachel die Zeile „Prognose heute … kWh“ (aus `pv.forecast`), alle anderen Zusatzzeilen bleiben ausgeblendet. Gut für die Startseite auf dem Wandtablet ([#69](https://github.com/msucimaker3112/energy-cockpit/issues/69)) |
+| `forecast_swap` | `false` | `true`: unten „Prognose heute / morgen / übermorgen“ nebeneinander, „Solar heute“ in der Solar-Kachel. Nur mit einer Tagesprognose in kWh als `pv.forecast`, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `label_size` | | Zahl (0,5 bis 4, zum Beispiel `1.5`): vergrößert **nur die kleinen Texte** (Namen, Zusatzwerte, Beschriftungen), die Zahlen in den Kacheln bleiben. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Bei den kleinen Texten gilt `label_size` vor `text_size` |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
 | `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |

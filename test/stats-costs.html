@@ -33,9 +33,9 @@ const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1500);};
 async function run(){
   let e=mount({...base,pv_ac:true},hassFor());await wait(600);await tab(e,'day');
   ok('Heute, gemessen: Netzkosten',t(e,'[data-t="ccC0"]')==='0,50',t(e,'[data-t="ccC0"]'));
-  ok('Heute, gemessen: gespart',t(e,'[data-f="ccS0"]')==='2,00 €',t(e,'[data-f="ccS0"]'));
+  ok('Heute, gemessen: gespart',t(e,'[data-t="ccS0"]')==='2,00',t(e,'[data-t="ccS0"]'));
   ok('Heute, Mix mit pv_ac: Netzkosten',t(e,'[data-t="ccC1"]')==='0,75',t(e,'[data-t="ccC1"]'));
-  ok('Heute, Mix mit pv_ac: gespart',t(e,'[data-f="ccS1"]')==='0,75 €',t(e,'[data-f="ccS1"]'));
+  ok('Heute, Mix mit pv_ac: gespart',t(e,'[data-t="ccS1"]')==='0,75',t(e,'[data-t="ccS1"]'));
   ok('Name wird nicht als HTML gelesen',!q(e,'.ccard[data-c="1"] .cc-name b b'),t(e,'.ccard[data-c="1"] .cc-name b'));
   ok('Herkunft in der Karte',t(e,'.ccard[data-c="0"] .cc-name small')==='gemessen'&&t(e,'.ccard[data-c="1"] .cc-name small')==='nach Haus-Mix');
   ok('läuft: Leistung und Kosten pro Stunde',/630 W · bis 0,32 €\/h/.test(t(e,'[data-f="ccL0"]')),t(e,'[data-f="ccL0"]'));
@@ -81,7 +81,7 @@ async function run(){
   // Typische Einrichtungsfehler: Hinweis statt still 0 € (#21)
   e=mount({...base,pv_ac:true,cost_consumers:[base.cost_consumers[0],{name:'WP Watt',energy:'sensor.wpw'},{name:'Ohne Statistik',energy:'sensor.ns'},{name:'Tippfehler',energy:'sensor.gibtsnicht'}]},hassFor({'sensor.wpw':S(1200),'sensor.ns':S(12.5,'kWh')}));await wait(600);await tab(e,'day');
   ok('Hinweis: Leistungssensor statt Zähler',q(e,'.ccard[data-c="1"]').classList.contains('bad')&&/misst Leistung \(W\)/.test(t(e,'[data-f="ccK1"]'))&&t(e,'[data-t="ccC1"]')==='—',t(e,'[data-f="ccK1"]')+' / '+t(e,'[data-t="ccC1"]'));
-  ok('Hinweis: Sensor ohne Statistik',/Keine kWh-Statistik für sensor\.ns/.test(t(e,'[data-f="ccK2"]'))&&t(e,'[data-f="ccS2"]')==='—',t(e,'[data-f="ccK2"]'));
+  ok('Hinweis: Sensor ohne Statistik',/Keine kWh-Statistik für sensor\.ns/.test(t(e,'[data-f="ccK2"]'))&&t(e,'[data-t="ccS2"]')==='—',t(e,'[data-f="ccK2"]'));
   ok('Hinweis: Sensor gibt es nicht',/sensor\.gibtsnicht gibt es nicht/.test(t(e,'[data-f="ccK3"]')),t(e,'[data-f="ccK3"]'));
   ok('richtiger Sensor: kein Hinweis, Werte wie bisher',!q(e,'.ccard[data-c="0"]').classList.contains('bad')&&t(e,'[data-t="ccC0"]')==='0,50',t(e,'[data-t="ccC0"]'));
   ok('Summe im Kopf nur aus richtigen Sensoren',/0,50 €/.test(t(e,'[data-f="ccSum"]')),t(e,'[data-f="ccSum"]'));

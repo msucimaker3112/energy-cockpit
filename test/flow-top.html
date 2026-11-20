@@ -1,0 +1,48 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit consumers_top</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft consumers_top (#76): nur die N größten Einzelverbraucher, absteigend, verzögerter Wechsel. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&n=4) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const W0={a:500,b:50,c:1200,d:0,e:300,f:10,g:0,h:80};
+const names={a:'Wärmepumpe',b:'Router',c:'Wallbox',d:'Trockner',e:'Kühlschrank',f:'Licht',g:'Waschmaschine',h:'Fernseher'};
+let W={...W0};
+const hassOf=()=>{const st={'sensor.pv':S(800),'sensor.grid':S(1500),'sensor.home':S(2600)};Object.keys(W).forEach(k=>st['sensor.'+k]=S(W[k]));return {states:st,language:'de'};};
+const base=(x)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},consumers:Object.keys(names).map(k=>({name:names[k],entity:'sensor.'+k}))},x);
+function mount(c,w){const host=document.getElementById('host');host.style.width=(w||1000)+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hassOf();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const idx=(k)=>Object.keys(names).indexOf(k);
+// sichtbare Verbraucher in Anzeige-Reihenfolge (nach Position auf dem Bildschirm)
+const shown=(e)=>[...e.shadowRoot.querySelectorAll('.cons[data-k^="c"]:not(.rest)')].filter(x=>x.offsetParent).sort((a,b)=>{const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();return Math.abs(ra.top-rb.top)>5?ra.top-rb.top:ra.left-rb.left;}).map(x=>Object.keys(names)[+x.dataset.k.slice(1)]).join(',');
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(base({consumers_top:3}));await wait(700);
+  ok('nur die 3 größten, absteigend',shown(e)==='c,a,e',shown(e));
+  const pc=q(e,`g[data-l="c${idx('c')}"] .flow`),pd=q(e,`g[data-l="c${idx('d')}"] .flow`);
+  ok('Linie zur sichtbaren Kachel ist gezeichnet',!!pc&&!!pc.getAttribute('d'));
+  ok('Linie zur ausgeblendeten Kachel ist leer',!!pd&&!pd.getAttribute('d'));
+  W.e=600;e.hass=hassOf();await wait(1200);
+  ok('kleiner Wechsel: Reihenfolge bleibt zunächst',shown(e)==='c,a,e',shown(e));
+  e._topPend=Date.now()-31000;e.hass=hassOf();await wait(1200);
+  ok('nach 30 s anders: neue Reihenfolge',shown(e)==='c,e,a',shown(e));
+  W.b=2000;e.hass=hassOf();await wait(1200);
+  ok('deutlich größerer Verbraucher kommt sofort dazu',shown(e)==='b,c,e',shown(e));
+  W={...W0};e=mount(base({consumers_top:3,consumers_top_delay:0}));await wait(500);
+  W.h=900;e.hass=hassOf();await wait(1200);
+  ok('consumers_top_delay: 0 wechselt sofort',shown(e)==='c,h,a',shown(e));
+  W={...W0};e=mount(base({consumers_top:3,show_rest:true}));await wait(600);
+  const rest=q(e,'[data-k="crest"]');
+  ok('„Nicht erfasst“ bleibt hinten',!!rest&&rest.style.order==='999'&&rest.getBoundingClientRect().top>=q(e,`[data-k="c${idx('e')}"]`).getBoundingClientRect().top-2);
+  ok('„Nicht erfasst“ zählt auch ausgeblendete Verbraucher',/460/.test(rest.textContent.replace(/\s/g,'')),rest.textContent.replace(/\s+/g,' ').trim());
+  W={...W0};e=mount(base({}));await wait(500);
+  ok('ohne consumers_top: alle 8 in eingetragener Reihenfolge',shown(e)==='a,b,c,d,e,f,g,h',shown(e));
+  e=mount(base({consumers_top:3}),420);await wait(600);
+  ok('schmal: ebenfalls 3',shown(e).split(',').length===3,shown(e));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+if(P.get('test'))run();else mount(base({consumers_top:+(P.get('n')||4),show_rest:true}),+(P.get('w')||1000));
+</script></body></html>
