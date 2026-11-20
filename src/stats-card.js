@@ -467,14 +467,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         return out;
       };
       // hourly_pricing: Geldkacheln je Stunde. Bezug (ohne grid2) und selbst genutzter Solarstrom zum Preis der Stunde, Einspeisung zur Vergütung der Stunde.
-      // n zählt die Stunden mit Preisstatistik, ohne sie bleibt die Karte bei der Rechnung je Monat
+      // n zählt die Stunden mit Preisstatistik, ohne sie bleibt die Karte bei der Rechnung je Monat. fn: Stunden mit Statistik der Vergütung
       const feedId = c._hp && typeof c.feed_in === 'string' && c.feed_in ? c.feed_in : null, feedNow = WD.price(h, c.feed_in, c.feed_in_ct, 0);
-      const hz = () => ({ imp: 0, cost: 0, self: 0, sav: 0, exp: 0, feed: 0, n: 0 });
+      const hz = () => ({ imp: 0, cost: 0, self: 0, sav: 0, exp: 0, feed: 0, n: 0, fn: 0 });
       const hMon = (o, t) => { const d = new Date(t), k = key(d.getFullYear(), d.getMonth()); return o[k] || (o[k] = hz()); };
       const hAdd = (b, t, x, m, fm) => {
         const pr = rate(t, m), s = Math.max(0, x.pv - x.exp);
         b.imp += x.imp0; b.cost += x.imp0 * pr; b.self += s; b.sav += s * pr; b.exp += x.exp; b.feed += x.exp * (fm[t] !== undefined ? fm[t] : feedNow);
         if (m[t] !== undefined) b.n++;
+        if (fm[t] !== undefined) b.fn++;
       };
       try {
         const mk = key(now.getFullYear(), now.getMonth());
@@ -859,14 +860,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _hourly(p, price, feed) {
       const V = this._hpV;
       if (!V || !this._c._hp) return null;
-      const one = (b, imp, self, exp, pr) => (b && b.n ? { cost: b.cost + Math.max(0, imp - b.imp) * pr, sav: b.sav + Math.max(0, self - b.self) * pr, feed: b.feed + Math.max(0, exp - b.exp) * feed } : null);
+      const one = (b, imp, self, exp, pr) => (b && b.n ? { cost: b.cost + Math.max(0, imp - b.imp) * pr, sav: b.sav + Math.max(0, self - b.self) * pr, feed: b.feed + Math.max(0, exp - b.exp) * feed, fs: b.fn > 0 } : null);
       if (!p.ks) return one(this._period === 'day' ? V.day : this._period === 'week' ? V.week : null, p.imp, Math.max(0, p.pv - p.exp), p.exp, price);
-      const M = this._m, out = { cost: 0, sav: 0, feed: 0 };
+      const M = this._m, out = { cost: 0, sav: 0, feed: 0, fs: false };
       let any = false;
       p.ks.forEach((k) => {
         const mp = this._monthPrice(k, price), pr = mp === null ? price : mp, imp = M.imp[k] || 0, exp = M.exp[k] || 0, self = Math.max(0, (M.pv[k] || 0) - exp);
         const r = one(V.mon[k], imp, self, exp, pr) || { cost: imp * pr, sav: self * pr, feed: exp * feed };
         if (V.mon[k] && V.mon[k].n) any = true;
+        if (V.mon[k] && V.mon[k].fn) out.fs = true;
         out.cost += r.cost; out.sav += r.sav; out.feed += r.feed;
       });
       return any ? out : null;
@@ -915,9 +917,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         }
         const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
-        this._count('pvsav', price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
-        this._count('feed', feed > 0 ? feedEur : null, feedEur < 100 ? 2 : 0);
-        this._count('cost', price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
+        // Mit Stundenpreisen auch bei heutigem Preis 0 oder darunter zeigen (dynamische Tarife), sonst wie bisher ausblenden
+        this._count('pvsav', hr || price > 0 ? savEur : null, savEur < 100 ? 2 : 0);
+        this._count('feed', (hr && hr.fs) || feed > 0 ? feedEur : null, feedEur < 100 ? 2 : 0);
+        this._count('cost', hr || price > 0 || baseFee > 0 ? costT : null, costT < 100 ? 2 : 0);
         this._count('aut', cons > 0 ? Math.max(0, Math.min(1, 1 - impT / cons)) * 100 : null, this._dec.q || 0);
         // #66: Zeilen wie die Fußzeile, Text links, Wert rechts
         const kv = (l, v) => `<div class="kv"><span>${l}</span><b>${v}</b></div>`;

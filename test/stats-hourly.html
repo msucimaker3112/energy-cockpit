@@ -12,10 +12,10 @@ const t02=d0+2*H,t12=d0+12*H,tJan=new Date(Y,0,1,2).getTime(),tDec=new Date(Y-1,
 // Stundenwerte je Zähler; Januar nur, wenn er nicht der laufende Monat ist
 const hours={'sensor.pv':[[t12,5]],'sensor.imp':[[t02,10],[t12,1],...(M>0?[[tJan,4]]:[]),[tDec,5]],'sensor.exp':[[t12,2]],'sensor.e':[[t12,1]],'sensor.g2':[[t12,2]]};
 // Stundenmittel der Preise: sensor.price mit allen Stunden, sensor.priceh nur heute, sensor.price2 ohne Statistik
-const means={'sensor.price':[[t02,0.066],[t12,0.3545],[tJan,0.066],[tDec,0.066]],'sensor.priceh':[[t02,0.066],[t12,0.3545]],'sensor.feed':[[t12,0.20]]};
+const means={'sensor.price':[[t02,0.066],[t12,0.3545],[tJan,0.066],[tDec,0.066]],'sensor.pricez':[[t02,0.066],[t12,0.3545]],'sensor.priceneg':[[t02,0.066],[t12,0.3545]],'sensor.feedz':[[t12,0.20]],'sensor.priceh':[[t02,0.066],[t12,0.3545]],'sensor.feed':[[t12,0.20]]};
 const mStart=(t)=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),1).getTime();};
 const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.pvd':S(5),'sensor.impd':S(11),'sensor.expd':S(2),'sensor.impd12':S(12),
-  'sensor.price':S(0.30,'EUR/kWh'),'sensor.priceh':S(0.30,'EUR/kWh'),'sensor.price2':S(0.30,'EUR/kWh'),'sensor.feed':S(0.15,'EUR/kWh'),'sensor.e':S(100),'sensor.g2':S(50)},
+  'sensor.price':S(0.30,'EUR/kWh'),'sensor.priceh':S(0.30,'EUR/kWh'),'sensor.price2':S(0.30,'EUR/kWh'),'sensor.feed':S(0.15,'EUR/kWh'),'sensor.pricez':S(0,'EUR/kWh'),'sensor.priceneg':S(-0.05,'EUR/kWh'),'sensor.price0':S(0,'EUR/kWh'),'sensor.feedz':S(0,'EUR/kWh'),'sensor.feed0':S(0,'EUR/kWh'),'sensor.e':S(100),'sensor.g2':S(50)},
  language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
  callWS:async(m)=>{
   const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={},ids=m.statistic_ids||[],T=m.types||[];
@@ -81,6 +81,19 @@ async function run(){
   ok('Hinweis Gesamt: Stundenpreise aus der Statistik',cv(e).includes('Stundenpreisen')&&!cv(e).includes('heutigen Preisen'),cv(e));
   e=mount({...base,long_term:true,grid_price:'sensor.price2'});await wait(2500);await tab(e,'all');
   ok('Hinweis Gesamt ohne Preisstatistik: heutige Preise wie bisher',cv(e).includes('heutigen Preisen'),cv(e));
+  // Heutiger Preis 0 oder negativ: mit Stundenpreisen bleiben die Kacheln sichtbar, ohne Statistik wie bisher ein Strich
+  let z=mount({...base,grid_price:'sensor.pricez',feed_in:'sensor.feedz',feed_in_ct:undefined});await wait(2500);
+  ok('Preis jetzt 0, Stundenpreise: Netzkosten 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
+  ok('Preis jetzt 0, Stundenpreise: PV-Ersparnis 1,06',tt(z,'pvsav')==='1,06',tt(z,'pvsav'));
+  ok('Vergütung jetzt 0, Stundenmittel: Einspeiseerlös 0,40',tt(z,'feed')==='0,40',tt(z,'feed'));
+  z=mount({...base,grid_price:'sensor.priceneg'});await wait(2500);await tab(z,'day');
+  ok('Preis jetzt negativ, Stundenpreise: Netzkosten 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
+  z=mount({...base,grid_price:'sensor.price0',feed_in:'sensor.feed0',feed_in_ct:undefined});await wait(2500);
+  ok('Preis 0 ohne Statistik: Netzkosten ausgeblendet wie bisher',tt(z,'cost')==='—',tt(z,'cost'));
+  ok('Preis 0 ohne Statistik: PV-Ersparnis ausgeblendet wie bisher',tt(z,'pvsav')==='—',tt(z,'pvsav'));
+  ok('Vergütung 0 ohne Statistik: Einspeiseerlös ausgeblendet wie bisher',tt(z,'feed')==='—',tt(z,'feed'));
+  z=mount({...base,grid_price:'sensor.pricez',hourly_pricing:false});await wait(2500);
+  ok('Preis 0, hourly_pricing: false: ausgeblendet wie bisher',tt(z,'cost')==='—',tt(z,'cost'));
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
 }
 const P=new URLSearchParams(location.search);
