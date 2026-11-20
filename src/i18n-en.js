@@ -77,7 +77,7 @@ WD.addTranslations('en', {
   'st.d.exp': 'More energy was exported ({e} kWh) than generated ({p} kWh) today. Check the export sensor.',
   'st.all': 'Total', 'st.hist': 'History', 'st.nodata2': 'no data',
   'st.lt.from': 'Data from {d}', 'st.lt.gaps': 'No data for: {m}', 'st.lt.skip': '{n} month(s) without complete data are excluded from totals',
-  'st.lt.hist': 'History: solar yield only, without grid or battery values', 'st.lt.price': 'Financial values calculated using today’s prices',
+  'st.lt.hist': 'History: solar yield only, without grid or battery values', 'st.lt.price': 'Financial values calculated using today’s prices', 'st.lt.price.h': 'Financial values calculated using hourly prices from statistics where available',
 
   'room.title': 'Room billing', 'room.week': 'This week', 'room.month': 'This month', 'room.year': 'This year', 'room.prev': 'Previous year',
   'room.tab.week': 'Week', 'room.tab.month': 'Month', 'room.tab.year': 'Year', 'room.tab.prev': 'Previous year',

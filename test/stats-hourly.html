@@ -76,6 +76,11 @@ async function run(){
   ok('Woche: Netzkosten je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
   e=mount({...base,long_term:true});await wait(2500);await tab(e,'all');
   ok(`Gesamt mit Vorjahr: ${de(day+jan+5*0.066)}`,tt(e,'cost')===de(day+jan+5*0.066),tt(e,'cost'));
+  // Hinweis unter dem Diagramm: Stundenpreise statt "heutige Preise"
+  const cv=(e)=>(q(e,'[data-f="cover"]')||{textContent:''}).textContent;
+  ok('Hinweis Gesamt: Stundenpreise aus der Statistik',cv(e).includes('Stundenpreisen')&&!cv(e).includes('heutigen Preisen'),cv(e));
+  e=mount({...base,long_term:true,grid_price:'sensor.price2'});await wait(2500);await tab(e,'all');
+  ok('Hinweis Gesamt ohne Preisstatistik: heutige Preise wie bisher',cv(e).includes('heutigen Preisen'),cv(e));
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
 }
 const P=new URLSearchParams(location.search);

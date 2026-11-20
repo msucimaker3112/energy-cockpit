@@ -5256,7 +5256,7 @@ WD.addStrings({
   'st.d.exp': 'Heute mehr eingespeist ({e} kWh) als erzeugt ({p} kWh). Prüfe den Sensor für die Einspeisung.',
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
-  'st.lt.hist': 'Historie: nur Solarertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
+  'st.lt.hist': 'Historie: nur Solarertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet', 'st.lt.price.h': 'Geldwerte, soweit vorhanden, mit den Stundenpreisen aus der Statistik gerechnet',
 });
 
 
@@ -6038,7 +6038,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         }
       }
       if (cs.some((k) => M.hist[k] && k.startsWith(yr + '-'))) lines.push(T('st.lt.hist'));
-      if (this._period === 'all' || (this._period === 'year' && yr !== new Date().getFullYear())) lines.push(T('st.lt.price'));
+      if (this._period === 'all' || (this._period === 'year' && yr !== new Date().getFullYear())) lines.push(T(this._hpUsed ? 'st.lt.price.h' : 'st.lt.price'));
       return lines.join(' · ');
     }
 
@@ -6161,6 +6161,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._renderBud(price);
       // Geld
       const p = this._periodVals();
+      this._hpUsed = false;
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
         const self = Math.max(0, p.pv - p.exp);
         // grid2: Bezug des zweiten Zählers zählt zum Netzbezug und zum Verbrauch, zu seinem eigenen Preis
@@ -6168,6 +6169,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         // #53: Mit grid_price_history zählt jeder Monat mit seinem damaligen Preis (Bezug und selbst genutzter Solarstrom), sonst der heutige Preis
         let impEur = p.imp * price, savEur = self * price, feedEur = p.exp * feed;
         const hr = this._hourly(p, price, feed);
+        this._hpUsed = !!hr;
         if (hr) { impEur = hr.cost; savEur = hr.sav; feedEur = hr.feed; } else if (p.ks && c._ph.length && price > 0) {
           const M = this._m;
           let ie = 0, se = 0, sk = 0;
@@ -6552,7 +6554,7 @@ WD.addTranslations('en', {
   'st.d.exp': 'More energy was exported ({e} kWh) than generated ({p} kWh) today. Check the export sensor.',
   'st.all': 'Total', 'st.hist': 'History', 'st.nodata2': 'no data',
   'st.lt.from': 'Data from {d}', 'st.lt.gaps': 'No data for: {m}', 'st.lt.skip': '{n} month(s) without complete data are excluded from totals',
-  'st.lt.hist': 'History: solar yield only, without grid or battery values', 'st.lt.price': 'Financial values calculated using today’s prices',
+  'st.lt.hist': 'History: solar yield only, without grid or battery values', 'st.lt.price': 'Financial values calculated using today’s prices', 'st.lt.price.h': 'Financial values calculated using hourly prices from statistics where available',
 
   'room.title': 'Room billing', 'room.week': 'This week', 'room.month': 'This month', 'room.year': 'This year', 'room.prev': 'Previous year',
   'room.tab.week': 'Week', 'room.tab.month': 'Month', 'room.tab.year': 'Year', 'room.tab.prev': 'Previous year',
@@ -6703,7 +6705,7 @@ WD.addTranslations('nl', {
   'st.d.exp': 'Vandaag is meer teruggeleverd ({e} kWh) dan opgewekt ({p} kWh). Controleer de sensor voor teruglevering.',
   'st.all': 'Totaal', 'st.hist': 'Geschiedenis', 'st.nodata2': 'geen gegevens',
   'st.lt.from': 'Gegevens vanaf {d}', 'st.lt.gaps': 'Geen gegevens voor: {m}', 'st.lt.skip': '{n} maand(en) zonder volledige gegevens ontbreken in de totalen',
-  'st.lt.hist': 'Geschiedenis: alleen opbrengst zonne-energie, zonder net- en batterijwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen',
+  'st.lt.hist': 'Geschiedenis: alleen opbrengst zonne-energie, zonder net- en batterijwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen', 'st.lt.price.h': 'Geldbedragen waar mogelijk berekend met de uurprijzen uit de statistieken',
 
   'room.title': 'Ruimteafrekening', 'room.week': 'Deze week', 'room.month': 'Deze maand', 'room.year': 'Dit jaar', 'room.prev': 'Vorig jaar',
   'room.tab.week': 'Week', 'room.tab.month': 'Maand', 'room.tab.year': 'Jaar', 'room.tab.prev': 'Vorig jaar',
@@ -6902,6 +6904,7 @@ WD.addTranslations('fr', {
   'st.lt.skip': "{n} mois sans données complètes exclus des totaux",
   'st.lt.hist': "Historique : production PV uniquement, sans valeurs réseau et stockage",
   'st.lt.price': "Valeurs monétaires calculées aux prix actuels",
+  'st.lt.price.h': "Valeurs monétaires calculées avec les prix horaires des statistiques lorsqu’ils sont disponibles",
   'flow.title': "Flux énergétique",
   'flow.pv': "Panneaux solaires",
   'flow.pv2': "PV 2",
@@ -7334,6 +7337,7 @@ WD.addTranslations('fi', {
   'st.lt.skip': "Summista puuttuu {n} kk, joilta tiedot ovat vajaat",
   'st.lt.hist': "Historia: vain aurinkotuotto, ilman verkko- ja akkuarvoja",
   'st.lt.price': "Rahamäärät laskettu nykyhinnoilla",
+  'st.lt.price.h': "Rahamäärät laskettu tilastojen tuntihinnoilla, kun ne ovat saatavilla",
   'ban.tonet0': "Sähköä menee verkkoon",
   'stat.home': "Kulutus tänään",
   'close': "Sulje",

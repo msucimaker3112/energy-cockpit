@@ -775,7 +775,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         }
       }
       if (cs.some((k) => M.hist[k] && k.startsWith(yr + '-'))) lines.push(T('st.lt.hist'));
-      if (this._period === 'all' || (this._period === 'year' && yr !== new Date().getFullYear())) lines.push(T('st.lt.price'));
+      if (this._period === 'all' || (this._period === 'year' && yr !== new Date().getFullYear())) lines.push(T(this._hpUsed ? 'st.lt.price.h' : 'st.lt.price'));
       return lines.join(' · ');
     }
 
@@ -898,6 +898,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._renderBud(price);
       // Geld
       const p = this._periodVals();
+      this._hpUsed = false;
       if (p && p.pv !== null && p.imp !== null && p.exp !== null) {
         const self = Math.max(0, p.pv - p.exp);
         // grid2: Bezug des zweiten Zählers zählt zum Netzbezug und zum Verbrauch, zu seinem eigenen Preis
@@ -905,6 +906,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         // #53: Mit grid_price_history zählt jeder Monat mit seinem damaligen Preis (Bezug und selbst genutzter Solarstrom), sonst der heutige Preis
         let impEur = p.imp * price, savEur = self * price, feedEur = p.exp * feed;
         const hr = this._hourly(p, price, feed);
+        this._hpUsed = !!hr;
         if (hr) { impEur = hr.cost; savEur = hr.sav; feedEur = hr.feed; } else if (p.ks && c._ph.length && price > 0) {
           const M = this._m;
           let ie = 0, se = 0, sk = 0;
