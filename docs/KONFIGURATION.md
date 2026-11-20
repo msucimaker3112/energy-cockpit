@@ -117,7 +117,7 @@ Die Einstellung gilt für alle Speicher ohne `behind_meter`. Ein weiterer Speich
 
 ### Speicher vor dem Wechselrichter
 
-**Wofür:** Bei Balkonkraftwerken mit Speicher (zum Beispiel Marstek B2500) hängen die Solarmodule direkt am Speicher. Der Solarstrom geht immer zuerst durch den Speicher und von dort ins Haus, auch wenn er voll ist (Durchleitung). Mit `pv_to_battery: direkt` zeichnet die Karte den Weg **Solar → Speicher → Haus**. Ohne die Option bleibt alles wie bisher.
+**Wofür:** Bei Balkonkraftwerken mit Speicher (zum Beispiel Marstek B2500 oder Anker Solarbank) hängen die Solarmodule direkt am Speicher. Der Solarstrom geht immer zuerst durch den Speicher und von dort ins Haus, auch wenn er voll ist (Durchleitung). Mit `pv_to_battery: direkt` zeichnet die Karte den Weg **Solar → Speicher → Haus**. Ohne die Option bleibt alles wie bisher.
 
 ```yaml
 type: custom:energy-cockpit-flow-card
@@ -140,7 +140,7 @@ battery:
 - Die Herkunft des Hausstroms zählt als **Solar**, soweit der Ausgang vom Solar-Eingang gedeckt ist, den Rest als Batterie. Bei vollem Speicher mit Durchleitung steht dort also Solar und nicht null Prozent.
 - Die Solar-Kachel zeigt `Speicher`, weil der ganze Solarstrom zuerst in den Speicher geht. Der Speicher zeigt Eingang und Ausgang, bei Einspeisung auch die Aufteilung des Ausgangs auf Haus und Netz, und `Durchleitung`, wenn er weder lädt noch entlädt.
 
-**Wichtig:** Die Option gilt für den **ersten** Speicher (`battery`). Ohne `power_out` oder ohne `pv.entity` bleibt die normale Darstellung. Auf dem Handy ist die Kurzansicht (`compact: auto`) am übersichtlichsten. Die Annahme "Solar zuerst ins Haus, der Rest lädt" entspricht Speichern mit Durchleitung. Sie wurde an echten Anlagen mit Balkonkraftwerk und Speicher getestet ([#15](https://github.com/msucimaker3112/energy-cockpit/issues/15)). Trag `power` und `power_charge` nur ein, wenn die Sensoren wirklich Laden und Entladen messen: `power` hat Vorrang vor der Rechnung aus Eingang und Ausgang.
+**Wichtig:** Die Option gilt für den **ersten** Speicher (`battery`). Ohne `power_out` oder ohne `pv.entity` bleibt die normale Darstellung. Fehlt nur `power_out`, steht in der Batterie-Kachel ein Hinweis darauf. Bei der **Anker Solarbank** heißt der Sensor zum Beispiel „AC-Hausabgabe“ (`sensor.solarbank_…_ac_hausabgabe`). Auf dem Handy ist die Kurzansicht (`compact: auto`) am übersichtlichsten. Die Annahme "Solar zuerst ins Haus, der Rest lädt" entspricht Speichern mit Durchleitung. Sie wurde an echten Anlagen mit Balkonkraftwerk und Speicher getestet ([#15](https://github.com/msucimaker3112/energy-cockpit/issues/15)). Trag `power` und `power_charge` nur ein, wenn die Sensoren wirklich Laden und Entladen messen: `power` hat Vorrang vor der Rechnung aus Eingang und Ausgang.
 
 ### Zweite Anlage durch einen Speicher: `pv2.to_battery`
 
@@ -413,6 +413,8 @@ colors:
 | `home` | türkis | Zahl beim Haus, Sammel-Linie |
 | `gas` | orange | Gas-Kachel und ihre Linie |
 | `water` | blau | Wasser-Kachel und ihre Linie |
+| `text_muted` | grau (je nach Farbschema) | Alle grauen Beschriftungen: Kachelnamen, Zeilen wie „Ladestand“ und „Temperatur“, Zusatzwerte, Achsen. Im hellen Schema zum Beispiel `"#000000"` für mehr Kontrast |
+| `text` | je nach Farbschema | Werte und Titel |
 
 Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für die Karte, in der sie stehen, andere Karten bleiben unberührt.
 
@@ -422,6 +424,14 @@ Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94
 |---|---|
 | Statistik | `pv` (Solar), `grid_import` (Stromkosten Netz, Bezug), `grid_export` (Einspeisung), `battery`, `home` (Autarkie) |
 | Geräte & Verbrauch | `pv` (Solaranteil, „Jetzt mit Sonne“), `grid_import` (Netzanteil) |
+
+`text_muted` und `text` wirken in allen Karten (Energiefluss, Statistik, Geräte & Verbrauch, Raum-Abrechnung) und in jedem Farbschema.
+
+```yaml
+theme: hell
+colors:
+  text_muted: "#000000"   # Beschriftungen schwarz statt grau
+```
 
 ```yaml
 type: custom:energy-cockpit-stats-card

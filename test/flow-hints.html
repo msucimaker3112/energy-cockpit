@@ -1,0 +1,49 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Hinweis pv_to_battery und Textfarben</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #75 (Hinweis, wenn pv_to_battery ohne battery.power_out) und #73 (colors.text_muted / colors.text). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?case=miss|ok|hell) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const st={'sensor.pv':S(245),'sensor.grid':S(0),'sensor.chg':S(45),'sensor.dis':S(0),'sensor.out':S(200),'sensor.soc':S(17,'%'),'sensor.h':S(180)};
+const hass={states:st,language:'de'};
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.h'}};
+const cases={
+  miss:{...base,pv_to_battery:'direkt',battery:{power_charge:'sensor.chg',power_discharge:'sensor.dis',soc:'sensor.soc',capacity_kwh:2.7}},
+  ok:{...base,pv_to_battery:'direkt',battery:{power_charge:'sensor.chg',power_discharge:'sensor.dis',power_out:'sensor.out',soc:'sensor.soc',capacity_kwh:2.7}},
+  ohne:{...base,battery:{power_charge:'sensor.chg',power_discharge:'sensor.dis',soc:'sensor.soc',capacity_kwh:2.7}},
+  hell:{...base,theme:'hell',colors:{text_muted:'#000000',text:'#123456'},battery:{power_charge:'sensor.chg',power_discharge:'sensor.dis',soc:'sensor.soc',capacity_kwh:2.7}},
+};
+function mount(tag,c,w){const host=document.getElementById('host');host.style.width=(w||900)+'px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount('energy-cockpit-flow-card',cases.miss);await wait(700);
+  const w=q(e,'[data-k="bat"] .cfgw');
+  ok('ohne power_out: Hinweis in der Batterie-Kachel',!!w&&/power_out/.test(w.textContent),w&&w.textContent);
+  ok('ohne power_out: normale Darstellung (keine via-Anordnung)',!q(e,'.layout.via-bat'));
+  ok('Hinweis ist sichtbar und passt in die Kachel',w&&w.offsetHeight>0&&w.getBoundingClientRect().right<=q(e,'[data-k="bat"]').getBoundingClientRect().right+1);
+  e=mount('energy-cockpit-flow-card',cases.ok);await wait(700);
+  ok('mit power_out: kein Hinweis, Solar über dem Speicher',!q(e,'.cfgw')&&!!q(e,'.layout.via-bat'));
+  e=mount('energy-cockpit-flow-card',cases.ohne);await wait(700);
+  ok('ohne pv_to_battery: kein Hinweis',!q(e,'.cfgw'));
+  hass.language='en';e=mount('energy-cockpit-flow-card',cases.miss);await wait(700);
+  ok('Hinweis auf Englisch',/output power/.test((q(e,'.cfgw')||{}).textContent||''),(q(e,'.cfgw')||{}).textContent);
+  hass.language='de';
+  e=mount('energy-cockpit-flow-card',cases.hell);await wait(700);
+  ok('text_muted setzt --mut am Kartenelement',e.style.getPropertyValue('--mut').replace(/\s/g,'')==='0,0,0',e.style.getPropertyValue('--mut'));
+  ok('text_muted: Kachelname schwarz',getComputedStyle(q(e,'[data-k="bat"] .lbl')).color==='rgb(0, 0, 0)',getComputedStyle(q(e,'[data-k="bat"] .lbl')).color);
+  ok('text: Werte in der eigenen Farbe',getComputedStyle(q(e,'[data-k="pv"] .num')).color==='rgb(18, 52, 86)'||getComputedStyle(q(e,'.pill b')).color==='rgb(18, 52, 86)',getComputedStyle(q(e,'.pill b')).color);
+  e=mount('energy-cockpit-flow-card',cases.ohne);await wait(500);
+  ok('ohne colors: kein eigenes --mut',e.style.getPropertyValue('--mut')==='');
+  const d=mount('energy-cockpit-devices-card',{theme:'hell',colors:{text_muted:'#000000'},devices:[{name:'TV',power:'sensor.h'}]});await wait(500);
+  ok('Geräte-Karte versteht text_muted',d.style.getPropertyValue('--mut').replace(/\s/g,'')==='0,0,0',d.style.getPropertyValue('--mut'));
+  const s=mount('energy-cockpit-stats-card',{theme:'hell',colors:{text_muted:'#000000'},pv_total:'sensor.pv',grid_import_total:'sensor.grid',grid_export_total:'sensor.grid'});await wait(300);
+  ok('Statistik-Karte versteht text_muted',s.style.getPropertyValue('--mut').replace(/\s/g,'')==='0,0,0',s.style.getPropertyValue('--mut'));
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+if(P.get('test'))run();else mount('energy-cockpit-flow-card',cases[P.get('case')||'miss'],+(P.get('w')||900));
+</script></body></html>

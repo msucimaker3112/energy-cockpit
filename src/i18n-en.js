@@ -3,7 +3,7 @@ WD.addTranslations('en', {
   'flow.title': 'Energy flow', 'flow.pv': 'Solar', 'flow.pv2': 'Solar 2', 'flow.grid2': 'Second meter', 'flow.grid': 'Grid', 'flow.battery': 'Battery', 'flow.home': 'House consumption',
   'flow.cons_total': 'Consumers', 'flow.rest': 'Unaccounted', 'flow.restpct': '{n} % measured', 'flow.soc': 'Charge level', 'flow.temp': 'Temperature',
   'flow.next': 'Next →', 'flow.error': 'Configure at least pv or grid',
-  'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Heating', 'gas.hw': 'Hot water', 'gas.today': 'Today', 'tag.gas.on': 'Heating', 'tag.water.on': 'Flowing', 'tag.today': 'Today',
+  'flow.via.miss': '⚠ “Solar runs through the battery” also needs the output power to the house (<b>battery.power_out</b>); until then the normal layout is used.', 'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Heating', 'gas.hw': 'Hot water', 'gas.today': 'Today', 'tag.gas.on': 'Heating', 'tag.water.on': 'Flowing', 'tag.today': 'Today',
   'pill.aut': 'Current energy independence', 'pill.self': 'Current self-consumption', 'pv.use.home': 'Home', 'pv.use.bat': 'Battery', 'pv.use.grid': 'Grid', 'pv.use.store': 'Storage',
   'stat.pv': 'Solar today', 'stat.fc1': 'Solar tomorrow', 'stat.fc2': 'Solar the day after tomorrow', 'stat.imp': 'Grid import today', 'stat.exp': 'Grid export', 'stat.bat': 'Battery ± today', 'stat.aut': 'Energy independence today',
   'mix.pv': 'Solar', 'mix.bat': 'Battery', 'mix.grid': 'Grid',

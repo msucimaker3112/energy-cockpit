@@ -107,7 +107,7 @@ const WD = (() => {
     + Object.keys(THEMES).filter((k) => k !== 'dunkel').map((k) => `:host([data-theme="${k}"]){${themeVars(THEMES[k])}}`).join('\n') + '\n';
   // Setzt data-theme (und optional --acc) am Kartenelement. cfg = Kartenkonfiguration, hass für "auto".
   const applyTheme = (el, cfg, hass) => {
-    if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; }
+    if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; el._ecCol = cfg.colors && typeof cfg.colors === 'object' ? cfg.colors : null; }
     let t = el._ecTheme || 'dunkel';
     if (t === 'auto') {
       let dark = true;
@@ -119,6 +119,11 @@ const WD = (() => {
     if (el.getAttribute('data-theme') !== t) el.setAttribute('data-theme', t);
     const a = accentRgb(el._ecAccent);
     if (a) el.style.setProperty('--acc', a); else el.style.removeProperty('--acc');
+    // #73: colors.text_muted (graue Beschriftungen) und colors.text (Werte, Titel) für jedes Farbschema, z. B. dunkler im hellen Schema
+    const col = el._ecCol || {};
+    const mu = accentRgb(col.text_muted), tx = accentRgb(col.text);
+    if (mu) el.style.setProperty('--mut', mu); else el.style.removeProperty('--mut');
+    if (tx) el.style.setProperty('--txt', 'rgb(' + tx + ')'); else el.style.removeProperty('--txt');
   };
   const hhmm = (d) => new Date(d).toLocaleTimeString(state.loc, state.h12 === undefined ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', hour12: state.h12 });
   const clock = (ms) => hhmm(ms);

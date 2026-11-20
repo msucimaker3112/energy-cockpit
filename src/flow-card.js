@@ -2,6 +2,7 @@
 (() => {
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
+WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
 WD.addStrings({ 'flow.gas': 'Gas', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
@@ -129,7 +130,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .narrow .bats{gap:16px 0}
 .side{display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.side-bat{grid-area:bat}.side-grid{grid-area:grid}.side>.node,.side>.bats{grid-area:auto}
 .narrow .side{gap:16px 0}.wrap.cmp .side{gap:10px 0}
-.util .sub .sr b{white-space:nowrap}
+.util .sub .sr{flex-wrap:nowrap;column-gap:8px}.util .sub .sr>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.util .sub .sr b{white-space:nowrap;flex:none}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
@@ -309,6 +310,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .xr .xl ha-icon{--mdc-icon-size:calc(14px*var(--ts,1));margin-right:5px;flex:none}
 .xr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .xr.warn b{color:rgb(var(--pv))}
+.cfgw{margin-top:8px;padding:6px 9px;border-radius:10px;font-size:calc(.7rem*var(--ts,1));line-height:1.35;color:var(--txt);background:rgba(var(--pv),.14);border:1px solid rgba(var(--pv),.45)}
 .xa{display:flex;align-items:center;margin-bottom:6px;padding:5px 10px;border-radius:999px;font-size:calc(.7rem*var(--ts,1));font-weight:700;letter-spacing:.04em;color:rgb(var(--imp));background:rgba(var(--imp),.14);border:1px solid rgba(var(--imp),.5);cursor:pointer;width:fit-content;max-width:100%;box-sizing:border-box}
 .xa[hidden]{display:none}
 .xa:before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:rgb(var(--imp));margin-right:7px}
@@ -465,6 +467,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
+    this._viaMiss = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!bl[0] && !bl[0].power_out;
     // pv2.to_battery: Nummer des Speichers, durch den PV 2 läuft (1 = battery, 2 = erster Eintrag unter batteries, …), z. B. Anker SOLIX Solarbank mit eigenen Modulen
     // und AC-Ladung aus dem Haus (power_in). Der Speicher braucht power_out (AC-Abgabe ins Haus) und gilt als hinter dem Zähler
     const tb = parseInt(this._c.pv2 && this._c.pv2.to_battery, 10);
@@ -896,9 +899,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.grid) { nodes += (gridH = node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '')); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
-      const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
+      const bHtml0 = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
         `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
+      // #75: pv_to_battery ohne power_out wird nicht angewendet, die erste Batterie-Kachel sagt, was fehlt
+      const bHtml = this._viaMiss ? bHtml0.replace('<div class="sub"></div>', `<div class="cfgw">${T('flow.via.miss')}</div><div class="sub"></div>`) : bHtml0;
       nodes += (batH = nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml);
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');

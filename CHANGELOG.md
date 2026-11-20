@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## 0.38.0
+- **Finnisch vollständig.** [@omcberry](https://github.com/omcberry) hat die 167 fehlenden finnischen Texte ergänzt und einige vorhandene gekürzt ([#77](https://github.com/msucimaker3112/energy-cockpit/pull/77)). Kiitos!
+- **Eigene Textfarben: `colors.text_muted` und `colors.text`.** Die grauen Beschriftungen (Kachelnamen, „Ladestand“, „Temperatur“, Zusatzwerte, Achsen) und die Werte lassen sich jetzt in jeder Karte und jedem Farbschema selbst einfärben, zum Beispiel `text_muted: "#000000"` für mehr Kontrast im hellen Schema. Im Energiefluss-Editor unter „Farben“. Wunsch aus [#73](https://github.com/msucimaker3112/energy-cockpit/issues/73).
+- **Energiefluss, Hinweis bei `pv_to_battery`:** Ist „Solar läuft durch den Speicher“ eingestellt, fehlt aber die Ausgangsleistung des Speichers (`battery.power_out`), zeigt die Batterie-Kachel jetzt einen Hinweis, statt still die normale Darstellung zu zeigen. Editor und Assistent nennen die Anker Solarbank und schlagen Sensoren wie „AC-Hausabgabe“ vor. Anlass: [#75](https://github.com/msucimaker3112/energy-cockpit/issues/75).
+- **Energiefluss, Gas-Kachel:** Lange Zeilen wie „Warmwasser“ brechen nicht mehr um, der Wert bleibt rechts in derselben Zeile, zu lange Beschriftungen werden mit „…“ gekürzt.
+
 ## 0.37.0
 - **Französisch und Finnisch.** Die Karten sprechen jetzt auch Französisch (Beitrag von Shadowspocket, [#39](https://github.com/msucimaker3112/energy-cockpit/pull/39)) und Finnisch (Beitrag von [@omcberry](https://github.com/omcberry), [#30](https://github.com/msucimaker3112/energy-cockpit/issues/30), „Finnish translation: omcberry“). Beide Sprachen sind noch nicht vollständig: Rund die Hälfte der Texte, die seit den Beiträgen dazugekommen sind, erscheint vorerst auf Deutsch. `language: fr` oder `language: fi` legt die Sprache fest, sonst folgt die Karte dem Home-Assistant-Profil. Vielen Dank!
 - **`npm run missing -- fr`** listet die Texte, die in einer Sprache noch fehlen, mit der deutschen Vorlage. So lässt sich eine Übersetzung leicht ergänzen.

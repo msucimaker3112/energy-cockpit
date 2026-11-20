@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.37.0 - MIT License */
+/*! energy-cockpit v0.38.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -109,7 +109,7 @@ const WD = (() => {
     + Object.keys(THEMES).filter((k) => k !== 'dunkel').map((k) => `:host([data-theme="${k}"]){${themeVars(THEMES[k])}}`).join('\n') + '\n';
   // Setzt data-theme (und optional --acc) am Kartenelement. cfg = Kartenkonfiguration, hass für "auto".
   const applyTheme = (el, cfg, hass) => {
-    if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; }
+    if (cfg) { el._ecTheme = cfg.theme; el._ecAccent = cfg.accent; el._ecCol = cfg.colors && typeof cfg.colors === 'object' ? cfg.colors : null; }
     let t = el._ecTheme || 'dunkel';
     if (t === 'auto') {
       let dark = true;
@@ -121,6 +121,11 @@ const WD = (() => {
     if (el.getAttribute('data-theme') !== t) el.setAttribute('data-theme', t);
     const a = accentRgb(el._ecAccent);
     if (a) el.style.setProperty('--acc', a); else el.style.removeProperty('--acc');
+    // #73: colors.text_muted (graue Beschriftungen) und colors.text (Werte, Titel) für jedes Farbschema, z. B. dunkler im hellen Schema
+    const col = el._ecCol || {};
+    const mu = accentRgb(col.text_muted), tx = accentRgb(col.text);
+    if (mu) el.style.setProperty('--mut', mu); else el.style.removeProperty('--mut');
+    if (tx) el.style.setProperty('--txt', 'rgb(' + tx + ')'); else el.style.removeProperty('--txt');
   };
   const hhmm = (d) => new Date(d).toLocaleTimeString(state.loc, state.h12 === undefined ? { hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit', hour12: state.h12 });
   const clock = (ms) => hhmm(ms);
@@ -1026,6 +1031,7 @@ WD.D3 = { stack, solar, meter, house, boiler, wmeter, css, draw, ring, roof };
 (() => {
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
+WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
 WD.addStrings({ 'flow.gas': 'Gas', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
@@ -1153,7 +1159,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .narrow .bats{gap:16px 0}
 .side{display:flex;flex-direction:column;justify-content:center;gap:24px 0;min-width:0}.side-bat{grid-area:bat}.side-grid{grid-area:grid}.side>.node,.side>.bats{grid-area:auto}
 .narrow .side{gap:16px 0}.wrap.cmp .side{gap:10px 0}
-.util .sub .sr b{white-space:nowrap}
+.util .sub .sr{flex-wrap:nowrap;column-gap:8px}.util .sub .sr>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.util .sub .sr b{white-space:nowrap;flex:none}
 .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
@@ -1333,6 +1339,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .xr .xl ha-icon{--mdc-icon-size:calc(14px*var(--ts,1));margin-right:5px;flex:none}
 .xr b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .xr.warn b{color:rgb(var(--pv))}
+.cfgw{margin-top:8px;padding:6px 9px;border-radius:10px;font-size:calc(.7rem*var(--ts,1));line-height:1.35;color:var(--txt);background:rgba(var(--pv),.14);border:1px solid rgba(var(--pv),.45)}
 .xa{display:flex;align-items:center;margin-bottom:6px;padding:5px 10px;border-radius:999px;font-size:calc(.7rem*var(--ts,1));font-weight:700;letter-spacing:.04em;color:rgb(var(--imp));background:rgba(var(--imp),.14);border:1px solid rgba(var(--imp),.5);cursor:pointer;width:fit-content;max-width:100%;box-sizing:border-box}
 .xa[hidden]{display:none}
 .xa:before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:rgb(var(--imp));margin-right:7px}
@@ -1489,6 +1496,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
     this._via = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!(bl[0] && bl[0].power_out);
+    this._viaMiss = (vb === 'direkt' || vb === true) && !!(this._c.pv && this._c.pv.entity) && !!bl[0] && !bl[0].power_out;
     // pv2.to_battery: Nummer des Speichers, durch den PV 2 läuft (1 = battery, 2 = erster Eintrag unter batteries, …), z. B. Anker SOLIX Solarbank mit eigenen Modulen
     // und AC-Ladung aus dem Haus (power_in). Der Speicher braucht power_out (AC-Abgabe ins Haus) und gilt als hinter dem Zähler
     const tb = parseInt(this._c.pv2 && this._c.pv2.to_battery, 10);
@@ -1920,9 +1928,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.grid) { nodes += (gridH = node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '')); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
-      const bHtml = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
+      const bHtml0 = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
         `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
+      // #75: pv_to_battery ohne power_out wird nicht angewendet, die erste Batterie-Kachel sagt, was fehlt
+      const bHtml = this._viaMiss ? bHtml0.replace('<div class="sub"></div>', `<div class="cfgw">${T('flow.via.miss')}</div><div class="sub"></div>`) : bHtml0;
       nodes += (batH = nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml);
       c.batteries.forEach((b, i) => links.push(this._bk(i)));
       if (this._via) links.push('pvbat');
@@ -3019,13 +3029,14 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const sec = (name, title, schema) => ({ type: 'expandable', name, title, schema });
 
   const LABELS = {
+    text_muted: 'Beschriftungen (sonst grau)', text: 'Werte und Titel',
     title: 'Titel', name: 'Anzeigename', icon: 'Symbol', minus: 'Differenz: abziehen (Sensor, W), z. B. Zähler 2 einer Zählerkaskade', plus: 'Differenz: dazurechnen (Sensor, W, optional)',
     entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
-    power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500)',
+    power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', why: 'Warum?-Erklärung (? an der Netz-Kachel)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
@@ -3086,7 +3097,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       numb('feed_in_ct', 0, 200, 0.1),
       bool('daily_from_total', false),
       ent('weather', ['weather']),
-      sec('colors', 'Farben (z. B. #22c55e)', [txt('pv'), txt('grid_import'), txt('grid_export'), txt('battery'), txt('battery_charge'), txt('battery_discharge'), txt('home')]),
+      sec('colors', 'Farben (z. B. #22c55e)', [txt('pv'), txt('grid_import'), txt('grid_export'), txt('battery'), txt('battery_charge'), txt('battery_discharge'), txt('home'), txt('text_muted'), txt('text')]),
       numb('label_size', 0.5, 4, 0.1),
       bool('why', false),
       bool('show_clock', true),
@@ -3152,8 +3163,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'battery.max_soc', label: 'Maximalladung der Batterie (Sensor oder Helfer, %)', kind: 'percent', optional: true, hints: H(/lade.*ende|max|charge.*(end|cut|limit)|ende/i, /soc|ladestand|ladung/i) },
       { path: 'battery.max_pct', label: 'oder feste Maximalladung (%)', kind: 'number', optional: true, step: '1' },
       { path: 'battery.soc_display', label: 'Ladestand anzeigen als', kind: 'choice', options: [{ value: 'brutto', label: 'Ladestand der Batterie (Standard)' }, { value: 'nutzbar', label: 'Nutzbarer Anteil (0 % = Entladegrenze)' }] },
-      { path: 'battery.power_out', label: 'Nur Speicher mit angeschlossenen Modulen (z. B. Marstek B2500): Ausgangsleistung', kind: 'power', optional: true, hints: H(/ausgang|output|abgabe|ac.?out/i, /batter|akku|speicher|storage|b2500|marstek/i), help: 'Hängen die Solarmodule direkt am Speicher, trägst du hier die Leistung ein, die der Speicher ans Haus abgibt. Danach unten Solar läuft durch den Speicher auf Direkt stellen. Als Solar-Sensor dient die Eingangsleistung der Module.' },
-      { path: 'pv_to_battery', label: 'Solar läuft durch den Speicher', kind: 'choice', options: PV_VIA, help: 'Nur für Speicher vor dem Wechselrichter. Die Karte zeichnet dann Solar -> Speicher -> Haus und zeigt Durchleitung, wenn der Speicher weder lädt noch entlädt.' },
+      { path: 'battery.power_out', label: 'Speicher mit eigenen Solarmodulen (z. B. Marstek B2500, Anker Solarbank): Ausgangsleistung ins Haus', kind: 'power', optional: true, hints: H(/ausgang|output|abgabe|ac.?out|hausabgabe/i, /batter|akku|speicher|storage|b2500|marstek|solarbank|solix/i), help: 'Hängen die Solarmodule direkt am Speicher, trägst du hier die Leistung ein, die der Speicher ans Haus abgibt (bei der Anker Solarbank zum Beispiel „AC-Hausabgabe“). Danach unten Solar läuft durch den Speicher auf Direkt stellen. Als Solar-Sensor dient die Eingangsleistung der Module.' },
+      { path: 'pv_to_battery', label: 'Solar läuft durch den Speicher', kind: 'choice', options: PV_VIA, help: 'Nur für Speicher vor dem Wechselrichter, zum Beispiel Marstek B2500 oder Anker Solarbank. Braucht die Ausgangsleistung ins Haus (Feld darüber). Die Karte zeichnet dann Solar -> Speicher -> Haus und zeigt Durchleitung, wenn der Speicher weder lädt noch entlädt.' },
       { path: 'battery.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn Laden negativ und Entladen positiv gemeldet wird.' },
       { path: 'battery.capacity_kwh', label: 'Kapazität (kWh)', kind: 'number', optional: true, help: 'Für die Prognose "voll um / reicht bis".' },
       { path: 'battery.temp', label: 'Temperatur', kind: 'temp', optional: true, hints: H(/batter|akku|speicher|storage|bat\d/i, /temp/i), help: 'Optional. Steht in der Kachel unter dem Ladestand.' },
@@ -6127,7 +6138,7 @@ WD.addTranslations('en', {
   'flow.title': 'Energy flow', 'flow.pv': 'Solar', 'flow.pv2': 'Solar 2', 'flow.grid2': 'Second meter', 'flow.grid': 'Grid', 'flow.battery': 'Battery', 'flow.home': 'House consumption',
   'flow.cons_total': 'Consumers', 'flow.rest': 'Unaccounted', 'flow.restpct': '{n} % measured', 'flow.soc': 'Charge level', 'flow.temp': 'Temperature',
   'flow.next': 'Next →', 'flow.error': 'Configure at least pv or grid',
-  'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Heating', 'gas.hw': 'Hot water', 'gas.today': 'Today', 'tag.gas.on': 'Heating', 'tag.water.on': 'Flowing', 'tag.today': 'Today',
+  'flow.via.miss': '⚠ “Solar runs through the battery” also needs the output power to the house (<b>battery.power_out</b>); until then the normal layout is used.', 'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Heating', 'gas.hw': 'Hot water', 'gas.today': 'Today', 'tag.gas.on': 'Heating', 'tag.water.on': 'Flowing', 'tag.today': 'Today',
   'pill.aut': 'Current energy independence', 'pill.self': 'Current self-consumption', 'pv.use.home': 'Home', 'pv.use.bat': 'Battery', 'pv.use.grid': 'Grid', 'pv.use.store': 'Storage',
   'stat.pv': 'Solar today', 'stat.fc1': 'Solar tomorrow', 'stat.fc2': 'Solar the day after tomorrow', 'stat.imp': 'Grid import today', 'stat.exp': 'Grid export', 'stat.bat': 'Battery ± today', 'stat.aut': 'Energy independence today',
   'mix.pv': 'Solar', 'mix.bat': 'Battery', 'mix.grid': 'Grid',
@@ -6245,7 +6256,7 @@ WD.addTranslations('nl', {
   'flow.title': 'Energiestroom', 'flow.pv': 'Zonne-energie', 'flow.pv2': 'Zonne-energie 2', 'flow.grid2': 'Tweede meter', 'flow.grid': 'Net', 'flow.battery': 'Batterij', 'flow.home': 'Huisverbruik',
   'flow.cons_total': 'Verbruikers', 'flow.rest': 'Niet toegewezen', 'flow.restpct': '{n} % gemeten', 'flow.soc': 'Laadniveau', 'flow.temp': 'Temperatuur',
   'flow.next': 'Volgende →', 'flow.error': 'Configureer ten minste pv of grid',
-  'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Verwarming', 'gas.hw': 'Warm water', 'gas.today': 'Vandaag', 'tag.gas.on': 'Verwarmt', 'tag.water.on': 'Stroomt', 'tag.today': 'Vandaag',
+  'flow.via.miss': '⚠ “Zonne-energie loopt via de batterij” heeft ook het uitgangsvermogen naar het huis nodig (<b>battery.power_out</b>); tot dan geldt de normale weergave.', 'flow.gas': 'Gas', 'flow.water': 'Water', 'gas.heat': 'Verwarming', 'gas.hw': 'Warm water', 'gas.today': 'Vandaag', 'tag.gas.on': 'Verwarmt', 'tag.water.on': 'Stroomt', 'tag.today': 'Vandaag',
   'pill.aut': 'Zelfvoorziening nu', 'pill.self': 'Zelfverbruik nu', 'pv.use.home': 'Huis', 'pv.use.bat': 'Batterij', 'pv.use.grid': 'Net', 'pv.use.store': 'Opslag',
   'stat.pv': 'Zonne-energie vandaag', 'stat.fc1': 'Zonne-energie morgen', 'stat.fc2': 'Zonne-energie overmorgen', 'stat.imp': 'Netafname vandaag', 'stat.exp': 'Teruglevering', 'stat.bat': 'Batterij ± vandaag', 'stat.aut': 'Zelfvoorziening vandaag',
   'mix.pv': 'Zonne-energie', 'mix.bat': 'Batterij', 'mix.grid': 'Net',
@@ -6616,9 +6627,9 @@ WD.addTranslations('fi', {
   'st.base': "Peruskuorma (yöllä)",
   'st.monthly': "Aurinkotuotto kuukausittain",
   'st.record': "Ennätyspäivä",
-  'st.eff': "Akun hyötysuhde",
-  'st.cycles': "Täydet syklit",
-  'st.temp': "Akun lämpötila",
+  'st.eff': "Hyötysuhde",
+  'st.cycles': "Akun syklit",
+  'st.temp': "Lämpötila",
   'st.pvall': "Aurinkotuotto yhteensä",
   'st.earned': "<b>{e} {cur}</b> / {i} {cur} ansaittu takaisin",
   'st.eta': "<b>{y} {cur}/vuosi</b> · maksettu takaisin noin vuonna <b>{yr}</b>",
@@ -6695,7 +6706,7 @@ WD.addTranslations('fi', {
   'room.since': "Tiedot alkaen",
   'room.unconf': "Ei vielä määritetty. Muokkaa korttia (kynä): <b>Avustaja</b> auttaa valitsemaan mittarit.",
   'flow.title': "Energiavirta",
-  'flow.pv': "Aurinkopaneelit",
+  'flow.pv': "Aurinko",
   'flow.pv2': "Aurinko 2",
   'flow.grid2': "Toinen mittari",
   'flow.grid': "Verkko",
@@ -6725,14 +6736,14 @@ WD.addTranslations('fi', {
   'mix.bat': "Akku",
   'mix.grid': "Verkko",
   'tag.offline': "Ei yhteyttä",
-  'tag.producing': "Tuottaa",
+  'tag.producing': "Tuotanto",
   'tag.idle': "Lepotila",
   'tag.balanced': "Tasapainossa",
   'tag.import': "Osto",
   'tag.export': "Myynti",
-  'tag.standby': "Valmiustila",
-  'tag.charging': "Latautuu",
-  'tag.discharging': "Purkautuu",
+  'tag.standby': "Lepotila",
+  'tag.charging': "Lataus",
+  'tag.discharging': "Purku",
   'tag.passthrough': "Läpivirtaus",
   'bat.io': "Sisään <b>{in}</b> · ulos <b>{out}</b>",
   'bat.split': " (talo <b>{home}</b> · verkko <b>{grid}</b>)",
@@ -6754,5 +6765,172 @@ WD.addTranslations('fi', {
   'ban.cost': "maksaa nyt <b>{cost} {cur}/h</b>",
   'ban.batempty': "Akku tyhjä",
   'ban.batlimit': "Akku maksimiteholla",
+  'bat.usable_slow': "<div class=\"sr\"><span>Käytettävissä</span> <b>{kwh} kWh</b></div><div class=\"sr\"><span>Lataus</span> <b>hidas</b></div>",
+  'bat.full_at': "<div class=\"sr\"><span>Täynnä klo</span> <b>{time}</b></div><div class=\"sr\"><span>Aikaa täyteen</span> <b>{dur}</b></div>",
+  'bat.last_24': "<div class=\"sr\"><span>Riittää</span> <b>yli 24 h</b></div><div class=\"sr\"><span>Käytettävissä</span> <b>{kwh} kWh</b></div>",
+  'bat.last_until': "<div class=\"sr\"><span>Tyhjä klo</span> <b>{time}</b></div><div class=\"sr\"><span>Aikaa tyhjään</span> <b>{dur}</b></div>",
+  'bat.full': "<div class=\"sr\"><span>Käytettävissä</span> <b>{kwh} kWh</b></div>",
+  'bat.usable': "<div class=\"sr\"><span>Käytettävissä</span> <b>{kwh} kWh</b></div><div class=\"sr\"><span>Reservi</span> <b>{res} %</b></div>",
+  'bat.usable0': "<div class=\"sr\"><span>Käytettävissä</span> <b>{kwh} kWh</b></div>",
+  'st.bat': "Akku",
+  'st.sum': "Yhteensä",
+  'st.solar': "Aurinko",
+  'st.recon': "{d}",
+  'st.r.pv': "Tuotettu",
+  'st.r.self': "Omaan käyttöön",
+  'st.r.fed': "Myyty",
+  'st.r.drawn': "Ostettu",
+  'st.r.selfq': "Omakäyttö",
+  'st.r.cons': "Kulutus",
+  'st.note': "Ostosähkö {p} c/kWh · myynti {f} c/kWh · {g} · takaisinmaksu arvioitu nykyhinnoilla",
+  'st.note.nofee': "vain energiakulut ilman perusmaksuja",
+  'st.note.fee': "Ostosähkön kustannus perusmaksuineen",
+  'st.g2of': "josta {n}",
+  'st.basefee': "josta perusmaksu",
+  'st.bud.since': "Mittausdata vasta {d} alkaen: tavoite ja ennuste koskevat tätä jaksoa ja ovat alustavia",
+  'st.cc.group': "Ryhmä",
+  'why.q.bal': "Miksi verkosta ei osteta?",
+  'why.q.baldis': "Miksi akku purkautuu?",
+  'why.q.balchg': "Miksi akku latautuu?",
+  'why.bal.both': "Aurinko tuottaa {pv} ja akku {bat}. Yhdessä ne kattavat talon kulutuksen ({home}).",
+  'why.bal.sun': "Aurinko tuottaa {pv} ja kattaa talon kulutuksen ({home}) yksin.",
+  'why.bal.bat': "Akku ({soc} %) antaa {bat} ja kattaa talon kulutuksen ({home}) yksin.",
+  'why.bal.low': "Talo kuluttaa juuri nyt hyvin vähän sähköä ({home}).",
+  'why.bal.dis': "Aurinko ei yksin riitä kulutukseen {home}. Akku antaa loput ({bat}), varaustaso {soc} %.",
+  'why.bal.chg': "Aurinko tuottaa enemmän kuin talo kuluttaa. Ylijäämä ({w}) lataa akkua.",
+  'why.imp': "Miksi {w} ostoa verkosta?",
+  'why.exp': "Miksi {w} myyntiä verkkoon?",
+  'why.bal': "Verkko tasapainossa",
+  'why.asof': "Tilanne klo {t}",
+  'why.cover': "Talo kuluttaa {home}. Sähkö tulee: {parts}",
+  'why.solar': "Aurinko",
+  'why.batt': "Akku",
+  'why.grid': "Verkko",
+  'why.bm': "Akun lataus",
+  'why.row.pv': "Aurinko tuottaa",
+  'why.row.home': "Talo kuluttaa",
+  'why.row.chg': "Akun lataus",
+  'why.row.exp': "Myynti",
+  'why.q.bat': "Miksi ei akusta?",
+  'why.q.sun': "Miksi ei aurinkosähköä?",
+  'why.q.feed': "Miksi ei akkuun?",
+  'why.q.tip': "Vinkki",
+  'why.q.hint': "Huomio",
+  'why.bat.empty': "Akku on tyhjä ({soc} %, purkuraja {res} %).",
+  'why.bat.idle': "Akussa on {soc} %, mutta se ei anna nyt sähköä. Tarkista akun toimintatila tai estoaika.",
+  'why.bat.dis': "Akku antaa jo {w}.",
+  'why.sun.night': "On yö. Aurinko nousee klo {t}.",
+  'why.sun.fc': " Ennuste huomiselle {kwh} kWh.",
+  'why.sun.low': "Aurinko tuottaa nyt vain {w}.",
+  'why.sun.zero': "Aurinko ei tuota nyt mitään.",
+  'why.sun.wx': " Sää: {cnd}.",
+  'why.sun.part': "Aurinko tuottaa {pv}, mikä ei riitä kulutukseen {home}.",
+  'why.rest': "Suurta osaa kulutuksesta ({w}) ei ole kohdistettu millekään laitteelle. Lisää laitteita korttiin.",
+  'why.full': "Akku on täynnä ({soc} %) eikä enää lataudu.",
+  'why.notfull': "Akku ei lataudu nyt, vaikka tilaa on vielä ({soc} %). Tarkista akun toimintatila.",
+  'why.charging': "Akku latautuu jo teholla {w}.",
+  'why.tip.sug': "{w} ylijäämää: nyt sopii käynnistää {names}.",
+  'why.bal.txt': "Aurinko ja akku kattavat talon kulutuksen ({home}) ilman verkkoa.",
+  'why.none': "Selitykseen ei ole nyt tietoja.",
+  'why.top': "josta {n} {w}",
+  'bat.in2': " (aurinko 2 <b>{pv}</b> · talo <b>{ac}</b>)",
+  'xt.alarm': "Hälytys",
+  'sky.sunny': "Aurinkoista",
+  'sky.clear-night': "Selkeä yö",
+  'sky.partlycloudy': "Puolipilvistä",
+  'sky.cloudy': "Pilvistä",
+  'sky.fog': "Sumua",
+  'sky.rainy': "Sadetta",
+  'sky.pouring': "Rankkasadetta",
+  'sky.snowy': "Lumisadetta",
+  'sky.snowy-rainy': "Räntäsadetta",
+  'sky.lightning': "Ukkosta",
+  'sky.lightning-rainy': "Ukkosta ja sadetta",
+  'sky.hail': "Raekuuroja",
+  'sky.windy': "Tuulista",
+  'sky.windy-variant': "Tuulista ja pilvistä",
+  'sky.exceptional': "Poikkeuksellinen sää",
+  'sky.cloud': "Pilvisyys",
+  'sky.wind': "Tuuli",
+  'sky.nofc': "Sääentiteetti ei anna ennustetta",
+  'flow.gas': "Kaasu",
+  'flow.water': "Vesi",
+  'gas.heat': "Lämmitys",
+  'gas.hw': "Lämmin vesi",
+  'gas.today': "Tänään",
+  'tag.gas.on': "Lämmitys",
+  'tag.water.on': "Virtaus",
+  'tag.today': "Tänään",
+  'room.grid': "Verkko",
+  'room.battery': "Akku",
+  'room.pv': "Aurinko",
+  'room.csv.period': "Jakso",
+  'room.csv.total': "Yhteensä kWh",
+  'room.csv.grid': "Verkko kWh",
+  'room.csv.battery': "Akku kWh",
+  'room.csv.pv': "Aurinko kWh",
+  'room.csv.cost': "Kustannus",
+  'room.csv.import_cost': "ostohinnalla",
+  'room.credit': "Hyvitys {amount} {cur}",
+  'room.payment': "Lisämaksu {amount} {cur}",
+  'room.year_summary': "Vuosi {year}: kulutus {cost} {cur}, ennakkomaksut {count} × {advance} {cur} = {total} {cur}, tilanne nyt {balance}",
+  'room.invoice': "Laskutus",
+  'room.advance': "Ennakkomaksu",
+  'room.no_advance': "ilman ennakkomaksua",
+  'room.month_forecast': "Ennuste kuun loppuun",
+  'room.from_day2': "2. mittauspäivästä alkaen",
+  'room.previous_month': "Edellinen kuukausi",
+  'room.no_data': "ei tietoja",
+  'room.night_w': "W yöllä",
+  'room.night_total': "Yhteensä, klo 0–5",
+  'room.threshold': "Raja {w} W",
+  'room.above': "yli rajan",
+  'room.ok': "kunnossa",
+  'room.night_note': "Jos tämä jatkuu yötä päivää, valmiustila vie noin <b>{energy} kWh{cost} kuukaudessa</b> (14 viime yön keskiarvo).",
+  'room.night_no_data': "Yötunteja on vielä liian vähän (tarvitaan vähintään yksi yö).",
+  'room.night_base': "Peruskuorma yöllä (valmiustila)",
+  'room.activity': "Käyttöajat",
+  'room.active_above': "aktiivinen = yli {w} W",
+  'room.active_today': "Aktiiviset tunnit tänään",
+  'room.active_day': "Aktiivisin päivä",
+  'room.activity_note': "Keskiteho viikonpäivittäin ja tunneittain (viimeiset 8 viikkoa). Vaaleasta voimakkaan oranssiin: vähän – paljon. Oikea sarake kertoo aktiiviset tunnit päivässä.",
+  'room.archive': "Kuukausiarkisto (mittarilukemat ja summat, tallennettu kuun 1. päivänä)",
+  'room.month_label': "Kuukausi",
+  'room.grid_label': "Verkko",
+  'room.battery_label': "Akku",
+  'room.balance': "Saldo",
+  'room.meter': "Mittari",
+  'room.import': "Osto",
+  'room.feed': "Myynti",
+  'room.archive.note': "Saldo = ennakkomaksu miinus kustannukset (positiivinen: hyvitys). Arvot on lukittu, eivätkä ne muutu, vaikka hinnat myöhemmin muuttuisivat.",
+  'room.archive.empty': "Ei vielä merkintöjä. Ensimmäinen kuukausi tallennetaan seuraavan kuun 1. päivänä klo 7.00.",
+  'room.day': "Päivä",
+  'room.chart': "Kehitys ja kustannukset",
+  'room.area': "Alue",
+  'room.by_area': "Alueittain",
+  'room.included': "sis. perusmaksun {amount} {cur}",
+  'room.fee': " · perusmaksu <b>{amount} {cur}</b>/kk",
+  'room.price.all': "Kaikki ostohinnalla <b>{price} c/kWh</b>{fee}",
+  'room.explain.fixed': "Arvotus: jokainen kWh maksaa ostohinnan, tuli se mistä tahansa.",
+  'room.explain.no_sources': "Ilman talon energialähteitä (home_energy) koko kulutus arvotetaan ostohinnalla.",
+  'room.price.mix': "Verkko <b>{grid} c</b> · akku <b>{battery} c</b> · aurinko <b>{pv} c/kWh</b>{fee}",
+  'room.explain.mix': "Arvotus: jokaisella lähteellä on kiinteä hinta (verkko ostohinnalla, akku ja aurinko asetetuilla hinnoilla).",
+  'room.price.opportunity': "Verkko, akku ja aurinkosähkö, jonka talo olisi itse käyttänyt: <b>{grid} c/kWh</b> · ylijäämäaurinkosähkö (muuten myyty): <b>{feed} c/kWh</b>{fee}",
+  'room.explain.opportunity': "Arvotus menetetyn hyödyn mukaan: verkosta ja akusta otettu sähkö sekä aurinkosähkö, jonka talosi olisi voinut käyttää itse, maksaa ostohinnan. Vain niiden tuntien aurinkosähkö, joina sähköä myytiin verkkoon, arvotetaan myyntihinnalla.",
+  'room.full': "<br>Vertailun vuoksi <b>kaikki ostohinnalla</b> ({price} c/kWh): <b>{cost} {cur}</b>.",
+  'room.subtitle': "Sähkönkulutus ja kustannukset",
+  'room.others': "muut laitteet",
+  'room.vs_previous_month': "edellisestä kuukaudesta",
+  'room.today': "tänään",
+  'room.hourly_curve': "tuntikäyrä",
+  'room.now_today': "Nyt ja tänään",
+  'room.low': "rauhallinen",
+  'room.elevated': "koholla",
+  'room.high': "korkea",
+  'room.no_use_today': "ei vielä kulutusta tänään",
+  'room.source_today': "Lähteet tänään",
+  'room.mix_tip': "Verkkosähköä kuluu keskimäärin vähiten <b>klo {from}–{to}</b> (keskimäärin {share} % verkosta). Suuret kuormat kannattaa ajoittaa silloin.",
+  'room.mix_tip_missing': "Suositukseen tarvitaan vielä useamman päivän tiedot.",
+  'room.and_cost': " ja {amount} {cur}",
 });
 
