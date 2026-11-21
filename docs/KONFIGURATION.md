@@ -456,7 +456,7 @@ colors:
 
 Werte sind `#hex` (zum Beispiel `#22c55e`) oder `r,g,b` (zum Beispiel `34,197,94`). Ungültige Werte werden ignoriert. Die Farben gelten nur für die Karte, in der sie stehen, andere Karten bleiben unberührt.
 
-**Auch in Statistik und Geräte & Verbrauch:** Denselben Schlüssel `colors` verstehen auch die Statistik-Karte und die Geräte-Karte, zum Beispiel für dunklere Töne im hellen Farbschema. Trag ihn dort ebenfalls ein, die Karten übernehmen ihn nicht voneinander.
+**Auch in Statistik und Geräte & Verbrauch:** Denselben Schlüssel `colors` verstehen auch die Statistik-Karte und die Geräte-Karte, zum Beispiel für dunklere Töne im hellen Farbschema. Trag ihn dort ebenfalls ein, die Karten übernehmen ihn nicht voneinander. In der Statistik-Karte gibt es dafür im Editor (Reiter „Alle Felder“) den Abschnitt **Farben**. Bei der Geräte-Karte geht es bisher nur im YAML-Editor.
 
 | Karte | Schlüssel, die wirken |
 |---|---|

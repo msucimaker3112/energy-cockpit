@@ -1,0 +1,58 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik Farben Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft colors in der Statistik: Batteriefarbe (Kosten je Verbraucher, Kacheln), Rückfall auf battery_charge, ungültige Werte. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// Heute 00 Uhr: nur Netz. 01 Uhr: nur PV. 02 Uhr: halb Netz, halb PV, Akku lädt (mit pv_ac 50 % Netz, sonst 100 %)
+const hrs=[{t:d0,pv:0,imp:1,exp:0,chg:0,dis:0,e:1,g:0,b:0,p:0},{t:d0+H,pv:2,imp:0,exp:1,chg:0,dis:0,e:1,g:0,b:0,p:2},{t:d0+2*H,pv:1,imp:1,exp:0,chg:1,dis:0,e:1,g:1,b:1,p:1}];
+if(now.getDate()>1)hrs.push({t:d0-24*H,pv:0,imp:2,exp:0,chg:0,dis:0,e:2,g:2,b:0,p:0});
+const past={t:new Date(now.getFullYear(),0,1,12).getTime(),pv:0,imp:4,exp:0,chg:0,dis:0,e:4,g:4,b:0,p:0};
+const map={'sensor.pv':'pv','sensor.imp':'imp','sensor.exp':'exp','sensor.chg':'chg','sensor.dis':'dis','sensor.e':'e','sensor.g':'g','sensor.b':'b','sensor.p':'p'};
+let calls=[];
+const wk0=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7).getTime();let meanOn=false;
+const hassFor=(o)=>({states:Object.assign({'sensor.w':S(630)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  if(m.period!=='hour')return {};
+  if(m.types&&m.types.includes('state'))return {}; // Abfrage für "Heute" aus den Gesamtzählern, gehört nicht zu den Verbraucherkosten
+  if(m.types&&m.types.includes('mean'))return meanOn?{[m.statistic_ids[0]]:hrs.map(x=>({start:x.t,mean:.25}))}:{};
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15;calls.push({from,to});
+  const r={};const rows=hrs.concat(now.getMonth()>0?[past]:[]).filter(x=>x.t>=from&&x.t<to);
+  (m.statistic_ids||[]).forEach(id=>{if(map[id])r[id]=rows.map(x=>({start:x.t,change:x[map[id]]}));});return r;}});
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:50,
+  cost_consumers:[{name:'Gemessen',icon:'mdi:car-electric',color:'#a78bfa',grid:'sensor.g',battery:'sensor.b',pv:'sensor.p',power:'sensor.w'},{name:'Mix <b>',icon:'mdi:water-boiler',color:'#38bdf8',energy:'sensor.e'}]};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1500);};
+async function run(){
+  const bat=(e)=>getComputedStyle(q(e,'.ccard[data-c="0"] .cc-bar i:nth-child(2)')).backgroundColor;
+  const dot=(e)=>getComputedStyle(q(e,'.ccard[data-c="0"] [data-f="ccK0"] span:nth-child(2) i')).backgroundColor;
+  const tile=(e)=>getComputedStyle(q(e,'.lbl i')).backgroundColor;
+  let e=mount(base,hassFor());await wait(800);await tab(e,'day');
+  ok('ohne colors: Batterie blau im Balken',bat(e)==='rgb(96, 165, 250)',bat(e));
+  e=mount({...base,colors:{battery:'#22c55e'}},hassFor());await wait(800);await tab(e,'day');
+  ok('colors.battery: Balken grün',bat(e)==='rgb(34, 197, 94)',bat(e));
+  ok('colors.battery: Punkt in der Zeile grün',dot(e)==='rgb(34, 197, 94)',dot(e));
+  e=mount({...base,colors:{battery_charge:'#22c55e'}},hassFor());await wait(800);await tab(e,'day');
+  ok('nur battery_charge: Balken grün (Rückfall)',bat(e)==='rgb(34, 197, 94)',bat(e));
+  ok('nur battery_charge: Punkt grün',dot(e)==='rgb(34, 197, 94)',dot(e));
+  e=mount({...base,colors:{battery_charge:'#22c55e',battery:'#a855f7'}},hassFor());await wait(800);await tab(e,'day');
+  ok('battery gewinnt gegen battery_charge',bat(e)==='rgb(168, 85, 247)',bat(e));
+  e=mount({...base,colors:{battery_charge:'rot',battery:'#12'}},hassFor());await wait(800);await tab(e,'day');
+  ok('ungültige Farben: Standard bleibt',bat(e)==='rgb(96, 165, 250)',bat(e));
+  // #81: Beschriftung unter den Werten (Netzkosten, Ersparnis) so groß wie die Zeilen in den anderen Kacheln
+  e=mount(base,hassFor());await wait(800);await tab(e,'day');
+  const capS=parseFloat(getComputedStyle(q(e,'.cc-cap')).fontSize),svS=parseFloat(getComputedStyle(q(e,'.sv>span')).fontSize);
+  ok('Netzkosten/Ersparnis gleich groß wie die Zeilen der anderen Kacheln',Math.abs(capS-svS)<0.1,capS+' px gegen '+svS+' px');
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount({...base,colors:{battery_charge:'#22c55e'}},hassFor());}
+</script></body></html>

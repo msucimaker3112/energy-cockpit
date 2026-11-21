@@ -156,7 +156,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc-val{display:flex;align-items:baseline;font-variant-numeric:tabular-nums}
 .cc-val .num{font-size:calc(1.95rem*var(--vs,1));font-weight:800;letter-spacing:-.025em;line-height:1;color:rgb(var(--imp))}
 .cc-val .unit{font-size:calc(.95rem*var(--ts,1));font-weight:700;color:rgb(var(--imp));opacity:.8;margin-left:4px}
-.cc-cap{display:block;font-size:calc(.66rem*var(--ts,1));color:rgb(var(--mut));margin-top:5px}
+.cc-cap{display:block;font-size:calc(.74rem*var(--ts,1));font-weight:500;color:rgb(var(--mut));margin-top:5px}
 .cc-sav{text-align:right;font-variant-numeric:tabular-nums}
 .cc-sav .cc-val{justify-content:flex-end}.cc-val.s .num,.cc-val.s .unit{color:rgb(var(--sav))}
 .cc-bar{display:flex;height:9px;border-radius:999px;overflow:hidden;background:rgba(var(--ov),.07);margin-top:12px}
