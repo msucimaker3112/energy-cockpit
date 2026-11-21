@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.40.0
+- **Geräte & Verbrauch, Schriftgröße: `text_size` und `label_size`.** Die Geräte-Karte versteht jetzt beide Optionen wie Energiefluss und Statistik: `gross`, `sehr_gross` oder eine Zahl vergrößern die Texte, eine Zahl auch die großen Werte, `label_size` nur die Texte. Im Editor unter „Allgemein“. Anlass: [#86](https://github.com/msucimaker3112/energy-cockpit/issues/86).
+- **Statistik, Amortisation: „von … zurückverdient“ in der Zeile mit der Prozentzahl.** Der Betrag steht jetzt rechtsbündig neben dem Prozentwert, in derselben Farbe, wie bei den anderen Kacheln. Anlass: [#88](https://github.com/msucimaker3112/energy-cockpit/issues/88).
+- **Fehler behoben, Geräte-Editor:** Das Feld „Sprache der Karte“ (seit 0.36.0) war im Editor der Geräte-Karte nicht mit der Konfiguration verbunden, die Auswahl blieb ohne Wirkung. Jetzt wird `language` gespeichert. Im YAML ging es schon vorher.
+
 ## 0.39.1
 - **Statistik, Farben im Editor:** Die Statistik-Karte versteht `colors` schon länger, im Editor gab es dafür aber kein Feld. Wer nur den Editor benutzt, konnte die Batteriefarbe deshalb nicht ändern („es bleibt blau“). Jetzt gibt es im Reiter „Alle Felder“ den Abschnitt „Farben“ mit Solar, Netzbezug, Einspeisung, Batterie, Batterie lädt und Haus. Trägt man dort die Ladefarbe aus dem Energiefluss ein, folgen Kacheln, Balken und die Zeile „Batterie“ bei den Kosten je Verbraucher. Die Karten übernehmen Farben nicht voneinander, jede Karte braucht ihren Eintrag. Anlass: [#81](https://github.com/msucimaker3112/energy-cockpit/issues/81).
 - **Statistik, Beschriftungen bei den Kosten je Verbraucher:** „Netzkosten“ und „Ersparnis“ unter den großen Werten sind jetzt so groß wie die Zeilen in den anderen Kacheln.

@@ -583,6 +583,8 @@ grid_price: input_number.strompreis
 feed_in: input_number.einspeiseverguetung
 surplus: sensor.pv_ueberschuss
 standby_w: 15
+# text_size: sehr_gross                     # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die großen Werte)
+# label_size: 1.5                           # nur Raum- und Gerätenamen, Zeilen und Beschriftungen größer
 home_energy:                       # für Strommix je Zeitraum
   pv: sensor.pv_gesamt_kwh
   import: sensor.netzbezug_gesamt_kwh
@@ -600,6 +602,8 @@ rooms:
         energy: sensor.kuehlschrank_energie
         lock: true                 # nur Anzeige
 ```
+
+**Schriftgröße:** `text_size` und `label_size` wirken wie im Energiefluss. `gross` und `sehr_gross` vergrößern die Texte (Raum- und Gerätenamen, Unterzeilen, Beschriftungen), eine Zahl wie `2` auch die großen Werte oben. `label_size` (0,5 bis 4) vergrößert nur die Texte und gilt vor `text_size`. Im Editor stehen beide unter „Allgemein“.
 
 ### Geräteoptionen
 

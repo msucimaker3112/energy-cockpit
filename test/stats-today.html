@@ -76,6 +76,11 @@ async function run(){
   e=mount({...base,pv_total:'sensor.dpv',investment_eur:1000,pv_lifetime:'sensor.life'},hassFor({'sensor.dpv':S(3),'sensor.life':S(2400),'sensor.exp':S(400)}));await wait(1800);
   ok('pv_lifetime: PV gesamt 2,4 MWh',/^2,4 ?MWh/.test(t(e,'[data-f="pvAll"]')),t(e,'[data-f="pvAll"]'));
   ok('pv_lifetime: Amortisation aus dem Zähler (2000·0,30+400·0,08 = 632 €)',/632/.test(t(e,'[data-f="amoEarned"]')),t(e,'[data-f="amoEarned"]'));
+  // #88 (Joe): "von … zurückverdient" steht in der Zeile mit der Prozentzahl, rechtsbündig, der Betrag in derselben Farbe
+  { const big=q(e,'.amo .big'),earn=q(e,'.amo .big [data-f="amoEarned"]'),num=q(e,'.amo .big .num');
+    ok('Amortisation: Betrag steht in der Zeile mit der Prozentzahl',!!earn&&!!num&&Math.abs(earn.getBoundingClientRect().bottom-num.getBoundingClientRect().bottom)<8,earn&&num?earn.getBoundingClientRect().bottom+' / '+num.getBoundingClientRect().bottom:'fehlt');
+    ok('Amortisation: Betrag rechtsbündig',!!earn&&Math.abs(earn.getBoundingClientRect().right-big.getBoundingClientRect().right)<2,earn?earn.getBoundingClientRect().right+' / '+big.getBoundingClientRect().right:'fehlt');
+    ok('Amortisation: Betrag in der Farbe der Prozentzahl',!!earn&&getComputedStyle(earn.querySelector('b')).color===getComputedStyle(num).color,earn?getComputedStyle(earn.querySelector('b')).color+' / '+getComputedStyle(num).color:'fehlt'); }
   e=mount({...base,pv_total:'sensor.dpv',investment_eur:1000},hassFor({'sensor.dpv':S(3),'sensor.exp':S(400)}));await wait(1800);
   ok('ohne pv_lifetime: wie bisher aus pv_total',/0,003 ?MWh|0,0 ?MWh/.test(t(e,'[data-f="pvAll"]')),t(e,'[data-f="pvAll"]'));
   // 8. decimals (#25)

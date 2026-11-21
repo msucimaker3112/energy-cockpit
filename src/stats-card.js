@@ -57,7 +57,9 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .ring2 div{flex:1}
 .duo.one{grid-template-columns:1fr}
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
-.amo .big{display:flex;align-items:baseline;margin-top:10px}
+.amo .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
+.amo .big .earn{margin-left:auto;padding-left:12px;text-align:right;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.amo .big .earn b{color:rgb(var(--sav));font-weight:700}
 .amo .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
 .amo .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--sav));font-weight:700;margin-left:6px}
 .pbar{position:relative;height:16px;border-radius:999px;background:rgba(var(--ov),.06);overflow:hidden;margin-top:12px}
@@ -351,9 +353,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         <div class="dhint" data-f="dHint" style="display:none"></div>
         <div class="duo">
           <div class="panel amo"><span class="lbl" style="--c:var(--sav)"><i></i>${T('st.amo')}</span>
-            <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span></div>
+            <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span><span class="earn" data-f="amoEarned">—</span></div>
             <div class="pbar"><div class="pfill"></div></div>
-            <div class="meta"><span data-f="amoEarned">—</span><span data-f="amoEta">—</span></div>
+            <div class="meta"><span data-f="amoEta">—</span></div>
           </div>
           <div class="panel gl"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.base')}</span>
             <div class="big"><span class="num" data-t="gl">—</span><span class="unit">W</span><small data-f="glCost"></small></div>

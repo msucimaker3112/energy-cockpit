@@ -1,0 +1,50 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Geräte-Karte Textgröße Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #86: text_size und label_size in der Geräte-Karte (gross/sehr_gross/Zahl, label_size gilt vor text_size nur für Texte). Aufruf: ?test=1&still=1 */
+const S=(state,attrs)=>({state:String(state),attributes:Object.assign({},attrs||{}),last_changed:new Date(Date.now()-3600e3).toISOString(),last_updated:'x'});
+const calls=[];
+const hass={states:{'sensor.house':S(1400,{unit_of_measurement:'W'}),'switch.fridge':S('on'),'sensor.fridge_p':S(48,{unit_of_measurement:'W'}),
+ 'sensor.wp_p':S(850,{unit_of_measurement:'W'}),'sensor.wp_e':S(1234,{unit_of_measurement:'kWh'}),'sensor.em_p':S(0,{unit_of_measurement:'W'}),'sensor.only_e':S(55,{unit_of_measurement:'kWh'}),'sensor.sens_p':S(20,{unit_of_measurement:'W'})},
+ language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({}),callService:async(d,s,data)=>{calls.push(d+'.'+s+' '+JSON.stringify(data));}};
+const cfg={home:'sensor.house',rooms:[{name:'Technik',devices:[
+ {name:'Kühlschrank',type:'fridge',entity:'switch.fridge',power:'sensor.fridge_p'},
+ {name:'Heizung',type:'heat',power:'sensor.wp_p',energy:'sensor.wp_e',run_w:0},
+ {name:'Kreis 2',power:'sensor.em_p'},
+ {name:'Nur Zähler',energy:'sensor.only_e'},
+ {name:'Sensor als entity',entity:'sensor.sens_p'}]}]};
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const px=(e,sel)=>parseFloat(getComputedStyle(e.shadowRoot.querySelector(sel)).fontSize);
+  const mk=async(o)=>{const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-devices-card');e.setConfig({...cfg,...o});host.appendChild(e);e.hass=hass;await wait(700);return e;};
+  let e=await mk({});
+  const nm0=px(e,'.dv .nm'),kpi0=px(e,'.kpi .big'),sb0=px(e,'.dv .sb');
+  ok('ohne Option: keine Faktoren auf der Karte',!/--ts|--vs/.test(e.shadowRoot.querySelector('.wrap').getAttribute('style')||''),e.shadowRoot.querySelector('.wrap').getAttribute('style'));
+  e=await mk({text_size:'gross'});
+  ok('gross: Gerätenamen 1,25-fach',Math.abs(px(e,'.dv .nm')/nm0-1.25)<.02,px(e,'.dv .nm')+' / '+nm0);
+  ok('gross: große Werte bleiben',Math.abs(px(e,'.kpi .big')-kpi0)<.5,px(e,'.kpi .big')+' / '+kpi0);
+  e=await mk({text_size:'sehr_gross'});
+  ok('sehr_gross: Gerätenamen 1,5-fach',Math.abs(px(e,'.dv .nm')/nm0-1.5)<.02,px(e,'.dv .nm')+' / '+nm0);
+  e=await mk({text_size:2});
+  ok('Zahl 2: Gerätenamen doppelt',Math.abs(px(e,'.dv .nm')/nm0-2)<.02,px(e,'.dv .nm')+' / '+nm0);
+  ok('Zahl 2: große Werte doppelt',Math.abs(px(e,'.kpi .big')/kpi0-2)<.02,px(e,'.kpi .big')+' / '+kpi0);
+  ok('Zahl 2: Unterzeilen doppelt',Math.abs(px(e,'.dv .sb')/sb0-2)<.02,px(e,'.dv .sb')+' / '+sb0);
+  e=await mk({label_size:1.6});
+  ok('label_size 1,6: Texte 1,6-fach',Math.abs(px(e,'.dv .nm')/nm0-1.6)<.02,px(e,'.dv .nm')+' / '+nm0);
+  ok('label_size: große Werte bleiben',Math.abs(px(e,'.kpi .big')-kpi0)<.5,px(e,'.kpi .big')+' / '+kpi0);
+  e=await mk({text_size:2,label_size:1});
+  ok('text_size 2 mit label_size 1: Werte doppelt, Texte normal',Math.abs(px(e,'.kpi .big')/kpi0-2)<.02&&Math.abs(px(e,'.dv .nm')/nm0-1)<.02,px(e,'.kpi .big')+' / '+px(e,'.dv .nm'));
+  e=await mk({text_size:'quatsch',label_size:'abc'});
+  ok('ungültige Werte werden ignoriert',Math.abs(px(e,'.dv .nm')-nm0)<.1&&Math.abs(px(e,'.kpi .big')-kpi0)<.5);
+  e=await mk({text_size:9});
+  ok('Zahl 9 wird auf 4 begrenzt',Math.abs(px(e,'.dv .nm')/nm0-4)<.05,px(e,'.dv .nm')+' / '+nm0);
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const e=document.createElement('energy-cockpit-devices-card');e.setConfig({...cfg,text_size:P.get('ts')||'normal'});document.getElementById('host').appendChild(e);e.hass=hass;}
+</script></body></html>
