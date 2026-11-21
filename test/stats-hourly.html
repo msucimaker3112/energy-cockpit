@@ -43,14 +43,14 @@ async function run(){
   const day=10*0.066+1*0.3545,jan=M>0?4*0.066:0;
   // Je Stunde: 10 × 0,066 + 1 × 0,3545 = 1,01 statt 11 × 0,30 = 3,30
   let e=mount(base);await wait(2500);
-  ok('Monat: Netzkosten je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
+  ok('Monat: Stromkosten Netz je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
   ok('Monat: PV-Ersparnis 3 × 0,3545 = 1,06',tt(e,'pvsav')==='1,06',tt(e,'pvsav'));
   ok('Monat: Einspeiseerlös fest 2 × 0,15 = 0,30',tt(e,'feed')==='0,30',tt(e,'feed'));
   await tab(e,'day');
-  ok('Heute: Netzkosten je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
+  ok('Heute: Stromkosten Netz je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
   ok('Heute: PV-Ersparnis 1,06',tt(e,'pvsav')==='1,06',tt(e,'pvsav'));
   await tab(e,'year');
-  ok(`Jahr: Netzkosten mit Januar ${de(day+jan)}`,tt(e,'cost')===de(day+jan),tt(e,'cost'));
+  ok(`Jahr: Stromkosten Netz mit Januar ${de(day+jan)}`,tt(e,'cost')===de(day+jan),tt(e,'cost'));
   // Ohne Option (Standard aus), abgeschaltet und ohne Preisstatistik: wie bisher (Menge × heutiger Preis)
   e=mount({...base,hourly_pricing:undefined});await wait(2500);
   ok('Ohne hourly_pricing (Standard aus): 11 × 0,30 = 3,30',tt(e,'cost')==='3,30',tt(e,'cost'));
@@ -81,7 +81,7 @@ async function run(){
   }
   // Woche (mit Kosten je Verbraucher) und Gesamt mit long_term (Vorjahr: 5 × 0,066)
   e=mount({...base,cost_consumers:[{name:'X',energy:'sensor.e'}]});await wait(2500);await tab(e,'week');
-  ok('Woche: Netzkosten je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
+  ok('Woche: Stromkosten Netz je Stunde 1,01',tt(e,'cost')===de(day),tt(e,'cost'));
   e=mount({...base,long_term:true});await wait(2500);await tab(e,'all');
   ok(`Gesamt mit Vorjahr: ${de(day+jan+5*0.066)}`,tt(e,'cost')===de(day+jan+5*0.066),tt(e,'cost'));
   // Hinweis unter dem Diagramm: Stundenpreise statt "heutige Preise"
@@ -91,13 +91,13 @@ async function run(){
   ok('Hinweis Gesamt ohne Preisstatistik: heutige Preise wie bisher',cv(e).includes('heutigen Preisen'),cv(e));
   // Heutiger Preis 0 oder negativ: mit Stundenpreisen bleiben die Kacheln sichtbar, ohne Statistik wie bisher ein Strich
   let z=mount({...base,grid_price:'sensor.pricez',feed_in:'sensor.feedz',feed_in_ct:undefined});await wait(2500);
-  ok('Preis jetzt 0, Stundenpreise: Netzkosten 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
+  ok('Preis jetzt 0, Stundenpreise: Stromkosten Netz 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
   ok('Preis jetzt 0, Stundenpreise: PV-Ersparnis 1,06',tt(z,'pvsav')==='1,06',tt(z,'pvsav'));
   ok('Vergütung jetzt 0, Stundenmittel: Einspeiseerlös 0,40',tt(z,'feed')==='0,40',tt(z,'feed'));
   z=mount({...base,grid_price:'sensor.priceneg'});await wait(2500);await tab(z,'day');
-  ok('Preis jetzt negativ, Stundenpreise: Netzkosten 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
+  ok('Preis jetzt negativ, Stundenpreise: Stromkosten Netz 1,01',tt(z,'cost')===de(day),tt(z,'cost'));
   z=mount({...base,grid_price:'sensor.price0',feed_in:'sensor.feed0',feed_in_ct:undefined});await wait(2500);
-  ok('Preis 0 ohne Statistik: Netzkosten ausgeblendet wie bisher',tt(z,'cost')==='—',tt(z,'cost'));
+  ok('Preis 0 ohne Statistik: Stromkosten Netz ausgeblendet wie bisher',tt(z,'cost')==='—',tt(z,'cost'));
   ok('Preis 0 ohne Statistik: PV-Ersparnis ausgeblendet wie bisher',tt(z,'pvsav')==='—',tt(z,'pvsav'));
   ok('Vergütung 0 ohne Statistik: Einspeiseerlös ausgeblendet wie bisher',tt(z,'feed')==='—',tt(z,'feed'));
   z=mount({...base,grid_price:'sensor.pricez',hourly_pricing:false});await wait(2500);
