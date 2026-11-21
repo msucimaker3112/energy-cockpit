@@ -1049,7 +1049,7 @@ WD.addStrings({
 });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
 // Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
@@ -3014,7 +3014,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.classList.toggle('on', on);
       el.classList.toggle('charging', net && chg);
       el.style.setProperty('--c', col);
-      this._anim(key, bp === null || x.lead ? null : Math.abs(bp), el);
+      // big_value: out (nur mit pv_to_battery: direkt): große Zahl ist der Ausgang ins Haus, außer der Speicher lädt (dann die Ladeleistung)
+      const bigOut = via && String(x.b.big_value || '').trim().toLowerCase() === 'out' && !(net && chg);
+      this._anim(key, bp === null || x.lead ? null : bigOut ? out : Math.abs(bp), el);
       this._set('.tag', bp === null ? T('tag.offline') : through ? T('tag.passthrough') : !net ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
       const fill = el.querySelector('.soc-fill');
       const lm = this._limits(x.b);
@@ -3039,7 +3041,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
       const subT = via ? T('bat.io', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
-      this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subT ? '<br>' + subT : '') : subT, true, el);
+      // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
+      const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;
+      const sc0 = x.b.self_consumption;
+      let selfW = null;
+      if (typeof sc0 === 'string' && sc0.trim() && sc0.trim().toLowerCase() !== 'true') selfW = watt(h, sc0.trim());
+      else if ((sc0 === true || String(sc0).toLowerCase() === 'true') && via && bp !== null) selfW = Math.max(0, pin + inAc + Math.max(0, -bp) - out - Math.max(0, bp));
+      const rowsX = (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
+      const subF = rowsX ? (subT ? subT + rowsX : rowsX) : subT;
+      this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subF ? '<br>' + subF : '') : subF, true, el);
       if (via2) {
         // PV 2 -> Speicher (Eingang) und Speicher <-> Haus: netzseitig (AC) Abgabe minus Ladung aus dem Haus
         const acNet = out - inAc;
@@ -3269,13 +3279,14 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', hide_zero: 'Ruhende Verbraucher ausblenden (unter „Aktiv ab“)', hide_zero_delay: 'Ausblenden erst nach (Sekunden, Standard 30)', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', consumers_top: 'Nur die größten Verbraucher zeigen (Anzahl)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
-    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
+    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', forecast_swap: 'Prognose heute unten neben morgen und übermorgen, Solar heute in der Solar-Kachel', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
   };
 
+  const BIGV = [{ value: 'auto', label: 'Akkuleistung (Standard)' }, { value: 'out', label: 'Ausgang ins Haus (bei Durchleitung und Entladung)' }];
   const PV_VIA = [{ value: 'aus', label: 'Aus: Solar speist das Haus (Standard)' }, { value: 'direkt', label: 'Direkt: Solar läuft durch den Speicher (braucht die Ausgangsleistung)' }];
   const HOMECOL = [{ value: 'standard', label: 'Standard (Türkis)' }, { value: 'source', label: 'Farbe der größten Quelle (PV gelb, Speicher blau, Netz rot)' }];
   const STYLE = [{ value: 'flach', label: 'Flach: Kacheln und Ring (Standard)' }, { value: '3d', label: '3D: Haus, Solar, Netz und Speicher als Objekte' }];
@@ -3296,7 +3307,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const batteryFields = () => [
     txt('name'), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('soc', ['sensor']), bool('invert', false),
     numb('capacity_kwh', 0, 200, 0.1), numb('reserve_pct', 0, 100, 1), numb('max_pct', 0, 100, 1), ent('power_out', ['sensor']), ent('power_in', ['sensor']), ent('temp', ['sensor']),
-    ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']), bool('behind_meter', false),
+    ent('daily_charge', ['sensor']), ent('daily_discharge', ['sensor']), bool('behind_meter', false), { name: 'big_value', selector: { select: { mode: 'dropdown', options: BIGV } } }, ent('self_consumption', ['sensor']),
     sec('extra', 'Zusatzwerte (bis zu 6)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']),
   ];
 
@@ -3308,6 +3319,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('grid2', 'Zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Zähler)', [ent('entity', ['sensor']), txt('name'), ent('price', ['sensor', 'input_number', 'number']), numb('price_ct', 0, 200, 0.01)]),
       sec('battery', 'Batterie', [
+        { name: 'big_value', selector: { select: { mode: 'dropdown', options: BIGV } } }, ent('self_consumption', ['sensor']),
         sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('power', ['sensor']), ent('power_charge', ['sensor']), ent('power_discharge', ['sensor']), ent('power_out', ['sensor']), ent('soc', ['sensor']), txt('name'), bool('invert', false),
         numb('capacity_kwh', 0, 200, 0.1), ent('reserve_soc', ['sensor', 'number', 'input_number']), numb('reserve_pct', 0, 100, 1),
         ent('max_soc', ['sensor', 'number', 'input_number']), numb('max_pct', 0, 100, 1),
@@ -5220,7 +5232,7 @@ WD.addStrings({
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',
-  'st.r.pv': 'Erzeugt', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
+  'st.r.pv': 'Erzeugung', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
   'st.earned': '<b>{e} {cur}</b> von {i} {cur} zurückverdient', 'st.eta': '<b>{y} {cur}/Jahr</b> · fertig ca. <b>{yr}</b>', 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
   'st.glcost': '≈ <b>{x} {cur}/Jahr</b>', 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': '100 W weniger ≈ {x} {cur}/Jahr',
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · {g} · Amortisation mit heutigen Preisen geschätzt', 'st.note.nofee': 'reine Energiekosten ohne Grundgebühr', 'st.note.fee': 'Stromkosten Netz mit Grundpreis',
@@ -6466,7 +6478,7 @@ WD.addTranslations('en', {
   'st.pvsav': 'Solar savings', 'st.feed': 'Export revenue', 'st.selfc': 'Solar self-consumption', 'st.cost': 'Grid electricity costs', 'st.aut': 'Energy independence',
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',
-  'st.r.pv': 'Generated', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
+  'st.r.pv': 'Production', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
   'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
   'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
   'st.full': '× full', 'st.note': 'Grid electricity {p} ¢/kWh · export {f} ¢/kWh · {g} · payback estimated using today’s prices', 'st.note.nofee': 'energy costs only, excluding fixed charges', 'st.note.fee': 'grid electricity costs including fixed charges',
@@ -6543,6 +6555,9 @@ WD.addTranslations('en', {
   "why.bt.row.pv": "from solar",
   "why.bt.row.grid": "from the grid",
 });
+WD.addTranslations('en', {
+  "bat.selfuse": "Own use",
+});
 
 
 /* ---- i18n-nl.js ---- */
@@ -6611,7 +6626,7 @@ WD.addTranslations('nl', {
   'st.pvsav': 'Besparing door zonne-energie', 'st.feed': 'Opbrengst teruglevering', 'st.selfc': 'Zelfverbruik zonne-energie', 'st.cost': 'Kosten netstroom', 'st.aut': 'Zelfvoorziening',
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',
-  'st.r.pv': 'Opgewekt', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
+  'st.r.pv': 'Opwekking', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
   'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
   'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
   'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · teruglevering {f} ct/kWh · {g} · terugverdientijd geschat met de huidige prijzen', 'st.note.nofee': 'alleen energiekosten, zonder vastrecht', 'st.note.fee': 'kosten netstroom inclusief vastrecht',
@@ -6687,6 +6702,9 @@ WD.addTranslations('nl', {
   "why.bt.nothing": "Er is nu geen zonne-overschot en geen stroomvraag die de batterij moet dekken.",
   "why.bt.row.pv": "uit zonne-energie",
   "why.bt.row.grid": "uit het net",
+});
+WD.addTranslations('nl', {
+  "bat.selfuse": "Eigen gebruik",
 });
 
 
@@ -6986,7 +7004,7 @@ WD.addTranslations('fr', {
   'st.sum': "Total",
   'st.solar': "Solaire",
   'st.recon': "le {d}",
-  'st.r.pv': "Produit",
+  'st.r.pv': "Production",
   'st.r.self': "Autoconsommé",
   'st.r.fed': "Injecté",
   'st.r.drawn': "Soutiré",
@@ -7114,6 +7132,9 @@ WD.addTranslations('fr', {
   "why.bt.nothing": "Il n'y a actuellement ni surplus solaire ni besoin que la batterie devrait couvrir.",
   "why.bt.row.pv": "du solaire",
   "why.bt.row.grid": "du réseau",
+});
+WD.addTranslations('fr', {
+  "bat.selfuse": "Consommation propre",
 });
 
 
@@ -7336,7 +7357,7 @@ WD.addTranslations('fi', {
   'st.sum': "Yhteensä",
   'st.solar': "Aurinko",
   'st.recon': "{d}",
-  'st.r.pv': "Tuotettu",
+  'st.r.pv': "Tuotanto",
   'st.r.self': "Omaan käyttöön",
   'st.r.fed': "Myyty",
   'st.r.drawn': "Ostettu",
@@ -7520,5 +7541,8 @@ WD.addTranslations('fi', {
   "why.bt.nothing": "Tällä hetkellä ei ole aurinkosähkön ylijäämää eikä tarvetta, jonka akun pitäisi kattaa.",
   "why.bt.row.pv": "aurinkosähköstä",
   "why.bt.row.grid": "verkosta",
+});
+WD.addTranslations('fi', {
+  "bat.selfuse": "Oma kulutus",
 });
 

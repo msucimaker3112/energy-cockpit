@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Viele Funktionen sind aus Wünschen entstanden, zum Beispiel die Kurzansicht fürs Handy. English is fine, too.
+        Viele Funktionen sind aus Wünschen entstanden, zum Beispiel die Kurzansicht fürs Handy. Kleine Wünsche zu Wortlaut, Größe oder Anordnung werden gesammelt und gebündelt veröffentlicht, Begriffe erklärt das Glossar (docs/GLOSSAR.md). English is fine, too.
   - type: dropdown
     id: karte
     attributes:

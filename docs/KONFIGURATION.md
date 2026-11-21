@@ -149,6 +149,16 @@ battery:
 
 **Wichtig:** Die Option gilt für den **ersten** Speicher (`battery`). Ohne `power_out` oder ohne `pv.entity` bleibt die normale Darstellung. Fehlt nur `power_out`, steht in der Batterie-Kachel ein Hinweis darauf. Bei der **Anker Solarbank** heißt der Sensor zum Beispiel „AC-Hausabgabe“ (`sensor.solarbank_…_ac_hausabgabe`). Auf dem Handy ist die Kurzansicht (`compact: auto`) am übersichtlichsten. Die Annahme "Solar zuerst ins Haus, der Rest lädt" entspricht Speichern mit Durchleitung. Sie wurde an echten Anlagen mit Balkonkraftwerk und Speicher getestet ([#15](https://github.com/msucimaker3112/energy-cockpit/issues/15)). Trag `power` und `power_charge` nur ein, wenn die Sensoren wirklich Laden und Entladen messen: `power` hat Vorrang vor der Rechnung aus Eingang und Ausgang.
 
+**Große Zahl und Eigenbedarf (Zendure Hyper 2000 und ähnliche):** Ohne getrennte Lade- und Entladesensoren rechnet die Karte „Laden = Eingang − Ausgang“. Bei Speichern, die selbst Strom verbrauchen, ist diese Differenz der **Eigenbedarf**, nicht die Ladung. Trag dann `power_charge` und `power_discharge` ein, falls es sie gibt. Zwei Optionen helfen zusätzlich, beide sind aus und ändern nichts, solange du sie nicht setzt (gelten nur mit `pv_to_battery: direkt`):
+
+```yaml
+battery:
+  big_value: out              # große Zahl = Ausgang ins Haus (bei Durchleitung und Entladung); bei Ladung bleibt es die Ladeleistung
+  self_consumption: sensor.hyper_eigenbedarf   # oder true: Karte rechnet Eingang + Entladung − Ausgang − Ladung
+```
+
+Bei `big_value: out` steht die Entladeleistung des Speichers in einer eigenen Zeile „Entladung“. Der Eigenbedarf erscheint als Zeile „Eigenbedarf“, sobald er mindestens 1 W beträgt. Im Editor unter „Batterie“ ([#92](https://github.com/msucimaker3112/energy-cockpit/issues/92)).
+
 ### Zweite Anlage durch einen Speicher: `pv2.to_battery`
 
 **Wofür:** Für Speicher, die eigene Solarmodule haben **und** zusätzlich per AC aus dem Haus laden können, zum Beispiel die **Anker SOLIX Solarbank**. Der Strom der Module läuft zuerst in den Speicher und von dort ins Haus. `pv_to_battery: direkt` (siehe oben) gilt nur für `pv` und den ersten Speicher, mit `pv2.to_battery` geht das auch für die zweite Anlage und jeden weiteren Speicher.

@@ -20,7 +20,7 @@ WD.addStrings({
 });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
 // Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
@@ -1985,7 +1985,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
       el.classList.toggle('on', on);
       el.classList.toggle('charging', net && chg);
       el.style.setProperty('--c', col);
-      this._anim(key, bp === null || x.lead ? null : Math.abs(bp), el);
+      // big_value: out (nur mit pv_to_battery: direkt): große Zahl ist der Ausgang ins Haus, außer der Speicher lädt (dann die Ladeleistung)
+      const bigOut = via && String(x.b.big_value || '').trim().toLowerCase() === 'out' && !(net && chg);
+      this._anim(key, bp === null || x.lead ? null : bigOut ? out : Math.abs(bp), el);
       this._set('.tag', bp === null ? T('tag.offline') : through ? T('tag.passthrough') : !net ? T('tag.standby') : chg ? T('tag.charging') : T('tag.discharging'), false, el);
       const fill = el.querySelector('.soc-fill');
       const lm = this._limits(x.b);
@@ -2010,7 +2012,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
       const subT = via ? T('bat.io', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
-      this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subT ? '<br>' + subT : '') : subT, true, el);
+      // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
+      const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;
+      const sc0 = x.b.self_consumption;
+      let selfW = null;
+      if (typeof sc0 === 'string' && sc0.trim() && sc0.trim().toLowerCase() !== 'true') selfW = watt(h, sc0.trim());
+      else if ((sc0 === true || String(sc0).toLowerCase() === 'true') && via && bp !== null) selfW = Math.max(0, pin + inAc + Math.max(0, -bp) - out - Math.max(0, bp));
+      const rowsX = (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
+      const subF = rowsX ? (subT ? subT + rowsX : rowsX) : subT;
+      this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subF ? '<br>' + subF : '') : subF, true, el);
       if (via2) {
         // PV 2 -> Speicher (Eingang) und Speicher <-> Haus: netzseitig (AC) Abgabe minus Ladung aus dem Haus
         const acNet = out - inAc;

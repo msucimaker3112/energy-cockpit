@@ -293,7 +293,7 @@ WD.addTranslations('fr', {
   'st.sum': "Total",
   'st.solar': "Solaire",
   'st.recon': "le {d}",
-  'st.r.pv': "Produit",
+  'st.r.pv': "Production",
   'st.r.self': "Autoconsommé",
   'st.r.fed': "Injecté",
   'st.r.drawn': "Soutiré",
@@ -421,4 +421,7 @@ WD.addTranslations('fr', {
   "why.bt.nothing": "Il n'y a actuellement ni surplus solaire ni besoin que la batterie devrait couvrir.",
   "why.bt.row.pv": "du solaire",
   "why.bt.row.grid": "du réseau",
+});
+WD.addTranslations('fr', {
+  "bat.selfuse": "Consommation propre",
 });

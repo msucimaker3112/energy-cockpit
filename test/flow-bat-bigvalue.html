@@ -1,0 +1,67 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Batterie: große Zahl und Eigenbedarf Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #92: big_value: out (große Zahl der Batterie-Kachel bei Durchleitung und Entladung ist der Ausgang) und self_consumption (Eigenbedarf als Sensor
+   oder berechnet). Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?case=durch|laden|entladen) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+// Zendure Hyper 2000: Eingang (Solar), Ausgang ins Haus, Laden und Entladen getrennt, Eigenbedarf 30 W
+const cases={
+  durch:{pv:300,out:270,chg:0,dis:0,grid:0,self:30},
+  laden:{pv:800,out:250,chg:520,dis:0,grid:-10,self:30},
+  entladen:{pv:100,out:450,chg:0,dis:380,grid:0,self:30},
+  aus:{pv:0,out:0,chg:0,dis:0,grid:200,self:0},
+};
+const hassFor=(k)=>({states:{'sensor.pv':S(k.pv),'sensor.out':S(k.out),'sensor.chg':S(k.chg),'sensor.dis':S(k.dis),'sensor.grid':S(k.grid),'sensor.soc':S(60,'%'),'sensor.self':S(k.self)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+const cfg=(b)=>({pv_to_battery:'direkt',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:Object.assign({name:'Hyper',power_charge:'sensor.chg',power_discharge:'sensor.dis',power_out:'sensor.out',soc:'sensor.soc',capacity_kwh:2},b||{})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const big=(e)=>{const x=q(e,'[data-k="bat"] .val');return (x.querySelector('.num').textContent+' '+x.querySelector('.unit').textContent).trim();};
+const sub=(e)=>q(e,'[data-k="bat"] .sub').textContent.replace(/\s+/g,' ').trim();
+const tag=(e)=>q(e,'[data-k="bat"] .tag').textContent.trim();
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // ohne Option: wie bisher (Akkuleistung)
+  let e=mount(cfg(),hassFor(cases.durch));await wait(800);
+  ok('ohne big_value, Durchleitung: große Zahl 0 W (wie bisher)',tag(e)==='Durchleitung'&&big(e)==='0 W',tag(e)+' / '+big(e));
+  ok('ohne Optionen: keine Zeilen Entladung oder Eigenbedarf',!/Eigenbedarf/.test(sub(e))&&!/Entladung/.test(sub(e)),sub(e));
+  // big_value: out
+  e=mount(cfg({big_value:'out'}),hassFor(cases.durch));await wait(800);
+  ok('Durchleitung: große Zahl ist der Ausgang 270 W',big(e)==='270 W',big(e));
+  e=mount(cfg({big_value:'out'}),hassFor(cases.laden));await wait(800);
+  ok('Ladung: große Zahl bleibt die Ladeleistung 520 W',tag(e)==='Ladung'&&big(e)==='520 W',tag(e)+' / '+big(e));
+  e=mount(cfg({big_value:'out'}),hassFor(cases.entladen));await wait(800);
+  ok('Entladung: große Zahl ist der Ausgang 450 W',tag(e)==='Entladung'&&big(e)==='450 W',tag(e)+' / '+big(e));
+  ok('Entladung: Zeile mit der Entladeleistung 380 W',/Entladung\s*380 W/.test(sub(e)),sub(e));
+  e=mount(cfg({big_value:'auto'}),hassFor(cases.entladen));await wait(800);
+  ok('big_value auto: wie bisher 380 W',big(e)==='380 W',big(e));
+  // ohne pv_to_battery wirkt big_value nicht
+  const c0=cfg({big_value:'out'});delete c0.pv_to_battery;
+  e=mount(c0,hassFor(cases.entladen));await wait(800);
+  ok('ohne pv_to_battery: big_value ohne Wirkung (380 W)',big(e)==='380 W',big(e));
+  // Eigenbedarf per Sensor
+  e=mount(cfg({self_consumption:'sensor.self'}),hassFor(cases.durch));await wait(800);
+  ok('self_consumption als Sensor: Zeile Eigenbedarf 30 W',/Eigenbedarf\s*30 W/.test(sub(e)),sub(e));
+  e=mount(cfg({self_consumption:'sensor.self'}),hassFor(cases.aus));await wait(800);
+  ok('Eigenbedarf 0 W: keine Zeile',!/Eigenbedarf/.test(sub(e)),sub(e));
+  // Eigenbedarf berechnet: Eingang + Entladung - Ausgang - Ladung
+  e=mount(cfg({self_consumption:true}),hassFor(cases.durch));await wait(800);
+  ok('berechnet, Durchleitung: 300 − 270 = 30 W',/Eigenbedarf\s*30 W/.test(sub(e)),sub(e));
+  e=mount(cfg({self_consumption:true}),hassFor(cases.laden));await wait(800);
+  ok('berechnet, Ladung: 800 − 250 − 520 = 30 W',/Eigenbedarf\s*30 W/.test(sub(e)),sub(e));
+  e=mount(cfg({self_consumption:true}),hassFor(cases.entladen));await wait(800);
+  ok('berechnet, Entladung: 100 + 380 − 450 = 30 W',/Eigenbedarf\s*30 W/.test(sub(e)),sub(e));
+  e=mount(cfg({self_consumption:true}),hassFor({pv:300,out:320,chg:0,dis:0,grid:0}));await wait(800);
+  ok('berechnet, negativ: keine Zeile (nie unter 0)',!/Eigenbedarf/.test(sub(e)),sub(e));
+  // beides zusammen
+  e=mount(cfg({big_value:'out',self_consumption:'sensor.self'}),hassFor(cases.entladen));await wait(800);
+  ok('beides: Eingang/Ausgang-Zeile, Entladung und Eigenbedarf',/Eingang 100 W · Ausgang 450 W/.test(sub(e))&&/Entladung\s*380 W/.test(sub(e))&&/Eigenbedarf\s*30 W/.test(sub(e)),sub(e));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(cfg({big_value:'out',self_consumption:'sensor.self'}),hassFor(cases[P.get('case')||'durch']));}
+</script></body></html>

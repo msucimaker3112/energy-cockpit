@@ -216,7 +216,7 @@ WD.addTranslations('fi', {
   'st.sum': "Yhteensä",
   'st.solar': "Aurinko",
   'st.recon': "{d}",
-  'st.r.pv': "Tuotettu",
+  'st.r.pv': "Tuotanto",
   'st.r.self': "Omaan käyttöön",
   'st.r.fed': "Myyty",
   'st.r.drawn': "Ostettu",
@@ -400,4 +400,7 @@ WD.addTranslations('fi', {
   "why.bt.nothing": "Tällä hetkellä ei ole aurinkosähkön ylijäämää eikä tarvetta, jonka akun pitäisi kattaa.",
   "why.bt.row.pv": "aurinkosähköstä",
   "why.bt.row.grid": "verkosta",
+});
+WD.addTranslations('fi', {
+  "bat.selfuse": "Oma kulutus",
 });

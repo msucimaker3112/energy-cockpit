@@ -8,6 +8,7 @@ Schön, dass du helfen möchtest! Fehlerberichte, Ideen, Übersetzungen und Pull
 
 - **Fehler melden:** Lege ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues) an. Am meisten helfen: Version der Karte (steht im CHANGELOG bzw. in HACS), Gerät und Browser (z. B. iPhone, Home-Assistant-App), ein Screenshot und der betroffene Teil deiner Kartenkonfiguration (YAML, ohne private Daten).
 - **Ideen und Wünsche:** ebenfalls als Issue. Beschreib, was du erreichen willst, nicht nur wie. Dann findet sich oft eine einfachere Lösung.
+- **Wortlaut, Größe, Ausrichtung:** Kleine Wünsche zu Begriffen, Schriftgrößen oder Anordnung sammle ich im Sammel-Issue „Design-Feinschliff“ und veröffentliche sie gebündelt. Fehler behebe ich sofort, Wünsche kommen in der Regel gesammelt in das nächste Paket. Welche Begriffe gelten und warum, steht im [Glossar](docs/GLOSSAR.md).
 - **Doku verbessern:** Tippfehler oder unklare Stellen in `README.md` und `docs/` gern direkt als Pull Request.
 
 ## Loslegen mit dem Code

@@ -1,0 +1,186 @@
+﻿# fr: 185 von 369 Texten fehlen (Rest ist übersetzt). Schlüssel<TAB>deutscher Text
+bat.usable_slow	<div class="sr"><span>Nutzbar</span> <b>{kwh} kWh</b></div><div class="sr"><span>Laden</span> <b>langsam</b></div>
+bat.full_at	<div class="sr"><span>Voll um</span> <b>{time}</b></div><div class="sr"><span>Voll in</span> <b>{dur}</b></div>
+bat.last_24	<div class="sr"><span>Reicht</span> <b>über 24 h</b></div><div class="sr"><span>Nutzbar</span> <b>{kwh} kWh</b></div>
+bat.last_until	<div class="sr"><span>Leer um</span> <b>{time}</b></div><div class="sr"><span>Leer in</span> <b>{dur}</b></div>
+bat.full	<div class="sr"><span>Nutzbar</span> <b>{kwh} kWh</b></div>
+bat.usable	<div class="sr"><span>Nutzbar</span> <b>{kwh} kWh</b></div><div class="sr"><span>Reserve</span> <b>{res} %</b></div>
+bat.usable0	<div class="sr"><span>Nutzbar</span> <b>{kwh} kWh</b></div>
+st.bat	Batterie
+st.sum	Gesamt
+st.solar	Solar
+st.recon	am {d}
+st.r.pv	Erzeugt
+st.r.self	Selbst genutzt
+st.r.fed	Einspeisung
+st.r.drawn	Bezug
+st.r.selfq	Eigenverbrauch
+st.r.cons	Verbrauch
+st.note	Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · {g} · Amortisation mit heutigen Preisen geschätzt
+st.note.nofee	reine Energiekosten ohne Grundgebühr
+st.note.fee	Stromkosten Netz mit Grundpreis
+st.g2of	davon {n}
+st.basefee	davon Grundpreis
+st.cc.group	Gruppe
+why.q.bal	Warum kein Netzbezug?
+why.q.baldis	Warum entlädt die Batterie?
+why.q.balchg	Warum lädt die Batterie?
+why.bal.both	Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).
+why.bal.sun	Solar liefert {pv} und deckt das Haus ({home}) allein.
+why.bal.bat	Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.
+why.bal.low	Das Haus braucht gerade kaum Strom ({home}).
+why.bal.dis	Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.
+why.bal.chg	Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.
+why.imp	Warum {w} Netzbezug?
+why.exp	Warum {w} Einspeisung?
+why.bal	Netz ausgeglichen
+why.asof	Stand {t} Uhr
+why.cover	Das Haus braucht {home}. Gedeckt von: {parts}
+why.solar	Solar
+why.batt	Batterie
+why.grid	Netz
+why.bm	Speicher lädt
+why.row.pv	Solar erzeugt
+why.row.home	Haus braucht
+why.row.chg	Batterie lädt
+why.row.exp	Einspeisung
+why.q.bat	Warum nicht aus der Batterie?
+why.q.sun	Warum nicht Solar?
+why.q.feed	Warum nicht in die Batterie?
+why.q.tip	Tipp
+why.q.hint	Hinweis
+why.bat.empty	Die Batterie ist leer ({soc} %, Entladegrenze {res} %).
+why.bat.idle	Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.
+why.bat.dis	Die Batterie liefert bereits {w}.
+why.sun.night	Es ist Nacht. Sonnenaufgang um {t} Uhr.
+why.sun.fc	 Prognose morgen {kwh} kWh.
+why.sun.low	Solar liefert gerade nur {w}.
+why.sun.zero	Solar liefert gerade nichts.
+why.sun.wx	 Wetter: {cnd}.
+why.sun.part	Solar liefert {pv}, das reicht nicht für {home}.
+why.rest	Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.
+why.full	Die Batterie ist voll ({soc} %) und lädt nicht mehr.
+why.notfull	Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.
+why.charging	Die Batterie lädt bereits mit {w}.
+why.tip.sug	{w} Überschuss: Jetzt passt {names}.
+why.bal.txt	Solar und Batterie decken das Haus ({home}), ohne Netz.
+why.none	Gerade keine Daten für eine Erklärung.
+why.top	davon {n} {w}
+bat.in2	 (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)
+xt.alarm	Alarm
+sky.sunny	Sonnig
+sky.clear-night	Klare Nacht
+sky.partlycloudy	Teils bewölkt
+sky.cloudy	Bewölkt
+sky.fog	Nebel
+sky.rainy	Regen
+sky.pouring	Starkregen
+sky.snowy	Schnee
+sky.snowy-rainy	Schneeregen
+sky.lightning	Gewitter
+sky.lightning-rainy	Gewitter mit Regen
+sky.hail	Hagel
+sky.windy	Windig
+sky.windy-variant	Windig und bewölkt
+sky.exceptional	Ausnahmewetter
+sky.cloud	Bewölkung
+sky.wind	Wind
+sky.nofc	Keine Vorhersage von der Wetter-Entität
+ban.tonet0	Strom fließt ins Netz
+stat.home	Haus heute
+close	Schließen
+flow.gas	Gas
+flow.water	Wasser
+gas.heat	Heizung
+gas.hw	Warmwasser
+gas.today	Heute
+tag.gas.on	Heizt
+tag.water.on	Fließt
+tag.today	Heute
+room.title	Raum-Abrechnung
+room.week	Diese Woche
+room.month	Dieser Monat
+room.year	Dieses Jahr
+room.prev	Vorjahr
+room.tab.week	Woche
+room.tab.month	Monat
+room.tab.year	Jahr
+room.tab.prev	Vorjahr
+room.sum	Summe
+room.loading	Daten werden geladen …
+room.noprice	Kein Preis eingestellt: Es werden nur kWh angezeigt.
+room.csv	Als CSV kopieren
+room.copied	Kopiert
+room.since	Daten seit
+room.unconf	Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Zähler auszuwählen.
+room.grid	Netz
+room.battery	Batterie
+room.pv	PV
+room.csv.period	Zeitraum
+room.csv.total	Summe kWh
+room.csv.grid	Netz kWh
+room.csv.battery	Batterie kWh
+room.csv.pv	PV kWh
+room.csv.cost	Kosten
+room.csv.import_cost	bei Bezugspreis
+room.credit	Guthaben {amount} {cur}
+room.payment	Nachzahlung {amount} {cur}
+room.year_summary	Jahr {year}: {cost} {cur} verbraucht, {count} × {advance} {cur} = {total} {cur} Abschlag, aktuell {balance}
+room.invoice	Abrechnung
+room.advance	Abschlag
+room.no_advance	ohne Abschlag
+room.month_forecast	Hochrechnung Monatsende
+room.from_day2	ab dem 2. Messtag
+room.previous_month	Vormonat
+room.no_data	keine Daten
+room.night_w	W nachts
+room.night_total	Gesamt, 0 bis 5 Uhr
+room.threshold	Schwelle {w} W
+room.above	liegt darüber
+room.ok	in Ordnung
+room.night_note	Läuft das Tag und Nacht so weiter, sind das etwa <b>{energy} kWh{cost} pro Monat</b> im Leerlauf (Mittel der letzten 14 Nächte).
+room.night_no_data	Noch zu wenig Nachtstunden mit Daten (mindestens eine Nacht nötig).
+room.night_base	Grundlast nachts (Standby)
+room.activity	Betriebszeiten
+room.active_above	aktiv = über {w} W
+room.active_today	Aktive Stunden heute
+room.active_day	Aktivster Tag
+room.activity_note	Mittlere Leistung je Wochentag und Stunde (letzte 8 Wochen). Hell bis kräftig orange: wenig bis viel. Die rechte Spalte nennt die aktiven Stunden pro Tag.
+room.archive	Monatsarchiv (Zählerstände und Beträge, festgehalten am Monatsersten)
+room.month_label	Monat
+room.grid_label	Netz
+room.battery_label	Batterie
+room.balance	Saldo
+room.meter	Zähler
+room.import	Bezug
+room.feed	Einspeisung
+room.archive.note	Saldo = Abschlag minus Kosten (positiv: Guthaben). Die Werte sind eingefroren und ändern sich nicht, wenn sich später Preise ändern.
+room.archive.empty	Noch keine Einträge. Der erste Monat wird am 1. des nächsten Monats um 07:00 festgehalten.
+room.day	Tag
+room.chart	Verlauf und Kosten
+room.area	Bereich
+room.by_area	Je Bereich
+room.included	inkl. {amount} {cur} Grundgebühr
+room.fee	 · Grundgebühr <b>{amount} {cur}</b>/Monat
+room.price.all	Alles zum Bezugspreis <b>{price} ct/kWh</b>{fee}
+room.explain.fixed	Bewertung: Jede kWh kostet den Bezugspreis, egal woher sie kam.
+room.explain.no_sources	Ohne Haus-Energiequellen (home_energy) wird der gesamte Verbrauch zum Netzpreis bewertet.
+room.price.mix	Netz <b>{grid} ct</b> · Batterie <b>{battery} ct</b> · PV <b>{pv} ct/kWh</b>{fee}
+room.explain.mix	Bewertung: Je Quelle ein fester Preis (Netz zum Bezugspreis, Batterie und PV zu den eingestellten Preisen).
+room.price.opportunity	Netz, Batterie und PV, die das Haus gebraucht hätte: <b>{grid} ct/kWh</b> · PV aus Überschuss (sonst eingespeist): <b>{feed} ct/kWh</b>{fee}
+room.explain.opportunity	Bewertung nach entgangenem Nutzen: Strom aus Netz und Batterie sowie PV-Strom, den dein Haus selbst hätte verbrauchen können, kostet den Bezugspreis. Nur PV-Strom aus Stunden mit Einspeisung wird zur Einspeisevergütung bewertet.
+room.full	<br>Zum Vergleich, <b>alles zum Netzpreis</b> ({price} ct/kWh): <b>{cost} {cur}</b>.
+room.subtitle	Stromverbrauch und Kosten
+room.others	übrige Geräte
+room.vs_previous_month	zum Vormonat
+room.today	heute
+room.hourly_curve	Kurve je Stunde
+room.now_today	Jetzt und heute
+room.low	ruhig
+room.elevated	erhöht
+room.high	hoch
+room.no_use_today	heute noch kein Verbrauch
+room.source_today	Herkunft heute
+room.mix_tip	Am wenigsten Netzstrom brauchst du im Schnitt zwischen <b>{from} und {to} Uhr</b> (Ø {share} % aus dem Netz). Große Lasten legst du am besten dorthin.
+room.mix_tip_missing	Für eine Empfehlung fehlen noch Tage mit Daten.
+room.and_cost	 und {amount} {cur}
