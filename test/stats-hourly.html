@@ -31,7 +31,7 @@ const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(136
   if(m.period!=='hour'||T.includes('state'))return {};
   if(T.includes('mean')){ids.forEach(id=>{const x=(means[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v,lo,hi])=>Object.assign({start:t,mean:v},T.includes('min')&&lo!==undefined?{min:lo,max:hi}:{}));if(x.length)r[id]=x;});return r;}
   ids.forEach(id=>{const x=(hours[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>({start:t,change:v}));if(x.length)r[id]=x;});return r;}};
-const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price:'sensor.price',feed_in_ct:15};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price:'sensor.price',feed_in_ct:15,hourly_pricing:true};
 function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));h.appendChild(e);e.hass=hass;return e;}
 const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
 const lines=[];let fail=0;
@@ -51,7 +51,10 @@ async function run(){
   ok('Heute: PV-Ersparnis 1,06',tt(e,'pvsav')==='1,06',tt(e,'pvsav'));
   await tab(e,'year');
   ok(`Jahr: Netzkosten mit Januar ${de(day+jan)}`,tt(e,'cost')===de(day+jan),tt(e,'cost'));
-  // Abgeschaltet und ohne Preisstatistik: wie bisher (Menge × heutiger Preis)
+  // Ohne Option (Standard aus), abgeschaltet und ohne Preisstatistik: wie bisher (Menge × heutiger Preis)
+  e=mount({...base,hourly_pricing:undefined});await wait(2500);
+  ok('Ohne hourly_pricing (Standard aus): 11 × 0,30 = 3,30',tt(e,'cost')==='3,30',tt(e,'cost'));
+  ok('Ohne hourly_pricing: PV-Ersparnis 3 × 0,30 = 0,90',tt(e,'pvsav')==='0,90',tt(e,'pvsav'));
   e=mount({...base,hourly_pricing:false});await wait(2500);
   ok('hourly_pricing: false: 11 × 0,30 = 3,30',tt(e,'cost')==='3,30',tt(e,'cost'));
   ok('hourly_pricing: false: PV-Ersparnis 3 × 0,30 = 0,90',tt(e,'pvsav')==='0,90',tt(e,'pvsav'));

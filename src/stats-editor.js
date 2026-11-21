@@ -34,7 +34,7 @@
       { name: 'pv_ac', selector: { boolean: {} } },
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
-      { name: 'hourly_pricing', default: true, selector: { boolean: {} } },
+      { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
       { name: 'grid_base_fee', selector: { number: { min: 0, max: 1000, step: 'any', mode: 'box' } } },
       { name: 'grid_base_fee_history', selector: { object: {} } },
       { name: 'long_term', selector: { boolean: {} } },
