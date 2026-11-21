@@ -1030,6 +1030,23 @@ WD.D3 = { stack, solar, meter, house, boiler, wmeter, css, draw, ring, roof };
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+// Warum? für Solar und Batterie (#50)
+WD.addStrings({
+  'why.aria.pv': 'Warum liefert Solar gerade so viel?', 'why.aria.bat': 'Was macht die Batterie gerade?',
+  'why.pv.t': 'Solar liefert gerade {w}', 'why.pv.t0': 'Solar liefert gerade nichts',
+  'why.pv.q.low': 'Warum so wenig?', 'why.pv.q.day': 'Wie viel ist das heute?', 'why.pv.q.full': 'Warum geht Solar ins Netz?', 'why.pv.q.part': 'Reicht Solar fürs Haus?',
+  'why.pv.elev': 'Die Sonne steht nur {deg}° über dem Horizont, die Module bekommen wenig Licht.',
+  'why.pv.cloud': ' Der Himmel ist zu {pct} % bewölkt.',
+  'why.pv.day': 'Heute bisher {kwh} kWh.', 'why.pv.dayfc': 'Heute bisher {kwh} kWh, Prognose für den ganzen Tag {fc} kWh.',
+  'why.pv.full': 'Das Haus braucht weniger, als Solar liefert, und die Batterie nimmt nichts mehr auf. Der Rest geht ins Netz.',
+  'why.pv.nobat': 'Das Haus braucht weniger, als Solar liefert. Der Rest geht ins Netz.',
+  'why.bt.chg': '{n} lädt mit {w}', 'why.bt.dis': '{n} liefert {w}', 'why.bt.idle': '{n} ist gerade inaktiv',
+  'why.bt.lim': 'Ladestand {soc} %, Entladegrenze {res} %, Maximalladung {max} %',
+  'why.bt.q.src': 'Woher kommt die Ladung?', 'why.bt.q.idle': 'Warum tut die Batterie nichts?',
+  'why.bt.src.sun': 'Die Ladung kommt aus dem Solarüberschuss.', 'why.bt.src.grid': 'Solar reicht nicht für Haus und Batterie, die Batterie lädt auch aus dem Netz. Das ist gewollt, wenn du im Speicher eine Netzladung oder einen günstigen Tarif eingestellt hast.',
+  'why.bt.nothing': 'Es gibt gerade weder Solarüberschuss noch Strombedarf, den die Batterie decken müsste.',
+  'why.bt.row.pv': 'aus Solar', 'why.bt.row.grid': 'aus dem Netz',
+});
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
 WD.addStrings({ 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
@@ -1739,9 +1756,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
   }
   // why: Erklaerung in Klartext, regelbasiert. Wer verursacht den Netzbezug, warum liefert die Batterie nichts, warum kein Solar, warum Einspeisung
   _skyLab(cnd) { const k = 'sky.' + cnd, v = T(k); return v === k ? String(cnd || '') : v; }
-  _whyOpen() {
+  _whyOpen(kind, i) {
     const dl = this._$('.wdlg');
     if (!dl || !this._wy) return;
+    this._whyK = { k: kind === 'pv' || kind === 'bat' ? kind : 'grid', i: i || 0 };
     this._whyRender();
     if (dl.showModal) dl.showModal(); else dl.setAttribute('open', '');
   }
@@ -1754,6 +1772,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _whyHtml() {
     const c = this._c, h = this._hass, y = this._wy, fW = (v) => this._fW(v), pct = (v) => Math.round(v);
     if (!y || !h) return `<div class="d-hd"><span class="d-name">${T('why.none')}</span><button class="d-x" aria-label="${T('close')}">×</button></div>`;
+    const wk = this._whyK || { k: 'grid', i: 0 };
+    if (wk.k === 'pv') return this._whyPv();
+    if (wk.k === 'bat') return this._whyBat(wk.i);
     const imp = y.gImp > TH, exp = !imp && y.gExp > TH;
     const items = (this._wyItems || []).filter((x) => x.w >= 5).slice().sort((a, b) => b.w - a.w);
     const known = (this._wyItems || []).reduce((a, x) => a + x.w, 0);
@@ -1842,6 +1863,83 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (rest >= 150 && y.home > 0 && rest / y.home >= 0.25) hints += hint(T('why.q.hint'), T('why.rest', { w: fW(rest) }));
     }
     return `<div class="d-hd"><span class="d-name">${esc(title)}</span><button class="d-x" aria-label="${T('close')}">×</button></div><div class="wb"><div class="wsub">${esc(T('why.asof', { t: clk }))}${sub ? ' · ' + esc(sub) : ''}</div>${rowsHtml(rows)}${hints}</div>`;
+  }
+  // --- Warum? fuer Solar und Batterie (#50): derselbe Dialog wie am Netz, regelbasiert aus den Werten der Karte
+  _whyFrame(title, sub, rows, hints) {
+    const fW = (v) => this._fW(v), clk = WD.hhmm(new Date());
+    const max = Math.max(1, ...rows.map((r) => r.w));
+    const rowsHtml = rows.map((r) => `<div class="wr"><span class="wn">${esc(r.n)}</span><span class="wbar"><i style="width:${Math.max(2, Math.round(r.w / max * 100))}%;background:${r.c}"></i></span><span class="wv">${fW(r.w)}</span></div>`).join('');
+    return `<div class="d-hd"><span class="d-name">${esc(title)}</span><button class="d-x" aria-label="${T('close')}">×</button></div><div class="wb"><div class="wsub">${esc(T('why.asof', { t: clk }))}${sub ? ' · ' + esc(sub) : ''}</div>${rowsHtml}${hints}</div>`;
+  }
+  _whyHint(q, txt, cls) { return txt ? `<div class="wh${cls ? ' ' + cls : ''}"><b>${q}</b><span>${txt}</span></div>` : ''; }
+  _whyPv() {
+    const c = this._c, h = this._hass, y = this._wy, fW = (v) => this._fW(v), pct = (v) => Math.round(v);
+    const bats = y.bats || [], pv = y.pv || 0;
+    const sunSt = h.states['sun.sun'], night = sunSt && sunSt.state === 'below_horizon';
+    const wxId = this._skyEnt(), wx = wxId && h.states[wxId];
+    const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : WD.hhmm(d); };
+    const chg = bats.reduce((a, x) => a + Math.max(0, x.p || 0), 0);
+    const toBat = Math.min(chg, Math.max(0, pv - y.pvHome)), toGrid = Math.max(0, Math.min(y.gExp, pv - y.pvHome - toBat));
+    const rows = [];
+    if (y.pvHome > TH) rows.push({ n: T('why.row.home'), w: y.pvHome, c: `rgb(${PAL.home})` });
+    if (toBat > TH) rows.push({ n: T('why.row.chg'), w: toBat, c: `rgb(${PAL.chg})` });
+    if (toGrid > TH) rows.push({ n: T('why.row.exp'), w: toGrid, c: `rgb(${PAL.exp})` });
+    const title = pv > TH ? T('why.pv.t', { w: fW(pv) }) : T('why.pv.t0');
+    const hint = (q, t, cls) => this._whyHint(q, t, cls);
+    let hints = '';
+    const wxTxt = wx ? T('why.sun.wx', { cnd: this._skyLab(wx.state) }).trim() : '';
+    const cloud = wx && wx.attributes && parseFloat(wx.attributes.cloud_coverage);
+    const elev = sunSt && sunSt.attributes ? parseFloat(sunSt.attributes.elevation) : NaN;
+    const daily = c.pv && c.pv.daily ? kwh(h, c.pv.daily, rawUnits(c)) : null, fcDay = c.pv && c.pv.forecast ? kwh(h, c.pv.forecast, rawUnits(c)) : null;
+    const fcT = c.pv && c.pv.forecast_tomorrow ? kwh(h, c.pv.forecast_tomorrow, rawUnits(c)) : null;
+    if (night) {
+      const nr = sunSt.attributes && sunSt.attributes.next_rising;
+      hints += hint(T('why.pv.q.low'), T('why.sun.night', { t: fmtT(nr) }) + (fcT !== null ? T('why.sun.fc', { kwh: nf(fcT, 0) }) : ''));
+    } else if (pv <= 30 || (daily !== null && fcDay !== null && fcDay > 0 && pv < 150)) {
+      const parts = [];
+      if (!isNaN(elev) && elev < 10) parts.push(T('why.pv.elev', { deg: nf(Math.max(0, elev), 0) }));
+      if (wxTxt) parts.push(wxTxt + (!isNaN(cloud) && cloud > 0 ? T('why.pv.cloud', { pct: nf(cloud, 0) }) : ''));
+      hints += hint(T('why.pv.q.low'), (pv <= TH ? T('why.sun.zero') : T('why.sun.low', { w: fW(pv) })) + (parts.length ? ' ' + parts.join(' ') : ''));
+    } else if (y.pvHome < y.home && pv > TH && !bats.some((x) => x.p < -TH) && y.gImp > TH) {
+      hints += hint(T('why.pv.q.part'), T('why.sun.part', { pv: fW(pv), home: fW(y.home) }) + (wxTxt ? ' ' + wxTxt : ''));
+    }
+    if (daily !== null) hints += hint(T('why.pv.q.day'), fcDay !== null && fcDay > 0 ? T('why.pv.dayfc', { kwh: nf(daily, 1), fc: nf(fcDay, 0) }) : T('why.pv.day', { kwh: nf(daily, 1) }));
+    if (!night && y.gExp > TH && pv > TH) {
+      const full = bats.length && bats.every((x) => x.soc !== null && x.soc >= x.maxSoc - 0.5);
+      hints += hint(T('why.pv.q.full'), bats.length ? (full ? T('why.pv.full') : '') : T('why.pv.nobat'));
+    }
+    return this._whyFrame(title, '', rows, hints);
+  }
+  _whyBat(i) {
+    const c = this._c, h = this._hass, y = this._wy, fW = (v) => this._fW(v), pct = (v) => Math.round(v);
+    const bats = y.bats || [], b = bats[Math.min(i || 0, Math.max(0, bats.length - 1))];
+    if (!b) return `<div class="d-hd"><span class="d-name">${T('why.none')}</span><button class="d-x" aria-label="${T('close')}">×</button></div>`;
+    const p = b.p || 0, chg = Math.max(0, p), dis = Math.max(0, -p), pv = y.pv || 0;
+    const hint = (q, t, cls) => this._whyHint(q, t, cls);
+    const name = b.n || T('flow.battery');
+    const title = chg > TH ? T('why.bt.chg', { n: name, w: fW(chg) }) : dis > TH ? T('why.bt.dis', { n: name, w: fW(dis) }) : T('why.bt.idle', { n: name });
+    const sub = b.soc !== null ? T('why.bt.lim', { soc: pct(b.soc), res: pct(b.reserve), max: pct(b.maxSoc) }) : '';
+    const rows = [];
+    let hints = '';
+    if (chg > TH) {
+      const sun = Math.min(chg, Math.max(0, pv - y.pvHome)), grid = Math.max(0, chg - sun);
+      if (sun > TH) rows.push({ n: T('why.bt.row.pv'), w: sun, c: `rgb(${PAL.pv})` });
+      if (grid > TH) rows.push({ n: T('why.bt.row.grid'), w: grid, c: `rgb(${PAL.imp})` });
+      hints += hint(T('why.bt.q.src'), grid > TH && y.gImp > TH ? T('why.bt.src.grid') : T('why.bt.src.sun'));
+    } else if (dis > TH) {
+      const items = (this._wyItems || []).filter((x) => x.w >= 5).slice().sort((a, b2) => b2.w - a.w);
+      items.slice(0, 6).forEach((x) => rows.push({ n: x.n, w: x.w, c: `rgb(${rgb(x.c, '167,139,250')})` }));
+      if (!rows.length) rows.push({ n: T('why.row.home'), w: Math.min(dis, y.home), c: `rgb(${PAL.home})` });
+    } else {
+      let t = '';
+      if (b.soc !== null && b.soc <= b.reserve + 1) t = T('why.bat.empty', { soc: pct(b.soc), res: pct(b.reserve) });
+      else if (b.soc !== null && b.soc >= b.maxSoc - 0.5) t = T('why.full', { soc: pct(b.soc) });
+      else if (b.soc !== null && y.gExp > TH) t = T('why.notfull', { soc: pct(b.soc) });
+      else if (b.soc !== null && y.gImp > TH) t = T('why.bat.idle', { soc: pct(b.soc) });
+      else t = T('why.bt.nothing');
+      hints += hint(T('why.bt.q.idle'), t);
+    }
+    return this._whyFrame(title, sub, rows, hints);
   }
   _wasteChip() {
     const el = this._$('.wst'), W = this._waste, w = this._c.waste;
@@ -1932,16 +2030,23 @@ class EnergyCockpitFlowCard extends HTMLElement {
       </div>`;
     const links = [];
     let nodes = '';
-    if (c.pv) { nodes += node('pv', 'pv', c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv); if (!this._via) links.push('pv'); }
+    const whySet0 = (c.why === true ? ['pv'] : (Array.isArray(c.why) ? c.why : typeof c.why === 'string' ? [c.why] : [])).map((x) => String(x).toLowerCase());
+    const pvWhy = whySet0.includes('pv') || whySet0.includes('solar');
+    if (c.pv) { nodes += node('pv', 'pv' + (pvWhy ? ' has-why' : ''), c.pv.icon || 'mdi:solar-power-variant', c.pv.name || T('flow.pv'), PAL.pv, c.pv.entity, '', c.pv, pvWhy ? `<span class="why" data-w="pv" data-i="0" role="button" tabindex="0" aria-label="${esc(T('why.aria.pv'))}">?</span>` : ''); if (!this._via) links.push('pv'); }
     const hasPv2 = !!(c.pv2 && c.pv2.entity);
     if (hasPv2) { nodes += node('pv2', 'pv2', c.pv2.icon || 'mdi:solar-panel', c.pv2.name || T('flow.pv2'), PAL.pv, c.pv2.entity, '', c.pv2); if (this._via2 < 0) links.push('pv2'); }
     let gridH = '', batH = '';
-    if (c.grid) { nodes += (gridH = node('grid', c.why ? 'grid has-why' : 'grid', c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, c.why ? `<span class="why" role="button" tabindex="0" aria-label="${esc(T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim())}">?</span>` : '')); links.push('grid'); }
+    // why: true zeigt das "?" an Netz, Solar und Batterie. why: [grid, pv, battery] (oder ein einzelner Name) nur dort
+    const whySet = (c.why === true ? ['grid', 'pv', 'bat'] : (Array.isArray(c.why) ? c.why : typeof c.why === 'string' ? [c.why] : [])).map((x) => ({ netz: 'grid', solar: 'pv', battery: 'bat', batterie: 'bat' }[String(x).toLowerCase()] || String(x).toLowerCase()));
+    const whyBtn = (k, i) => (whySet.includes(k) ? `<span class="why" data-w="${k}" data-i="${i || 0}" role="button" tabindex="0" aria-label="${esc(k === 'grid' ? T('why.imp', { w: '' }).replace(/\s+/g, ' ').trim() : T('why.aria.' + k))}">?</span>` : '');
+    const hw = (k) => (whySet.includes(k) ? ' has-why' : '');
+    this._whyOn = whySet.length > 0;
+    if (c.grid) { nodes += (gridH = node('grid', 'grid' + hw('grid'), c.grid.icon || 'mdi:transmission-tower', c.grid.name || T('flow.grid'), PAL.imp, c.grid.entity, '', c.grid, whyBtn('grid'))); links.push('grid'); }
     if (c.batteries.length) {
       const nB = c.batteries.length;
-      const bHtml0 = c.batteries.map((b, i) => node(this._bk(i), 'bat', b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
+      const bHtml0 = c.batteries.map((b, i) => node(this._bk(i), 'bat' + hw('bat'), b.icon || 'mdi:home-battery-outline', b.name || (T('flow.battery') + (nB > 1 ? ' ' + (i + 1) : '')), PAL.bat, (b.tap === 'soc' && b.soc) || b.power || b.power_charge || b.power_discharge,
         // Klick auf Balken und Prozentzahl öffnet den Verlauf des Ladestands, der Rest der Kachel den der Leistung
-        `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b)).join('');
+        `<div class="socbox"${b.soc ? ` data-e="${esc(b.soc)}"` : ''}><div class="soc"><div class="soc-fill"></div><div class="soc-low"></div><div class="soc-high"></div></div><div class="soc-row"><span>${T('flow.soc')}</span><b class="soc-txt">—</b></div></div>${b.temp ? `<div class="socbox" data-e="${esc(b.temp)}"><div class="soc-row"><span>${T('flow.temp')}</span><b class="temp-txt">—</b></div></div>` : ''}`, b, whyBtn('bat', i))).join('');
       // #75: pv_to_battery ohne power_out wird nicht angewendet, die erste Batterie-Kachel sagt, was fehlt
       const bHtml = this._viaMiss ? bHtml0.replace('<div class="sub"></div>', `<div class="cfgw">${T('flow.via.miss')}</div><div class="sub"></div>`) : bHtml0;
       nodes += (batH = nB > 1 ? `<div class="bats">${bHtml}</div>` : bHtml);
@@ -2082,7 +2187,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         ${grps}${sam ? '</div>' : ''}
       </div>
       <footer>${stats}</footer>
-    </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${c.why ? '<dialog class="wdlg"></dialog>' : ''}`;
+    </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${this._whyOn ? '<dialog class="wdlg"></dialog>' : ''}`;
 
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
     this._3k = {};
@@ -2092,12 +2197,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Nur einmal registrieren: _build läuft bei jeder Konfigurationsänderung erneut
     if (!this._clk) {
       this._clk = true;
-      this.shadowRoot.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.why')) { e.preventDefault(); this._whyOpen(); } });
+      this.shadowRoot.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.why')) { e.preventDefault(); const b = e.target.closest('.why'); this._whyOpen(b.dataset.w, +b.dataset.i || 0); } });
       this.shadowRoot.addEventListener('click', (e) => {
         const dlg = this._$('.gdlg');
         if (dlg && dlg.open && (e.target === dlg || e.target.closest('.d-x'))) { dlg.close(); return; }
         const wy = e.target.closest('.why');
-        if (wy) { e.stopPropagation(); this._whyOpen(); return; }
+        if (wy) { e.stopPropagation(); this._whyOpen(wy.dataset.w, +wy.dataset.i || 0); return; }
         const wdl = this._$('.wdlg');
         if (wdl && wdl.open && (e.target === wdl || e.target.closest('.d-x'))) { wdl.close(); return; }
         const sk = e.target.closest('.sky');
@@ -2357,9 +2462,31 @@ class EnergyCockpitFlowCard extends HTMLElement {
   // wechselt die Auswahl oder Reihenfolge erst, wenn sie consumers_top_delay Sekunden (Standard 30) anders bleibt, sofort dagegen, wenn ein
   // ausgeblendeter Verbraucher den kleinsten sichtbaren deutlich übertrifft (mehr als doppelt so viel und mindestens 100 W mehr).
   // Ausgeblendete Verbraucher zählen weiter zum Hausverbrauch und zu "Nicht erfasst"; ihre Linien verschwinden mit der Kachel (_layout)
+  // hide_zero: Verbraucher, Gruppen und Gruppeneinträge unter ihrer Schwelle (on_w, Standard 10 W) ausblenden. Damit nichts flackert, muss ein Eintrag
+  // hide_zero_delay Sekunden (Standard 30) darunter bleiben, bevor er verschwindet. Er erscheint sofort, sobald er wieder läuft.
+  // Beim Laden der Seite verschwinden ruhende Einträge gleich. Ausgeblendete zählen weiter zum Hausverbrauch und zu "Nicht erfasst"
+  _hzOn() { return this._c && (this._c.hide_zero === true || String(this._c.hide_zero).toLowerCase() === 'true'); }
+  _hz(key, below) {
+    const m = this._hzS || (this._hzS = {}), now = Date.now();
+    let s = m[key];
+    if (!s) { s = m[key] = { t: below ? now : 0, h: below }; if (below) this._hzDirty = true; return s.h; }
+    const d0 = parseFloat(this._c.hide_zero_delay), dl = (isNaN(d0) ? 30 : Math.max(0, d0)) * 1000;
+    if (!below) { s.t = 0; if (s.h) { s.h = false; this._hzDirty = true; } }
+    else { if (!s.t) s.t = now; if (!s.h && now - s.t >= dl) { s.h = true; this._hzDirty = true; } }
+    return s.h;
+  }
   _topCons(pw) {
     const n = parseInt(this._c.consumers_top, 10);
-    if (!(n > 0) || !pw.length) return;
+    if (!pw.length) return;
+    const hzs = this._hzOn() ? (this._hzS || {}) : null;
+    const hzHide = (i) => !!(hzs && hzs['c' + i] && hzs['c' + i].h);
+    if (!(n > 0)) {
+      if (!this._hzOn() || !this._hzDirty) return;
+      this._hzDirty = false;
+      pw.forEach((w, i) => { const el = this._$(`[data-k="c${i}"]`); if (el) el.style.display = hzHide(i) ? 'none' : ''; });
+      this._schedLayout();
+      return;
+    }
     const want = pw.map((w, i) => i).sort((a, b) => pw[b] - pw[a] || a - b).slice(0, n);
     const cur = this._topCur, now = Date.now();
     let changed = false;
@@ -2371,13 +2498,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (!this._topPend) this._topPend = now;
       if (!cur || cur.some((i) => i >= pw.length) || jump || now - this._topPend >= dl) { this._topCur = want; this._topPend = 0; changed = true; }
     }
-    if (!changed && !this._topDirty) return;
-    this._topDirty = false;
+    if (!changed && !this._topDirty && !(this._hzOn() && this._hzDirty)) return;
+    this._topDirty = false; this._hzDirty = false;
     pw.forEach((w, i) => {
       const el = this._$(`[data-k="c${i}"]`);
       if (!el) return;
       const pos = this._topCur.indexOf(i);
-      el.style.display = pos < 0 ? 'none' : '';
+      el.style.display = pos < 0 || hzHide(i) ? 'none' : '';
       el.style.order = pos < 0 ? '' : String(pos);
     });
     const rest = this._$('[data-k="crest"]');
@@ -2974,6 +3101,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
         pw[i] = p || 0;
+        if (this._hzOn()) this._hz('c' + i, p === null || p <= onW(x));
         this._wyItems.push({ n: x.name || x.entity, w: p || 0, c: x.color });
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
@@ -3010,8 +3138,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
           const it = this._$(`[data-i="${i}-${j}"]`);
           if (!it) return;
           const st = x.entity ? h.states[x.entity] : null;
-          it.classList.toggle('off', !!x.entity && (!st || st.state === 'unavailable'));
           const p = x.entity ? this._cw(x) : null;
+          const hzItem = this._hzOn() && !!x.entity && this._hz(`i${i}-${j}`, p === null || p <= onW(x));
+          it.classList.toggle('off', (!!x.entity && (!st || st.state === 'unavailable')) || hzItem);
           let txt = '';
           if (p !== null) { sum += p; any = true; const sp = this._sw(p); txt = sp[0] + ' ' + sp[1]; }
           const sec = x.secondary && h.states[x.secondary];
@@ -3040,7 +3169,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         sumAll += gv;
         const wi = (g.items || []).map((x) => ({ n: x.name || x.entity, w: x.entity ? (this._cw(x) || 0) : 0 })).filter((x) => x.w > TH).sort((a, b) => b.w - a.w);
         this._wyItems.push({ n: g.name, w: gv, c: g.color, top: wi.length > 1 && wi[0].w >= gv * 0.5 ? wi[0] : null });
-        const shown = tot !== null || (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
+        let shown = tot !== null || (g.items || []).some((x) => !x.entity || (h.states[x.entity] && h.states[x.entity].state !== 'unavailable'));
+        if (this._hzOn() && shown && this._hz('g' + i, !(gv > onW(g)))) shown = false;
         el.style.display = shown ? '' : 'none';
         if (shown) vis++;
         const on = shown && gv > onW(g);
@@ -3136,11 +3266,11 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
-    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', consumers_top: 'Nur die größten Verbraucher zeigen (Anzahl)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
+    reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', hide_zero: 'Ruhende Verbraucher ausblenden (unter „Aktiv ab“)', hide_zero_delay: 'Ausblenden erst nach (Sekunden, Standard 30)', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', consumers_top: 'Nur die größten Verbraucher zeigen (Anzahl)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', forecast_swap: 'Prognose heute unten neben morgen und übermorgen, Solar heute in der Solar-Kachel', why: 'Warum?-Erklärung (? an der Netz-Kachel)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', forecast_swap: 'Prognose heute unten neben morgen und übermorgen, Solar heute in der Solar-Kachel', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3210,6 +3340,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       bool('show_rest', false),
       bool('forecast_swap', false),
       numb('consumers_top', 1, 30, 1),
+      bool('hide_zero', false),
+      numb('hide_zero_delay', 0, 3600, 1),
       numb('groups_columns', 1, 12, 1),
       numb('rest_min', 0, 100, 1),
       { name: 'style', selector: { select: { mode: 'dropdown', options: STYLE } } },
@@ -3229,7 +3361,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('nav_label'),
     ],
     computeLabel: (s) => s.label || LABELS[s.name] || s.title || s.name,
-    computeHelper: (s) => (s.name === 'language' ? 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' : s.name === 'why' ? 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' : s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
+    computeHelper: (s) => (s.name === 'language' ? 'Optional. Standard: Die Karte nutzt die Sprache aus deinem Home-Assistant-Profil (Deutsch, Englisch oder Niederländisch, sonst Deutsch). Hier legst du sie fest, zum Beispiel Deutsch, wenn Home Assistant auf Englisch läuft. Zahlen- und Uhrzeitformat richten sich nach deinem Profil. Die Editoren bleiben deutsch.' : s.name === 'why' ? 'Optional. Zeigt an der Netz-, der Solar- und der Batterie-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt, warum Solar gerade so viel oder so wenig liefert und was die Batterie gerade tut oder warum sie nichts tut. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung. Nur an einer Kachel: im YAML-Editor `why: [grid]`, `why: [pv]` oder `why: [battery]`.' : s.name === 'to_battery' ? 'Für Speicher mit eigenen Solarmodulen, zum Beispiel Anker SOLIX Solarbank: PV 2 läuft durch den Speicher, nicht direkt ins Haus. Nummer des Speichers wie in den Kacheln (1 = Batterie, 2 = erster Eintrag unter Weitere Speicher …). Der Speicher braucht „Ausgangsleistung ins Haus“ (AC-Abgabe) und gilt als hinter dem Zähler.' : s.name === 'power_in' ? 'AC-Leistung, die der Speicher aus dem Hausnetz zieht (bei Anker: „Netzbezugsleistung“). Ohne Angabe gilt 0.' : s.name === 'label_size' ? 'Optional. Vergrößert nur die kleinen Texte (Namen, Zusatzwerte, Beschriftungen) und lässt die Zahlen in den Kacheln, wie sie sind. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Beispiel: 1,5. Gilt vor der Textgröße.' : s.name === 'text_size' ? 'Normal, Groß, Sehr groß oder eine Zahl (zum Beispiel 2 oder 1,5). Eine Zahl vergrößert auch die Zahlen in den Kacheln. Wenn die Karte dadurch zu hoch wird, schalte „Auf Bildschirmhöhe skalieren“ aus.' : s.name === 'size' ? 'Normal, Mittel (eine Spalte, größere Zahl) oder Groß (breite Kachel mit großer Zahl). Gut für Wärmepumpe und Wallbox.' : s.name === 'weather' ? 'Zeigt unter der Kopfzeile ein Band mit dem Wetter des Tages (24 Stunden), dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage, zum Beispiel Met.no oder Deutscher Wetterdienst. Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' : s.name === 'colors' ? 'Eigene Farben als #hex (zum Beispiel #22c55e) oder r,g,b. Leere Felder behalten die Standardfarbe. Batterie lädt und Batterie entlädt lassen sich getrennt einfärben.' : s.name === 'extra' ? 'Frei wählbare Zusatzwerte in dieser Kachel, zum Beispiel Spannung, Strom und Temperatur eines Wechselrichters. Jeder Eintrag braucht einen Sensor. Name und Einheit sind optional, ohne Angabe nimmt die Karte die des Sensors. Mit Warnung ab oder Warnung unter wird der Wert gelb.' : s.name === 'alarm' ? 'Optional. Ein Sensor, der einen Fehler meldet, zum Beispiel der Alarm oder Status des Wechselrichters. Bei einem Alarm erscheint in der Kachel ein roter Hinweis. Als Alarm gilt jeder Zustand außer off, ok, normal, none, false, idle und 0. Eigene Zustände (ok oder on) stellst du im YAML-Editor ein.' : s.name === 'title' ? 'Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.' : s.name === 'daily_from_total' ? 'Optional. Trage bei den Tageswerten (Bezug, Einspeisung, Ertrag, Batterie) Gesamtzähler ein, auch in Wh. Die Karte rechnet den Wert von heute selbst, aus der Langzeitstatistik.' : undefined),
   });
 
   // Assistent: Schritte mit Sensor-Vorschlägen
@@ -3337,6 +3469,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 30, minusKey: 'minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Haushaltszähler):' },
       { path: 'rest_min', label: 'Kachel "Nicht erfasst" erst anzeigen ab (% vom Hausverbrauch)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 10: Die Kachel erscheint nur, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind.' },
       { path: 'groups_columns', label: 'Gruppen pro Reihe', kind: 'number', optional: true, step: '1', help: 'Leer: alle Gruppen nebeneinander in einer Reihe. 1: jede Gruppe in einer eigenen Reihe über die volle Breite, die Namen sind dann besser lesbar. Stehen Gruppen untereinander, zeichnet die Karte eine Sammel-Linie.' },
+      { path: 'hide_zero', label: 'Ruhende Verbraucher ausblenden', kind: 'bool', help: 'Optional. Verbraucher, Gruppen und Geräte in Gruppen verschwinden, wenn sie unter „Aktiv ab“ (Standard 10 W) liegen, und erscheinen sofort wieder, sobald sie laufen. Damit nichts flackert, müssen sie 30 Sekunden ruhen (einstellbar mit „hide_zero_delay“ im YAML). Sie zählen weiter zum Hausverbrauch und zu „Nicht erfasst“.' },
       { path: 'consumers_top', label: 'Nur die größten Verbraucher zeigen (Anzahl)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 8: Von allen eingetragenen Verbrauchern erscheinen nur die 8 mit der höchsten Leistung, nach Leistung absteigend. Die Reihenfolge wechselt erst nach 30 Sekunden, damit die Kacheln nicht springen. Leer: alle zeigen.' },
       { path: 'show_rest', label: 'Kachel "Nicht erfasst" zeigen', kind: 'bool', help: 'Zeigt bei einzelnen Verbrauchern ohne Gruppen eine Kachel mit dem Teil des Hausverbrauchs, der keinem Gerät zugeordnet ist (Hausverbrauch minus Summe der Verbraucher). Bei Gruppen erscheint sie ohnehin.' },
       { path: 'hide_rest', label: 'Kachel "Nicht erfasst" ausblenden', kind: 'bool', help: 'Die Kachel zeigt den Teil des Hausverbrauchs, der keinem Gerät und keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen).' },
@@ -3358,7 +3491,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
       { path: 'compact_forecast', label: 'Kurzansicht: Prognose heute zeigen', kind: 'bool', help: 'Nur mit Kurzansicht und eingetragener Prognose (pv.forecast): In der Solar-Kachel steht dann eine Zeile „Prognose heute … kWh“, alle anderen Zusatzzeilen bleiben ausgeblendet.' },
       { path: 'weather', label: 'Wetter (Himmelsband)', kind: 'weather', optional: true, hints: H(/forecast|home|haus|zuhause|dwd|met|wetter/i), help: 'Optional. Zeigt unter der Kopfzeile ein Band mit dem Wetter der nächsten Stunden, dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage (zum Beispiel Met.no oder Deutscher Wetterdienst). Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' },
-      { path: 'why', label: 'Warum?-Erklärung an der Netz-Kachel', kind: 'bool', help: 'Optional. Zeigt an der Netz-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt: welche Verbraucher den Strom brauchen, warum die Batterie nichts liefert, warum kein Solar da ist. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung.' },
+      { path: 'why', label: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', kind: 'bool', help: 'Optional. Zeigt an der Netz-, der Solar- und der Batterie-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt, warum Solar gerade so viel oder so wenig liefert und was die Batterie gerade tut oder warum sie nichts tut. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung. Nur an einer Kachel: im YAML-Editor `why: [grid]`, `why: [pv]` oder `why: [battery]`.' },
       { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
       { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }], help: 'Groß und Sehr groß vergrößern die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen. Doppelt und Dreifach (eine Zahl) vergrößern zusätzlich die Zahlen in den Kacheln. Im Formular unter Alle Felder kannst du auch eine eigene Zahl eintragen, zum Beispiel 1,5. Wird die Karte dadurch zu hoch, schalte Auf Bildschirmhöhe skalieren aus.' },
     ] },
@@ -6383,6 +6516,33 @@ WD.addTranslations('en', {
   'room.mix_tip': 'On average, the least grid power is needed between <b>{from}:00 and {to}:00</b> (Ø {share} % from the grid). Schedule larger loads during that time.',
   'room.mix_tip_missing': 'More days of data are needed to make a recommendation.', 'room.and_cost': ' and {amount} {cur}',
 });
+WD.addTranslations('en', {
+  "why.aria.pv": "Why is solar producing this much right now?",
+  "why.aria.bat": "What is the battery doing right now?",
+  "why.pv.t": "Solar is producing {w} right now",
+  "why.pv.t0": "Solar is not producing anything right now",
+  "why.pv.q.low": "Why so little?",
+  "why.pv.q.day": "How much is that today?",
+  "why.pv.q.full": "Why is solar going to the grid?",
+  "why.pv.q.part": "Is solar enough for the house?",
+  "why.pv.elev": "The sun is only {deg}° above the horizon, so the panels get little light.",
+  "why.pv.cloud": " The sky is {pct} % cloudy.",
+  "why.pv.day": "So far today: {kwh} kWh.",
+  "why.pv.dayfc": "So far today: {kwh} kWh, forecast for the whole day: {fc} kWh.",
+  "why.pv.full": "The house needs less than solar produces and the battery cannot take any more. The rest goes to the grid.",
+  "why.pv.nobat": "The house needs less than solar produces. The rest goes to the grid.",
+  "why.bt.chg": "{n} is charging at {w}",
+  "why.bt.dis": "{n} is delivering {w}",
+  "why.bt.idle": "{n} is idle right now",
+  "why.bt.lim": "Charge level {soc} %, discharge limit {res} %, maximum charge {max} %",
+  "why.bt.q.src": "Where does the charge come from?",
+  "why.bt.q.idle": "Why is the battery doing nothing?",
+  "why.bt.src.sun": "The charge comes from the solar surplus.",
+  "why.bt.src.grid": "Solar is not enough for the house and the battery, so the battery also charges from the grid. That is intended if you set grid charging or a cheap tariff in the storage.",
+  "why.bt.nothing": "There is currently neither a solar surplus nor a demand the battery would have to cover.",
+  "why.bt.row.pv": "from solar",
+  "why.bt.row.grid": "from the grid",
+});
 
 
 /* ---- i18n-nl.js ---- */
@@ -6500,6 +6660,33 @@ WD.addTranslations('nl', {
   'room.no_use_today': 'Vandaag nog geen verbruik', 'room.source_today': 'Herkomst vandaag',
   'room.mix_tip': 'Gemiddeld is tussen <b>{from}:00 en {to}:00</b> de minste netstroom nodig (Ø {share} % van het net). Plan grote verbruikers bij voorkeur op dat moment.',
   'room.mix_tip_missing': 'Er zijn meer dagen met gegevens nodig voor een aanbeveling.', 'room.and_cost': ' en {amount} {cur}',
+});
+WD.addTranslations('nl', {
+  "why.aria.pv": "Waarom levert zonne-energie nu zoveel?",
+  "why.aria.bat": "Wat doet de batterij op dit moment?",
+  "why.pv.t": "Zonne-energie levert nu {w}",
+  "why.pv.t0": "Zonne-energie levert nu niets",
+  "why.pv.q.low": "Waarom zo weinig?",
+  "why.pv.q.day": "Hoeveel is dat vandaag?",
+  "why.pv.q.full": "Waarom gaat zonne-energie naar het net?",
+  "why.pv.q.part": "Is zonne-energie genoeg voor het huis?",
+  "why.pv.elev": "De zon staat slechts {deg}° boven de horizon, de panelen krijgen weinig licht.",
+  "why.pv.cloud": " De lucht is voor {pct} % bewolkt.",
+  "why.pv.day": "Vandaag tot nu toe {kwh} kWh.",
+  "why.pv.dayfc": "Vandaag tot nu toe {kwh} kWh, verwachting voor de hele dag {fc} kWh.",
+  "why.pv.full": "Het huis heeft minder nodig dan de zonne-energie levert en de batterij kan niets meer opnemen. De rest gaat naar het net.",
+  "why.pv.nobat": "Het huis heeft minder nodig dan de zonne-energie levert. De rest gaat naar het net.",
+  "why.bt.chg": "{n} laadt met {w}",
+  "why.bt.dis": "{n} levert {w}",
+  "why.bt.idle": "{n} is nu inactief",
+  "why.bt.lim": "Laadniveau {soc} %, ontlaadgrens {res} %, maximale lading {max} %",
+  "why.bt.q.src": "Waar komt de lading vandaan?",
+  "why.bt.q.idle": "Waarom doet de batterij niets?",
+  "why.bt.src.sun": "De lading komt uit het zonne-overschot.",
+  "why.bt.src.grid": "Zonne-energie is niet genoeg voor huis en batterij, daarom laadt de batterij ook uit het net. Dat is de bedoeling als je netladen of een goedkoop tarief in de opslag hebt ingesteld.",
+  "why.bt.nothing": "Er is nu geen zonne-overschot en geen stroomvraag die de batterij moet dekken.",
+  "why.bt.row.pv": "uit zonne-energie",
+  "why.bt.row.grid": "uit het net",
 });
 
 
@@ -6901,6 +7088,33 @@ WD.addTranslations('fr', {
   'room.mix_tip_missing': "Plus de jours de données sont nécessaires pour faire une recommandation.",
   'room.and_cost': " et {amount} {cur}",
 });
+WD.addTranslations('fr', {
+  "why.aria.pv": "Pourquoi le solaire produit-il autant en ce moment ?",
+  "why.aria.bat": "Que fait la batterie en ce moment ?",
+  "why.pv.t": "Le solaire produit actuellement {w}",
+  "why.pv.t0": "Le solaire ne produit rien en ce moment",
+  "why.pv.q.low": "Pourquoi si peu ?",
+  "why.pv.q.day": "Combien cela fait-il aujourd'hui ?",
+  "why.pv.q.full": "Pourquoi le solaire part-il sur le réseau ?",
+  "why.pv.q.part": "Le solaire suffit-il pour la maison ?",
+  "why.pv.elev": "Le soleil n'est qu'à {deg}° au-dessus de l'horizon, les panneaux reçoivent peu de lumière.",
+  "why.pv.cloud": " Le ciel est nuageux à {pct} %.",
+  "why.pv.day": "Jusqu'à présent aujourd'hui : {kwh} kWh.",
+  "why.pv.dayfc": "Jusqu'à présent aujourd'hui : {kwh} kWh, prévision pour toute la journée : {fc} kWh.",
+  "why.pv.full": "La maison consomme moins que ce que produit le solaire et la batterie n'accepte plus rien. Le reste part sur le réseau.",
+  "why.pv.nobat": "La maison consomme moins que ce que produit le solaire. Le reste part sur le réseau.",
+  "why.bt.chg": "{n} se charge à {w}",
+  "why.bt.dis": "{n} fournit {w}",
+  "why.bt.idle": "{n} est actuellement inactive",
+  "why.bt.lim": "Charge {soc} %, limite de décharge {res} %, charge maximale {max} %",
+  "why.bt.q.src": "D'où vient la charge ?",
+  "why.bt.q.idle": "Pourquoi la batterie ne fait-elle rien ?",
+  "why.bt.src.sun": "La charge provient du surplus solaire.",
+  "why.bt.src.grid": "Le solaire ne suffit pas pour la maison et la batterie, la batterie se charge donc aussi sur le réseau. C'est voulu si vous avez réglé une charge réseau ou un tarif avantageux dans le stockage.",
+  "why.bt.nothing": "Il n'y a actuellement ni surplus solaire ni besoin que la batterie devrait couvrir.",
+  "why.bt.row.pv": "du solaire",
+  "why.bt.row.grid": "du réseau",
+});
 
 
 /* ---- i18n-fi.js ---- */
@@ -7279,5 +7493,32 @@ WD.addTranslations('fi', {
   'room.mix_tip': "Verkkosähköä kuluu keskimäärin vähiten <b>klo {from}–{to}</b> (keskimäärin {share} % verkosta). Suuret kuormat kannattaa ajoittaa silloin.",
   'room.mix_tip_missing': "Suositukseen tarvitaan vielä useamman päivän tiedot.",
   'room.and_cost': " ja {amount} {cur}",
+});
+WD.addTranslations('fi', {
+  "why.aria.pv": "Miksi aurinko tuottaa juuri nyt näin paljon?",
+  "why.aria.bat": "Mitä akku tekee juuri nyt?",
+  "why.pv.t": "Aurinko tuottaa juuri nyt {w}",
+  "why.pv.t0": "Aurinko ei tuota juuri nyt mitään",
+  "why.pv.q.low": "Miksi niin vähän?",
+  "why.pv.q.day": "Paljonko tänään on tullut?",
+  "why.pv.q.full": "Miksi aurinkosähköä menee verkkoon?",
+  "why.pv.q.part": "Riittääkö aurinko taloon?",
+  "why.pv.elev": "Aurinko on vain {deg}° horisontin yläpuolella, joten paneelit saavat vähän valoa.",
+  "why.pv.cloud": " Taivas on {pct} % pilvessä.",
+  "why.pv.day": "Tähän mennessä tänään {kwh} kWh.",
+  "why.pv.dayfc": "Tähän mennessä tänään {kwh} kWh, ennuste koko päivälle {fc} kWh.",
+  "why.pv.full": "Talo tarvitsee vähemmän kuin aurinko tuottaa, eikä akku ota enempää. Loput menee verkkoon.",
+  "why.pv.nobat": "Talo tarvitsee vähemmän kuin aurinko tuottaa. Loput menee verkkoon.",
+  "why.bt.chg": "{n} latautuu teholla {w}",
+  "why.bt.dis": "{n} antaa {w}",
+  "why.bt.idle": "{n} on tällä hetkellä lepotilassa",
+  "why.bt.lim": "Varaustaso {soc} %, purkuraja {res} %, enimmäislataus {max} %",
+  "why.bt.q.src": "Mistä lataus tulee?",
+  "why.bt.q.idle": "Miksi akku ei tee mitään?",
+  "why.bt.src.sun": "Lataus tulee aurinkosähkön ylijäämästä.",
+  "why.bt.src.grid": "Aurinko ei riitä talolle ja akulle, joten akku latautuu myös verkosta. Se on tarkoituksellista, jos olet asettanut varastoon verkkolatauksen tai edullisen tariffin.",
+  "why.bt.nothing": "Tällä hetkellä ei ole aurinkosähkön ylijäämää eikä tarvetta, jonka akun pitäisi kattaa.",
+  "why.bt.row.pv": "aurinkosähköstä",
+  "why.bt.row.grid": "verkosta",
 });
 

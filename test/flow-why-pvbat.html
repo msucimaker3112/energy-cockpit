@@ -1,0 +1,119 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Warum-Erklärung Solar und Batterie Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #50: "?" an Solar und Batterie (why: true, Liste oder Name) und die Erklärungen dort.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (&case=tag|nacht|laedt|leer&open=pv|bat) */
+const S=(v,u,a)=>({state:String(v),attributes:Object.assign({unit_of_measurement:u||'W'},a||{}),last_updated:'x'});
+const iso=(h)=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(h,0,0,0);return d.toISOString();};
+const base={pv:2400,grid:0,bat:800,soc:60,bat2:0,soc2:30,home:1200,sun:'above_horizon',elev:35,wx:'sunny',cloud:10,daily:6.2};
+const hassFor=(o)=>{const v=Object.assign({},base,o||{});return {states:{'sensor.pv':S(v.pv),'sensor.grid':S(v.grid),'sensor.bat':S(v.bat),'sensor.soc':S(v.soc,'%'),'sensor.bat2':S(v.bat2),'sensor.soc2':S(v.soc2,'%'),'sensor.home':S(v.home),
+  'sensor.wh':S(700),'sensor.kk':S(150),'sensor.pvd':S(v.daily,'kWh'),'sensor.fc0':S(18,'kWh'),'sensor.fc1':S(22,'kWh'),
+  'sun.sun':{state:v.sun,attributes:{next_rising:iso(8),elevation:v.elev},last_updated:'x'},'weather.home':{state:v.wx,attributes:{temperature:12,cloud_coverage:v.cloud},last_updated:'x'}},
+  language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};};
+const cfg=(o)=>Object.assign({why:true,style:'3d',pv:{entity:'sensor.pv',daily:'sensor.pvd',forecast:'sensor.fc0',forecast_tomorrow:'sensor.fc1'},grid:{entity:'sensor.grid'},
+  battery:{name:'Hausspeicher',power:'sensor.bat',soc:'sensor.soc',capacity_kwh:8,reserve_pct:10,max_pct:100},home:{entity:'sensor.home'},weather:'weather.home',
+  consumers:[{name:'Wassererhitzer',entity:'sensor.wh'},{name:'Kühlschrank',entity:'sensor.kk'}]},o||{});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s),qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+const txt=(e)=>{const d=q(e,'.wdlg');return d?d.textContent.replace(/\s+/g,' ').trim():'';};
+const open=async(e,sel)=>{q(e,sel+' .why').click();await wait(250);};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const whyTiles=(e)=>qa(e,'.why').map((x)=>x.dataset.w).join(',');
+async function run(){
+  // Wo steht das "?"
+  let e=mount(cfg({why:false}));await wait(700);
+  ok('why aus: kein "?"',qa(e,'.why').length===0&&!q(e,'.wdlg'));
+  e=mount(cfg());await wait(800);
+  ok('why: true: "?" an Netz, Solar und Batterie',whyTiles(e)==='pv,grid,bat'||['grid','pv','bat'].every((k)=>whyTiles(e).includes(k)),whyTiles(e));
+  ok('"?" sitzt in der Kopfzeile der Kachel',['pv','grid','bat'].every((k)=>!!q(e,'[data-k="'+k+'"] .n-top .why')));
+  e=mount(cfg({why:['grid']}));await wait(800);
+  ok('why: [grid]: nur am Netz',whyTiles(e)==='grid',whyTiles(e));
+  e=mount(cfg({why:'solar'}));await wait(800);
+  ok('why: solar: nur an Solar',whyTiles(e)==='pv',whyTiles(e));
+  e=mount(cfg({why:['battery','pv']}));await wait(800);
+  ok('why: [battery, pv]: Solar und Batterie',['pv','bat'].every((k)=>whyTiles(e).includes(k))&&!whyTiles(e).includes('grid'),whyTiles(e));
+
+  // Solar am Tag, Batterie lädt, Haus 1,2 kW
+  e=mount(cfg());await wait(900);await open(e,'[data-k="pv"]');let t=txt(e);
+  ok('Solar: Fenster öffnet sich',q(e,'.wdlg').open);
+  ok('Solar: Überschrift nennt die Leistung',/Solar liefert gerade 2,40 kW/.test(t),t.slice(0,60));
+  ok('Solar: Aufteilung Haus 1,20 kW, Batterie lädt 800 W',/Haus braucht\s*1,20 kW/.test(t)&&/Batterie lädt\s*800 W/.test(t),t.slice(0,220));
+  ok('Solar: heute bisher 6,2 kWh von 18 kWh Prognose',/Heute bisher 6,2 kWh, Prognose für den ganzen Tag 18 kWh/.test(t),t);
+  ok('Solar: kein "Warum so wenig?" bei guter Leistung',!/Warum so wenig/.test(t));
+  q(e,'.d-x').click();await wait(150);
+  ok('Solar: Fenster schließt sich',!q(e,'.wdlg').open);
+
+  // Nacht
+  e=mount(cfg(),hassFor({pv:0,sun:'below_horizon',elev:-20,bat:-300,home:300,daily:0}));await wait(900);await open(e,'[data-k="pv"]');t=txt(e);
+  ok('Nacht: "liefert gerade nichts"',/Solar liefert gerade nichts/.test(t),t.slice(0,60));
+  ok('Nacht: Sonnenaufgang und Prognose morgen',/Warum so wenig\?\s*Es ist Nacht\. Sonnenaufgang um \d{2}:\d{2} Uhr\. Prognose morgen 22 kWh/.test(t),t);
+
+  // wenig Licht: tiefe Sonne und Wolken
+  e=mount(cfg(),hassFor({pv:20,elev:5,wx:'cloudy',cloud:90,bat:0,grid:1100,home:1120}));await wait(900);await open(e,'[data-k="pv"]');t=txt(e);
+  ok('wenig Solar: nennt die tiefe Sonne (5°)',/Die Sonne steht nur 5° über dem Horizont/.test(t),t);
+  ok('wenig Solar: nennt Wetter und Bewölkung 90 %',/Wetter: /.test(t)&&/zu 90 % bewölkt/.test(t),t);
+
+  // Einspeisung bei voller Batterie
+  e=mount(cfg(),hassFor({pv:3000,home:500,grid:-2500,bat:0,soc:100}));await wait(900);await open(e,'[data-k="pv"]');t=txt(e);
+  ok('Einspeisung: Zeile Einspeisung 2,50 kW',/Einspeisung\s*2,50 kW/.test(t),t.slice(0,160));
+  ok('Einspeisung: Batterie voll erklärt',/Warum geht Solar ins Netz\?\s*Das Haus braucht weniger, als Solar liefert, und die Batterie nimmt nichts mehr auf/.test(t),t);
+
+  // Batterie lädt aus Solar und Netz
+  e=mount(cfg(),hassFor({pv:1000,home:600,bat:2000,grid:1600}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('Batterie lädt: Überschrift mit Name und Leistung',/Hausspeicher lädt mit 2,00 kW/.test(t),t.slice(0,60));
+  ok('Batterie lädt: Quellen aus Solar 1,00 kW, aus dem Netz 1,00 kW (das Netz deckt zuerst das Haus)',/aus Solar\s*1,00 kW/.test(t)&&/aus dem Netz\s*1,00 kW/.test(t),t.slice(0,240));
+  ok('Batterie lädt: Hinweis zur Netzladung',/Woher kommt die Ladung\?\s*Solar reicht nicht für Haus und Batterie/.test(t),t);
+  ok('Batterie: Grenzen in der Unterzeile',/Ladestand 60 %, Entladegrenze 10 %, Maximalladung 100 %/.test(t),t.slice(0,160));
+  q(e,'.d-x').click();await wait(150);
+  e=mount(cfg(),hassFor({pv:2400,home:1200,bat:800,grid:0}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('Batterie lädt aus Überschuss: nur Solar',/aus Solar\s*800 W/.test(t)&&!/aus dem Netz/.test(t)&&/aus dem Solarüberschuss/.test(t),t.slice(0,260));
+
+  // Batterie entlädt
+  e=mount(cfg(),hassFor({pv:0,sun:'below_horizon',elev:-10,home:900,bat:-850,grid:50,soc:55}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('Batterie entlädt: Überschrift',/Hausspeicher liefert 850 W/.test(t),t.slice(0,60));
+  ok('Batterie entlädt: zeigt die Verbraucher',/Wassererhitzer/.test(t)&&/Kühlschrank/.test(t),t.slice(0,260));
+
+  // Batterie inaktiv: vier Gründe
+  e=mount(cfg(),hassFor({pv:0,sun:'below_horizon',home:900,bat:0,grid:900,soc:10}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('inaktiv, leer: Entladegrenze genannt',/Hausspeicher ist gerade inaktiv/.test(t)&&/Die Batterie ist leer \(10 %, Entladegrenze 10 %\)/.test(t),t);
+  e=mount(cfg(),hassFor({pv:3000,home:500,bat:0,grid:-2500,soc:100}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('inaktiv, voll: "ist voll"',/Die Batterie ist voll \(100 %\)/.test(t),t);
+  e=mount(cfg(),hassFor({pv:3000,home:500,bat:0,grid:-2500,soc:60}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('inaktiv, Überschuss, nicht voll: Betriebsart prüfen',/lädt gerade nicht, obwohl noch Platz ist \(60 %\)/.test(t),t);
+  e=mount(cfg(),hassFor({pv:0,sun:'below_horizon',home:900,bat:0,grid:900,soc:60}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('inaktiv, Netzbezug, Ladung da: Betriebsart oder Sperrzeit',/hat 60 %, gibt aber gerade keinen Strom ab/.test(t),t);
+  e=mount(cfg(),hassFor({pv:1200,home:1200,bat:0,grid:0,soc:60}));await wait(900);await open(e,'[data-k="bat"]');t=txt(e);
+  ok('inaktiv, ausgeglichen: weder Überschuss noch Bedarf',/weder Solarüberschuss noch Strombedarf/.test(t),t);
+
+  // Fenster läuft live mit
+  e=mount(cfg(),hassFor({pv:2400,home:1200,bat:800}));await wait(900);await open(e,'[data-k="pv"]');
+  const h2=hassFor({pv:900,home:1200,bat:0,grid:300});e.hass=h2;await wait(1500);
+  ok('Fenster zeigt neue Werte (Solar 900 W)',/Solar liefert gerade 900 W/.test(txt(e)),txt(e).slice(0,70));
+
+  // zwei Speicher: jedes "?" erklärt seinen Speicher
+  e=mount(cfg({batteries:[{name:'Speicher 2',power:'sensor.bat2',soc:'sensor.soc2',capacity_kwh:4}]}),hassFor({bat:-400,bat2:600,pv:1500,home:1000}));await wait(1000);
+  ok('zwei Speicher: zwei "?" an den Batterie-Kacheln',qa(e,'.why[data-w="bat"]').length===2,qa(e,'.why[data-w="bat"]').length);
+  await open(e,'[data-k="bat2"]');t=txt(e);
+  ok('zweiter Speicher: Überschrift mit Namen und Ladung',/Speicher 2 lädt mit 600 W/.test(t),t.slice(0,60));
+  q(e,'.d-x').click();await wait(150);
+  await open(e,'[data-k="bat"]');t=txt(e);
+  ok('erster Speicher: liefert 400 W',/Hausspeicher liefert 400 W/.test(t),t.slice(0,60));
+  // Tastatur
+  e=mount(cfg(),hassFor());await wait(900);
+  q(e,'[data-k="pv"] .why').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,composed:true}));await wait(250);
+  ok('Tastatur: Enter am "?" von Solar öffnet die Solar-Erklärung',q(e,'.wdlg').open&&/Solar liefert gerade/.test(txt(e)),txt(e).slice(0,60));
+  // Netz unverändert
+  e=mount(cfg(),hassFor({pv:0,grid:3000,bat:0,sun:'below_horizon',home:3000}));await wait(900);await open(e,'[data-k="grid"]');t=txt(e);
+  ok('Netz: Erklärung wie bisher',/Warum 3,00 kW Netzbezug\?/.test(t),t.slice(0,60));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const cs={tag:{},nacht:{pv:0,sun:'below_horizon',elev:-20,bat:-300,home:300},laedt:{pv:1000,home:600,bat:2000,grid:1600},leer:{pv:0,sun:'below_horizon',home:900,bat:0,grid:900,soc:10}};
+  const e=mount(cfg(),hassFor(cs[P.get('case')||'tag']));if(P.get('open'))wait(900).then(()=>open(e,'[data-k="'+P.get('open')+'"]'));}
+</script></body></html>

@@ -50,6 +50,8 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `hide_rest` | `true` / `false` | Blendet die Kachel "Nicht erfasst" unter den Gruppen aus. Sie zeigt den Hausverbrauch, der keiner Gruppe zugeordnet ist (Hausverbrauch minus Summe der Gruppen). Mit `rest.name` lässt sich ihre Beschriftung ändern | Wer nur einzelne Verbraucher (`consumers`) ohne Gruppen hat, schaltet die Kachel mit `show_rest: true` ein (im grafischen Editor: „Kachel "Nicht erfasst" zeigen“, `hide_rest: false` geht weiterhin). Sie zeigt dann den Hausverbrauch minus Summe der Verbraucher, `rest_min` gilt auch dort
 | `show_rest` | `true` / `false` (Standard) | Zeigt die Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern (`consumers`) ohne Gruppen: Hausverbrauch minus Summe der Verbraucher. Bei Gruppen erscheint sie ohnehin. `hide_rest: true` hat Vorrang |
 | `consumers_top` | Zahl, z. B. `8` | Zeigt von den Einzelverbrauchern (`consumers`) nur die mit der höchsten Leistung, nach Leistung absteigend. So lassen sich viele Geräte eintragen (bis zu 30 im Editor, per YAML beliebig viele), ohne dass die Karte voll wird. Ausgeblendete Geräte zählen weiter zum Hausverbrauch und zu "Nicht erfasst". Damit die Kacheln nicht ständig springen, wechselt die Reihenfolge erst, wenn sie 30 Sekunden anders bleibt, sofort dagegen, wenn ein ausgeblendetes Gerät das kleinste sichtbare deutlich übertrifft (mehr als doppelt so viel und mindestens 100 W mehr). Gilt nicht für Geräte in Gruppen (dafür `consumer_groups_sort`). Standard: alle zeigen |
+| `hide_zero` | `true` | Blendet ruhende Einzelverbraucher, Gruppen und Geräte in Gruppen aus, die unter ihrer Schwelle liegen (`on_w`, Standard 10 W), und zeigt sie sofort wieder, sobald sie laufen. Sie zählen weiter zum Hausverbrauch und zu „Nicht erfasst“. Ruhende Einträge ohne Leistungssensor (nur Zusatzwert) bleiben. Passt zu vielen Geräten |
+| `hide_zero_delay` | Sekunden, Standard `30` | Wie lange ein Eintrag unter der Schwelle bleiben muss, bevor `hide_zero` ihn ausblendet. Beim Laden der Seite verschwinden ruhende Einträge sofort. `0` blendet sofort aus |
 | `consumers_top_delay` | Sekunden, Standard `30` | Wie lange eine neue Reihenfolge bestehen muss, bevor `consumers_top` umsortiert. `0` sortiert sofort |
 | `groups_columns` | Zahl | Gruppen pro Reihe. Standard: alle Gruppen nebeneinander in einer Reihe (auf dem Handy drei). `1` stellt jede Gruppe in eine eigene Reihe über die volle Breite, die Einträge verteilen sich dann auf mehrere Spalten und die Namen bleiben lesbar. Stehen Gruppen untereinander und ist `groups_lines` nicht gesetzt, zeichnet die Karte die Sammel-Linie, damit keine Linie durch andere Gruppen läuft |
 | `groups_lines` | `direkt` (Standard) oder `sammel` | Linien zu Einzelverbrauchern und Gruppen. `sammel` zeichnet nur **eine** Linie vom Ring zu einer Plakette "Verbraucher" mit der Summe und fasst den Bereich in einem Rahmen zusammen. Die Kacheln zeigen ihre Aktivität weiter mit Farbrand und Wert, bekommen aber keine eigene Linie. Gut bei vielen Geräten, auch auf dem Handy |
@@ -308,6 +310,7 @@ Viele Einzelverbraucher, aber nur die größten zeigen (`consumers_top`, Bild: `
 ```yaml
 consumers_top: 4       # nur die 4 Geräte mit der höchsten Leistung, absteigend
 consumers_top_delay: 30 # Reihenfolge wechselt erst nach 30 s (Standard)
+hide_zero: true         # ruhende Verbraucher, Gruppen und Geräte ausblenden (unter on_w, 10 W)
 consumers:
   - entity: sensor.wallbox_leistung
     name: Wallbox
@@ -343,13 +346,16 @@ grid_alert:
 
 ### Warum?-Erklärung: `why`
 
-Optional. Mit `why: true` erscheint an der **Netz-Kachel** ein kleines „?“. Ein Tipp darauf öffnet ein Fenster, das in einfachem Deutsch erklärt, woher der Netzbezug oder die Einspeisung kommt.
+Optional. Mit `why: true` erscheint an der **Netz-, der Solar- und der Batterie-Kachel** ein kleines „?“. Ein Tipp darauf öffnet ein Fenster, das in einfachem Deutsch erklärt, woher der Netzbezug oder die Einspeisung kommt, warum Solar gerade so viel oder so wenig liefert und was die Batterie tut.
 
 ```yaml
 why: true
+# nur an einzelnen Kacheln: why: [grid]  oder  why: [pv, battery]
 ```
 
 ![Warum-Erklärung bei Netzbezug und Einspeisung](img/flow-warum.png)
+
+**Am Netz** (Fenster erklärt Netzbezug, Einspeisung und ausgeglichenes Netz, siehe unten), **an Solar** und **an der Batterie** (siehe nach den Abschnitten zum Netz).
 
 **Bei Netzbezug**
 - **Wer braucht den Strom?** Balken zeigen die Verbraucher und Gruppen nach Leistung, der größte zuerst. Bei einer Gruppe steht der größte Eintrag darunter, zum Beispiel „davon Server 1,80 kW“. Der Rest, den kein Verbraucher erklärt, heißt „Nicht erfasst“. Lädt ein Speicher hinter dem Zähler, steht er als „Speicher lädt“ dabei.
@@ -368,6 +374,18 @@ why: true
 - **Warum kein Netzbezug?** Solar deckt das Haus allein, oder Solar und Batterie zusammen, oder die Batterie allein (mit Ladestand), oder das Haus braucht kaum Strom.
 - **Warum entlädt die Batterie?** Wenn Solar allein nicht reicht und die Batterie den Rest liefert.
 - **Warum lädt die Batterie?** Wenn Solar mehr liefert, als das Haus braucht.
+
+**An der Solar-Kachel** („Solar liefert gerade 2,40 kW“)
+- Balken zeigen, wohin der Solarstrom geht: ins Haus, in die Batterie, ins Netz.
+- **Warum so wenig?** In der Nacht mit Sonnenaufgang und der Prognose für morgen. Tagsüber mit der Sonnenhöhe (unter 10° steht die Sonne tief), dem Wetter und der Bewölkung (wenn `weather` gesetzt ist).
+- **Wie viel ist das heute?** „Heute bisher … kWh“, mit der Prognose für den ganzen Tag, wenn `pv.daily` und `pv.forecast` gesetzt sind.
+- **Warum geht Solar ins Netz?** Bei Einspeisung: Das Haus braucht weniger, und die Batterie ist voll oder nicht vorhanden.
+
+**An der Batterie-Kachel** („Hausspeicher lädt mit 2,00 kW“). Bei mehreren Speichern hat jede Kachel ihr „?“.
+- **Lädt:** Balken „aus Solar“ und „aus dem Netz“ und der Hinweis, ob die Batterie auch aus dem Netz lädt (das passt, wenn du im Speicher eine Netzladung oder einen günstigen Tarif eingestellt hast).
+- **Liefert:** Balken mit den Verbrauchern, die sie gerade versorgt.
+- **Inaktiv:** Warum sie nichts tut: leer (Entladegrenze), voll, oder sie lädt trotz Überschuss nicht oder gibt trotz Netzbezug nichts ab (Betriebsart oder Sperrzeit im Speicher prüfen).
+- Die Zeile darüber nennt Ladestand, Entladegrenze und Maximalladung.
 - Auch hier steht „Nicht erfasst“ als Rest, mit dem Hinweis, weitere Verbraucher einzutragen, wenn ein großer Teil keinem Verbraucher zugeordnet ist.
 
 **Gut zu wissen**

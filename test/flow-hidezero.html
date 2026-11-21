@@ -1,0 +1,67 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Ruhende Verbraucher ausblenden (hide_zero) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft hide_zero: Verbraucher, Gruppen und Gruppeneinträge unter on_w verschwinden (nach hide_zero_delay), erscheinen sofort wieder,
+   zählen weiter zum Hausverbrauch. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?hz=1) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const st0={'sensor.pv':0,'sensor.grid':1500,'sensor.h':1500,'sensor.c0':500,'sensor.c1':0,'sensor.c2':5,'sensor.g0a':100,'sensor.g0b':0,'sensor.g1a':0,'sensor.g1b':0};
+const hassFor=(o)=>{const v=Object.assign({},st0,o||{});const s={};Object.keys(v).forEach((k)=>{s[k]=S(v[k]);});return {states:s,language:'de',locale:{language:'de'},config:{currency:'EUR'}};};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.h'},hide_zero:true,hide_zero_delay:0,
+  consumers:[{name:'Aktiv',entity:'sensor.c0'},{name:'Aus',entity:'sensor.c1'},{name:'Kaum',entity:'sensor.c2'},{name:'Nur Zusatz',secondary:'sensor.c0'}],
+  consumer_groups:[{name:'Gruppe 1',items:[{name:'Eins',entity:'sensor.g0a'},{name:'Zwei',entity:'sensor.g0b'}]},{name:'Gruppe 2',items:[{name:'Drei',entity:'sensor.g1a'},{name:'Vier',entity:'sensor.g1b'}]}]},o||{});
+function mount(c,h){const host=document.getElementById('host');host.style.width='1000px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const shown=(e,sel)=>{const x=q(e,sel);return !!x&&getComputedStyle(x).display!=='none';};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // ohne hide_zero: alles sichtbar
+  let e=mount(cfg({hide_zero:false}));await wait(900);
+  ok('ohne hide_zero: alle Verbraucher und Gruppen sichtbar',['c0','c1','c2','c3','g0','g1'].every(k=>shown(e,'[data-k="'+k+'"]'))&&shown(e,'[data-i="0-1"]'));
+  // mit hide_zero: ruhende sofort weg (Verzoegerung 0, erster Durchlauf)
+  e=mount(cfg());await wait(900);
+  ok('aktiver Verbraucher bleibt',shown(e,'[data-k="c0"]'));
+  ok('Verbraucher bei 0 W verschwindet',!shown(e,'[data-k="c1"]'));
+  ok('Verbraucher bei 5 W (unter 10 W) verschwindet',!shown(e,'[data-k="c2"]'));
+  ok('Verbraucher ohne Leistungssensor (nur Zusatzwert) bleibt',shown(e,'[data-k="c3"]'));
+  ok('Gruppe mit einem aktiven Gerät bleibt',shown(e,'[data-k="g0"]'));
+  ok('Gerät bei 0 W in der Gruppe verschwindet, aktives bleibt',!shown(e,'[data-i="0-1"]')&&shown(e,'[data-i="0-0"]'));
+  ok('Gruppe ohne Last verschwindet',!shown(e,'[data-k="g1"]'));
+  const home=(x)=>q(x,'.core .num').textContent;
+  // Hausverbrauch bleibt gleich
+  const eN=mount(cfg({hide_zero:false}));await wait(900);
+  ok('Hausverbrauch unverändert (ausgeblendete zählen mit)',home(eN)===home(e),home(eN)+' / '+home(e));
+  // Verbraucher laeuft an: erscheint sofort
+  e=mount(cfg({hide_zero_delay:60}));await wait(900);
+  ok('Verzögerung 60 s: ruhender Verbraucher beim Laden sofort weg',!shown(e,'[data-k="c1"]'));
+  e.hass=hassFor({'sensor.c1':300,'sensor.g1a':200});await wait(1400);
+  ok('läuft an: Verbraucher erscheint sofort',shown(e,'[data-k="c1"]'));
+  ok('läuft an: Gruppe erscheint sofort',shown(e,'[data-k="g1"]')&&shown(e,'[data-i="1-0"]')&&!shown(e,'[data-i="1-1"]'));
+  // aktiver Verbraucher faellt auf 0: bleibt zunaechst (Verzoegerung 60 s)
+  e.hass=hassFor({'sensor.c0':0,'sensor.c1':300,'sensor.g1a':200});await wait(1400);
+  ok('fällt auf 0 W: bleibt wegen der Verzögerung zunächst sichtbar',shown(e,'[data-k="c0"]'));
+  // mit kurzer Verzoegerung verschwindet er
+  e=mount(cfg({hide_zero_delay:1}),hassFor({'sensor.c1':300}));await wait(900);
+  ok('Start: laufender Verbraucher sichtbar',shown(e,'[data-k="c1"]'));
+  e.hass=hassFor({'sensor.c1':0});await wait(1300);
+  ok('0 W, Verzögerung noch nicht um: sichtbar',shown(e,'[data-k="c1"]'));
+  e.hass=hassFor({'sensor.c1':0,'sensor.c0':501});await wait(1500);
+  ok('nach der Verzögerung: verschwindet',!shown(e,'[data-k="c1"]'));
+  // eigene Schwelle on_w
+  e=mount(cfg({consumers:[{name:'A',entity:'sensor.c0',on_w:600},{name:'B',entity:'sensor.c1'}]}));await wait(900);
+  ok('on_w 600: 500 W gilt als ruhend und verschwindet',!shown(e,'[data-k="c0"]'));
+  // zusammen mit consumers_top
+  e=mount(cfg({consumers_top:3,consumers:[{name:'A',entity:'sensor.c0'},{name:'B',entity:'sensor.c1'},{name:'C',entity:'sensor.c2'},{name:'D',entity:'sensor.g0a'}]}),hassFor({'sensor.g0a':100}));await wait(1200);
+  ok('mit consumers_top: nur die aktiven unter den größten (500 W und 100 W)',shown(e,'[data-k="c0"]')&&shown(e,'[data-k="c3"]')&&!shown(e,'[data-k="c1"]')&&!shown(e,'[data-k="c2"]'),['c0','c1','c2','c3'].map(k=>shown(e,'[data-k="'+k+'"]')?1:0).join(''));
+  // hide_zero: "true" als Text
+  e=mount(cfg({hide_zero:'true'}));await wait(900);
+  ok('hide_zero als Text "true" wirkt auch',!shown(e,'[data-k="c1"]'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(cfg(P.get('hz')==='0'?{hide_zero:false}:{}));}
+</script></body></html>

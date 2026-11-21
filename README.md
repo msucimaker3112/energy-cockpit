@@ -67,7 +67,7 @@ Mehr dazu: [Gas und Wasser in der Konfiguration](https://github.com/msucimaker31
 
 ## Neu: Die Karte erklärt sich selbst
 
-Du siehst 3,2 kW Netzbezug und fragst dich, wer das ist? Ein Tipp auf das **„?“ an der Netz-Kachel** beantwortet es in einfachem Deutsch, ohne dass du Sensoren abfragen musst.
+Du siehst 3,2 kW Netzbezug und fragst dich, wer das ist? Ein Tipp auf das **„?“ an der Netz-Kachel** beantwortet es in einfachem Deutsch, ohne dass du Sensoren abfragen musst. Auch **Solar** und **Batterie** haben ein „?“: Warum liefert Solar gerade so wenig? Was macht die Batterie, und warum tut sie nichts?
 
 ![Warum-Erklärung bei Netzbezug und Einspeisung](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-warum.png)
 
@@ -329,6 +329,7 @@ Das meiste stellst du im Assistenten ein. Die genauen Einstellungen stehen in de
 | **Feste Nachkommastellen,** zum Beispiel immer `10,80 kWh` | `decimals: 2` |
 | **Geräte in Gruppen nach Leistung,** die aktiven oben | `consumer_groups_sort: leistung` |
 | **Nur die größten Einzelverbraucher,** absteigend nach Leistung, zum Beispiel 8 von 25 | `consumers_top: 8` |
+| **Ruhende Verbraucher ausblenden:** Geräte, Gruppen und Einträge unter 10 W verschwinden, bis sie laufen | `hide_zero: true` |
 | **Dachfarbe** in der 3D-Ansicht | `roof_color: anthrazit` |
 | **Kachel "Nicht erfasst"** ausblenden oder erst ab einem Anteil zeigen, bei einzelnen Verbrauchern ohne Gruppen mit `show_rest: true` einschalten | `hide_rest`, `show_rest`, `rest_min: 10` |
 | **Farbe der Zahl beim Haus** nach der größten Quelle (PV gelb, Speicher blau, Netz rot) | `home_color: source` |
@@ -448,7 +449,7 @@ Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://gith
 - **Energy flow:** animated solar, grid, one or more batteries (with discharge limit and forecast), home and consumers, surplus hint, second PV system (e.g. balcony solar). Optional 3D view with `style: 3d`.
 - **One card, two views:** with `compact: auto` the card shows a compact overview on phones and the full view on tablets and PCs. Tap a room on the phone to see all its devices.
 - **New: gas and water.** Own tiles for a gas boiler (heating and hot water, kWh or m³) and water (flow and daily use), each with a line to the house. They do not count towards electricity. In 3D: a boiler with a flame and a water meter (`gas`, `water`).
-- **New: the card explains itself.** A "?" on the grid tile tells you in plain language why power is coming from the grid or going to it: which consumers use it, why the battery is not delivering, why there is no solar (night, weather, forecast). Rule-based, no AI, no cloud. Turn it on with `why: true`.
+- **New: the card explains itself.** A "?" on the grid, solar and battery tiles tells you in plain language why power is coming from the grid or going to it, why solar is producing so little and what the battery is doing: which consumers use it, why the battery is not delivering, why there is no solar (night, weather, forecast). Rule-based, no AI, no cloud. Turn it on with `why: true`.
 - **Optional extras:** a weather band under the header (`weather`), extra values and an alarm on the solar, grid and battery tiles (`extra`, `alarm`), your own colors (`colors`), large consumer tiles (`size: gross`), separate label size (`label_size`) and a storage with its own solar modules such as the Anker SOLIX Solarbank (`pv2.to_battery`). See the [configuration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md) (German).
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 
