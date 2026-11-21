@@ -294,6 +294,7 @@ WD.addTranslations('fi', {
   'sky.wind': "Tuuli",
   'sky.nofc': "Sääentiteetti ei anna ennustetta",
   'flow.gas': "Kaasu",
+  'flow.oil': "Öljy",
   'flow.water': "Vesi",
   'gas.heat': "Lämmitys",
   'gas.hw': "Lämmin vesi",

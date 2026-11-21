@@ -1,0 +1,91 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Heizöl, mehrere Wasserzähler, Zusatzwerte an Gas Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #87 (Heizöl statt Gas: Liter, gas.fuel: oil, kwh_per_l, Zusatzwerte ohne Namen an der Gas-Kachel) und #82 (mehrere Wasserzähler).
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?case=extra|w3|w2&style=3d&w=Breite) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W',friendly_name:'Kessel'},last_updated:'x'});
+const st={'sensor.pv':S(2400),'sensor.grid':S(150),'sensor.bat':S(800),'sensor.soc':S(64,'%'),'sensor.h':S(1200),
+ 'sensor.oil_kwh':S(42,'kWh'),'sensor.oil_hw_kwh':S(8,'kWh'),'sensor.oil_l':S(4.2,'L'),'sensor.oil_m3':S(0.0042,'m³'),'sensor.oil_p':S(9.5,'kW'),'sensor.kessel_t':S(63.4,'°C'),
+ 'sensor.w1_d':S(184,'L'),'sensor.w2_d':S(1.25,'m³'),'sensor.w3_d':S(42,'L'),'sensor.w1_fl':S(6.5,'L/min')};
+const hass={states:st};
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:10},home:{entity:'sensor.h'}};
+const cases={
+  oelkwh:{...base,gas:{fuel:'oil',heating:'sensor.oil_kwh',hot_water:'sensor.oil_hw_kwh'}},
+  oell:{...base,gas:{fuel:'oil',daily:'sensor.oil_l'}},
+  oelm3:{...base,gas:{fuel:'oil',daily:'sensor.oil_m3'}},
+  oelf:{...base,gas:{fuel:'oil',kwh_per_l:9.5,daily:'sensor.oil_kwh'}},
+  oelp:{...base,gas:{fuel:'oil',entity:'sensor.oil_p',daily:'sensor.oil_kwh'}},
+  gas:{...base,gas:{daily:'sensor.oil_kwh'}},
+  extra:{...base,gas:{fuel:'oil',daily:'sensor.oil_kwh',extra:[{entity:'sensor.kessel_t',no_name:true},{entity:'sensor.kessel_t',name:''},{entity:'sensor.kessel_t',name:'Kessel'},{entity:'sensor.kessel_t'}]}},
+  w2:{...base,water:[{name:'Trinkwasser',daily:'sensor.w1_d'},{name:'Zisterne',daily:'sensor.w2_d'}]},
+  w3:{...base,gas:{daily:'sensor.oil_kwh'},water:[{daily:'sensor.w1_d'},{daily:'sensor.w2_d'},{daily:'sensor.w3_d'}]},
+  wkeys:{...base,water:{name:'Trinkwasser',daily:'sensor.w1_d'},water2:{name:'Zisterne',daily:'sensor.w2_d'}},
+  wobj:{...base,water:{'0':{name:'Eins',daily:'sensor.w1_d'},'1':{name:'Zwei',daily:'sensor.w2_d'}}},
+  w1:{...base,water:{entity:'sensor.w1_fl',daily:'sensor.w1_d'}},
+  wextra:{...base,water:[{name:'Zisterne',daily:'sensor.w2_d',extra:[{entity:'sensor.kessel_t',no_name:true}]}]},
+};
+function mount(c,w){const host=document.getElementById('host');host.style.width=(w||900)+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s),qa=(e,s)=>[...e.shadowRoot.querySelectorAll(s)];
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const val=(e,k)=>{const x=q(e,'[data-k="'+k+'"] .val');return x?(x.querySelector('.num').textContent+' '+x.querySelector('.unit').textContent).trim():'';};
+const tx=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():'';};
+const lbl=(e,k)=>tx(e,'[data-k="'+k+'"] .lbl');
+async function run(){
+  let e=mount(cases.oelkwh);await wait(800);
+  ok('Öl aus kWh: 50 kWh = 5,0 L (10 kWh je Liter)',val(e,'gas')==='5,0 L',val(e,'gas'));
+  ok('Öl: Name "Öl" und Zeilen in Litern',lbl(e,'gas')==='Öl'&&/Heizung 4,2 L/.test(tx(e,'.gas .sub'))&&/Warmwasser 0,8 L/.test(tx(e,'.gas .sub')),lbl(e,'gas')+' / '+tx(e,'.gas .sub'));
+  ok('Öl: Symbol Öl',q(e,'[data-k="gas"] ha-icon').getAttribute('icon')==='mdi:oil',q(e,'[data-k="gas"] ha-icon').getAttribute('icon'));
+  e=mount(cases.oell);await wait(800);
+  ok('Öl aus Liter-Sensor: 4,2 L',val(e,'gas')==='4,2 L',val(e,'gas'));
+  e=mount(cases.oelm3);await wait(800);
+  ok('Öl aus m³: 0,0042 m³ = 4,2 L',val(e,'gas')==='4,2 L',val(e,'gas'));
+  e=mount(cases.oelf);await wait(800);
+  ok('kwh_per_l 9,5: 42 kWh = 4,4 L',val(e,'gas')==='4,4 L',val(e,'gas'));
+  e=mount(cases.oelp);await wait(800);
+  ok('Öl mit Leistung: großer Wert ist die Leistung, Zeile heute in Litern',val(e,'gas')==='9,50 kW'&&/Heute 4,2 L/.test(tx(e,'.gas .sub')),val(e,'gas')+' / '+tx(e,'.gas .sub'));
+  e=mount(cases.gas);await wait(800);
+  ok('ohne fuel: wie bisher Gas in kWh',val(e,'gas')==='42,0 kWh'&&lbl(e,'gas')==='Gas',val(e,'gas')+' / '+lbl(e,'gas'));
+  e=mount(cases.extra);await wait(800);
+  const xr=qa(e,'[data-k="gas"] .xr');
+  ok('Gas: vier Zusatzwerte',xr.length===4,xr.length);
+  ok('Zusatzwert mit no_name zeigt nur den Wert',xr[0].querySelector('.xn').textContent===''&&/63,4/.test(xr[0].querySelector('.xv').textContent),xr[0].querySelector('.xn').textContent+'|'+xr[0].querySelector('.xv').textContent);
+  ok('Zusatzwert mit name "" zeigt nur den Wert',xr[1].querySelector('.xn').textContent==='');
+  ok('Zusatzwert mit Name zeigt den Namen',xr[2].querySelector('.xn').textContent==='Kessel');
+  ok('Zusatzwert ohne Name: Name des Sensors',xr[3].querySelector('.xn').textContent==='Kessel');
+  for(const st3 of ['flat','3d']){
+    const sx=st3==='3d'?{style:'3d'}:{},tag=' ['+st3+']',ks=['water','water2','water3'];
+    e=mount({...cases.w3,...sx});await wait(900);
+    ok('drei Wasserzähler: drei Kacheln'+tag,qa(e,'.util.water').length===3&&ks.every(k=>!!q(e,'[data-k="'+k+'"]')));
+    ok('Namen: Wasser, Wasser 2, Wasser 3'+tag,ks.map(k=>lbl(e,k)).join('|')==='Wasser|Wasser 2|Wasser 3',ks.map(k=>lbl(e,k)).join('|'));
+    ok('Werte je Zähler: 184 L, 1,25 m³, 42 L'+tag,val(e,'water')==='184 L'&&val(e,'water2')==='1,25 m³'&&val(e,'water3')==='42 L',ks.map(k=>val(e,k)).join(' / '));
+    ok('Linien für alle Zähler'+tag,ks.every(k=>!!q(e,'g[data-l="'+k+'"]')&&(q(e,'g[data-l="'+k+'"] path').getAttribute('d')||'').length>10));
+    const rs=['gas'].concat(ks).map(k=>q(e,'[data-k="'+k+'"]').getBoundingClientRect());
+    ok('Kacheln stehen untereinander ohne Überlappung'+tag,rs.every((r,i)=>i===0||r.top>=rs[i-1].bottom-1),rs.map(r=>Math.round(r.top)).join(' / '));
+    if(st3==='3d'){
+      ok('3D: je Zähler ein Wasserzähler gezeichnet',ks.every(k=>!!q(e,'[data-o="'+k+'"] svg')));
+      const ids=qa(e,'[data-o^="water"] svg [id]').map(x=>x.id);
+      ok('3D: keine doppelten SVG-Kennungen',ids.length===new Set(ids).size,ids.length+' Kennungen');
+    }
+  }
+  e=mount(cases.w2);await wait(800);
+  ok('Liste mit Namen: Trinkwasser und Zisterne',lbl(e,'water')==='Trinkwasser'&&lbl(e,'water2')==='Zisterne');
+  e=mount(cases.wkeys);await wait(800);
+  ok('water und water2 (Editor-Form) ergeben zwei Kacheln',lbl(e,'water')==='Trinkwasser'&&lbl(e,'water2')==='Zisterne');
+  e=mount(cases.wobj);await wait(800);
+  ok('Liste als Objekt mit 0, 1 (wie vom Editor gespeichert)',lbl(e,'water')==='Eins'&&lbl(e,'water2')==='Zwei');
+  e=mount(cases.w1);await wait(800);
+  ok('ein Zähler wie bisher: Durchfluss und Tageswert, keine zweite Kachel',val(e,'water')==='6,5 l/min'&&/Heute 184 L/.test(tx(e,'.water .sub'))&&!q(e,'[data-k="water2"]'),val(e,'water'));
+  e=mount(cases.wextra);await wait(800);
+  ok('Zusatzwert auch an der Wasser-Kachel',qa(e,'[data-k="water"] .xr').length===1);
+  e=mount({...cases.w3,water:cases.w3.water.concat([{daily:'sensor.w1_d'},{daily:'sensor.w2_d'}])});await wait(800);
+  ok('höchstens vier Wasserzähler',qa(e,'.util.water').length===4,qa(e,'.util.water').length);
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const c={...cases[P.get('case')||'w3']};if(P.get('style'))c.style=P.get('style');mount(c,+(P.get('w')||900));}
+</script></body></html>

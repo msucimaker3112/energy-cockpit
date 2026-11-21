@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## 0.41.0
+- **Energiefluss, Öl statt Gas: `gas.fuel: oil`.** Die Kachel heißt „Öl“, trägt das Symbol `mdi:oil` und zeigt Liter. Sensoren in kWh, Liter oder m³ sind möglich, kWh rechnet die Karte mit `kwh_per_l` (Standard 10) in Liter um. Im Editor unter „Gas oder Öl“ und im Assistenten (Schritt „Gas/Wasser“). Anlass: [#87](https://github.com/msucimaker3112/energy-cockpit/issues/87).
+- **Energiefluss, Zusatzwerte an Gas und Wasser.** Wie bei Solar, Netz und Batterie gibt es `extra` jetzt auch an der Gas- und der Wasser-Kachel, zum Beispiel die Kesseltemperatur. Mit `no_name: true` (oder `name: ""`) steht nur der Wert da, ohne Namen. `no_name` gilt für alle Zusatzwerte.
+- **Energiefluss, mehrere Wasserzähler.** `water` darf eine Liste sein, jeder Zähler bekommt eine eigene Kachel mit eigenem Namen (bis zu vier), auch in der 3D-Ansicht. Im Editor gibt es dafür „Zweiter Wasserzähler“ und „Dritter Wasserzähler“. Ein einzelner `water`-Eintrag bleibt unverändert. Anlass: [#82](https://github.com/msucimaker3112/energy-cockpit/issues/82).
+
 ## 0.40.0
 - **Geräte & Verbrauch, Schriftgröße: `text_size` und `label_size`.** Die Geräte-Karte versteht jetzt beide Optionen wie Energiefluss und Statistik: `gross`, `sehr_gross` oder eine Zahl vergrößern die Texte, eine Zahl auch die großen Werte, `label_size` nur die Texte. Im Editor unter „Allgemein“. Anlass: [#86](https://github.com/msucimaker3112/energy-cockpit/issues/86).
 - **Statistik, Amortisation: „von … zurückverdient“ in der Zeile mit der Prozentzahl.** Der Betrag steht jetzt rechtsbündig neben dem Prozentwert, in derselben Farbe, wie bei den anderen Kacheln. Anlass: [#88](https://github.com/msucimaker3112/energy-cockpit/issues/88).

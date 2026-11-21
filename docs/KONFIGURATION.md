@@ -483,9 +483,9 @@ colors:
 
 **Tipp:** Netzbezug ist standardmäßig rot. Wer die Batterie beim Entladen ebenfalls rot färbt, kann beides im Ring verwechseln. Dann hilft eine andere Farbe für `grid_import`, zum Beispiel Orange.
 
-### Gas und Wasser: `gas`, `water`
+### Gas, Öl und Wasser: `gas`, `water`
 
-Optional. Gas und Wasser bekommen je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie (ohne Batterie an ihrer Stelle, mit `pv_to_battery: direkt` unter dem Netz). Sie zählen **nicht** zum Strom: Hausverbrauch, Ring, Autarkie und Eigenverbrauch bleiben unverändert. In der 3D-Ansicht stehen dort eine Gastherme und ein Wasserzähler.
+Optional. Gas (oder Öl) und Wasser bekommen je eine eigene Kachel mit Linie zum Haus, rechts unter der Batterie (ohne Batterie an ihrer Stelle, mit `pv_to_battery: direkt` unter dem Netz). Sie zählen **nicht** zum Strom: Hausverbrauch, Ring, Autarkie und Eigenverbrauch bleiben unverändert. In der 3D-Ansicht stehen dort eine Gastherme und ein Wasserzähler.
 
 ![Gas- und Wasser-Kachel in der 3D-Ansicht](img/gas-wasser.png)
 
@@ -501,6 +501,27 @@ water:
   daily: sensor.wasser_heute            # Verbrauch heute (Liter oder m³)
 ```
 
+**Öl statt Gas:** Mit `fuel: oil` heißt die Kachel „Öl“ und zeigt Liter statt kWh oder m³. Die Sensoren dürfen kWh, Liter oder m³ zählen, kWh rechnet die Karte mit `kwh_per_l` (Standard 10, also 10 kWh je Liter) in Liter um.
+
+```yaml
+gas:
+  fuel: oil
+  daily: sensor.brenner_energie_heute   # kWh, Liter oder m³
+  # kwh_per_l: 9.8                       # Standard 10
+  extra:                                # Zusatzwerte, zum Beispiel die Kesseltemperatur
+    - { entity: sensor.kessel_temperatur, no_name: true }   # nur der Wert, ohne Namen
+```
+
+**Mehrere Wasserzähler:** Mit einer Liste bekommt jeder Zähler eine eigene Kachel mit eigenem Namen (bis zu vier). Ohne Namen heißen sie „Wasser“, „Wasser 2“ und so weiter.
+
+```yaml
+water:
+  - { name: Trinkwasser, daily: sensor.wasser_trinkwasser_heute }
+  - { name: Zisterne, daily: sensor.wasser_zisterne_heute, entity: sensor.zisterne_durchfluss }
+```
+
+Im Editor gibt es dafür die Abschnitte „Wasser“, „Zweiter Wasserzähler“ und „Dritter Wasserzähler“ (`water`, `water2`, `water3`).
+
 | Schlüssel | Wert | Wirkung |
 |---|---|---|
 | `gas.entity` | Sensor (W, kW) | Aktuelle Leistung der Therme. Dann steht sie groß in der Kachel, die Linie läuft nur beim Heizen („Heizt“), und darunter steht der Verbrauch von heute. Ohne steht groß der Verbrauch von heute, und die Linie läuft, sobald heute Gas verbraucht wurde |
@@ -509,7 +530,11 @@ water:
 | `gas.kwh_per_m3` | Zahl | Umrechnung von m³ in kWh, steht auf der Gasrechnung (Brennwert × Zustandszahl, meist um 10). Ohne zeigt die Kachel m³ |
 | `water.entity` | Sensor (l/min, L/h, m³/h) | Durchfluss. Dann steht er groß in der Kachel („Fließt“), darunter der Verbrauch von heute |
 | `water.daily` | Sensor (L oder m³) | Wasser heute. Ab 1.000 Litern in m³ |
-| `name`, `icon` | Text | Eigener Name und Symbol (Standard: Gas mit `mdi:fire`, Wasser mit `mdi:water`) |
+| `gas.fuel` | `gas` (Standard) oder `oil` | `oil`: Kachel „Öl“ mit Symbol `mdi:oil` und Anzeige in Litern |
+| `gas.kwh_per_l` | Zahl | Nur bei Öl: kWh je Liter (Standard 10). Rechnet kWh-Sensoren in Liter um |
+| `gas.extra`, `water.extra` | Liste | Zusatzwerte in der Kachel wie bei Solar (Sensor, `name`, `unit`, `decimals`, `warn_above`, `warn_below`). Mit `no_name: true` (oder `name: ""`) steht nur der Wert da |
+| `water` als Liste, `water2`, `water3` | Zähler | Mehrere Wasserzähler, je eine Kachel (höchstens vier) |
+| `name`, `icon` | Text | Eigener Name und Symbol (Standard: Gas mit `mdi:fire`, Öl mit `mdi:oil`, Wasser mit `mdi:water`) |
 
 Die Tageswerte brauchen Sensoren, die um Mitternacht neu beginnen, zum Beispiel einen Helfer „Verbrauchszähler“ (utility_meter) mit Zyklus täglich auf deinem Gas- oder Wasserzähler. Die Farben änderst du mit `colors.gas` und `colors.water`. Anlass: [#65](https://github.com/msucimaker3112/energy-cockpit/issues/65).
 

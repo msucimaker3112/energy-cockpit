@@ -197,6 +197,7 @@ WD.addTranslations('fr', {
 
   // --- Gaz & Eau ---
   'flow.gas': 'Gaz',
+  'flow.oil': 'Fioul',
   'flow.water': 'Eau',
   'gas.heat': 'Chauffage',
   'gas.hw': 'Eau chaude',

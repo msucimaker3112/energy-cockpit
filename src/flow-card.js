@@ -3,15 +3,22 @@
 WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'flow.gas': 'Gas', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
-const gasVal = (h, id, f) => {
+// Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
+const gasVal = (h, id, f, oil) => {
   const s = id && h.states[id];
   if (!s) return null;
   const v = parseFloat(s.state);
   if (isNaN(v)) return null;
   const u = String(s.attributes.unit_of_measurement || '').trim();
+  if (oil) {
+    if (/^(l|liter|litre|liters|litres)$/i.test(u)) return { kwh: f > 0 ? v * f : null, m3: v };
+    if (/^(m³|m3|m\^3)$/i.test(u)) return { kwh: f > 0 ? v * 1000 * f : null, m3: v * 1000 };
+    const kwh = /^wh$/i.test(u) ? v / 1000 : /^mwh$/i.test(u) ? v * 1000 : v;
+    return { kwh, m3: f > 0 ? kwh / f : null };
+  }
   if (/^kwh$/i.test(u)) return { kwh: v, m3: null };
   if (/^wh$/i.test(u)) return { kwh: v / 1000, m3: null };
   if (/^mwh$/i.test(u)) return { kwh: v * 1000, m3: null };
@@ -659,7 +666,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       cfg.rows.forEach((r, i) => {
         const row = el.querySelector(`.xr[data-i="${i}"]`), st = h.states && h.states[r.entity];
         if (!row) return;
-        const nm = r.name || (st && st.attributes && st.attributes.friendly_name) || r.entity;
+        // no_name: true oder name: "" zeigt nur den Wert
+        const nm = r.no_name === true || r.name === '' ? '' : (r.name || (st && st.attributes && st.attributes.friendly_name) || r.entity);
         if (row.querySelector('.xn').textContent !== nm) row.querySelector('.xn').textContent = nm;
         let txt = '—', warn = false;
         if (st && !['unavailable', 'unknown', ''].includes(st.state)) {
@@ -924,11 +932,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (this._s3d && c.grid) { if (c.pv) links.push('r:pv:grid'); if (hasPv2) links.push('r:pv2:grid'); }
     // #65: Gas und Wasser stehen rechts unter der Batterie (mit pv_to_battery: direkt unter dem Netz), ohne Batterie an ihrer Stelle
     const gas = c.gas && typeof c.gas === 'object' && (c.gas.entity || c.gas.daily || c.gas.heating || c.gas.hot_water) ? c.gas : null;
-    const wat = c.water && typeof c.water === 'object' && (c.water.entity || c.water.daily) ? c.water : null;
-    this._gas = gas; this._wat = wat;
+    // Heizöl statt Gas: gas.fuel: oil. Gleiche Kachel, Liter statt m³ und Öl als Name
+    const oil = !!gas && /^(oil|öl|oel|heizöl|heizoel)$/i.test(String(gas.fuel || '').trim());
+    // Wasser: ein Zähler (water: {...}) oder mehrere (water: [{...}, {...}]), dazu water2 und water3 für den Editor. Höchstens 4, je eine Kachel
+    const asList = (v) => (Array.isArray(v) ? v : (v && typeof v === 'object' ? (Object.keys(v).length && Object.keys(v).every((k) => /^\d+$/.test(k)) ? Object.keys(v).sort((a, b) => a - b).map((k) => v[k]) : [v]) : []));
+    const WK = ['water', 'water2', 'water3', 'water4'];
+    const wats = asList(c.water).concat(asList(c.water2), asList(c.water3)).filter((w) => w && typeof w === 'object' && (w.entity || w.daily)).slice(0, 4).map((w, i) => Object.assign({}, w, { _k: WK[i], _i: i }));
+    this._gas = gas; this._oil = oil; this._wats = wats;
     let util = '';
-    if (gas) { util += node('gas', 'util gas', gas.icon || 'mdi:fire', gas.name || T('flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water); links.push('gas'); }
-    if (wat) { util += node('water', 'util water', wat.icon || 'mdi:water', wat.name || T('flow.water'), PAL.wat, wat.entity || wat.daily); links.push('water'); }
+    if (gas) { util += node('gas', 'util gas', gas.icon || (oil ? 'mdi:oil' : 'mdi:fire'), gas.name || T(oil ? 'flow.oil' : 'flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water, '', gas); links.push('gas'); }
+    wats.forEach((w) => { util += node(w._k, 'util water', w.icon || 'mdi:water', w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')), PAL.wat, w.entity || w.daily, '', w); links.push(w._k); });
     if (util) {
       const tgt = this._via && gridH ? gridH : !this._via && batH ? batH : '';
       if (tgt) nodes = nodes.replace(tgt, () => `<div class="side side-${this._via ? 'grid' : 'bat'}">${tgt}${util}</div>`);
@@ -1229,7 +1242,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const ncx = (left + right) / 2, ncy = (top + bottom) / 2;
       let ax, ay, tx, ty;
       // Erzeuger, Netz und Batterie stehen neben dem Ring: Linie immer seitlich anschließen (nie hinter anderen Kacheln)
-      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid', 'gas', 'water'].includes(L.k) || /^bat\d*$/.test(L.k));
+      const sideOnly = (this._mode !== 'narrow' || this._cmp) && (['pv', 'pv2', 'grid', 'gas'].includes(L.k) || /^water\d*$/.test(L.k) || /^bat\d*$/.test(L.k));
       if (!sideOnly && top > cy + R * 0.7) { ax = ncx; ay = top; tx = 0; ty = -1; }
       else if (!sideOnly && bottom < cy - R * 0.7) { ax = ncx; ay = bottom; tx = 0; ty = 1; }
       else if (ncx < cx) { ax = right; ay = ncy; tx = 1; ty = 0; }
@@ -1427,17 +1440,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const big = (el, n, u) => { const ne = el.querySelector('.num'), ue = el.querySelector('.unit'); if (ne.textContent !== n) ne.textContent = n; if (ue.textContent !== u) ue.textContent = u; };
     const g = this._gas;
     if (g) {
-      const el = this._$('[data-k="gas"]'), f = parseFloat(String(g.kwh_per_m3 || '').replace(',', '.')) || 0;
+      const oil = this._oil, el = this._$('[data-k="gas"]'), f = parseFloat(String(oil ? (g.kwh_per_l === undefined ? 10 : g.kwh_per_l) : g.kwh_per_m3 || '').replace(',', '.')) || 0;
       const p = g.entity ? watt(h, g.entity) : null;
-      const hv = g.heating ? gasVal(h, g.heating, f) : null, wv = g.hot_water ? gasVal(h, g.hot_water, f) : null, dv = g.daily ? gasVal(h, g.daily, f) : null;
+      const hv = g.heating ? gasVal(h, g.heating, f, oil) : null, wv = g.hot_water ? gasVal(h, g.hot_water, f, oil) : null, dv = g.daily ? gasVal(h, g.daily, f, oil) : null;
       const parts = [hv, wv].filter(Boolean), tot = dv || (parts.length ? { kwh: parts.some((x) => x.kwh === null) ? null : parts.reduce((a, x) => a + x.kwh, 0), m3: parts.every((x) => x.m3 !== null) ? parts.reduce((a, x) => a + x.m3, 0) : null } : null);
       // m³ ohne kwh_per_m3: Anzeige in m³
-      const fmt = (x) => (!x ? '—' : x.kwh !== null ? this._fk(x.kwh) + ' kWh' : x.m3 !== null ? nf(x.m3, 2) + ' m³' : '—');
+      const lit = (v) => nf(v, v < 10 ? 1 : 0);
+      const fmt = (x) => (!x ? '—' : oil && x.m3 !== null ? lit(x.m3) + ' L' : x.kwh !== null ? this._fk(x.kwh) + ' kWh' : x.m3 !== null ? nf(x.m3, 2) + ' m³' : '—');
       const on = p !== null ? p > TH : !!(tot && ((tot.kwh || 0) > 0 || (tot.m3 || 0) > 0));
       el.classList.toggle('on', on);
       el.style.setProperty('--c', on ? PAL.gas : PAL.mut);
       if (p !== null) this._anim('gas', p, el);
       else if (!tot) big(el, '—', '');
+      else if (oil && tot.m3 !== null) big(el, lit(tot.m3), 'L');
       else if (tot.kwh !== null) { const t = this._fk(tot.kwh); big(el, t, 'kWh'); }
       else big(el, nf(tot.m3, 2), 'm³');
       this._set('.gas .tag', p !== null ? (p > TH ? T('tag.gas.on') : T('tag.idle')) : T('tag.today'));
@@ -1450,9 +1465,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._link('gas', on, true, PAL.gas, p !== null ? p : 0);
       out.gas = { p, on };
     }
-    const w = this._wat;
-    if (w) {
-      const el = this._$('[data-k="water"]');
+    out.waters = [];
+    (this._wats || []).forEach((w) => {
+      const k = w._k, el = this._$(`[data-k="${k}"]`);
+      if (!el) return;
       const fl = w.entity ? flowLmin(h, w.entity) : null, dl = w.daily ? waterL(h, w.daily) : null;
       const fmtL = (l) => (l === null ? '—' : l >= 1000 ? nf(l / 1000, 2) + ' m³' : nf(l, 0) + ' L');
       const on = fl !== null ? fl > 0.05 : (dl || 0) > 0;
@@ -1461,11 +1477,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (fl !== null) big(el, nf(fl, fl < 10 ? 1 : 0), 'l/min');
       else if (dl !== null) { const [n, u] = fmtL(dl).split(' '); big(el, n, u); }
       else big(el, '—', '');
-      this._set('.water .tag', fl !== null ? (fl > 0.05 ? T('tag.water.on') : T('tag.idle')) : T('tag.today'));
-      this._set('.water .sub', fl !== null && dl !== null ? row(T('gas.today'), fmtL(dl)) : '', true);
-      this._link('water', on, true, PAL.wat, fl !== null ? fl * 100 : 0);
-      out.water = { fl, on };
-    }
+      this._set(`[data-k="${k}"] .tag`, fl !== null ? (fl > 0.05 ? T('tag.water.on') : T('tag.idle')) : T('tag.today'));
+      this._set(`[data-k="${k}"] .sub`, fl !== null && dl !== null ? row(T('gas.today'), fmtL(dl)) : '', true);
+      this._link(k, on, true, PAL.wat, fl !== null ? fl * 100 : 0);
+      out.waters.push({ k, fl, on, name: w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')) });
+    });
     return out;
   }
   // 3D-Objekte: nur neu zeichnen, wenn sich die gerundeten Werte ändern
@@ -1507,8 +1523,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     });
     // #65: Gastherme und Wasserzähler
     const u = v.util || {};
-    if (u.gas) { const gp = u.gas.p; put('gas', [u.gas.on, q(gp), large].join(), () => D3.boiler(u.gas.on, 'gas', large, gp !== null ? this._fW(gp) : '', (this._gas && this._gas.name) || T('flow.gas'))); }
-    if (u.water) { const fl = u.water.fl; put('water', [u.water.on, fl === null ? 'x' : Math.round(fl * 2), large].join(), () => D3.wmeter(fl || 0, 'water', large, fl !== null ? nf(fl, fl < 10 ? 1 : 0) + ' l/min' : '', (this._wat && this._wat.name) || T('flow.water'))); }
+    if (u.gas) { const gp = u.gas.p; put('gas', [u.gas.on, q(gp), large].join(), () => D3.boiler(u.gas.on, 'gas', large, gp !== null ? this._fW(gp) : '', (this._gas && this._gas.name) || T(this._oil ? 'flow.oil' : 'flow.gas'))); }
+    (u.waters || []).forEach((wm) => { const fl = wm.fl; put(wm.k, [wm.on, fl === null ? 'x' : Math.round(fl * 2), large].join(), () => D3.wmeter(fl || 0, wm.k, large, fl !== null ? nf(fl, fl < 10 ? 1 : 0) + ' l/min' : '', wm.name)); });
     const form = c.house_style === 'flach' ? 'modern' : 'sattel', s = v.src;
     put('home', [q(v.home), q(s.pv), q(s.bat), q(s.imp), form, large].join(), () => D3.house(v.home, s, 'home', form, large, (c.home && c.home.name) || T('flow.home')));
   }
