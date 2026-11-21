@@ -425,3 +425,6 @@ WD.addTranslations('fr', {
 WD.addTranslations('fr', {
   "bat.selfuse": "Consommation propre",
 });
+WD.addTranslations('fr', {
+  "bat.gridchg": "Charge depuis le réseau",
+});

@@ -404,3 +404,6 @@ WD.addTranslations('fi', {
 WD.addTranslations('fi', {
   "bat.selfuse": "Oma kulutus",
 });
+WD.addTranslations('fi', {
+  "bat.gridchg": "Lataus verkosta",
+});

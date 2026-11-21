@@ -157,7 +157,9 @@ battery:
   self_consumption: sensor.hyper_eigenbedarf   # oder true: Karte rechnet Eingang + Entladung − Ausgang − Ladung
 ```
 
-Bei `big_value: out` steht die Entladeleistung des Speichers in einer eigenen Zeile „Entladung“. Der Eigenbedarf erscheint als Zeile „Eigenbedarf“, sobald er mindestens 1 W beträgt. Im Editor unter „Batterie“ ([#92](https://github.com/msucimaker3112/energy-cockpit/issues/92)).
+Bei `big_value: out` steht die Entladeleistung des Speichers in einer eigenen Zeile „Entladung“. Der Eigenbedarf erscheint als Zeile „Eigenbedarf“, sobald er mindestens 1 W beträgt. **Laden aus dem Netz:** Lädt der Speicher aus dem Netz, steht in der Kachel die Zeile „Laden vom Netz“ und die Linie zwischen Haus und Batterie läuft zum Speicher. Mit `battery.power_in` (AC-Eingangsleistung des Speichers) gilt dessen Wert, ohne ihn schätzt die Karte aus dem Ladesensor (`power` oder `power_charge`): Ladung minus Solar-Überschuss ([#94](https://github.com/msucimaker3112/energy-cockpit/issues/94)).
+
+Im Editor unter „Batterie“ ([#92](https://github.com/msucimaker3112/energy-cockpit/issues/92)).
 
 ### Zweite Anlage durch einen Speicher: `pv2.to_battery`
 

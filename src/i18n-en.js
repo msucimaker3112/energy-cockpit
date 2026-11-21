@@ -143,3 +143,6 @@ WD.addTranslations('en', {
 WD.addTranslations('en', {
   "bat.selfuse": "Own use",
 });
+WD.addTranslations('en', {
+  "bat.gridchg": "Charging from grid",
+});

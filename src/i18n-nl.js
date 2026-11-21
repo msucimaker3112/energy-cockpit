@@ -143,3 +143,6 @@ WD.addTranslations('nl', {
 WD.addTranslations('nl', {
   "bat.selfuse": "Eigen gebruik",
 });
+WD.addTranslations('nl', {
+  "bat.gridchg": "Laden vanaf net",
+});

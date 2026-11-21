@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.42.1
+- **Fehler behoben, Energiefluss mit `pv_to_battery: direkt`: Laden aus dem Netz wurde nicht angezeigt.** Lud der Speicher (zum Beispiel Zendure Hyper 2000) nachts oder bei wenig Sonne aus dem Netz, fehlten Linie und Hinweis. Jetzt zeigt die Batterie-Kachel die Zeile „Laden vom Netz“, und die Linie zwischen Haus und Batterie läuft in Netzfarbe zum Speicher. Mit `battery.power_in` (AC-Eingangsleistung) gilt der Sensorwert, sonst schätzt die Karte aus dem Ladesensor: Ladung minus Solar-Überschuss. Ohne Ladesensor bleibt alles wie bisher. Der Hausverbrauch war schon richtig. Anlass: [#94](https://github.com/msucimaker3112/energy-cockpit/issues/94).
+- Die Versionsnummer im Bundle stimmt wieder (0.42.0 meldete intern noch 0.41.0).
+
 ## 0.42.0
 - **Energiefluss, Batterie vor dem Wechselrichter: `big_value: out` und `self_consumption`.** Für Speicher wie den Zendure Hyper 2000: Mit `battery.big_value: out` zeigt die große Zahl der Batterie-Kachel den Ausgang ins Haus (bei Durchleitung und Entladung), die Entladeleistung steht darunter in einer Zeile „Entladung“. Bei Ladung bleibt die Ladeleistung. Mit `battery.self_consumption` (Sensor oder `true` für „berechnen“) zeigt die Kachel zusätzlich den Eigenbedarf des Speichers. Beides ist aus, bis du es setzt, und wirkt nur mit `pv_to_battery: direkt`. Im Editor unter „Batterie“, Texte auch in den vier Übersetzungen. Anlass: [#92](https://github.com/msucimaker3112/energy-cockpit/issues/92).
 - **Statistik, „Erzeugung“ statt „Erzeugt“.** In der Tabelle der Tageswerte heißt die Zeile jetzt „Erzeugung“ (Englisch „Production“, Niederländisch „Opwekking“, Französisch „Production“, Finnisch „Tuotanto“). Anlass: [#90](https://github.com/msucimaker3112/energy-cockpit/issues/90).

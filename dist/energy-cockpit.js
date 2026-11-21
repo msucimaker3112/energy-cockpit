@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.41.0 - MIT License */
+/*! energy-cockpit v0.42.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1049,7 +1049,7 @@ WD.addStrings({
 });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'bat.gridchg': 'Laden vom Netz', 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
 // Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
@@ -3047,7 +3047,15 @@ class EnergyCockpitFlowCard extends HTMLElement {
       let selfW = null;
       if (typeof sc0 === 'string' && sc0.trim() && sc0.trim().toLowerCase() !== 'true') selfW = watt(h, sc0.trim());
       else if ((sc0 === true || String(sc0).toLowerCase() === 'true') && via && bp !== null) selfW = Math.max(0, pin + inAc + Math.max(0, -bp) - out - Math.max(0, bp));
-      const rowsX = (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
+      // #94: Speicher vor dem Wechselrichter lädt aus dem Netz (AC): eigener Sensor (power_in) oder aus der Ladeleistung geschätzt (Ladung minus Solar-Überschuss)
+      let acG = 0;
+      if (via && !via2) {
+        const pi = x.b.power_in ? watt(h, x.b.power_in) : null;
+        if (pi !== null) acG = Math.max(0, pi);
+        else if ((x.b.power || x.b.power_charge) && bp !== null && bp > TH) acG = Math.max(0, bp - Math.max(0, pin - out));
+        if (acG <= TH) acG = 0;
+      }
+      const rowsX = (acG ? sr(T('bat.gridchg'), this._fW(acG)) : '') + (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
       const subF = rowsX ? (subT ? subT + rowsX : rowsX) : subT;
       this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subF ? '<br>' + subF : '') : subF, true, el);
       if (via2) {
@@ -3058,7 +3066,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
       } else if (via) {
         // Solar -> Speicher (Eingang) und Speicher -> Haus (Ausgang); Ausgang in Batteriefarbe, sobald der Speicher entlädt
         this._link('pvbat', pin > TH, true, PAL.pv, pin);
-        this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
+        // Laden aus dem Netz: Linie läuft vom Haus zum Speicher (Netzfarbe), sonst wie bisher vom Speicher ins Haus
+        const acNet1 = out - acG;
+        if (acG > TH) this._link(key, Math.abs(acNet1) > TH, acNet1 >= 0, acNet1 >= 0 ? (bp !== null && bp < -TH ? PAL.dis : PAL.pv) : PAL.imp, Math.abs(acNet1));
+        else this._link(key, out > TH, true, bp !== null && bp < -TH ? PAL.dis : PAL.pv, out);
       } else this._link(key, on && !x.lead, !chg, col, bp);
     });
     const util = this._utilUpdate();
@@ -6558,6 +6569,9 @@ WD.addTranslations('en', {
 WD.addTranslations('en', {
   "bat.selfuse": "Own use",
 });
+WD.addTranslations('en', {
+  "bat.gridchg": "Charging from grid",
+});
 
 
 /* ---- i18n-nl.js ---- */
@@ -6705,6 +6719,9 @@ WD.addTranslations('nl', {
 });
 WD.addTranslations('nl', {
   "bat.selfuse": "Eigen gebruik",
+});
+WD.addTranslations('nl', {
+  "bat.gridchg": "Laden vanaf net",
 });
 
 
@@ -7136,6 +7153,9 @@ WD.addTranslations('fr', {
 WD.addTranslations('fr', {
   "bat.selfuse": "Consommation propre",
 });
+WD.addTranslations('fr', {
+  "bat.gridchg": "Charge depuis le réseau",
+});
 
 
 /* ---- i18n-fi.js ---- */
@@ -7544,5 +7564,8 @@ WD.addTranslations('fi', {
 });
 WD.addTranslations('fi', {
   "bat.selfuse": "Oma kulutus",
+});
+WD.addTranslations('fi', {
+  "bat.gridchg": "Lataus verkosta",
 });
 

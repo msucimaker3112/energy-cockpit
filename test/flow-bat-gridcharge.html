@@ -1,0 +1,52 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Batterie vor dem Wechselrichter: Netzladung Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #94: Speicher vor dem Wechselrichter (pv_to_battery: direkt) lädt aus dem Netz: Zeile "Laden vom Netz" (power_in oder geschätzt) und Linie zum Speicher. Aufruf: ?test=1&still=1 */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(k)=>({states:{'sensor.pv':S(k.pv),'sensor.out':S(k.out),'sensor.bat':S(k.bat),'sensor.grid':S(k.grid),'sensor.soc':S(40,'%'),'sensor.acin':S(k.acin===undefined?0:k.acin)},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+const cfg=(b)=>({pv_to_battery:'direkt',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},battery:Object.assign({name:'Hyper',power:'sensor.bat',power_out:'sensor.out',soc:'sensor.soc',capacity_kwh:5},b||{})});
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const big=(e)=>{const x=q(e,'[data-k="bat"] .val');return (x.querySelector('.num').textContent+' '+x.querySelector('.unit').textContent).trim();};
+const sub=(e)=>q(e,'[data-k="bat"] .sub').textContent.replace(/\s+/g,' ').trim();
+const tag=(e)=>q(e,'[data-k="bat"] .tag').textContent.trim();
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const lk=(e,k)=>{const g=e.shadowRoot.querySelector('g[data-l="'+k+'"]');return g?{on:g.classList.contains('on'),rev:g.classList.contains('rev')}:null;};
+  // nachts aus dem Netz geladen: Solar 0, Ausgang 0, Batterie lädt 800 W, Netz 800 W
+  let e=mount(cfg(),hassFor({pv:0,out:0,bat:800,grid:800}));await wait(900);
+  ok('Netzladung geschätzt: Zeile "Laden vom Netz 800 W"',/Laden vom Netz\s*800 W/.test(sub(e)),sub(e));
+  ok('Zustand Ladung, große Zahl 800 W',tag(e)==='Ladung'&&big(e)==='800 W',tag(e)+' / '+big(e));
+  // Solar liefert 300, Ausgang 100, Batterie lädt 500: 200 aus Solar-Überschuss, 300 aus dem Netz
+  e=mount(cfg(),hassFor({pv:300,out:100,bat:500,grid:400}));await wait(900);
+  ok('Mischladung: 500 - (300 - 100) = 300 W vom Netz',/Laden vom Netz\s*300 W/.test(sub(e)),sub(e));
+  // nur Solar-Überschuss: keine Netzladung
+  e=mount(cfg(),hassFor({pv:600,out:100,bat:500,grid:0}));await wait(900);
+  ok('nur Solar-Überschuss: keine Zeile Netzladung',!/Laden vom Netz/.test(sub(e)),sub(e));
+  // ohne eigenen Sensor (Laden = Eingang - Ausgang): nie Netzladung
+  const c0=cfg();delete c0.battery.power;
+  e=mount(c0,hassFor({pv:600,out:100,bat:0,grid:0}));await wait(900);
+  ok('ohne Leistungssensor: keine Netzladung',!/Laden vom Netz/.test(sub(e)),sub(e));
+  // eigener Sensor power_in
+  e=mount(cfg({power_in:'sensor.acin'}),hassFor({pv:0,out:0,bat:800,grid:800,acin:750}));await wait(900);
+  ok('power_in: Wert des Sensors 750 W',/Laden vom Netz\s*750 W/.test(sub(e)),sub(e));
+  // Entladung: keine Netzladung
+  e=mount(cfg(),hassFor({pv:0,out:300,bat:-300,grid:0}));await wait(900);
+  ok('Entladung: keine Netzladung',!/Laden vom Netz/.test(sub(e)),sub(e));
+  // Linie zum Speicher sichtbar und aktiv bei Netzladung
+  e=mount(cfg(),hassFor({pv:0,out:0,bat:800,grid:800}));await wait(900);
+  const l=lk(e,'bat');
+  ok('Linie Haus-Speicher aktiv und rückwärts (zum Speicher) bei Netzladung',!!l&&l.on&&l.rev,JSON.stringify(l));
+  e=mount(cfg(),hassFor({pv:0,out:300,bat:-300,grid:0}));await wait(900);
+  const l2=lk(e,'bat');
+  ok('Entladung: Linie aktiv und vorwärts (ins Haus)',!!l2&&l2.on&&!l2.rev,JSON.stringify(l2));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(cfg(),hassFor({pv:0,out:0,bat:800,grid:800}));}
+</script></body></html>
