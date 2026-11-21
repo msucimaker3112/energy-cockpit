@@ -124,6 +124,7 @@ WD.addTranslations('fi', {
   'st.lt.skip': "Summista puuttuu {n} kk, joilta tiedot ovat vajaat",
   'st.lt.hist': "Historia: vain aurinkotuotto, ilman verkko- ja akkuarvoja",
   'st.lt.price': "Rahamäärät laskettu nykyhinnoilla",
+  'st.lt.price.h': "Rahamäärät laskettu tilastojen tuntihinnoilla, kun ne ovat saatavilla",
   'ban.tonet0': "Sähköä menee verkkoon",
   'stat.home': "Kulutus tänään",
   'close': "Sulje",

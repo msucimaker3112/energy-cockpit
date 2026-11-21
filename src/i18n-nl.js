@@ -77,7 +77,7 @@ WD.addTranslations('nl', {
   'st.d.exp': 'Vandaag is meer teruggeleverd ({e} kWh) dan opgewekt ({p} kWh). Controleer de sensor voor teruglevering.',
   'st.all': 'Totaal', 'st.hist': 'Geschiedenis', 'st.nodata2': 'geen gegevens',
   'st.lt.from': 'Gegevens vanaf {d}', 'st.lt.gaps': 'Geen gegevens voor: {m}', 'st.lt.skip': '{n} maand(en) zonder volledige gegevens ontbreken in de totalen',
-  'st.lt.hist': 'Geschiedenis: alleen opbrengst zonne-energie, zonder net- en batterijwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen',
+  'st.lt.hist': 'Geschiedenis: alleen opbrengst zonne-energie, zonder net- en batterijwaarden', 'st.lt.price': 'Geldbedragen berekend met de huidige prijzen', 'st.lt.price.h': 'Geldbedragen waar mogelijk berekend met de uurprijzen uit de statistieken',
 
   'room.title': 'Ruimteafrekening', 'room.week': 'Deze week', 'room.month': 'Deze maand', 'room.year': 'Dit jaar', 'room.prev': 'Vorig jaar',
   'room.tab.week': 'Week', 'room.tab.month': 'Maand', 'room.tab.year': 'Jaar', 'room.tab.prev': 'Vorig jaar',

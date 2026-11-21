@@ -125,6 +125,7 @@ WD.addTranslations('fr', {
   'st.lt.skip': "{n} mois sans données complètes exclus des totaux",
   'st.lt.hist': "Historique : production PV uniquement, sans valeurs réseau et stockage",
   'st.lt.price': "Valeurs monétaires calculées aux prix actuels",
+  'st.lt.price.h': "Valeurs monétaires calculées avec les prix horaires des statistiques lorsqu’ils sont disponibles",
   'flow.title': "Flux énergétique",
   'flow.pv': "Panneaux solaires",
   'flow.pv2': "PV 2",

@@ -17,5 +17,5 @@ WD.addStrings({
   'st.d.exp': 'Heute mehr eingespeist ({e} kWh) als erzeugt ({p} kWh). Prüfe den Sensor für die Einspeisung.',
   'st.all': 'Gesamt', 'st.hist': 'Historie', 'st.nodata2': 'keine Daten',
   'st.lt.from': 'Daten ab {d}', 'st.lt.gaps': 'Keine Daten für: {m}', 'st.lt.skip': 'In den Summen fehlen {n} Monat(e) ohne vollständige Daten',
-  'st.lt.hist': 'Historie: nur Solarertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet',
+  'st.lt.hist': 'Historie: nur Solarertrag, ohne Netz- und Speicherwerte', 'st.lt.price': 'Geldwerte mit den heutigen Preisen gerechnet', 'st.lt.price.h': 'Geldwerte, soweit vorhanden, mit den Stundenpreisen aus der Statistik gerechnet',
 });
