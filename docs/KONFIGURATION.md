@@ -886,13 +886,13 @@ cost_consumers:
 
 **`pv_ac`:** Manche Hybrid-Wechselrichter zählen im Gesamtertrag nur ihre Abgabe: ohne die Ladung des Batterien aus den Modulen, dafür mit seiner Entladung. Mit `pv_ac: true` rechnet die Karte den Hausverbrauch als PV + Bezug − Einspeisung. Das gilt für die Autarkie und für die Aufteilung nach Haus-Mix.
 
-**`battery_losses`: Batterieverluste bei der Ersparnis abziehen (optional).** Von der Batterie kommen nur etwa 90 % der geladenen Energie wieder heraus. Der Rest ist Verlust und hat nichts gespart, die Karte zählt ihn aber als „selbst genutzt“, weil er weder eingespeist noch bezogen wurde. Mit `battery_losses: true` zieht die Karte die Verluste von **Solar-Ersparnis** und **Amortisation** ab: Ladung des Zeitraums mal Verlustanteil. Der Verlustanteil kommt aus den Gesamtzählern `battery_charge_total` und `battery_discharge_total` (Entladung geteilt durch Ladung, wie die Anzeige „Wirkungsgrad“ unten) oder aus `battery_efficiency` in Prozent. Die Zeile „Selbst genutzt“ und der Eigenverbrauch in Prozent bleiben unverändert (eine Batterie zählt dort als selbst genutzt). Ohne Zähler für Ladung und Entladung, mit `pv_ac` (dort sind die Verluste schon heraus) und ohne die Option ändert sich nichts. Anlass: [#97](https://github.com/msucimaker3112/energy-cockpit/issues/97).
+**`battery_losses`: Batterieverluste bei der Ersparnis abziehen (optional).** Von der Batterie kommen nur etwa 90 % der geladenen Energie wieder heraus. Der Rest ist Verlust und hat nichts gespart, die Karte zählt ihn aber als „selbst genutzt“, weil er weder eingespeist noch bezogen wurde. Mit `battery_losses: true` zieht die Karte die Verluste von **Solar-Ersparnis** und **Amortisation** ab: Ladung des Zeitraums mal Verlustanteil. Der Verlustanteil kommt aus den Gesamtzählern `battery_charge_total` und `battery_discharge_total` (Entladung geteilt durch Ladung, wie die Anzeige „Wirkungsgrad“ unten) oder aus `battery_efficiency`: eine Zahl in Prozent oder ein Sensor/Helfer mit dem Wirkungsgrad (Prozent oder Anteil von 0 bis 1). Die Zeile „Selbst genutzt“ und der Eigenverbrauch in Prozent bleiben unverändert (eine Batterie zählt dort als selbst genutzt). Ohne Zähler für Ladung und Entladung, mit `pv_ac` (dort sind die Verluste schon heraus) und ohne die Option ändert sich nichts. Anlass: [#97](https://github.com/msucimaker3112/energy-cockpit/issues/97).
 
 ```yaml
 battery_charge_total: sensor.batterie_geladen_gesamt
 battery_discharge_total: sensor.batterie_entladen_gesamt
 battery_losses: true
-battery_efficiency: 90          # optional, sonst aus den Zählern
+battery_efficiency: 90          # optional: Zahl in Prozent oder ein Sensor/Helfer (sensor.batterie_wirkungsgrad), sonst aus den Zählern
 ```
 
 ### Langzeit-Ansicht (optional)

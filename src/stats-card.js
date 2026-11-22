@@ -235,7 +235,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._ac = c.pv_ac === true;
       // battery_losses (optional, #97): Ersparnis und Amortisation ziehen die Verluste der Batterie ab (Ladung mal Verlustanteil). Nicht mit pv_ac (dort zählen die PV-Zähler nur die Abgabe des Wechselrichters, die Verluste sind schon heraus)
       this._c._bl = c.battery_losses === true || String(c.battery_losses).toLowerCase() === 'true';
-      { const ef = parseFloat(String(c.battery_efficiency).replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; }
+      // battery_efficiency: Zahl in Prozent oder ein Sensor/Helfer mit dem Wirkungsgrad (Prozent, auch als Anteil 0 bis 1)
+      { const be = String(c.battery_efficiency === undefined ? '' : c.battery_efficiency).trim(), ef = parseFloat(be.replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; this._c._efE = isNaN(ef) && /^[a-z_]+\.[\w.]+$/i.test(be) ? be : ''; }
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
@@ -953,6 +954,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const c = this._c;
       if (!c._bl || c._ac) return null;
       if (c._ef !== null) return 1 - c._ef;
+      if (c._efE) {
+        const st = h.states && h.states[c._efE], v = st ? parseFloat(String(st.state).replace(',', '.')) : NaN, f = v > 1 ? v / 100 : v;
+        if (f >= 0.5 && f <= 1) return 1 - f;
+      }
       const ch = this._sumKwh(h, c._chg), di = this._sumKwh(h, c._dis);
       return ch > 0 && di > 0 ? Math.max(0, 1 - di / ch) : null;
     }

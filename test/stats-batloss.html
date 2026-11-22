@@ -46,6 +46,13 @@ async function run(){
   ok('battery_efficiency 80: Verlust 6 × 20 % = 1,2 kWh ((16,9 − 1,2) × 0,30 = 4,71)',sav(e)==='4,71',sav(e));
   e=mount({...B,battery_losses:true,battery_efficiency:'80,5'},hassFor(BS));await wait(1800);
   ok('battery_efficiency als Text mit Komma: 80,5 %',sav(e)==='4,72'||sav(e)==='4,71',sav(e));
+  // Wirkungsgrad aus einem Sensor: Prozent (80) und Anteil (0,8); ungültiger Wert fällt auf die Zähler zurück (90 %)
+  e=mount({...B,battery_losses:true,battery_efficiency:'sensor.wg'},hassFor({...BS,'sensor.wg':S(80,'%')}));await wait(1800);
+  ok('battery_efficiency als Sensor in Prozent (80): 4,71',sav(e)==='4,71',sav(e));
+  e=mount({...B,battery_losses:true,battery_efficiency:'sensor.wg'},hassFor({...BS,'sensor.wg':S(0.8,'')}));await wait(1800);
+  ok('battery_efficiency als Sensor mit Anteil (0,8): 4,71',sav(e)==='4,71',sav(e));
+  e=mount({...B,battery_losses:true,battery_efficiency:'sensor.wg'},hassFor({...BS,'sensor.wg':S('unavailable','')}));await wait(1800);
+  ok('Sensor nicht verfügbar: Rückfall auf die Zähler (90 %, 4,89)',sav(e)==='4,89',sav(e));
   // Als Text "true"
   e=mount({...B,battery_losses:'true'},hassFor(BS));await wait(1800);
   ok('battery_losses als Text "true" wirkt auch',sav(e)==='4,89',sav(e));

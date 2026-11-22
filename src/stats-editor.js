@@ -33,7 +33,7 @@
       ent('earned_before', ['sensor', 'input_number']),
       { name: 'pv_ac', selector: { boolean: {} } },
       { name: 'battery_losses', selector: { boolean: {} } },
-      { name: 'battery_efficiency', selector: { number: { min: 50, max: 100, step: 0.5, mode: 'box' } } },
+      ent('battery_efficiency', ['sensor', 'input_number']),
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
       { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
@@ -75,7 +75,7 @@
     { short: 'Heute', title: 'Tageswerte (optional)', text: 'Für die Ansicht "Heute".', fields: [
       { path: 'pv_ac', label: 'PV-Zähler zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Zähler nur ihre Abgabe zählen. Zeichen dafür: "Autarkie" ist zu niedrig, oder der Verbrauch wirkt zu klein.' },
       { path: 'battery_losses', label: 'Batterieverluste bei Ersparnis und Amortisation abziehen', kind: 'bool', help: 'Optional. Von der Batterie kommen nur etwa 90 % der geladenen Energie wieder heraus, der Rest ist Verlust und hat nichts gespart. Mit dieser Option zieht die Karte den Verlust von der Solar-Ersparnis und der Amortisation ab (Ladung mal Verlustanteil). Der Wirkungsgrad kommt aus den Gesamtzählern für Ladung und Entladung (wie die Anzeige "Wirkungsgrad") oder aus dem Feld darunter. Nicht mit "PV-Zähler zählt ohne Batterie-Ladung", dort sind die Verluste schon heraus.' },
-      { path: 'battery_efficiency', label: 'Wirkungsgrad der Batterie in % (optional)', kind: 'number', optional: true, help: 'Nur mit "Batterieverluste abziehen". Ohne Angabe rechnet die Karte mit dem Verhältnis von Entladung zu Ladung aus den Gesamtzählern. Beispiel: 90.' },
+      { path: 'battery_efficiency', label: 'Wirkungsgrad der Batterie (optional)', kind: 'text', optional: true, help: 'Nur mit "Batterieverluste abziehen". Ein Sensor oder Helfer mit dem Wirkungsgrad in Prozent (zum Beispiel sensor.batterie_wirkungsgrad) oder direkt eine Zahl (zum Beispiel 90). Ohne Angabe rechnet die Karte mit dem Verhältnis von Entladung zu Ladung aus den Gesamtzählern.' },
       { path: 'pv_today', label: 'PV heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /pv|solar|inverter|ertrag|yield/i) },
       { path: 'import_today', label: 'Netzbezug heute (nicht der Gesamtverbrauch)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /import|bezug|verbrauch/i) },
       { path: 'export_today', label: 'Einspeisung heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /export|einspeis/i) },

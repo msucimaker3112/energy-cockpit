@@ -5548,7 +5548,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._ac = c.pv_ac === true;
       // battery_losses (optional, #97): Ersparnis und Amortisation ziehen die Verluste der Batterie ab (Ladung mal Verlustanteil). Nicht mit pv_ac (dort zählen die PV-Zähler nur die Abgabe des Wechselrichters, die Verluste sind schon heraus)
       this._c._bl = c.battery_losses === true || String(c.battery_losses).toLowerCase() === 'true';
-      { const ef = parseFloat(String(c.battery_efficiency).replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; }
+      // battery_efficiency: Zahl in Prozent oder ein Sensor/Helfer mit dem Wirkungsgrad (Prozent, auch als Anteil 0 bis 1)
+      { const be = String(c.battery_efficiency === undefined ? '' : c.battery_efficiency).trim(), ef = parseFloat(be.replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; this._c._efE = isNaN(ef) && /^[a-z_]+\.[\w.]+$/i.test(be) ? be : ''; }
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
@@ -6266,6 +6267,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const c = this._c;
       if (!c._bl || c._ac) return null;
       if (c._ef !== null) return 1 - c._ef;
+      if (c._efE) {
+        const st = h.states && h.states[c._efE], v = st ? parseFloat(String(st.state).replace(',', '.')) : NaN, f = v > 1 ? v / 100 : v;
+        if (f >= 0.5 && f <= 1) return 1 - f;
+      }
       const ch = this._sumKwh(h, c._chg), di = this._sumKwh(h, c._dis);
       return ch > 0 && di > 0 ? Math.max(0, 1 - di / ch) : null;
     }
@@ -6479,7 +6484,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       ent('earned_before', ['sensor', 'input_number']),
       { name: 'pv_ac', selector: { boolean: {} } },
       { name: 'battery_losses', selector: { boolean: {} } },
-      { name: 'battery_efficiency', selector: { number: { min: 50, max: 100, step: 0.5, mode: 'box' } } },
+      ent('battery_efficiency', ['sensor', 'input_number']),
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
       { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
@@ -6521,7 +6526,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     { short: 'Heute', title: 'Tageswerte (optional)', text: 'Für die Ansicht "Heute".', fields: [
       { path: 'pv_ac', label: 'PV-Zähler zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Zähler nur ihre Abgabe zählen. Zeichen dafür: "Autarkie" ist zu niedrig, oder der Verbrauch wirkt zu klein.' },
       { path: 'battery_losses', label: 'Batterieverluste bei Ersparnis und Amortisation abziehen', kind: 'bool', help: 'Optional. Von der Batterie kommen nur etwa 90 % der geladenen Energie wieder heraus, der Rest ist Verlust und hat nichts gespart. Mit dieser Option zieht die Karte den Verlust von der Solar-Ersparnis und der Amortisation ab (Ladung mal Verlustanteil). Der Wirkungsgrad kommt aus den Gesamtzählern für Ladung und Entladung (wie die Anzeige "Wirkungsgrad") oder aus dem Feld darunter. Nicht mit "PV-Zähler zählt ohne Batterie-Ladung", dort sind die Verluste schon heraus.' },
-      { path: 'battery_efficiency', label: 'Wirkungsgrad der Batterie in % (optional)', kind: 'number', optional: true, help: 'Nur mit "Batterieverluste abziehen". Ohne Angabe rechnet die Karte mit dem Verhältnis von Entladung zu Ladung aus den Gesamtzählern. Beispiel: 90.' },
+      { path: 'battery_efficiency', label: 'Wirkungsgrad der Batterie (optional)', kind: 'text', optional: true, help: 'Nur mit "Batterieverluste abziehen". Ein Sensor oder Helfer mit dem Wirkungsgrad in Prozent (zum Beispiel sensor.batterie_wirkungsgrad) oder direkt eine Zahl (zum Beispiel 90). Ohne Angabe rechnet die Karte mit dem Verhältnis von Entladung zu Ladung aus den Gesamtzählern.' },
       { path: 'pv_today', label: 'PV heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /pv|solar|inverter|ertrag|yield/i) },
       { path: 'import_today', label: 'Netzbezug heute (nicht der Gesamtverbrauch)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /import|bezug|verbrauch/i) },
       { path: 'export_today', label: 'Einspeisung heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /export|einspeis/i) },
