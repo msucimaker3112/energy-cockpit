@@ -1070,8 +1070,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const WK = ['water', 'water2', 'water3', 'water4'];
     const wats = asList(c.water).concat(asList(c.water2), asList(c.water3)).filter((w) => w && typeof w === 'object' && (w.entity || w.daily)).slice(0, 4).map((w, i) => Object.assign({}, w, { _k: WK[i], _i: i }));
     this._gas = gas; this._oil = oil; this._wats = wats;
-    // grid_side: right (optional): Netz rechts neben dem Haus. Nicht in 3D und nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
-    const gridRight = !this._s3d && !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
+    // grid_side: right (optional): Netz rechts neben dem Haus, auch in 3D. Nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
+    const gridRight = !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
     let util = '';
     if (gas) { util += node('gas', 'util gas', gas.icon || (oil ? 'mdi:oil' : 'mdi:fire'), gas.name || T(oil ? 'flow.oil' : 'flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water, '', gas); links.push('gas'); }
     wats.forEach((w) => { util += node(w._k, 'util water', w.icon || 'mdi:water', w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')), PAL.wat, w.entity || w.daily, '', w); links.push(w._k); });

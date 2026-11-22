@@ -57,8 +57,14 @@ async function run(){
   // mit pv_to_battery: direkt und 3D unverändert
   e=mount(cfg({battery:{...BAT.battery,power_out:'sensor.bat'},pv_to_battery:'direkt',grid_side:'right'}),1000);await wait(900);
   ok('mit pv_to_battery: direkt keine Klasse gr (Netz steht dort schon rechts)',!q(e,'.layout').classList.contains('gr'),q(e,'.layout').className);
-  e=mount(cfg({style:'3d',grid_side:'right'}),1000);await wait(900);
-  ok('3D: Option ohne Wirkung',!q(e,'.layout')||!q(e,'.layout').classList.contains('gr'),q(e,'.layout')?q(e,'.layout').className:'kein Layout');
+  e=mount(cfg({style:'3d',...PV2,...BAT,grid_side:'right'}),1000);await wait(1200);
+  hub=R(e,'.hub');g=R(e,'[data-k="grid"]');b=R(e,'[data-k="bat"]');pv=R(e,'[data-k="pv"]');
+  ok('3D: Netz rechts neben dem Haus, Batterie darunter, Solar links',g.left>=hub.right-2&&b.left>=hub.right-2&&b.top>=g.bottom-2&&pv.right<=hub.left+2,Math.round(g.left)+' '+Math.round(hub.right)+' '+Math.round(pv.right)+' '+Math.round(hub.left));
+  e=mount(cfg({style:'3d',...PV2,grid_side:'right'}),400);await wait(1200);
+  pv=R(e,'[data-k="pv"]');g=R(e,'[data-k="grid"]');hub=R(e,'.hub');
+  ok('3D am Handy: Solar links und Netz rechts nebeneinander unter dem Haus',pv.top>=hub.bottom-2&&g.left>=pv.right-2&&g.top>=hub.bottom-2,Math.round(pv.right)+' '+Math.round(g.left)+' '+Math.round(pv.top)+' '+Math.round(hub.bottom));
+  e=mount(cfg({style:'3d',...PV2}),1000);await wait(1200);
+  ok('3D ohne Option: Netz links (wie bisher)',R(e,'[data-k="grid"]').right<=R(e,'.hub').left+2,Math.round(R(e,'[data-k="grid"]').right)+' / '+Math.round(R(e,'.hub').left));
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
 }
 if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}

@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.44.0 - MIT License */
+/*! energy-cockpit v0.44.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -2099,8 +2099,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const WK = ['water', 'water2', 'water3', 'water4'];
     const wats = asList(c.water).concat(asList(c.water2), asList(c.water3)).filter((w) => w && typeof w === 'object' && (w.entity || w.daily)).slice(0, 4).map((w, i) => Object.assign({}, w, { _k: WK[i], _i: i }));
     this._gas = gas; this._oil = oil; this._wats = wats;
-    // grid_side: right (optional): Netz rechts neben dem Haus. Nicht in 3D und nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
-    const gridRight = !this._s3d && !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
+    // grid_side: right (optional): Netz rechts neben dem Haus, auch in 3D. Nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
+    const gridRight = !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
     let util = '';
     if (gas) { util += node('gas', 'util gas', gas.icon || (oil ? 'mdi:oil' : 'mdi:fire'), gas.name || T(oil ? 'flow.oil' : 'flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water, '', gas); links.push('gas'); }
     wats.forEach((w) => { util += node(w._k, 'util water', w.icon || 'mdi:water', w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')), PAL.wat, w.entity || w.daily, '', w); links.push(w._k); });
@@ -3559,7 +3559,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
-      { path: 'grid_side', label: 'Netz-Kachel: Seite', kind: 'choice', options: GRIDSIDE, help: 'Optional. Mit "Rechts" steht die Netz-Kachel rechts neben dem Haus (mit Batterie darüber), links bleibt nur Solar. Das spart Höhe, besonders am Handy, in der Kurzansicht und ohne Batterie. Nicht in der 3D-Ansicht.' },
+      { path: 'grid_side', label: 'Netz-Kachel: Seite', kind: 'choice', options: GRIDSIDE, help: 'Optional. Mit "Rechts" steht die Netz-Kachel rechts neben dem Haus (mit Batterie darüber), links bleibt nur Solar. Das spart Höhe, besonders am Handy, in der Kurzansicht und ohne Batterie. Gilt auch in der 3D-Ansicht.' },
       { path: 'home_icon_color', label: 'Farbe des Haus-Symbols', kind: 'choice', options: HOMEICO, help: 'Optional. Mit "Nach Autarkie" färbt sich das Symbol im Ring: grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Standard bleibt Türkis.' },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },

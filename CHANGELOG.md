@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.44.1
+- **Fehler behoben, Energiefluss: `grid_side: right` wirkte in der 3D-Ansicht nicht.** Im Editor ließ sich „Netz-Kachel: Seite“ auch bei der 3D-Darstellung einstellen, die Karte ignorierte es aber still. Jetzt gilt die Option auch in der 3D-Ansicht: Das Netz steht rechts neben dem Haus (mit Batterie darüber), am Handy stehen Solar und Netz nebeneinander unter dem Haus. Anlass: Meldung von Cross1310 in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).
+
 ## 0.44.0
 - **Feinschliff am Handy (Sammel-Issue [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95), Vorschläge von PV-Joe):**
   - **Energiefluss, Kopfzeile:** Die Blasen „Autarkie jetzt“ und „Eigenverbrauch jetzt“ haben farbige Punkte (auf allen Geräten). Am Handy stehen sie gleich breit in einer eigenen Zeile unter dem Titel, mit mehr Abstand zum Wetterband.
