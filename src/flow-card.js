@@ -1826,8 +1826,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _update0() {
     const h = this._hass, c = this._c;
     if (!h || !c || !this._$('.stage')) return;
-    const pv1 = c.pv ? watt(h, c.pv.entity) : null;
-    const pv2 = c.pv2 && c.pv2.entity ? watt(h, c.pv2.entity) : null;
+    // invert: Zähler, die Erzeugung als negativen Wert melden (#96)
+    const inv = (o) => !!o && (o.invert === true || String(o.invert).toLowerCase() === 'true');
+    let pv1 = c.pv ? watt(h, c.pv.entity) : null;
+    if (pv1 !== null && inv(c.pv)) pv1 = -pv1;
+    let pv2 = c.pv2 && c.pv2.entity ? watt(h, c.pv2.entity) : null;
+    if (pv2 !== null && inv(c.pv2)) pv2 = -pv2;
     // Summe aller Erzeuger. Mit pv2 gilt: PV 2 (z. B. Balkonkraftwerk) speist zuerst ins Haus.
     const pv = pv1 === null && pv2 === null ? null : (pv1 || 0) + (pv2 || 0);
     let grid = c.grid ? watt(h, c.grid.entity) : null;

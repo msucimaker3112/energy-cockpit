@@ -1,0 +1,36 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Solar-Zähler mit negativen Werten (invert) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #96: pv.invert und pv2.invert drehen das Vorzeichen eines Zählers um, der Erzeugung negativ meldet. Ohne die Option bleibt alles wie bisher.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(-800),'sensor.pv2':S(-300),'sensor.grid':S(-200),'sensor.home':S(900)},language:'de',locale:{language:'de'},config:{currency:'EUR'}};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},pv2:{entity:'sensor.pv2'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'}},o||{});
+function mount(c){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const big=(e,k)=>{const x=q(e,'[data-k="'+k+'"] .val');return (x.querySelector('.num').textContent+' '+x.querySelector('.unit').textContent).trim();};
+const tag=(e,k)=>q(e,'[data-k="'+k+'"] .tag').textContent.trim();
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg());await wait(900);
+  ok('ohne invert: Solar inaktiv bei negativem Zähler (wie bisher)',/inaktiv/i.test(tag(e,'pv')),tag(e,'pv')+' / '+big(e,'pv'));
+  e=mount(cfg({pv:{entity:'sensor.pv',invert:true}}));await wait(900);
+  ok('pv.invert: Solar erzeugt, 800 W',!/inaktiv/i.test(tag(e,'pv'))&&big(e,'pv')==='800 W',tag(e,'pv')+' / '+big(e,'pv'));
+  ok('pv.invert: Eigenverbrauch wird berechnet (nicht "—")',!/^—$/.test(q(e,'[data-p="self"]').textContent.trim()),q(e,'[data-p="self"]').textContent);
+  e=mount(cfg({pv:{entity:'sensor.pv',invert:'true'}}));await wait(900);
+  ok('pv.invert als Text "true" wirkt auch',big(e,'pv')==='800 W',big(e,'pv'));
+  e=mount(cfg({pv:{entity:'sensor.pv',invert:true},pv2:{entity:'sensor.pv2',invert:true}}));await wait(900);
+  ok('pv2.invert: zweite Anlage 300 W und erzeugt',big(e,'pv2')==='300 W'&&!/inaktiv/i.test(tag(e,'pv2')),tag(e,'pv2')+' / '+big(e,'pv2'));
+  e=mount(cfg({pv:{entity:'sensor.pv',invert:true}}));await wait(900);
+  ok('nur pv.invert: pv2 bleibt wie bisher (inaktiv)',/inaktiv/i.test(tag(e,'pv2')),tag(e,'pv2'));
+  ok('Netzzähler negativ bei Einspeisung bleibt Einspeisung',/Einspeisung/i.test(tag(e,'grid')),tag(e,'grid')+' / '+big(e,'grid'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(cfg({pv:{entity:'sensor.pv',invert:true}}));}
+</script></body></html>

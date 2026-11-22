@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## 0.42.2
+- **Fehler behoben, Energiefluss: Solar-Zähler mit negativen Werten.** Meldet ein Zähler die Erzeugung als negative Zahl (zum Beispiel ein Zweirichtungszähler), stand Solar immer auf „Inaktiv“ und der Eigenverbrauch fehlte. Für Netz und Batterie gab es `invert` schon, für Solar nicht. Jetzt gibt es `pv.invert: true` und `pv2.invert: true`, auch im Editor (Solar und zweite Anlage). Ohne die Option bleibt alles wie bisher. Anlass: [#96](https://github.com/msucimaker3112/energy-cockpit/issues/96).
+
 ## 0.42.1
 - **Fehler behoben, Energiefluss mit `pv_to_battery: direkt`: Laden aus dem Netz wurde nicht angezeigt.** Lud der Speicher (zum Beispiel Zendure Hyper 2000) nachts oder bei wenig Sonne aus dem Netz, fehlten Linie und Hinweis. Jetzt zeigt die Batterie-Kachel die Zeile „Laden vom Netz“, und die Linie zwischen Haus und Batterie läuft in Netzfarbe zum Speicher. Mit `battery.power_in` (AC-Eingangsleistung) gilt der Sensorwert, sonst schätzt die Karte aus dem Ladesensor: Ladung minus Solar-Überschuss. Ohne Ladesensor bleibt alles wie bisher. Der Hausverbrauch war schon richtig. Anlass: [#94](https://github.com/msucimaker3112/energy-cockpit/issues/94).
 - Die Versionsnummer im Bundle stimmt wieder (0.42.0 meldete intern noch 0.41.0).

@@ -19,6 +19,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `title` | Text | Überschrift (Standard "Energiefluss") |
 | `pv.entity` | Sensor | PV-Leistung |
 | `pv.name`, `pv.icon` | Text | Anzeigename, Symbol (`mdi:…`) |
+| `pv.invert`, `pv2.invert` | `true` / `false` (Standard) | Vorzeichen umkehren, wenn der Zähler die Erzeugung als **negativen** Wert meldet (zum Beispiel manche Zweirichtungszähler). Ohne die Option bleibt alles wie bisher |
 | `pv.daily` | Sensor | Tagesertrag in kWh |
 | `pv.daily_ac` | `true` / `false` (Standard) | Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt: Was direkt aus den Modulen in den Batterie geht, fehlt darin. Die Karte rechnet dann "Solar heute" als Tagesertrag + Geladen heute − Entladen heute, und auch "Haus heute" und "Autarkie heute" stimmen. Zeichen für diesen Fall: "Autarkie heute" steht bei 0 % und "Haus heute" ist viel zu niedrig. Braucht `daily_charge` und `daily_discharge` beim Speicher und gilt für alle Speicher ohne `behind_meter` |
 | `pv.forecast` | Sensor | Prognose für heute: Leistung in W/kW oder Tagesprognose in kWh (z. B. Solcast, Forecast.Solar "Energie Produktion heute"). Im Assistenten wählbar |
