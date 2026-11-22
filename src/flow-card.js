@@ -20,7 +20,7 @@ WD.addStrings({
 });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'bat.gridchg': 'Laden vom Netz', 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'bat.io.pv': 'Solar-Eingang <b>{in}</b> · Ausgang <b>{out}</b>', 'bat.gridchg': 'Laden vom Netz', 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
 // Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
@@ -2014,7 +2014,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
       const outExp = via && !via2 ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
-      const subT = via ? T('bat.io', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
+      const subT = via ? T(via2 ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
       const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;

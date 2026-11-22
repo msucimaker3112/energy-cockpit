@@ -64,8 +64,8 @@ WD.addTranslations('en', {
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',
   'st.r.pv': 'Production', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
-  'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
-  'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>of {i} {cur} investment</small>", 'st.eta': "Return approx. <b>{y} {cur}</b> per year", 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per year</small>", 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': "100 W less ≈ {x} {cur} per year",
   'st.full': '× full', 'st.note': 'Grid electricity {p} ¢/kWh · export {f} ¢/kWh · {g} · payback estimated using today’s prices', 'st.note.nofee': 'energy costs only, excluding fixed charges', 'st.note.fee': 'grid electricity costs including fixed charges',
   'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
   'st.import': 'Grid import', 'st.export': 'Grid export',
@@ -145,4 +145,9 @@ WD.addTranslations('en', {
 });
 WD.addTranslations('en', {
   "bat.gridchg": "Charging from grid",
+});
+WD.addTranslations('en', {
+  "st.eta.d": "paid off around <b>{yr}</b>",
+  "bat.io.pv": "Solar input <b>{in}</b> · output <b>{out}</b>",
+  "st.cc.title": "Cost per consumer",
 });

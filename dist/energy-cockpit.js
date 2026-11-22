@@ -1049,7 +1049,7 @@ WD.addStrings({
 });
 // Gas und Wasser (#65): eigene Kacheln mit Linie zum Haus, zählen nicht zum Strom
 WD.addStrings({ 'flow.via.miss': '⚠ „Solar läuft durch den Speicher“ braucht noch die Ausgangsleistung ins Haus (<b>battery.power_out</b>), bis dahin gilt die normale Darstellung.' });
-WD.addStrings({ 'bat.gridchg': 'Laden vom Netz', 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
+WD.addStrings({ 'bat.io.pv': 'Solar-Eingang <b>{in}</b> · Ausgang <b>{out}</b>', 'bat.gridchg': 'Laden vom Netz', 'bat.selfuse': 'Eigenbedarf', 'flow.gas': 'Gas', 'flow.oil': 'Öl', 'flow.water': 'Wasser', 'gas.heat': 'Heizung', 'gas.hw': 'Warmwasser', 'gas.today': 'Heute', 'tag.gas.on': 'Heizt', 'tag.water.on': 'Fließt', 'tag.today': 'Heute' });
 const { PAL, TH, rgb, num, watt, kwh, rawUnits, val, clock, nf, splitW, fW, fKwh, fPct, fDur, cur, esc, haNavigate, KA, T, setLocale } = WD;
 // Gas in kWh: kWh, Wh, MWh direkt, m³ nur mit kwh_per_m3 (sonst null und die Karte zeigt m³)
 // Heizöl (oil): Liter statt m³. kWh-Sensoren werden mit kwh_per_l (Standard 10) in Liter umgerechnet, m3 trägt dann die Liter
@@ -3043,7 +3043,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
       const outExp = via && !via2 ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
-      const subT = via ? T('bat.io', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
+      const subT = via ? T(via2 ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
       const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;
@@ -5250,12 +5250,12 @@ WD.addStrings({
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',
   'st.r.pv': 'Erzeugung', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
-  'st.earned': '<b>{e} {cur}</b> von {i} {cur} zurückverdient', 'st.eta': '<b>{y} {cur}/Jahr</b> · fertig ca. <b>{yr}</b>', 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
-  'st.glcost': '≈ <b>{x} {cur}/Jahr</b>', 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': '100 W weniger ≈ {x} {cur}/Jahr',
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>von {i} {cur} Investition</small>", 'st.eta': "Amortisation ca. <b>{y} {cur}</b> pro Jahr", "st.eta.d": "fertig ca. <b>{yr}</b>", 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>pro Jahr</small>", 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': "100 W weniger ≈ {x} {cur} pro Jahr",
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · {g} · Amortisation mit heutigen Preisen geschätzt', 'st.note.nofee': 'reine Energiekosten ohne Grundgebühr', 'st.note.fee': 'Stromkosten Netz mit Grundpreis',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
-  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n}', 'st.basefee': 'davon Grundpreis', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': 'Kosten je Verbraucher', 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'Ersparnis', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'Solar', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
+  'st.week': 'Woche', 'st.g2name': 'Zweiter Zähler', 'st.g2of': 'davon {n}', 'st.basefee': 'davon Grundpreis', 'st.bud.title': 'Jahresbudget Netzbezug', 'st.bud.of': '{ist} von {goal} kWh Netzbezug', 'st.bud.soll': 'Soll bis heute', 'st.bud.abw': 'Abweichung Ist − Soll', 'st.bud.fc': 'Hochrechnung', 'st.bud.fcabw': 'Abweichung zum Ziel', 'st.bud.lin': 'Soll gleichmäßig übers Jahr', 'st.bud.hist': 'Soll folgt dem Verlauf von {y}', 'st.bud.goal': 'Jahresziel', 'st.bud.since': 'Messdaten erst seit {d}: Soll und Hochrechnung gelten für diesen Zeitraum und sind vorläufig', 'st.cc.group': 'Gruppe', 'st.cc.title': "Kosten pro Verbraucher", 'st.cc.meas': 'gemessen', 'st.cc.est': 'nach Haus-Mix', 'st.cc.cost': 'Netzkosten', 'st.cc.saved': 'Ersparnis', 'st.cc.nohist': 'Nur für Heute, Woche, Monat und das laufende Jahr. Für „Gesamt“ gibt es hier keine Werte', 'st.cc.grid': 'Netz', 'st.cc.bat': 'Batterie', 'st.cc.pv': 'Solar', 'st.cc.upto': 'bis {x} {cur}/h', 'st.cc.unitW': '{id} misst Leistung ({u}). Nötig ist ein Zähler in kWh.', 'st.cc.nostat': 'Keine kWh-Statistik für {id}. Nötig ist ein Zähler mit state_class total_increasing.', 'st.cc.missing': '{id} gibt es nicht.',
   'st.n.pv': 'Solar heute', 'st.n.imp': 'Netzbezug heute', 'st.n.exp': 'Einspeisung heute', 'st.n.chg': 'Batterie geladen heute', 'st.n.dis': 'Batterie entladen heute',
   'st.d.none': '{n}: {id} liefert gerade keinen Wert.', 'st.d.nonefb': '{n}: {id} liefert gerade keinen Wert. Die Karte rechnet ihn aus dem Gesamtzähler.',
   'st.d.big': '{n}: {id} zeigt {v} kWh. Das ist mehr als der Gesamtzähler seit Mitternacht. Steckt dort ein Gesamtzähler statt eines Tageswerts?',
@@ -5296,7 +5296,7 @@ ${WD.themeCss()}:host{display:block;--pv:255,197,61;--imp:255,92,122;--exp:52,21
 ha-card{background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 65%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px;position:relative;transform-origin:0 0;box-sizing:border-box}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(40% 30% at 15% 15%,rgba(var(--pv),.09),transparent 70%),radial-gradient(40% 35% at 85% 60%,rgba(var(--home),.08),transparent 70%)}
-header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-bottom:18px}
+header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-bottom:18px;row-gap:18px}
 .title{font-size:calc(1.05rem*var(--ts,1));font-weight:650;margin-right:auto;display:flex;align-items:center}
 .title .ico{margin-right:10px}
 .ico{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c,var(--home)),.16);color:rgb(var(--c,var(--home)));flex:none}
@@ -5328,7 +5328,9 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
 .amo .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
 .amo .big .earn{margin-left:auto;padding-left:12px;text-align:right;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
-.amo .big .earn b{color:rgb(var(--sav));font-weight:700}
+.amo .big .earn b{color:rgb(var(--sav));font-weight:800;font-size:calc(2.3rem*var(--vs,1))}
+.amo .big .earn i{font-style:normal;color:rgb(var(--sav));font-weight:700;font-size:calc(1rem*var(--ts,1));margin-left:6px}
+.amo .big .earn small{display:block;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));margin-top:2px}
 .amo .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
 .amo .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--sav));font-weight:700;margin-left:6px}
 .pbar{position:relative;height:16px;border-radius:999px;background:rgba(var(--ov),.06);overflow:hidden;margin-top:12px}
@@ -5360,12 +5362,15 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .h-footer footer{display:none}
 .narrow .bgrid{grid-template-columns:1fr 1fr}
 .gl .big{display:flex;align-items:baseline;margin-top:10px}
-.gl .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
-.gl .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
-.gl .big small{font-size:calc(.85rem*var(--ts,1));color:rgb(var(--mut))}
-.gl .big small b{color:var(--txt)}
+.gl .big{flex-wrap:wrap}
+.gl .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--home));font-variant-numeric:tabular-nums}
+.gl .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--home));font-weight:700;margin-left:6px;margin-right:12px}
+.gl .big .cost{margin-left:auto;padding-left:12px;text-align:right;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.gl .big .cost b{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:var(--txt)}
+.gl .big .cost i{font-style:normal;font-weight:700;font-size:calc(1rem*var(--ts,1));margin-left:6px;color:var(--txt)}
+.gl .big .cost small{display:block;font-size:calc(.76rem*var(--ts,1));margin-top:2px}
 .nights{display:flex;align-items:flex-end;height:46px;margin-top:12px}
-.nights div{flex:1;margin:0 3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,rgba(var(--pv),.9),rgba(var(--pv),.25));height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
+.nights div{flex:1;margin:0 3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,rgba(var(--home),.9),rgba(var(--home),.25));height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
 .nl{display:flex;margin-top:4px}.nl span{flex:1;text-align:center;font-size:calc(.6rem*var(--ts,1));color:rgb(var(--mut))}
 .gl .tip{font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));margin-top:8px}
 .chart{margin-top:14px}
@@ -5408,7 +5413,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc{margin-top:14px}
 .cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cc-head .lbl{margin-right:auto}
-.cc-sum{font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum{flex:1 0 100%;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;line-height:1.3;min-height:calc(1.3em + 12px);font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum .cc-p{padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.06);border:1px solid var(--stroke)}
 .cc-sum b{color:rgb(var(--imp));font-weight:700}
 .cc-sum b.s{color:rgb(var(--sav))}
 .cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));grid-gap:12px;gap:12px}
@@ -5626,10 +5632,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           <div class="panel amo"><span class="lbl" style="--c:var(--sav)"><i></i>${T('st.amo')}</span>
             <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span><span class="earn" data-f="amoEarned">—</span></div>
             <div class="pbar"><div class="pfill"></div></div>
-            <div class="meta"><span data-f="amoEta">—</span></div>
+            <div class="meta"><span data-f="amoEta">—</span><span data-f="amoDone"></span></div>
           </div>
-          <div class="panel gl"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.base')}</span>
-            <div class="big"><span class="num" data-t="gl">—</span><span class="unit">W</span><small data-f="glCost"></small></div>
+          <div class="panel gl"><span class="lbl" style="--c:var(--home)"><i></i>${T('st.base')}</span>
+            <div class="big"><span class="num" data-t="gl">—</span><span class="unit">W</span><span class="cost" data-f="glCost"></span></div>
             <div class="nights"></div><div class="nl"></div>
             <div class="tip" data-f="glTip"></div>
           </div>
@@ -5924,7 +5930,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         lv.classList.toggle('on', on);
         if (on) this._f(`ccL${i}`, `${nf(w, 0)} W${price > 0 ? ' · ' + T('st.cc.upto', { x: nf(w / 1000 * price, 2), cur: CUR }) : ''}`);
       });
-      this._f('ccSum', !set ? T('st.cc.nohist') : priced ? `${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b> · ${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b>` : '');
+      this._f('ccSum', !set ? T('st.cc.nohist') : priced ? `<span class="cc-p">${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b></span><span class="cc-p">${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b></span>` : '');
     }
 
     async _load() {
@@ -6267,7 +6273,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('amo', Math.min(100, pct * 100), 0);
         requestAnimationFrame(() => { const f = this._$('.pfill'); if (f) f.style.width = Math.min(100, pct * 100) + '%'; });
         this._f('amoEarned', T('st.earned', { e: fEur(earned), i: fEur(inv), cur: CUR }));
-        let eta = '';
+        let eta = '', done = '';
         if (this._m && pct < 1) {
           const now = new Date();
           let pv12 = 0, ex12 = 0, n = 0;
@@ -6276,10 +6282,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             const perYear = (Math.max(0, pv12 - ex12) * price + ex12 * feed) * 12 / n;
             const yrs = (inv - earned) / perYear;
             // unrealistisch weit weg (oder kein Ertrag): keine Jahreszahl nennen
-            eta = !isFinite(yrs) || yrs > 60 ? T('st.eta.far') : T('st.eta', { y: fEur(perYear), yr: now.getFullYear() + Math.ceil(yrs), cur: CUR });
+            if (!isFinite(yrs) || yrs > 60) eta = T('st.eta.far');
+            else { eta = T('st.eta', { y: fEur(perYear), cur: CUR }); done = T('st.eta.d', { yr: now.getFullYear() + Math.ceil(yrs) }); }
           }
         } else if (pct >= 1) eta = T('st.paid');
         this._f('amoEta', eta);
+        this._f('amoDone', done);
       }
       // Grundlast
       const N = this._nights || [];
@@ -6379,7 +6387,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    cost_consumers: 'Kosten je Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -6454,7 +6462,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     { short: 'Preise', title: 'Preise, Haus und Anlage (optional)', text: 'Mit Preisen zeigt die Karte Geldwerte. Die Anschaffungskosten ergeben die Amortisation, der Hausverbrauch die nächtliche Grundlast.', fields: [
       { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
       { path: 'grid_price_ct', label: 'oder fester Strompreis (Cent pro kWh)', kind: 'number', optional: true, step: '0.1', help: 'Ohne Sensor oder Helfer: einfach den Preis aus deiner Rechnung eintragen, zum Beispiel 34.' },
-      { path: 'grid_price_history.0.until', label: 'Früherer Preis 1: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true, help: 'Für Stromkosten, PV-Ersparnis und Kosten je Verbraucher: So rechnen vergangene Monate mit dem Preis von damals. Danach gilt der Preis oben. Ein Sensor mit Langzeitstatistik, etwa bei dynamischem Tarif, braucht das nicht.' },
+      { path: 'grid_price_history.0.until', label: 'Früherer Preis 1: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true, help: 'Für Stromkosten, PV-Ersparnis und Kosten pro Verbraucher: So rechnen vergangene Monate mit dem Preis von damals. Danach gilt der Preis oben. Ein Sensor mit Langzeitstatistik, etwa bei dynamischem Tarif, braucht das nicht.' },
       { path: 'grid_price_history.0.ct', label: 'Früherer Preis 1: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
       { path: 'grid_price_history.1.until', label: 'Früherer Preis 2: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true },
       { path: 'grid_price_history.1.ct', label: 'Früherer Preis 2: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
@@ -6474,7 +6482,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { path: 'earned_before_eur', label: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', kind: 'number', optional: true, step: '1', help: 'Nur nötig, wenn die Anlage schon lief, bevor Home Assistant die Zähler erfasst hat. Der Betrag wird zur Amortisation addiert.' },
       { path: 'home_power', label: 'Hausverbrauch (Leistung)', kind: 'power', optional: true, hints: H(/haus|home|house|verbrauch|consumption|load/i) },
     ] },
-    { short: 'Kosten', title: 'Kosten je Verbraucher (optional)', text: 'Zeigt je Gerät die Netzkosten und was Solar und Batterie gespart haben, heute, in dieser Woche, im Monat und im Jahr. Weitere Verbraucher gehen unter "Alle Felder" oder in YAML.', fields: [
+    { short: 'Kosten', title: 'Kosten pro Verbraucher (optional)', text: 'Zeigt je Gerät die Netzkosten und was Solar und Batterie gespart haben, heute, in dieser Woche, im Monat und im Jahr. Weitere Verbraucher gehen unter "Alle Felder" oder in YAML.', fields: [
       { path: 'cost_consumers.0.name', label: 'Verbraucher 1: Name', kind: 'text', optional: true, help: 'Zum Beispiel E-Auto oder Wärmepumpe. Symbol und Farbe wählt die Karte selbst, in YAML gehen auch eigene.' },
       { path: 'cost_consumers.0.energy', label: 'Verbraucher 1: Energie', kind: 'energy', optional: true, help: 'Gesamtzähler in kWh. Die Karte teilt ihn jede Stunde so auf, wie das Haus gerade versorgt wurde. Das ist eine Schätzung.' },
       { path: 'cost_consumers.0.power', label: 'Verbraucher 1: Leistung', kind: 'power', optional: true },
@@ -6517,7 +6525,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       `Einspeisung gesamt: ${c.grid_export_total || 'nicht gewählt'}`,
       `Batterie: ${c.battery_charge_total ? 'ja' : 'nein'}`,
       `Preise: ${c.grid_price || typeof c.grid_price_ct === 'number' ? 'gesetzt' : 'keine'}`,
-      `Kosten je Verbraucher: ${c.cost_consumers ? Object.keys(c.cost_consumers).length : 'keine'}`,
+      `Kosten pro Verbraucher: ${c.cost_consumers ? Object.keys(c.cost_consumers).length : 'keine'}`,
       `Langzeit-Ansicht: ${c.long_term ? 'ein' : 'aus'}`,
     ] },
   ];
@@ -6597,8 +6605,8 @@ WD.addTranslations('en', {
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',
   'st.r.pv': 'Production', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
-  'st.earned': '<b>{e} {cur}</b> of {i} {cur} earned back', 'st.eta': '<b>{y} {cur}/year</b> · paid off around <b>{yr}</b>', 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
-  'st.glcost': '≈ <b>{x} {cur}/year</b>', 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': '100 W less ≈ {x} {cur}/year',
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>of {i} {cur} investment</small>", 'st.eta': "Return approx. <b>{y} {cur}</b> per year", 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per year</small>", 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': "100 W less ≈ {x} {cur} per year",
   'st.full': '× full', 'st.note': 'Grid electricity {p} ¢/kWh · export {f} ¢/kWh · {g} · payback estimated using today’s prices', 'st.note.nofee': 'energy costs only, excluding fixed charges', 'st.note.fee': 'grid electricity costs including fixed charges',
   'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
   'st.import': 'Grid import', 'st.export': 'Grid export',
@@ -6679,6 +6687,11 @@ WD.addTranslations('en', {
 WD.addTranslations('en', {
   "bat.gridchg": "Charging from grid",
 });
+WD.addTranslations('en', {
+  "st.eta.d": "paid off around <b>{yr}</b>",
+  "bat.io.pv": "Solar input <b>{in}</b> · output <b>{out}</b>",
+  "st.cc.title": "Cost per consumer",
+});
 
 
 /* ---- i18n-nl.js ---- */
@@ -6748,8 +6761,8 @@ WD.addTranslations('nl', {
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',
   'st.r.pv': 'Opwekking', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
-  'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
-  'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>van {i} {cur} investering</small>", 'st.eta': "Rendement ca. <b>{y} {cur}</b> per jaar", 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per jaar</small>", 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': "100 W minder ≈ {x} {cur} per jaar",
   'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · teruglevering {f} ct/kWh · {g} · terugverdientijd geschat met de huidige prijzen', 'st.note.nofee': 'alleen energiekosten, zonder vastrecht', 'st.note.fee': 'kosten netstroom inclusief vastrecht',
   'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparingen te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
   'st.import': 'Netafname', 'st.export': 'Teruglevering',
@@ -6830,6 +6843,11 @@ WD.addTranslations('nl', {
 WD.addTranslations('nl', {
   "bat.gridchg": "Laden vanaf net",
 });
+WD.addTranslations('nl', {
+  "st.eta.d": "terugverdiend rond <b>{yr}</b>",
+  "bat.io.pv": "Zonne-ingang <b>{in}</b> · uitgang <b>{out}</b>",
+  "st.cc.title": "Kosten per verbruiker",
+});
 
 
 /* ---- i18n-fr.js ---- */
@@ -6904,14 +6922,14 @@ WD.addTranslations('fr', {
   'st.cycles': "Cycles complets",
   'st.temp': "Température batterie",
   'st.pvall': "PV total",
-  'st.earned': "<b>{e} {cur}</b> récupérés sur {i} {cur}",
-  'st.eta': "<b>{y} {cur}/an</b> · amorti vers <b>{yr}</b>",
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>sur {i} {cur} investis</small>",
+  'st.eta': "Gain env. <b>{y} {cur}</b> par an",
   'st.paid': "<b>L'installation est amortie 🎉</b>",
   'st.eta.far': "Prévision pas encore significative",
   'st.price.warn': "⚠ Prix électricité seulement {p} ct/kWh : ce champ attend des <b>centimes</b> (par exemple 23.88), pas des euros.",
-  'st.glcost': "≈ <b>{x} {cur}/an</b>",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>par an</small>",
   'st.gltip': "Valeur horaire minimale 0–5 h, médiane des {n} dernières nuits",
-  'st.gl100': "100 W de moins ≈ {x} {cur}/an",
+  'st.gl100': "100 W de moins ≈ {x} {cur} par an",
   'st.full': "× complet",
   'st.noprice': "Configurer les prix (grid_price, feed_in) pour voir coûts et économies",
   'st.nodata': "pas encore de données",
@@ -7264,6 +7282,11 @@ WD.addTranslations('fr', {
 WD.addTranslations('fr', {
   "bat.gridchg": "Charge depuis le réseau",
 });
+WD.addTranslations('fr', {
+  "st.eta.d": "amorti vers <b>{yr}</b>",
+  "bat.io.pv": "Entrée solaire <b>{in}</b> · Sortie <b>{out}</b>",
+  "st.cc.title": "Coût par consommateur",
+});
 
 
 /* ---- i18n-fi.js ---- */
@@ -7338,14 +7361,14 @@ WD.addTranslations('fi', {
   'st.cycles': "Akun syklit",
   'st.temp': "Lämpötila",
   'st.pvall': "Aurinkotuotto yhteensä",
-  'st.earned': "<b>{e} {cur}</b> / {i} {cur} ansaittu takaisin",
-  'st.eta': "<b>{y} {cur}/vuosi</b> · maksettu takaisin noin vuonna <b>{yr}</b>",
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>{i} {cur} investoinnista</small>",
+  'st.eta': "Tuotto noin <b>{y} {cur}</b> vuodessa",
   'st.paid': "<b>Järjestelmä on maksanut itsensä takaisin 🎉</b>",
   'st.eta.far': "Ennuste ei ole vielä luotettava",
   'st.price.warn': "⚠ Sähkön hinta vain {p} c/kWh: kenttä odottaa <b>senttejä</b> (esimerkiksi 23.88), ei euroja.",
-  'st.glcost': "≈ <b>{x} {cur}/vuosi</b>",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>vuodessa</small>",
   'st.gltip': "Pienin tuntikeskiarvo klo 0–5, {n} viimeisen yön mediaani",
-  'st.gl100': "100 W vähemmän ≈ {x} {cur}/vuosi",
+  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa",
   'st.full': "× täynnä",
   'st.noprice': "Määritä hinnat (grid_price, feed_in), niin kustannukset ja säästöt näkyvät",
   'st.nodata': "ei vielä tietoja",
@@ -7676,5 +7699,10 @@ WD.addTranslations('fi', {
 });
 WD.addTranslations('fi', {
   "bat.gridchg": "Lataus verkosta",
+});
+WD.addTranslations('fi', {
+  "st.eta.d": "maksettu takaisin noin vuonna <b>{yr}</b>",
+  "bat.io.pv": "Aurinko sisään <b>{in}</b> · ulos <b>{out}</b>",
+  "st.cc.title": "Kustannus kuluttajaa kohti",
 });
 

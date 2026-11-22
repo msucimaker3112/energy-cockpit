@@ -1,0 +1,61 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Feinschliff Statistik (Amortisation, Grundlast, Kosten pro Verbraucher) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft den Feinschliff aus #95: Titel "Kosten pro Verbraucher", Netzkosten und Ersparnis als Blasen, Grundlast in der Farbe von Haus mit Kosten rechts, Amortisation mit Betrag rechts und "von … Investition". Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// Heute 00 Uhr: nur Netz. 01 Uhr: nur PV. 02 Uhr: halb Netz, halb PV, Akku lädt (mit pv_ac 50 % Netz, sonst 100 %)
+const hrs=[{t:d0,pv:0,imp:1,exp:0,chg:0,dis:0,e:1,g:0,b:0,p:0},{t:d0+H,pv:2,imp:0,exp:1,chg:0,dis:0,e:1,g:0,b:0,p:2},{t:d0+2*H,pv:1,imp:1,exp:0,chg:1,dis:0,e:1,g:1,b:1,p:1}];
+if(now.getDate()>1)hrs.push({t:d0-24*H,pv:0,imp:2,exp:0,chg:0,dis:0,e:2,g:2,b:0,p:0});
+const past={t:new Date(now.getFullYear(),0,1,12).getTime(),pv:0,imp:4,exp:0,chg:0,dis:0,e:4,g:4,b:0,p:0};
+const map={'sensor.pv':'pv','sensor.imp':'imp','sensor.exp':'exp','sensor.chg':'chg','sensor.dis':'dis','sensor.e':'e','sensor.g':'g','sensor.b':'b','sensor.p':'p'};
+let calls=[];
+const wk0=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7).getTime();let meanOn=false;
+const hassFor=(o)=>({states:Object.assign({'sensor.w':S(630)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async(m)=>{
+  if(m.period!=='hour')return {};
+  if(m.types&&m.types.includes('state'))return {}; // Abfrage für "Heute" aus den Gesamtzählern, gehört nicht zu den Verbraucherkosten
+  if(m.types&&m.types.includes('mean'))return meanOn?{[m.statistic_ids[0]]:hrs.map(x=>({start:x.t,mean:.25}))}:{};
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15;calls.push({from,to});
+  const r={};const rows=hrs.concat(now.getMonth()>0?[past]:[]).filter(x=>x.t>=from&&x.t<to);
+  (m.statistic_ids||[]).forEach(id=>{if(map[id])r[id]=rows.map(x=>({start:x.t,change:x[map[id]]}));});return r;}});
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',grid_price_ct:50,
+  cost_consumers:[{name:'Gemessen',icon:'mdi:car-electric',color:'#a78bfa',grid:'sensor.g',battery:'sensor.b',pv:'sensor.p',power:'sensor.w'},{name:'Mix <b>',icon:'mdi:water-boiler',color:'#38bdf8',energy:'sensor.e'}]};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.trim():null;};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1500);};
+async function run(){
+  const c={...base,investment_eur:5000,pv_total:'sensor.pv'};
+  let e=mount(c,hassFor({'sensor.pv':S(900,'kWh'),'sensor.imp':S(1,'kWh'),'sensor.exp':S(100,'kWh')}));await wait(600);await tab(e,'day');
+  // Kosten pro Verbraucher
+  ok('Titel heißt "Kosten pro Verbraucher"',/Kosten pro Verbraucher/.test(t(e,'.cc-head .lbl')),t(e,'.cc-head .lbl'));
+  const ps=e.shadowRoot.querySelectorAll('.cc-sum .cc-p');
+  ok('Netzkosten und Ersparnis als zwei Blasen',ps.length===2&&/Netzkosten/.test(ps[0].textContent)&&/Ersparnis/.test(ps[1].textContent),Array.from(ps).map(x=>x.textContent.trim()).join(' | '));
+  const r0=ps[0]&&ps[0].getBoundingClientRect(),r1=ps[1]&&ps[1].getBoundingClientRect(),cc=q(e,'.cc-head').getBoundingClientRect(),lb=q(e,'.cc-head .lbl').getBoundingClientRect();
+  ok('Blasen stehen unter dem Titel, links und rechts',!!r0&&!!r1&&r0.top>=lb.bottom-1&&Math.abs(r0.left-cc.left)<3&&Math.abs(r1.right-cc.right)<3,r0?[r0.top,lb.bottom,r0.left,cc.left,r1.right,cc.right].map(Math.round).join('/'):'fehlt');
+  ok('Netzkosten rot, Ersparnis grün',getComputedStyle(ps[0].querySelector('b')).color!==getComputedStyle(ps[1].querySelector('b')).color,getComputedStyle(ps[0].querySelector('b')).color+' / '+getComputedStyle(ps[1].querySelector('b')).color);
+  // Grundlast: Farbe wie Haus, Kosten rechts, "pro Jahr" darunter
+  e._nights=[100,120,110,130,125,115,105].map((v,i)=>({v,t:new Date(now.getFullYear(),now.getMonth(),now.getDate()-7+i)}));e._render();await wait(1500);
+  const num=q(e,'.gl .big .num'),cost=q(e,'.gl .big .cost'),cb=cost&&cost.querySelector('b'),home=getComputedStyle(num).color;
+  ok('Grundlast: Zahl in der Farbe von Haus (nicht Gelb)',home==='rgb(34, 211, 238)',home);
+  ok('Grundlast: Balken in der Farbe von Haus',/34,\s*211,\s*238/.test(getComputedStyle(q(e,'.nights div')).backgroundImage),getComputedStyle(q(e,'.nights div')).backgroundImage.slice(0,80));
+  ok('Grundlast: Kosten ohne "≈", so groß wie die Watt-Zahl',!!cb&&!/≈/.test(cost.textContent)&&getComputedStyle(cb).fontSize===getComputedStyle(num).fontSize,cost?cost.textContent+' / '+(cb?getComputedStyle(cb).fontSize:'')+' / '+getComputedStyle(num).fontSize:'fehlt');
+  ok('Grundlast: "pro Jahr" unter dem Betrag, rechtsbündig',!!cost&&/pro Jahr/.test(cost.querySelector('small').textContent)&&cost.querySelector('small').getBoundingClientRect().top>=cb.getBoundingClientRect().bottom-2&&Math.abs(cost.getBoundingClientRect().right-q(e,'.gl .big').getBoundingClientRect().right)<2,cost?cost.textContent:'fehlt');
+  ok('Grundlast: Hinweis "pro Jahr" statt "/Jahr"',/pro Jahr/.test(t(e,'[data-f="glTip"]'))&&!/\/Jahr/.test(t(e,'[data-f="glTip"]')),t(e,'[data-f="glTip"]'));
+  // Amortisation
+  ok('Amortisation: Betrag so groß wie die Prozentzahl',getComputedStyle(q(e,'.amo .earn b')).fontSize===getComputedStyle(q(e,'.amo .big .num')).fontSize,getComputedStyle(q(e,'.amo .earn b')).fontSize);
+  ok('Amortisation: "von … Investition" statt "zurückverdient"',/Investition/.test(t(e,'.amo .earn small'))&&!/zurückverdient/.test(t(e,'.amo')),t(e,'.amo .earn small'));
+  // Kopfzeile am Handy: Abstand zwischen Titel und Reitern, wenn sie umbrechen
+  e=mount(c,hassFor({'sensor.pv':S(900,'kWh')}));document.getElementById('host').style.maxWidth='340px';await wait(800);
+  const ti=q(e,'header .title').getBoundingClientRect(),tb=q(e,'header .tabs').getBoundingClientRect();
+  ok('Handy: Reiter stehen unter dem Titel mit Abstand (18 px)',tb.top>=ti.bottom+16,'Titel unten '+Math.round(ti.bottom)+', Reiter oben '+Math.round(tb.top));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(new URLSearchParams(location.search).get('test'))run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});
+</script></body></html>

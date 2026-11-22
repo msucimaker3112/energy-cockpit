@@ -69,14 +69,14 @@ WD.addTranslations('fi', {
   'st.cycles': "Akun syklit",
   'st.temp': "Lämpötila",
   'st.pvall': "Aurinkotuotto yhteensä",
-  'st.earned': "<b>{e} {cur}</b> / {i} {cur} ansaittu takaisin",
-  'st.eta': "<b>{y} {cur}/vuosi</b> · maksettu takaisin noin vuonna <b>{yr}</b>",
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>{i} {cur} investoinnista</small>",
+  'st.eta': "Tuotto noin <b>{y} {cur}</b> vuodessa",
   'st.paid': "<b>Järjestelmä on maksanut itsensä takaisin 🎉</b>",
   'st.eta.far': "Ennuste ei ole vielä luotettava",
   'st.price.warn': "⚠ Sähkön hinta vain {p} c/kWh: kenttä odottaa <b>senttejä</b> (esimerkiksi 23.88), ei euroja.",
-  'st.glcost': "≈ <b>{x} {cur}/vuosi</b>",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>vuodessa</small>",
   'st.gltip': "Pienin tuntikeskiarvo klo 0–5, {n} viimeisen yön mediaani",
-  'st.gl100': "100 W vähemmän ≈ {x} {cur}/vuosi",
+  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa",
   'st.full': "× täynnä",
   'st.noprice': "Määritä hinnat (grid_price, feed_in), niin kustannukset ja säästöt näkyvät",
   'st.nodata': "ei vielä tietoja",
@@ -407,4 +407,9 @@ WD.addTranslations('fi', {
 });
 WD.addTranslations('fi', {
   "bat.gridchg": "Lataus verkosta",
+});
+WD.addTranslations('fi', {
+  "st.eta.d": "maksettu takaisin noin vuonna <b>{yr}</b>",
+  "bat.io.pv": "Aurinko sisään <b>{in}</b> · ulos <b>{out}</b>",
+  "st.cc.title": "Kustannus kuluttajaa kohti",
 });

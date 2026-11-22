@@ -23,6 +23,8 @@ Diese Seite erklärt, was die Begriffe in den Karten genau bedeuten, und legt fe
 | **Eigenverbrauch** | **Quote in Prozent:** Anteil der Solarerzeugung, den du selbst nutzt. Selbst genutzt ÷ Erzeugung. |
 | **Autarkie** | **Quote in Prozent:** Anteil des Verbrauchs, den die eigene Anlage deckt. Wer 100 % hat, braucht gerade oder heute keinen Netzstrom. |
 | **Eigenverbrauch jetzt / Autarkie jetzt** | Dieselben Quoten, aber für die aktuelle Leistung, nicht für den ganzen Tag. |
+| **Solar-Eingang / Ausgang** | Bei Speichern vor dem Wechselrichter: Leistung der Solarmodule am Speicher (Eingang) und was der Speicher ins Haus abgibt (Ausgang). |
+| **Grundlast** | Der niedrigste Stundenmittelwert zwischen 0 und 5 Uhr (Median der letzten sieben Nächte): was das Haus nachts mindestens braucht. Farbe wie „Haus“. |
 | **Eigenbedarf** | Strom, den der Speicher selbst verbraucht (Elektronik, Wechselrichter). Nicht zu verwechseln mit Eigenverbrauch. |
 
 ## Batterie
@@ -45,6 +47,7 @@ Diese Seite erklärt, was die Begriffe in den Karten genau bedeuten, und legt fe
 
 - Du-Form, kurze Sätze.
 - Dezimalkomma, Tausenderpunkt; Einheit mit Leerzeichen („3,2 kWh“, „450 W“).
+- „pro“ statt „je“ („Kosten pro Verbraucher“, „pro Jahr“).
 - „Solar“ statt „PV“, „Batterie“ statt „Akku“, „Inaktiv“ statt „Standby“, „Ersparnis“ statt „gespart“.
 - Die Oberfläche ist deutsch, die Übersetzungen (Englisch, Niederländisch, Französisch, Finnisch) behalten Platzhalter und Formatierung des deutschen Textes.
 

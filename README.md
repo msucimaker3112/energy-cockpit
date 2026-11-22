@@ -24,7 +24,7 @@ Komplett deutsch und kostenlos. Ein Assistent richtet alles ein, du brauchst kei
 
 <b>Gefällt dir die Karte? Ein ⭐ oben rechts hilft mehr, als du denkst.</b> <a href="#ein-stern-hilft-mehr-als-du-denkst">Warum mir das wichtig ist</a>
 
-**[Neu: Gas und Wasser](#neu-gas-und-wasser)** · **[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten je Verbraucher](#kosten-je-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
+**[Neu: Gas und Wasser](#neu-gas-und-wasser)** · **[Neu: Warum?](#neu-die-karte-erklärt-sich-selbst)** · **[Jedes Gerät](#jeder-raum-jedes-gerät-live)** · **[Die vier Karten](#die-vier-karten)** · **[Installation](#installation)** · **[ioBroker](#auch-für-iobroker)** · **[3D-Ansicht](#3d-ansicht)** · **[Kosten pro Verbraucher](#kosten-pro-verbraucher)** · **[Wetter, Farben und mehr](#wetter-farben-und-mehr)** · **[Handy und Tablet](#handy-und-tablet-eine-karte-zwei-ansichten)** · **[Anleitungen](#anleitungen)** · **[English](#english)**
 
 </div>
 
@@ -97,7 +97,7 @@ Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räu
 <table>
 <tr>
 <td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Batterie-Prognose, Überschuss-Hinweis, Wetterband, Zusatzwerten mit Alarm und eigenen Farben.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
-<td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten je Verbraucher und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
+<td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten pro Verbraucher und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><b>Geräte &amp; Verbrauch</b><br>Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät und Standby-Detektiv.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/devices.png" alt="Geräte und Verbrauch"></td>
@@ -229,13 +229,13 @@ batteries:
 
 Mehr dazu: [Zweite Anlage durch einen Speicher in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#zweite-anlage-durch-einen-speicher-pv2to_battery).
 
-## Kosten je Verbraucher
+## Kosten pro Verbraucher
 
 E-Auto, Wärmepumpe, Warmwasser: Die Statistik zeigt je Gerät, was der Netzstrom kostet und wie viel Solar und Batterie gespart haben, für heute, die Woche, den Monat und das Jahr. Mit je einem Zähler für Netz, Batterie und PV misst sie, mit nur einem Zähler teilt sie den Verbrauch nach dem Mix des Hauses auf. Ein **Preisverlauf** sorgt dafür, dass alte Stunden zum alten Preis zählen. Der Assistent hat dafür einen eigenen Schritt "Kosten".
 
-![Kosten je Verbraucher](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/kosten-woche.png)
+![Kosten pro Verbraucher](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/kosten-woche.png)
 
-Die Sensoren müssen Zähler in kWh sein, ein Sensor in Watt reicht nicht. Mehr dazu: [Kosten je Verbraucher in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#kosten-je-verbraucher-optional).
+Die Sensoren müssen Zähler in kWh sein, ein Sensor in Watt reicht nicht. Mehr dazu: [Kosten pro Verbraucher in der Konfiguration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md#kosten-pro-verbraucher-optional).
 
 ## Handy und Tablet: eine Karte, zwei Ansichten
 
@@ -436,7 +436,7 @@ Jeder Stern sorgt dafür, dass andere die Karte beim Suchen finden, und er sagt 
 
 ## Mitmachen und unterstützen
 
-Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues). Viele Funktionen sind genau so entstanden, zuletzt die Kosten je Verbraucher.
+Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://github.com/msucimaker3112/energy-cockpit/issues). Viele Funktionen sind genau so entstanden, zuletzt die Kosten pro Verbraucher.
 
 **Unterstützen:** Energy-Cockpit ist kostenlos und bleibt es. Es steckt aber viel Zeit in Entwicklung, Tests, Doku und Antworten auf eure Fragen. Wenn du mir ein Dankeschön geben möchtest, freue ich mich sehr: [Mit PayPal spenden](https://www.paypal.com/donate/?hosted_button_id=DTCAKWGEZ23SN). Danke!
 

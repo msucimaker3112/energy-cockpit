@@ -102,7 +102,7 @@ Die weiteren Schritte sind optional:
 | 3. Batterie | Gesamtzähler für Laden und Entladen, Kapazität und Temperatur. |
 | 4. Heute | Tageswerte für den Reiter „Heute“. |
 | 5. Preise | Strompreis, Einspeisevergütung, Anschaffungskosten und optional das **Jahresziel für den Netzbezug** (Jahresbudget) mit Soll gleichmäßig oder nach dem Vorjahr. |
-| 6. Kosten | Kosten je Verbraucher, zum Beispiel E-Auto oder Wärmepumpe (bis zu vier Verbraucher). |
+| 6. Kosten | Kosten pro Verbraucher, zum Beispiel E-Auto oder Wärmepumpe (bis zu vier Verbraucher). |
 | 7. Langzeit | Alle Jahre aus der Langzeitstatistik. |
 | 8. Aussehen | Farbschema. Den Reiter, mit dem die Karte startet (`start_period`), stellst du unter *Alle Felder* ein. |
 | 9. Fertig | Zusammenfassung. |

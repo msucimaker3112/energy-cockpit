@@ -27,7 +27,7 @@ ${WD.themeCss()}:host{display:block;--pv:255,197,61;--imp:255,92,122;--exp:52,21
 ha-card{background:radial-gradient(120% 80% at 50% 0%,var(--bg1) 0%,var(--bg0) 65%);border-radius:28px;overflow:hidden;border:1px solid rgba(var(--ov),.06);color:var(--txt);font-family:Inter,var(--ha-font-family-body,system-ui),sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{padding:22px;position:relative;transform-origin:0 0;box-sizing:border-box}
 .wrap:before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:radial-gradient(40% 30% at 15% 15%,rgba(var(--pv),.09),transparent 70%),radial-gradient(40% 35% at 85% 60%,rgba(var(--home),.08),transparent 70%)}
-header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-bottom:18px}
+header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-bottom:18px;row-gap:18px}
 .title{font-size:calc(1.05rem*var(--ts,1));font-weight:650;margin-right:auto;display:flex;align-items:center}
 .title .ico{margin-right:10px}
 .ico{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c,var(--home)),.16);color:rgb(var(--c,var(--home)));flex:none}
@@ -59,7 +59,9 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .duo{display:grid;grid-template-columns:1.25fr 1fr;grid-gap:14px;gap:14px;margin-top:14px}
 .amo .big{display:flex;align-items:baseline;flex-wrap:wrap;margin-top:10px}
 .amo .big .earn{margin-left:auto;padding-left:12px;text-align:right;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
-.amo .big .earn b{color:rgb(var(--sav));font-weight:700}
+.amo .big .earn b{color:rgb(var(--sav));font-weight:800;font-size:calc(2.3rem*var(--vs,1))}
+.amo .big .earn i{font-style:normal;color:rgb(var(--sav));font-weight:700;font-size:calc(1rem*var(--ts,1));margin-left:6px}
+.amo .big .earn small{display:block;font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));margin-top:2px}
 .amo .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--sav));text-shadow:none;font-variant-numeric:tabular-nums}
 .amo .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--sav));font-weight:700;margin-left:6px}
 .pbar{position:relative;height:16px;border-radius:999px;background:rgba(var(--ov),.06);overflow:hidden;margin-top:12px}
@@ -91,12 +93,15 @@ header{display:flex;align-items:center;flex-wrap:wrap;position:relative;margin-b
 .h-footer footer{display:none}
 .narrow .bgrid{grid-template-columns:1fr 1fr}
 .gl .big{display:flex;align-items:baseline;margin-top:10px}
-.gl .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--pv));font-variant-numeric:tabular-nums}
-.gl .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--pv));font-weight:700;margin-left:6px;margin-right:12px}
-.gl .big small{font-size:calc(.85rem*var(--ts,1));color:rgb(var(--mut))}
-.gl .big small b{color:var(--txt)}
+.gl .big{flex-wrap:wrap}
+.gl .big .num{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:rgb(var(--home));font-variant-numeric:tabular-nums}
+.gl .big .unit{font-size:calc(1rem*var(--ts,1));color:rgb(var(--home));font-weight:700;margin-left:6px;margin-right:12px}
+.gl .big .cost{margin-left:auto;padding-left:12px;text-align:right;color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.gl .big .cost b{font-size:calc(2.3rem*var(--vs,1));font-weight:800;color:var(--txt)}
+.gl .big .cost i{font-style:normal;font-weight:700;font-size:calc(1rem*var(--ts,1));margin-left:6px;color:var(--txt)}
+.gl .big .cost small{display:block;font-size:calc(.76rem*var(--ts,1));margin-top:2px}
 .nights{display:flex;align-items:flex-end;height:46px;margin-top:12px}
-.nights div{flex:1;margin:0 3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,rgba(var(--pv),.9),rgba(var(--pv),.25));height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
+.nights div{flex:1;margin:0 3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,rgba(var(--home),.9),rgba(var(--home),.25));height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
 .nl{display:flex;margin-top:4px}.nl span{flex:1;text-align:center;font-size:calc(.6rem*var(--ts,1));color:rgb(var(--mut))}
 .gl .tip{font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));margin-top:8px}
 .chart{margin-top:14px}
@@ -139,7 +144,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .cc{margin-top:14px}
 .cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cc-head .lbl{margin-right:auto}
-.cc-sum{font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum{flex:1 0 100%;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;line-height:1.3;min-height:calc(1.3em + 12px);font-size:calc(.76rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.cc-sum .cc-p{padding:5px 12px;border-radius:999px;background:rgba(var(--ov),.06);border:1px solid var(--stroke)}
 .cc-sum b{color:rgb(var(--imp));font-weight:700}
 .cc-sum b.s{color:rgb(var(--sav))}
 .cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));grid-gap:12px;gap:12px}
@@ -357,10 +363,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           <div class="panel amo"><span class="lbl" style="--c:var(--sav)"><i></i>${T('st.amo')}</span>
             <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span><span class="earn" data-f="amoEarned">—</span></div>
             <div class="pbar"><div class="pfill"></div></div>
-            <div class="meta"><span data-f="amoEta">—</span></div>
+            <div class="meta"><span data-f="amoEta">—</span><span data-f="amoDone"></span></div>
           </div>
-          <div class="panel gl"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.base')}</span>
-            <div class="big"><span class="num" data-t="gl">—</span><span class="unit">W</span><small data-f="glCost"></small></div>
+          <div class="panel gl"><span class="lbl" style="--c:var(--home)"><i></i>${T('st.base')}</span>
+            <div class="big"><span class="num" data-t="gl">—</span><span class="unit">W</span><span class="cost" data-f="glCost"></span></div>
             <div class="nights"></div><div class="nl"></div>
             <div class="tip" data-f="glTip"></div>
           </div>
@@ -655,7 +661,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         lv.classList.toggle('on', on);
         if (on) this._f(`ccL${i}`, `${nf(w, 0)} W${price > 0 ? ' · ' + T('st.cc.upto', { x: nf(w / 1000 * price, 2), cur: CUR }) : ''}`);
       });
-      this._f('ccSum', !set ? T('st.cc.nohist') : priced ? `${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b> · ${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b>` : '');
+      this._f('ccSum', !set ? T('st.cc.nohist') : priced ? `<span class="cc-p">${T('st.cc.cost')} <b>${nf(cost, dec(cost))} ${CUR}</b></span><span class="cc-p">${T('st.cc.saved')} <b class="s">${nf(sav, dec(sav))} ${CUR}</b></span>` : '');
     }
 
     async _load() {
@@ -998,7 +1004,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         this._count('amo', Math.min(100, pct * 100), 0);
         requestAnimationFrame(() => { const f = this._$('.pfill'); if (f) f.style.width = Math.min(100, pct * 100) + '%'; });
         this._f('amoEarned', T('st.earned', { e: fEur(earned), i: fEur(inv), cur: CUR }));
-        let eta = '';
+        let eta = '', done = '';
         if (this._m && pct < 1) {
           const now = new Date();
           let pv12 = 0, ex12 = 0, n = 0;
@@ -1007,10 +1013,12 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             const perYear = (Math.max(0, pv12 - ex12) * price + ex12 * feed) * 12 / n;
             const yrs = (inv - earned) / perYear;
             // unrealistisch weit weg (oder kein Ertrag): keine Jahreszahl nennen
-            eta = !isFinite(yrs) || yrs > 60 ? T('st.eta.far') : T('st.eta', { y: fEur(perYear), yr: now.getFullYear() + Math.ceil(yrs), cur: CUR });
+            if (!isFinite(yrs) || yrs > 60) eta = T('st.eta.far');
+            else { eta = T('st.eta', { y: fEur(perYear), cur: CUR }); done = T('st.eta.d', { yr: now.getFullYear() + Math.ceil(yrs) }); }
           }
         } else if (pct >= 1) eta = T('st.paid');
         this._f('amoEta', eta);
+        this._f('amoDone', done);
       }
       // Grundlast
       const N = this._nights || [];

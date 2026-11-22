@@ -64,8 +64,8 @@ WD.addTranslations('nl', {
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',
   'st.r.pv': 'Opwekking', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
-  'st.earned': '<b>{e} {cur}</b> van {i} {cur} terugverdiend', 'st.eta': '<b>{y} {cur}/jaar</b> · terugverdiend rond <b>{yr}</b>', 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
-  'st.glcost': '≈ <b>{x} {cur}/jaar</b>', 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': '100 W minder ≈ {x} {cur}/jaar',
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>van {i} {cur} investering</small>", 'st.eta': "Rendement ca. <b>{y} {cur}</b> per jaar", 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per jaar</small>", 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': "100 W minder ≈ {x} {cur} per jaar",
   'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · teruglevering {f} ct/kWh · {g} · terugverdientijd geschat met de huidige prijzen', 'st.note.nofee': 'alleen energiekosten, zonder vastrecht', 'st.note.fee': 'kosten netstroom inclusief vastrecht',
   'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparingen te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
   'st.import': 'Netafname', 'st.export': 'Teruglevering',
@@ -145,4 +145,9 @@ WD.addTranslations('nl', {
 });
 WD.addTranslations('nl', {
   "bat.gridchg": "Laden vanaf net",
+});
+WD.addTranslations('nl', {
+  "st.eta.d": "terugverdiend rond <b>{yr}</b>",
+  "bat.io.pv": "Zonne-ingang <b>{in}</b> · uitgang <b>{out}</b>",
+  "st.cc.title": "Kosten per verbruiker",
 });

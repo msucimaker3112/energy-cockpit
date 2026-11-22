@@ -741,13 +741,13 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 
 **`feed_in_card`:** Für Anlagen ohne Einspeisevergütung, bei denen die Kachel "Einspeiseerlös" nur einen Strich zeigt. `pv_self_consumption` zeigt stattdessen den Solar-Eigenverbrauch mit Quote und selbst genutzten kWh, `hidden` blendet die Kachel aus. Ohne Eintrag bleibt alles wie bisher. Einstellbar auch unter "Alle Felder".
 
-**`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten je Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
+**`start_period`:** Mit welchem Reiter die Karte startet. Ohne Angabe ist es der Monat. `day` zeigt „Heute“, `week` die Woche (nur mit Kosten pro Verbraucher), `year` das laufende Jahr. Bei jedem Öffnen der Karte gilt wieder dieser Reiter.
 
 **Geldwerte Stunde für Stunde: `hourly_pricing`.** Mit `hourly_pricing: true` und einem `grid_price`-Sensor mit Langzeitstatistik, etwa bei einem Zeittarif oder dynamischen Tarif, rechnet die Karte **Stromkosten Netz**, **Solar-Ersparnis** und **Einspeiseerlös** je Stunde: Bezug und selbst genutzter Solarstrom der Stunde mal dem Strompreis dieser Stunde, Einspeisung mal der Vergütung dieser Stunde (Stundenmittel, wenn `feed_in` ein Sensor mit Statistik ist, sonst der feste Wert). Wer nachts günstig lädt, sieht so die echten Kosten statt der Menge mal dem heutigen Preis. Das gilt für Heute, Woche, Monat, Jahr und Gesamt. Standard ist aus, dann bleibt alles wie bisher. Einschalten geht auch im Editor unter „Alle Felder“.
 
 - **Preiswechsel innerhalb einer Stunde:** Wechselt der Preis mitten in der Stunde (zum Beispiel ein Tarifwechsel um 23:30 oder 05:30), bewertet die Karte Bezug und Einspeisung dieser Stunde in 5-Minuten-Schritten. Das geht nur, solange Home Assistant die Kurzzeitstatistik noch hat (`purge_keep_days` des Recorders, Standard 10 Tage). Ältere Stunden rechnen mit dem Stundenmittel. Die Solar-Ersparnis nimmt in solchen Stunden immer das Stundenmittel.
 - **Selbst genutzter Solarstrom:** zählt je Stunde (Solar minus Einspeisung dieser Stunde), und „Selbst genutzt“ in der Kachel zeigt genau diese kWh. Speist die Batterie außerhalb der Solarstunden ein, verringert das den selbst genutzten Solarstrom also nicht mehr. Der Wert kann deshalb deutlich über „Solar minus Einspeisung“ des ganzen Zeitraums liegen.
-- **Ohne Preisstatistik:** Stunden ohne Statistik zählen mit `grid_price_history`, danach mit dem heutigen Preis, wie bei den Kosten je Verbraucher. Die laufende Stunde rechnet mit dem heutigen Preis. Monate ganz ohne Preisstatistik rechnen wie bisher. Hat der Sensor gar keine Statistik (zum Beispiel ein Helfer `input_number`), bleibt alles wie bisher.
+- **Ohne Preisstatistik:** Stunden ohne Statistik zählen mit `grid_price_history`, danach mit dem heutigen Preis, wie bei den Kosten pro Verbraucher. Die laufende Stunde rechnet mit dem heutigen Preis. Monate ganz ohne Preisstatistik rechnen wie bisher. Hat der Sensor gar keine Statistik (zum Beispiel ein Helfer `input_number`), bleibt alles wie bisher.
 - **Preis 0 oder negativ:** Mit Stundenpreisen bleiben die Kacheln sichtbar, und die Fußzeile zeigt den Preis statt „Preise konfigurieren“. Ohne Preisstatistik zeigen die Kacheln dann wie bisher einen Strich.
 - **Unverändert:** Der zweite Zähler (`grid2_total`) zählt weiter zu seinem eigenen Preis, Grundpreis und Amortisation bleiben wie bisher. Der Hinweis in der Langzeit-Ansicht nennt die Stundenpreise, sobald sie verwendet wurden.
 - **Ladezeit:** Ohne `cost_consumers` lädt die Karte dafür die Stundenwerte des laufenden Jahres, mit `long_term` auch frühere Jahre ab der ersten Stunde mit Preisstatistik, dazu bei Preiswechseln in der Stunde 5-Minuten-Werte. Auf schwachen Geräten (zum Beispiel Echo Show) kann das spürbar dauern.
@@ -766,7 +766,7 @@ Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles ande
 hide: [monthly, footer]
 ```
 
-Die Werte werden im Hintergrund weiter berechnet. Ohne Eintrag ändert sich nichts. Das Jahresbudget und die Kosten je Verbraucher lassen sich einfach weglassen (sie erscheinen nur mit `budget_kwh` und `cost_consumers`).
+Die Werte werden im Hintergrund weiter berechnet. Ohne Eintrag ändert sich nichts. Das Jahresbudget und die Kosten pro Verbraucher lassen sich einfach weglassen (sie erscheinen nur mit `budget_kwh` und `cost_consumers`).
 
 ### Zweiter Netzzähler in der Statistik: `grid2_total`
 
@@ -780,7 +780,7 @@ grid2_price_ct: 25.45
 
 Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht.
 
-**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten je Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis. Ist `grid_price` ein Sensor, dessen Preis je Stunde wechselt, rechnen sie mit `hourly_pricing: true` Stunde für Stunde, siehe `hourly_pricing`.
+**Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten pro Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis. Ist `grid_price` ein Sensor, dessen Preis je Stunde wechselt, rechnen sie mit `hourly_pricing: true` Stunde für Stunde, siehe `hourly_pricing`.
 
 ### Jahresbudget (optional): `budget_kwh`
 
@@ -809,9 +809,9 @@ budget_profile: history   # optional: linear (Standard) oder history
 
 **Amortisation:** Ohne `investment` oder `investment_eur` blendet die Karte die Kachel „Amortisation“ aus, die Grundlast nimmt dann die ganze Breite.
 
-### Kosten je Verbraucher (optional)
+### Kosten pro Verbraucher (optional)
 
-![Kosten je Verbraucher: Reiter Woche](img/kosten-woche.png)
+![Kosten pro Verbraucher: Reiter Woche](img/kosten-woche.png)
 
 Zeigt je Verbraucher die Netzkosten und was Solar und Batterie gespart haben, in den Reitern Heute, Woche, Monat und Jahr. Einrichten geht im Assistenten im Schritt *Kosten* (bis zu vier Verbraucher), unter "Alle Felder" oder in YAML. Ohne Eintrag erscheinen weder der Bereich noch der Reiter Woche.
 
@@ -878,7 +878,7 @@ cost_consumers:
       eur: 12.5
   ```
 
-  Einmalige Anschlusskosten und Wechselboni gehören bewusst nicht dazu, sie würden die Monats- und Jahreswerte verzerren. Der Grundpreis ändert weder die Solar-Ersparnis noch die Amortisation, und er steht nicht in „Kosten je Verbraucher“. Ohne Eintrag ändert sich nichts.
+  Einmalige Anschlusskosten und Wechselboni gehören bewusst nicht dazu, sie würden die Monats- und Jahreswerte verzerren. Der Grundpreis ändert weder die Solar-Ersparnis noch die Amortisation, und er steht nicht in „Kosten pro Verbraucher“. Ohne Eintrag ändert sich nichts.
 - **Hinweis bei falschem Sensor:** Statt still 0 € zu zeigen, nennt das Kärtchen in Gelb den Grund: wenn ein Sensor Leistung misst (W statt kWh), wenn es zu ihm keine kWh-Statistik gibt oder wenn es ihn nicht gibt. Gebraucht wird ein Zähler in kWh mit `state_class: total_increasing`. Gibt es nur einen Leistungssensor, macht der Helfer **Integral** (Riemann-Summenintegral) daraus einen kWh-Zähler. Er zählt ab dem Einrichten, frühere Tage fehlen dann.
 - Grundlage sind die Stundenwerte der Statistik: "Heute" hinkt deshalb bis zu einer Stunde hinterher. Für "Gesamt" und frühere Jahre bleibt der Bereich stehen, zeigt aber keine Werte.
 

@@ -69,14 +69,14 @@ WD.addTranslations('fr', {
   'st.cycles': "Cycles complets",
   'st.temp': "Température batterie",
   'st.pvall': "PV total",
-  'st.earned': "<b>{e} {cur}</b> récupérés sur {i} {cur}",
-  'st.eta': "<b>{y} {cur}/an</b> · amorti vers <b>{yr}</b>",
+  'st.earned': "<b>{e}</b><i>{cur}</i><small>sur {i} {cur} investis</small>",
+  'st.eta': "Gain env. <b>{y} {cur}</b> par an",
   'st.paid': "<b>L'installation est amortie 🎉</b>",
   'st.eta.far': "Prévision pas encore significative",
   'st.price.warn': "⚠ Prix électricité seulement {p} ct/kWh : ce champ attend des <b>centimes</b> (par exemple 23.88), pas des euros.",
-  'st.glcost': "≈ <b>{x} {cur}/an</b>",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>par an</small>",
   'st.gltip': "Valeur horaire minimale 0–5 h, médiane des {n} dernières nuits",
-  'st.gl100': "100 W de moins ≈ {x} {cur}/an",
+  'st.gl100': "100 W de moins ≈ {x} {cur} par an",
   'st.full': "× complet",
   'st.noprice': "Configurer les prix (grid_price, feed_in) pour voir coûts et économies",
   'st.nodata': "pas encore de données",
@@ -428,4 +428,9 @@ WD.addTranslations('fr', {
 });
 WD.addTranslations('fr', {
   "bat.gridchg": "Charge depuis le réseau",
+});
+WD.addTranslations('fr', {
+  "st.eta.d": "amorti vers <b>{yr}</b>",
+  "bat.io.pv": "Entrée solaire <b>{in}</b> · Sortie <b>{out}</b>",
+  "st.cc.title": "Coût par consommateur",
 });

@@ -78,7 +78,10 @@ async function run(){
   ok('pv_lifetime: Amortisation aus dem Zähler (2000·0,30+400·0,08 = 632 €)',/632/.test(t(e,'[data-f="amoEarned"]')),t(e,'[data-f="amoEarned"]'));
   // #88 (Joe): "von … zurückverdient" steht in der Zeile mit der Prozentzahl, rechtsbündig, der Betrag in derselben Farbe
   { const big=q(e,'.amo .big'),earn=q(e,'.amo .big [data-f="amoEarned"]'),num=q(e,'.amo .big .num');
-    ok('Amortisation: Betrag steht in der Zeile mit der Prozentzahl',!!earn&&!!num&&Math.abs(earn.getBoundingClientRect().bottom-num.getBoundingClientRect().bottom)<8,earn&&num?earn.getBoundingClientRect().bottom+' / '+num.getBoundingClientRect().bottom:'fehlt');
+    const eb=earn&&earn.querySelector('b');
+    ok('Amortisation: Betrag steht in der Zeile mit der Prozentzahl (gleiche Grundlinie)',!!eb&&!!num&&Math.abs(eb.getBoundingClientRect().bottom-num.getBoundingClientRect().bottom)<8,eb&&num?eb.getBoundingClientRect().bottom+' / '+num.getBoundingClientRect().bottom:'fehlt');
+    ok('Amortisation: Betrag so groß wie die Prozentzahl',!!eb&&getComputedStyle(eb).fontSize===getComputedStyle(num).fontSize,eb?getComputedStyle(eb).fontSize+' / '+getComputedStyle(num).fontSize:'fehlt');
+    ok('Amortisation: darunter "von … Investition"',!!earn&&/von\s*[\d.,]+\s*€\s*Investition/.test(earn.querySelector('small').textContent)&&earn.querySelector('small').getBoundingClientRect().top>=eb.getBoundingClientRect().bottom-2,earn?earn.textContent:'fehlt');
     ok('Amortisation: Betrag rechtsbündig',!!earn&&Math.abs(earn.getBoundingClientRect().right-big.getBoundingClientRect().right)<2,earn?earn.getBoundingClientRect().right+' / '+big.getBoundingClientRect().right:'fehlt');
     ok('Amortisation: Betrag in der Farbe der Prozentzahl',!!earn&&getComputedStyle(earn.querySelector('b')).color===getComputedStyle(num).color,earn?getComputedStyle(earn.querySelector('b')).color+' / '+getComputedStyle(num).color:'fehlt'); }
   e=mount({...base,pv_total:'sensor.dpv',investment_eur:1000},hassFor({'sensor.dpv':S(3),'sensor.exp':S(400)}));await wait(1800);
