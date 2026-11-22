@@ -141,6 +141,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .b.cur.hist{background:linear-gradient(180deg,rgb(var(--bat)),rgba(var(--bat),.3));box-shadow:0 0 0 1px rgba(var(--bat),.35)}
 .col.gap:after{content:'';position:absolute;left:32%;right:32%;bottom:0;height:6px;border-radius:2px;background:repeating-linear-gradient(-45deg,rgba(var(--ov),.35) 0 3px,transparent 3px 6px)}
 .cover{margin-top:6px;font-size:calc(.7rem*var(--ts,1));line-height:1.45;min-height:2.9em;color:rgb(var(--mut));text-align:center}
+.detail b{font-weight:700}
+.detail i.dd,.cover i.dd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;position:relative;top:-1px;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35)}
 .cc{margin-top:14px}
 .cc-head{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cc-head .lbl{margin-right:auto}
@@ -187,6 +189,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 .wide .bars{height:140px}
 .narrow{padding:16px}
 .narrow .money{grid-template-columns:1fr 1fr}
+.narrow .m .lbl{min-height:3em;align-items:flex-start}
+.narrow .m .lbl i{margin-top:.28em;flex:none}
 .narrow .money.three .m:last-child{grid-column:1 / -1}
 .narrow .duo{grid-template-columns:1fr}
 .narrow .cc-top{flex-wrap:wrap}
@@ -1091,13 +1095,14 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const k = key(cy, i), kp = key(cy - 1, i);
       if (M.pvC[k] === undefined) { el.innerHTML = `${MONL[i]} ${cy}: ${T(this._c._lt && k < key(new Date().getFullYear(), new Date().getMonth()) ? 'st.nodata2' : 'st.nodata')}`; return; }
       // Monat aus pv_history: nur der PV-Wert, Netz und Speicher fehlen dafür
-      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
+      if (M.hist[k]) { el.innerHTML = `<b>${MONL[i]} ${cy}</b> · <i class="dd" style="--c:var(--pv)"></i>${T('st.cc.pv')} <b>${this._fk(M.pvC[k])} kWh</b> (${esc(this._c.pv_history_name || T('st.hist'))})`; return; }
       const cons = M.pv[k] + (M.imp[k] || 0) - (M.exp[k] || 0) - (this._c._ac ? 0 : (M.chg[k] || 0) - (M.dis[k] || 0));
       const aut = cons > 0 ? 1 - (M.imp[k] || 0) / cons : null;
       // Im laufenden Monat stünden angefangene Tage gegen den ganzen Vorjahresmonat (#14)
       const running = k === key(new Date().getFullYear(), new Date().getMonth());
       const d = M.pvC[kp] && !running ? (M.pv[k] - M.pvC[kp]) / M.pvC[kp] : null;
-      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${T('st.cc.pv')} <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${T('st.import')} ${this._fk(M.imp[k])} kWh · ${T('st.export')} ${this._fk(M.exp[k])} kWh · ${T('st.aut')} <b>${this._fp(aut)}</b>`;
+      const dd = (col) => `<i class="dd" style="--c:var(${col})"></i>`;
+      el.innerHTML = `<b>${MONL[i]} ${cy}</b> · ${dd('--pv')}${T('st.cc.pv')} <b>${this._fk(M.pv[k])} kWh</b>${d !== null ? ` (${d >= 0 ? '+' : '−'}${nf(Math.abs(d) * 100, 0)} % ${T('st.vsprev')})` : ''} · ${dd('--imp')}${T('st.import')} <b>${this._fk(M.imp[k])} kWh</b> · ${dd('--exp')}${T('st.export')} <b>${this._fk(M.exp[k])} kWh</b> · ${dd('--home')}${T('st.aut')} <b>${this._fp(aut)}</b>`;
     }
   }
 

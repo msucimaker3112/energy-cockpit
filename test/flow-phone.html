@@ -1,0 +1,41 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Handy-Kopfzeile und Wetter-Hinweis Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft Joes Handy-Wünsche (#95): Die Blasen "Autarkie jetzt" und "Eigenverbrauch jetzt" stehen mit farbigen Punkten gleich breit in der zweiten Zeile, mit Abstand zum Wetterband; Wetterwerte weiß, mit "?" als Hinweis auf die Stundenwerte. Aufruf: ?test=1&still=1 */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(300),'sensor.grid':S(500),'weather.h':{state:'cloudy',attributes:{temperature:8,temperature_unit:'°C',cloud_coverage:60},last_updated:'x'},'sun.sun':{state:'above_horizon',attributes:{next_rising:new Date(Date.now()+8*36e5).toISOString(),next_setting:new Date(Date.now()+4*36e5).toISOString()},last_updated:'x'}},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.grid'},weather:'weather.h'},o||{});
+function mount(c,w){const host=document.getElementById('host');host.style.width=w+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(cfg(),360);await wait(1500);
+  const ps=Array.from(e.shadowRoot.querySelectorAll('header .pill.pd')),r=ps.map(x=>x.getBoundingClientRect()),ti=q(e,'header .title').getBoundingClientRect();
+  ok('Handy: zwei Blasen mit Punkt',ps.length===2&&ps.every(x=>getComputedStyle(x,'::before').content!=='none'),ps.length+'');
+  ok('Handy: Blasen stehen in der Zeile unter dem Titel',r[0].top>=ti.bottom-1&&Math.abs(r[0].top-r[1].top)<2,Math.round(r[0].top)+' '+Math.round(r[1].top)+' '+Math.round(ti.bottom));
+  ok('Handy: beide Blasen gleich breit',Math.abs(r[0].width-r[1].width)<2,Math.round(r[0].width)+' / '+Math.round(r[1].width));
+  ok('Handy: Blasen füllen die Breite',Math.abs((r[1].right)-q(e,'header').getBoundingClientRect().right)<2,Math.round(r[1].right)+' / '+Math.round(q(e,'header').getBoundingClientRect().right));
+  ok('Punkte haben verschiedene Farben',getComputedStyle(ps[0],'::before').backgroundColor!==getComputedStyle(ps[1],'::before').backgroundColor,getComputedStyle(ps[0],'::before').backgroundColor+' / '+getComputedStyle(ps[1],'::before').backgroundColor);
+  const sky=q(e,'.sky');
+  ok('Wetterband sichtbar',!!sky&&!sky.hidden,sky?String(sky.hidden):'fehlt');
+  const hb=q(e,'header').getBoundingClientRect().bottom,sb=sky.getBoundingClientRect().top;
+  ok('Handy: Abstand zwischen Blasen und Wetterband mindestens 12 px',sb-hb>=12,Math.round(sb-hb)+' px');
+  ok('Wetterwerte weiß statt grau',getComputedStyle(q(e,'.sky-row')).color===getComputedStyle(q(e,'.title')).color||/^rgb\(2[0-5]\d, 2[0-5]\d, 2[0-5]\d\)$/.test(getComputedStyle(q(e,'.sky-l')).color),getComputedStyle(q(e,'.sky-l')).color);
+  const qm=q(e,'.sky-q');
+  ok('"?" im Kreis neben dem Wetter, Kreis rund',!!qm&&qm.textContent==='?'&&Math.abs(qm.getBoundingClientRect().width-qm.getBoundingClientRect().height)<1&&getComputedStyle(qm).borderRadius.indexOf('50%')>=0,qm?qm.getBoundingClientRect().width+'x'+qm.getBoundingClientRect().height:'fehlt');
+  ok('"?" steht rechts vom Wettertext',qm.getBoundingClientRect().left>=q(e,'.sky-l').getBoundingClientRect().right-1,'');
+  ok('Tippen öffnet die Stundenwerte',(()=>{sky.click();return sky.classList.contains('open');})(),'');
+  // breit: Blasen in der Kopfzeile wie bisher (rechts neben dem Titel, eine Zeile)
+  e=mount(cfg(),1000);await wait(1200);
+  const pw=Array.from(e.shadowRoot.querySelectorAll('header .pill.pd')).map(x=>x.getBoundingClientRect()),tw=q(e,'header .title').getBoundingClientRect();
+  ok('breit: Blasen bleiben in der Zeile des Titels',pw[0].top<tw.bottom&&pw[0].left>tw.right-2,Math.round(pw[0].top)+' '+Math.round(tw.bottom));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(cfg(),+(P.get('w')||360));}
+</script></body></html>

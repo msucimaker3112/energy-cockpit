@@ -79,6 +79,7 @@ header>*{margin:3px 0 3px 8px}
 .clock{font-variant-numeric:tabular-nums;color:var(--mut);font-weight:500;margin-left:12px;font-size:.95rem}
 .pill{font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut));padding:6px 11px;border-radius:999px;background:var(--glass);border:1px solid var(--stroke)}
 .pill b{color:var(--txt);font-weight:650;font-variant-numeric:tabular-nums;margin-left:4px}
+.pill.pd:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;position:relative;top:-1px;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35)}
 .sky{margin:-12px 0 18px;padding:0 2px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
 .sky[hidden]{display:none}
 .sky-bar{position:relative;display:flex;gap:1px;height:6px}
@@ -86,7 +87,10 @@ header>*{margin:3px 0 3px 8px}
 .sky-bar i:first-child{border-radius:4px 0 0 4px}
 .sky-bar i:last-child{border-radius:0 4px 4px 0}
 .sky-now{position:absolute;top:-3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--txt);box-shadow:0 0 0 3px rgba(var(--ov),.18)}
-.sky-row{display:flex;justify-content:space-between;gap:12px;margin-top:7px;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));font-variant-numeric:tabular-nums}
+.sky-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:7px;font-size:calc(.7rem*var(--ts,1));color:var(--txt);font-variant-numeric:tabular-nums}
+.sky-lw{display:inline-flex;align-items:center;min-width:0}
+.sky-q{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;margin-left:7px;border-radius:50%;border:1px solid rgba(var(--ov),.28);background:var(--glass);color:rgb(var(--mut));font-size:.62rem;font-weight:700;line-height:1}
+.sky.open .sky-q{color:var(--txt);border-color:rgba(var(--ov),.5)}
 .sky-det{display:none;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--stroke);font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
 .sky.open .sky-det{display:block}
 .sky-det b{color:var(--txt);font-weight:650}
@@ -376,7 +380,11 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .ts-l .cons .lbl,.ts-xl .cons .lbl{white-space:normal;overflow-wrap:anywhere}
 /* Smartphone */
 .narrow{padding:16px}
-.narrow header{margin-bottom:14px}
+.narrow header{margin-bottom:14px;row-gap:8px}
+.narrow header .title{flex:1 0 100%;margin-right:0}
+.narrow header .pill.pd{flex:1 1 0;min-width:0;text-align:center;margin-left:0;white-space:nowrap}
+.narrow header .pill.pd+.pill.pd{margin-left:8px}
+.narrow .sky{margin-top:4px}
 .narrow .layout{grid-template-columns:1fr 1fr;grid-template-areas:"hub hub" "pv bat" "grid bat";gap:16px 14px}
 .narrow .layout.has-pv2{grid-template-areas:"hub hub" "pv bat" "pv2 bat" "grid bat"}
 .narrow .layout.gr{grid-template-areas:"hub hub" "pv grid"}
@@ -1142,11 +1150,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
         <div class="pill wst"></div>
-        <div class="pill">${T('pill.aut')}<b data-p="aut">—</b></div>
-        <div class="pill">${T('pill.self')}<b data-p="self">—</b></div>
+        <div class="pill pd" style="--c:${PAL.home}">${T('pill.aut')}<b data-p="aut">—</b></div>
+        <div class="pill pd" style="--c:${PAL.exp}">${T('pill.self')}<b data-p="self">—</b></div>
         ${c.nav_path ? `<div class="navbtn" data-nav="${esc(c.nav_path)}">${esc(c.nav_label || T('flow.next'))}</div>` : ''}
       </header>
-      ${c.weather ? '<div class="sky" role="button" tabindex="0" hidden><div class="sky-bar"></div><div class="sky-row"><span class="sky-l"></span><span class="sky-r"></span></div><div class="sky-det"></div></div>' : ''}
+      ${c.weather ? '<div class="sky" role="button" tabindex="0" hidden><div class="sky-bar"></div><div class="sky-row"><span class="sky-lw"><span class="sky-l"></span><span class="sky-q" aria-hidden="true">?</span></span><span class="sky-r"></span></div><div class="sky-det"></div></div>' : ''}
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>

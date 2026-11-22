@@ -55,6 +55,8 @@ async function run(){
   e=mount(c,hassFor({'sensor.pv':S(900,'kWh')}));document.getElementById('host').style.maxWidth='340px';await wait(800);
   const ti=q(e,'header .title').getBoundingClientRect(),tb=q(e,'header .tabs').getBoundingClientRect();
   ok('Handy: Reiter stehen unter dem Titel mit Abstand (18 px)',tb.top>=ti.bottom+16,'Titel unten '+Math.round(ti.bottom)+', Reiter oben '+Math.round(tb.top));
+  { const nums=Array.from(e.shadowRoot.querySelectorAll('.money .m .v')).map(x=>Math.round(x.getBoundingClientRect().top));
+    ok('Handy: Zahlen der Geldkacheln einer Reihe stehen auf einer Linie (Reihe 1 und 2)',nums.length>=4&&nums[0]===nums[1]&&nums[2]===nums[3],nums.join(' / ')); }
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
 }
 if(new URLSearchParams(location.search).get('test'))run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});
