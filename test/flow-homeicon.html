@@ -1,0 +1,54 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Haus-Symbol im Ring (home_icon_color) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #93: Das Haus-Symbol im Ring steht in einer abgerundeten Kachel; mit home_icon_color: autarkie ist es grün bei 100 % Autarkie,
+   gelb von 50 bis 99 %, rot darunter. Ohne die Option bleibt es türkis. Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?aut=100|70|20) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(grid,home)=>({states:{'sensor.pv':S(1000),'sensor.grid':S(grid),'sensor.home':S(home)},language:'de',locale:{language:'de'},config:{currency:'EUR'}});
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'}},o||{});
+function mount(c,h,w){const host=document.getElementById('host');host.style.width=(w||800)+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const col=(e)=>getComputedStyle(q(e,'.core .hico')).color;
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  const HOME='rgb(34, 211, 238)',GREEN='rgb(52, 211, 153)',YEL='rgb(255, 197, 61)',RED='rgb(255, 92, 122)';
+  let e=mount(cfg(),hassFor(0,1000));await wait(900);
+  ok('ohne Option: Symbol türkis, auch bei 100 % Autarkie',col(e)===HOME,col(e));
+  const h=q(e,'.core .hico'),r=h.getBoundingClientRect();
+  ok('Symbol steht in einer Kachel mit abgerundeten Ecken',r.width>=44&&Math.abs(r.width-r.height)<1&&parseFloat(getComputedStyle(h).borderRadius)>=10&&parseFloat(getComputedStyle(h).borderRadius)<r.width/2,Math.round(r.width)+'x'+Math.round(r.height)+' r='+getComputedStyle(h).borderRadius);
+  ok('Symbol größer als bisher (26 px)',parseFloat(getComputedStyle(q(e,'.core .hico ha-icon')).getPropertyValue('--mdc-icon-size'))>26,getComputedStyle(q(e,'.core .hico ha-icon')).getPropertyValue('--mdc-icon-size'));
+  ok('Kachel passt in den Ring (nicht breiter als der Kern)',r.width<q(e,'.core').getBoundingClientRect().width*0.5,Math.round(r.width)+' / '+Math.round(q(e,'.core').getBoundingClientRect().width));
+  const c1={home_icon_color:'autarkie'};
+  e=mount(cfg(c1),hassFor(0,1000));await wait(900);
+  ok('100 % Autarkie: grün',col(e)===GREEN,col(e));
+  e=mount(cfg(c1),hassFor(300,1000));await wait(900);
+  ok('70 % Autarkie: gelb',col(e)===YEL,col(e));
+  e=mount(cfg(c1),hassFor(500,1000));await wait(900);
+  ok('genau 50 % Autarkie: gelb',col(e)===YEL,col(e));
+  e=mount(cfg(c1),hassFor(800,1000));await wait(900);
+  ok('20 % Autarkie: rot',col(e)===RED,col(e));
+  e=mount(cfg(c1),hassFor(0,0));await wait(900);
+  ok('kein Verbrauch: bleibt türkis',col(e)===HOME,col(e));
+  e=mount(cfg({home_icon_color:'AUTARKIE'}),hassFor(0,1000));await wait(900);
+  ok('Schreibweise egal (Großbuchstaben)',col(e)===GREEN,col(e));
+  e=mount(cfg({home_icon_color:'standard'}),hassFor(0,1000));await wait(900);
+  ok('standard: türkis',col(e)===HOME,col(e));
+  // Wechsel zur Laufzeit
+  e=mount(cfg(c1),hassFor(0,1000));await wait(900);e.hass=hassFor(800,1000);await wait(3000);
+  ok('Wechsel von 100 % auf 20 %: Farbe folgt',q(e,'.core .hico').style.getPropertyValue('--hic')==='255,92,122',q(e,'.core .hico').style.getPropertyValue('--hic')+' / '+col(e));
+  // Breite Ansicht und schmale Ansicht: Kachel wächst bzw. schrumpft mit
+  e=mount(cfg(c1),hassFor(0,1000),1500);await wait(900);const w1=q(e,'.core .hico').getBoundingClientRect().width;
+  e=mount(cfg(c1),hassFor(0,1000),360);await wait(900);const w2=q(e,'.core .hico').getBoundingClientRect().width;
+  ok('breit größer als schmal',w1>w2,Math.round(w1)+' / '+Math.round(w2));
+  e=mount(cfg(Object.assign({compact:'immer'},c1)),hassFor(0,1000),360);await wait(900);
+  ok('Kurzansicht: kleine Kachel, Farbe grün',q(e,'.core .hico').getBoundingClientRect().width<=26&&col(e)===GREEN,Math.round(q(e,'.core .hico').getBoundingClientRect().width)+' '+col(e));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const a=+(P.get('aut')||100);mount(cfg({home_icon_color:'autarkie'}),hassFor(1000*(1-a/100),1000));}
+</script></body></html>

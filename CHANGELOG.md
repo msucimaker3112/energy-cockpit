@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+- **Energiefluss, Haus-Symbol im Ring:** Das Symbol ist größer und steht in einer abgerundeten Kachel, wie die Symbole der anderen Kacheln (breite Ansicht größer, Kurzansicht kleiner). Neu und optional: `home_icon_color: autarkie` färbt es nach der Autarkie, **grün** bei 100 %, **gelb** von 50 bis 99 %, **rot** darunter. Ohne die Option bleibt es türkis. Im Editor unter „Alle Felder“. Anlass: [#93](https://github.com/msucimaker3112/energy-cockpit/issues/93).
+
 ## 0.43.0
 - **Statistik, Feinschliff (Sammel-Issue [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95), Vorschläge von PV-Joe):**
   - **Amortisation:** Der verdiente Betrag steht rechts, so groß wie die Prozentzahl, darunter „von … € Investition“. Unten links „Amortisation ca. … € pro Jahr“, rechts „fertig ca. …“.

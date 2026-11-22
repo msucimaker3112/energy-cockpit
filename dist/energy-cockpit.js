@@ -1223,7 +1223,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 @keyframes spin{to{transform:rotate(360deg)}}
 .seg{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-dasharray:0 100;opacity:0;transition:opacity .6s,stroke-dasharray 1.2s cubic-bezier(.2,.8,.2,1),stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
 .core{position:absolute;top:14%;left:14%;right:14%;bottom:14%;border-radius:50%;background:radial-gradient(circle at 50% 28%,var(--bg2),var(--bg0) 72%);border:1px solid rgba(var(--ov),.08);box-shadow:0 0 0 1px rgba(var(--home),.35),inset 0 1px 0 rgba(var(--ov),.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.core ha-icon{color:rgb(var(--home));--mdc-icon-size:26px;margin-bottom:6px}
+.core .hico{display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:16px;margin-bottom:6px;color:rgb(var(--hic,var(--home)));background:rgba(var(--hic,var(--home)),.16);transition:color .6s,background .6s}
+.core .hico ha-icon{color:inherit;--mdc-icon-size:32px;margin:0;display:flex}
 .core .val{margin:0}
 .core .num{font-size:calc(2.15rem*var(--vs,1));color:rgb(var(--home));text-shadow:none}
 .hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
@@ -1292,7 +1293,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
 .wide .core .num{font-size:calc(2.8rem*var(--vs,1))}
-.wide .core ha-icon{--mdc-icon-size:32px}
+.wide .core .hico{width:62px;height:62px;border-radius:19px}
+.wide .core .hico ha-icon{--mdc-icon-size:40px}
 .wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .mix{font-size:calc(.82rem*var(--ts,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(max(200px,calc(200px*var(--ts,1))),max(260px,calc(260px*var(--ts,1)))));gap:14px;margin-top:60px}
@@ -1408,6 +1410,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:calc(1.5rem*var(--vs,1))}
 .narrow .core .num{font-size:calc(1.8rem*var(--vs,1))}
+.narrow .core .hico{width:40px;height:40px;border-radius:13px}
+.narrow .core .hico ha-icon{--mdc-icon-size:26px}
 .narrow .groups{margin-top:26px}
 .narrow .groups:not(.gc-fixed){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 /* groups_columns: breite Gruppen verteilen ihre Einträge auf mehrere Spalten */
@@ -1437,7 +1441,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
 .cmp .sub:not(.fco),.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
-.cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
+.cmp .core .hico{width:24px;height:24px;border-radius:8px;margin-bottom:2px}
+.cmp .core .hico ha-icon{--mdc-icon-size:16px}
 .cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
 .cmp .sambox{margin-top:30px;padding:24px 8px 8px;border-radius:20px}
 .cmp .sam{padding:5px 12px}
@@ -2171,7 +2176,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
                 <circle class="seg" data-g="grid" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.imp})"/>
               </svg>
               <div class="core">
-                <ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon>
+                <span class="hico"><ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon></span>
                 <div class="val"><span class="num">—</span><span class="unit"></span></div>
                 <div class="hub-lbl">${esc((c.home && c.home.name) || T('flow.home'))}</div>
               </div>
@@ -3086,6 +3091,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._wy = { home, pv: pv || 0, pvHome, bDis, bmChg, gImp, gExp, bats: bats.filter((x) => !x.lead).map((x) => Object.assign({ n: x.b.name || T('flow.battery'), p: x.p, soc: x.soc }, this._limits(x.b))) };
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
+    // home_icon_color: autarkie (optional, #93): Das Haus-Symbol im Ring ist grün bei 100 % Autarkie, gelb von 50 bis 99 %, rot darunter. Ohne Verbrauch bleibt es türkis
+    {
+      const hi = this._$('.core .hico');
+      if (hi) {
+        const on = /^(autarkie|autarky|autark)$/i.test(String(c.home_icon_color || '').trim());
+        const aut = home > TH ? 1 - gImp / home : null;
+        const rgbv = !on || aut === null ? '' : aut >= 0.995 ? PAL.exp : aut >= 0.5 ? PAL.pv : PAL.imp;
+        if (rgbv) { if (hi.style.getPropertyValue('--hic') !== rgbv) hi.style.setProperty('--hic', rgbv); } else if (hi.style.getPropertyValue('--hic')) hi.style.removeProperty('--hic');
+      }
+    }
     // home_color: source (optional): Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil. Erst ab 5 Punkten Vorsprung wechselt die Farbe
     const hn = this._$('.core .num');
     if (hn) {
@@ -3295,7 +3310,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', forecast_swap: 'Prognose heute unten neben morgen und übermorgen, Solar heute in der Solar-Kachel', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Kurzansicht: Prognose heute in der Solar-Kachel zeigen', forecast_swap: 'Prognose heute unten neben morgen und übermorgen, Solar heute in der Solar-Kachel', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3303,6 +3318,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   const BIGV = [{ value: 'auto', label: 'Akkuleistung (Standard)' }, { value: 'out', label: 'Ausgang ins Haus (bei Durchleitung und Entladung)' }];
   const PV_VIA = [{ value: 'aus', label: 'Aus: Solar speist das Haus (Standard)' }, { value: 'direkt', label: 'Direkt: Solar läuft durch den Speicher (braucht die Ausgangsleistung)' }];
+  const HOMEICO = [{ value: 'standard', label: 'Standard (Türkis)' }, { value: 'autarkie', label: 'Nach Autarkie (grün bei 100 %, gelb ab 50 %, sonst rot)' }];
   const HOMECOL = [{ value: 'standard', label: 'Standard (Türkis)' }, { value: 'source', label: 'Farbe der größten Quelle (PV gelb, Speicher blau, Netz rot)' }];
   const STYLE = [{ value: 'flach', label: 'Flach: Kacheln und Ring (Standard)' }, { value: '3d', label: '3D: Haus, Solar, Netz und Speicher als Objekte' }];
   const HOUSE = [{ value: 'sattel', label: 'Satteldach (Standard)' }, { value: 'flach', label: 'Flachdach' }];
@@ -3374,6 +3390,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'style', selector: { select: { mode: 'dropdown', options: STYLE } } },
       { name: 'house_style', selector: { select: { mode: 'dropdown', options: HOUSE } } },
       { name: 'home_color', selector: { select: { mode: 'dropdown', options: HOMECOL } } },
+      { name: 'home_icon_color', selector: { select: { mode: 'dropdown', options: HOMEICO } } },
       { name: 'roof_color', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'rot', label: 'Ziegelrot (Standard)' }, { value: 'anthrazit', label: 'Anthrazit' }, { value: 'schwarz', label: 'Schwarz' }, { value: 'grau', label: 'Grau' }, { value: 'braun', label: 'Braun' }, { value: 'gruen', label: 'Grün' }, { value: 'blau', label: 'Blau' }] } } },
       { name: 'consumer_groups_sort', selector: { select: { mode: 'dropdown', options: [{ value: 'konfiguriert', label: 'Wie eingetragen (Standard)' }, { value: 'leistung', label: 'Nach Leistung, aktive Geräte oben' }] } } },
       numb('decimals', 0, 3, 1),
@@ -3516,6 +3533,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
+      { path: 'home_icon_color', label: 'Farbe des Haus-Symbols', kind: 'choice', options: HOMEICO, help: 'Optional. Mit "Nach Autarkie" färbt sich das Symbol im Ring: grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Standard bleibt Türkis.' },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
       { path: 'compact_forecast', label: 'Kurzansicht: Prognose heute zeigen', kind: 'bool', help: 'Nur mit Kurzansicht und eingetragener Prognose (pv.forecast): In der Solar-Kachel steht dann eine Zeile „Prognose heute … kWh“, alle anderen Zusatzzeilen bleiben ausgeblendet.' },

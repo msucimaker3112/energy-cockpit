@@ -194,7 +194,8 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 @keyframes spin{to{transform:rotate(360deg)}}
 .seg{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-dasharray:0 100;opacity:0;transition:opacity .6s,stroke-dasharray 1.2s cubic-bezier(.2,.8,.2,1),stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
 .core{position:absolute;top:14%;left:14%;right:14%;bottom:14%;border-radius:50%;background:radial-gradient(circle at 50% 28%,var(--bg2),var(--bg0) 72%);border:1px solid rgba(var(--ov),.08);box-shadow:0 0 0 1px rgba(var(--home),.35),inset 0 1px 0 rgba(var(--ov),.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.core ha-icon{color:rgb(var(--home));--mdc-icon-size:26px;margin-bottom:6px}
+.core .hico{display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:16px;margin-bottom:6px;color:rgb(var(--hic,var(--home)));background:rgba(var(--hic,var(--home)),.16);transition:color .6s,background .6s}
+.core .hico ha-icon{color:inherit;--mdc-icon-size:32px;margin:0;display:flex}
 .core .val{margin:0}
 .core .num{font-size:calc(2.15rem*var(--vs,1));color:rgb(var(--home));text-shadow:none}
 .hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
@@ -263,7 +264,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
 .wide .core .num{font-size:calc(2.8rem*var(--vs,1))}
-.wide .core ha-icon{--mdc-icon-size:32px}
+.wide .core .hico{width:62px;height:62px;border-radius:19px}
+.wide .core .hico ha-icon{--mdc-icon-size:40px}
 .wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
 .wide .mix{font-size:calc(.82rem*var(--ts,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(max(200px,calc(200px*var(--ts,1))),max(260px,calc(260px*var(--ts,1)))));gap:14px;margin-top:60px}
@@ -379,6 +381,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:calc(1.5rem*var(--vs,1))}
 .narrow .core .num{font-size:calc(1.8rem*var(--vs,1))}
+.narrow .core .hico{width:40px;height:40px;border-radius:13px}
+.narrow .core .hico ha-icon{--mdc-icon-size:26px}
 .narrow .groups{margin-top:26px}
 .narrow .groups:not(.gc-fixed){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 /* groups_columns: breite Gruppen verteilen ihre Einträge auf mehrere Spalten */
@@ -408,7 +412,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .soc-row{margin-top:4px;font-size:calc(.66rem*var(--ts,1))}
 .cmp .sub:not(.fco),.cmp .soc-row span,.cmp .mix,.cmp .hub-lbl,.cmp .b-sub,.cmp .b-chips,.wrap.cmp .groups .its,.cmp .c-sec{display:none}
 .cmp .hub{max-width:130px}
-.cmp .core ha-icon{--mdc-icon-size:16px;margin-bottom:2px}
+.cmp .core .hico{width:24px;height:24px;border-radius:8px;margin-bottom:2px}
+.cmp .core .hico ha-icon{--mdc-icon-size:16px}
 .cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
 .cmp .sambox{margin-top:30px;padding:24px 8px 8px;border-radius:20px}
 .cmp .sam{padding:5px 12px}
@@ -1142,7 +1147,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
                 <circle class="seg" data-g="grid" cx="60" cy="60" r="52" pathLength="100" style="color:rgb(${PAL.imp})"/>
               </svg>
               <div class="core">
-                <ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon>
+                <span class="hico"><ha-icon icon="mdi:home-lightning-bolt-outline"></ha-icon></span>
                 <div class="val"><span class="num">—</span><span class="unit"></span></div>
                 <div class="hub-lbl">${esc((c.home && c.home.name) || T('flow.home'))}</div>
               </div>
@@ -2057,6 +2062,16 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._wy = { home, pv: pv || 0, pvHome, bDis, bmChg, gImp, gExp, bats: bats.filter((x) => !x.lead).map((x) => Object.assign({ n: x.b.name || T('flow.battery'), p: x.p, soc: x.soc }, this._limits(x.b))) };
     this._anim('home', home, this._$('.core'));
     const sh = { pv: tot ? pvHome / tot : 0, bat: tot ? bDis / tot : 0, grid: tot ? gImp / tot : 0 };
+    // home_icon_color: autarkie (optional, #93): Das Haus-Symbol im Ring ist grün bei 100 % Autarkie, gelb von 50 bis 99 %, rot darunter. Ohne Verbrauch bleibt es türkis
+    {
+      const hi = this._$('.core .hico');
+      if (hi) {
+        const on = /^(autarkie|autarky|autark)$/i.test(String(c.home_icon_color || '').trim());
+        const aut = home > TH ? 1 - gImp / home : null;
+        const rgbv = !on || aut === null ? '' : aut >= 0.995 ? PAL.exp : aut >= 0.5 ? PAL.pv : PAL.imp;
+        if (rgbv) { if (hi.style.getPropertyValue('--hic') !== rgbv) hi.style.setProperty('--hic', rgbv); } else if (hi.style.getPropertyValue('--hic')) hi.style.removeProperty('--hic');
+      }
+    }
     // home_color: source (optional): Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil. Erst ab 5 Punkten Vorsprung wechselt die Farbe
     const hn = this._$('.core .num');
     if (hn) {

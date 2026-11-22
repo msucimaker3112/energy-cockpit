@@ -44,6 +44,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `animations` | `auto` (Standard), `always` | `auto`: Ist am Gerät "Bewegung reduzieren" eingeschaltet, stehen Linien, Ring und das Leuchten von Kacheln und Symbolen still, und die Zahlen zählen nicht hoch. `always`: immer animieren. Unabhängig davon rechnet die Karte höchstens einmal pro Sekunde neu, und Zahlen zählen nur bei großen Sprüngen hoch |
 | `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
+| `home_icon_color` | `standard` (Standard), `autarkie` | `autarkie`: Das Haus-Symbol im Ring ist grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Ohne Verbrauch bleibt es türkis. Siehe [Farbe des Haus-Symbols](#farbe-des-haus-symbols-home_icon_color-autarkie) |
 | `home_color` | `standard` (Standard), `source` | `source`: Die Zahl über dem Haus nimmt die Farbe der Quelle mit dem größten Anteil im Ring an (PV gelb, Speicher blau, Netz rot). Die Farbe wechselt erst, wenn eine andere Quelle mindestens 5 Prozentpunkte vorn liegt |
 | `grid2` | Objekt | Zweiter Netzzähler mit eigenem Tarif, der nur Strom bezieht, zum Beispiel eine Wärmepumpe. Siehe [Zweiter Netzzähler](#zweiter-netzzähler-grid2) |
 | `text_size` | `normal` (Standard), `gross`, `sehr_gross` oder eine Zahl (0,5 bis 4) | `gross` und `sehr_gross` vergrößern die kleinen Texte (Ladestand, Kennzahlen oben rechts, Beschriftungen). Eine Zahl, zum Beispiel `2`, vergrößert alle Texte **und die Zahlen in den Kacheln** auf das Doppelte. Gut für Handy und Tablet |
@@ -1046,6 +1047,14 @@ home_color: source
 | PV überwiegt | Netz überwiegt |
 |---|---|
 | ![Zahl in Gelb](img/farbe-quelle-pv.png) | ![Zahl in Rot](img/farbe-quelle-netz.png) |
+
+### Farbe des Haus-Symbols: `home_icon_color: autarkie`
+
+Das Haus-Symbol im Ring steht in einer abgerundeten Kachel (wie die Symbole der anderen Kacheln). Standardmäßig ist es türkis. Mit `home_icon_color: autarkie` zeigt die Farbe auf einen Blick, wie unabhängig das Haus gerade vom Netz ist: **grün** bei 100 % Autarkie (kein Netzbezug), **gelb** von 50 bis 99 %, **rot** unter 50 %. Es ist dieselbe Autarkie wie „Autarkie jetzt“ oben. Ohne Verbrauch bleibt das Symbol türkis. Die Option ist aus, solange du sie nicht setzt. Anlass: [#93](https://github.com/msucimaker3112/energy-cockpit/issues/93).
+
+```yaml
+home_icon_color: autarkie
+```
 
 ### Kurzansicht fürs Handy: `compact`
 
