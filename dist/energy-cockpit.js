@@ -1188,6 +1188,11 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
 .layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
+/* grid_side: right: Das Netz steht rechts neben dem Haus (bei Batterie darüber), links bleibt nur Solar. Spart Höhe, wenn rechts sonst nichts steht */
+.layout.gr{grid-template-areas:"pv hub grid"}
+.layout.gr.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub grid"}
+.layout.gr.gr-bat{grid-template-areas:"pv hub grid" "pv hub bat"}
+.layout.gr.gr-bat.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub bat"}
 .n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:calc(.7rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
@@ -1403,6 +1408,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .narrow header{margin-bottom:14px}
 .narrow .layout{grid-template-columns:1fr 1fr;grid-template-areas:"hub hub" "pv bat" "grid bat";gap:16px 14px}
 .narrow .layout.has-pv2{grid-template-areas:"hub hub" "pv bat" "pv2 bat" "grid bat"}
+.narrow .layout.gr{grid-template-areas:"hub hub" "pv grid"}
+.narrow .layout.gr.has-pv2{grid-template-areas:"hub hub" "pv grid" "pv2 grid"}
+.narrow .layout.gr.gr-bat{grid-template-areas:"hub hub" "pv grid" "pv bat"}
+.narrow .layout.gr.gr-bat.has-pv2{grid-template-areas:"hub hub" "pv grid" "pv2 bat"}
 /* pv_to_battery: direkt auf dem Handy: Solar und Netz nebeneinander, der Speicher darunter (Solar fließt senkrecht in ihn) */
 .narrow .layout.via-bat{grid-template-areas:"hub hub" "pv grid" "bat bat";row-gap:34px}
 .narrow .layout.via-bat.has-pv2{grid-template-areas:"hub hub" "pv pv2" "bat bat" "grid grid"}
@@ -1429,6 +1438,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wrap.cmp .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 .wrap.cmp .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid"}
 .wrap.cmp .layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
+.wrap.cmp .layout.gr{grid-template-areas:"pv hub grid"}
+.wrap.cmp .layout.gr.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub grid"}
+.wrap.cmp .layout.gr.gr-bat{grid-template-areas:"pv hub grid" "pv hub bat"}
+.wrap.cmp .layout.gr.gr-bat.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub bat"}
 .cmp .node{padding:10px 11px;border-radius:17px}
 .cmp .n-top{font-size:calc(.58rem*var(--ts,1));letter-spacing:.06em}
 .cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
@@ -2078,6 +2091,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const WK = ['water', 'water2', 'water3', 'water4'];
     const wats = asList(c.water).concat(asList(c.water2), asList(c.water3)).filter((w) => w && typeof w === 'object' && (w.entity || w.daily)).slice(0, 4).map((w, i) => Object.assign({}, w, { _k: WK[i], _i: i }));
     this._gas = gas; this._oil = oil; this._wats = wats;
+    // grid_side: right (optional): Netz rechts neben dem Haus. Nicht in 3D und nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
+    const gridRight = !this._s3d && !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
     let util = '';
     if (gas) { util += node('gas', 'util gas', gas.icon || (oil ? 'mdi:oil' : 'mdi:fire'), gas.name || T(oil ? 'flow.oil' : 'flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water, '', gas); links.push('gas'); }
     wats.forEach((w) => { util += node(w._k, 'util water', w.icon || 'mdi:water', w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')), PAL.wat, w.entity || w.daily, '', w); links.push(w._k); });
@@ -2164,7 +2179,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>
-        <div class="layout${hasPv2 ? ' has-pv2' : ''}${this._via ? ' via-bat' : ''}">
+        <div class="layout${hasPv2 ? ' has-pv2' : ''}${this._via ? ' via-bat' : ''}${gridRight ? ' gr' : ''}${gridRight && (batH || util) ? ' gr-bat' : ''}">
           ${nodes}
           <div class="hub-wrap">
             <div class="hub" data-e="${esc(c.home && c.home.entity)}">
@@ -3310,7 +3325,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3318,6 +3333,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
 
   const BIGV = [{ value: 'auto', label: 'Akkuleistung (Standard)' }, { value: 'out', label: 'Ausgang ins Haus (bei Durchleitung und Entladung)' }];
   const PV_VIA = [{ value: 'aus', label: 'Aus: Solar speist das Haus (Standard)' }, { value: 'direkt', label: 'Direkt: Solar läuft durch den Speicher (braucht die Ausgangsleistung)' }];
+  const GRIDSIDE = [{ value: 'left', label: 'Links, unter Solar (Standard)' }, { value: 'right', label: 'Rechts neben dem Haus (spart Höhe)' }];
   const HOMEICO = [{ value: 'standard', label: 'Standard (Türkis)' }, { value: 'autarkie', label: 'Nach Autarkie (grün bei 100 %, gelb ab 50 %, sonst rot)' }];
   const HOMECOL = [{ value: 'standard', label: 'Standard (Türkis)' }, { value: 'source', label: 'Farbe der größten Quelle (PV gelb, Speicher blau, Netz rot)' }];
   const STYLE = [{ value: 'flach', label: 'Flach: Kacheln und Ring (Standard)' }, { value: '3d', label: '3D: Haus, Solar, Netz und Speicher als Objekte' }];
@@ -3392,6 +3408,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { name: 'house_style', selector: { select: { mode: 'dropdown', options: HOUSE } } },
       { name: 'home_color', selector: { select: { mode: 'dropdown', options: HOMECOL } } },
       { name: 'home_icon_color', selector: { select: { mode: 'dropdown', options: HOMEICO } } },
+      { name: 'grid_side', selector: { select: { mode: 'dropdown', options: GRIDSIDE } } },
       { name: 'roof_color', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'rot', label: 'Ziegelrot (Standard)' }, { value: 'anthrazit', label: 'Anthrazit' }, { value: 'schwarz', label: 'Schwarz' }, { value: 'grau', label: 'Grau' }, { value: 'braun', label: 'Braun' }, { value: 'gruen', label: 'Grün' }, { value: 'blau', label: 'Blau' }] } } },
       { name: 'consumer_groups_sort', selector: { select: { mode: 'dropdown', options: [{ value: 'konfiguriert', label: 'Wie eingetragen (Standard)' }, { value: 'leistung', label: 'Nach Leistung, aktive Geräte oben' }] } } },
       numb('decimals', 0, 3, 1),
@@ -3534,6 +3551,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
+      { path: 'grid_side', label: 'Netz-Kachel: Seite', kind: 'choice', options: GRIDSIDE, help: 'Optional. Mit "Rechts" steht die Netz-Kachel rechts neben dem Haus (mit Batterie darüber), links bleibt nur Solar. Das spart Höhe, besonders am Handy, in der Kurzansicht und ohne Batterie. Nicht in der 3D-Ansicht.' },
       { path: 'home_icon_color', label: 'Farbe des Haus-Symbols', kind: 'choice', options: HOMEICO, help: 'Optional. Mit "Nach Autarkie" färbt sich das Symbol im Ring: grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Standard bleibt Türkis.' },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },

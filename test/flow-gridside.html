@@ -1,0 +1,66 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Netz-Kachel rechts (grid_side) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft grid_side: right: Die Netz-Kachel steht rechts neben dem Haus (mit Batterie darüber), Solar links; ohne die Option bleibt alles wie bisher.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte (?w=Breite&bat=1&pv2=1&compact=immer) */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(300),'sensor.pv2':S(80),'sensor.grid':S(500),'sensor.bat':S(0),'sensor.soc':S(50,'%'),'sensor.gas':S(0)},language:'de',locale:{language:'de'},config:{currency:'EUR'}};
+const cfg=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.grid'}},o||{});
+const BAT={battery:{power:'sensor.bat',soc:'sensor.soc',capacity_kwh:5}};
+const PV2={pv2:{entity:'sensor.pv2'}};
+function mount(c,w){const host=document.getElementById('host');host.style.width=w+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const R=(e,s)=>{const x=q(e,s);return x?x.getBoundingClientRect():null;};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  // breit, ohne Batterie
+  let e=mount(cfg({...PV2,grid_side:'right'}),1000);await wait(900);
+  let hub=R(e,'.hub'),pv=R(e,'[data-k="pv"]'),pv2=R(e,'[data-k="pv2"]'),g=R(e,'[data-k="grid"]');
+  ok('breit, ohne Batterie: Netz rechts neben dem Haus',g.left>=hub.right-2,Math.round(g.left)+' / '+Math.round(hub.right));
+  ok('breit: Solar und Solar 2 links, untereinander',pv.right<=hub.left+2&&pv2.right<=hub.left+2&&pv2.top>=pv.bottom-2,Math.round(pv.right)+' '+Math.round(pv2.top)+' '+Math.round(pv.bottom));
+  const hRight=Math.round(e.getBoundingClientRect().height);
+  e=mount(cfg({...PV2}),1000);await wait(900);
+  ok('ohne Option: Netz links (wie bisher)',R(e,'[data-k="grid"]').right<=R(e,'.hub').left+2,Math.round(R(e,'[data-k="grid"]').right)+' / '+Math.round(R(e,'.hub').left));
+  const hLeft=Math.round(e.getBoundingClientRect().height);
+  ok('rechts ist die Karte niedriger als links (zwei statt drei Kacheln hoch)',hRight<hLeft-60,hRight+' < '+hLeft);
+  // breit mit Batterie
+  e=mount(cfg({...PV2,...BAT,grid_side:'right'}),1000);await wait(900);
+  hub=R(e,'.hub');g=R(e,'[data-k="grid"]');let b=R(e,'[data-k="bat"]');pv=R(e,'[data-k="pv"]');
+  ok('breit mit Batterie: Netz rechts, Batterie darunter',g.left>=hub.right-2&&b.left>=hub.right-2&&b.top>=g.bottom-2,Math.round(g.bottom)+' '+Math.round(b.top));
+  ok('breit mit Batterie: Solar links',pv.right<=hub.left+2,Math.round(pv.right));
+  // ohne Solar 2
+  e=mount(cfg({...BAT,grid_side:'rechts'}),1000);await wait(900);
+  hub=R(e,'.hub');g=R(e,'[data-k="grid"]');b=R(e,'[data-k="bat"]');
+  ok('ohne Solar 2, "rechts" statt "right": Netz rechts, Batterie darunter',g.left>=hub.right-2&&b.left>=hub.right-2&&b.top>=g.bottom-2,Math.round(g.left)+' '+Math.round(hub.right));
+  // Handy
+  e=mount(cfg({...PV2,grid_side:'right'}),360);await wait(900);
+  let hb=R(e,'.hub');pv=R(e,'[data-k="pv"]');g=R(e,'[data-k="grid"]');pv2=R(e,'[data-k="pv2"]');
+  ok('Handy: Haus oben, darunter Solar links und Netz rechts nebeneinander',pv.top>=hb.bottom-2&&g.top>=hb.bottom-2&&g.left>=pv.right-2&&g.top<R(e,'[data-k="pv2"]').bottom,Math.round(pv.top)+' '+Math.round(g.top)+' '+Math.round(g.left)+' '+Math.round(pv.right));
+  ok('Handy: Solar 2 unter Solar',pv2.top>=pv.bottom-2,Math.round(pv2.top)+' / '+Math.round(pv.bottom));
+  const hp=Math.round(e.getBoundingClientRect().height);
+  e=mount(cfg({...PV2}),360);await wait(900);
+  ok('Handy: ohne Option wie bisher (Netz unter Solar 2)',R(e,'[data-k="grid"]').top>=R(e,'[data-k="pv2"]').bottom-2,'');
+  ok('Handy: mit Option niedriger',hp<Math.round(e.getBoundingClientRect().height),hp+' < '+Math.round(e.getBoundingClientRect().height));
+  // Kurzansicht
+  e=mount(cfg({...PV2,compact:'immer',grid_side:'right'}),380);await wait(900);
+  hub=R(e,'.hub');pv=R(e,'[data-k="pv"]');pv2=R(e,'[data-k="pv2"]');g=R(e,'[data-k="grid"]');
+  ok('Kurzansicht: Solar und Solar 2 links, Netz rechts',pv.right<=hub.left+2&&pv2.right<=hub.left+2&&g.left>=hub.right-2,Math.round(pv.right)+' '+Math.round(hub.left)+' '+Math.round(g.left)+' '+Math.round(hub.right));
+  // Linien: eine Linie zum Netz existiert und hat einen Pfad
+  e=mount(cfg({...PV2,grid_side:'right'}),1000);await wait(1200);
+  const d=(q(e,'g[data-l="grid"] .flow')||q(e,'g[data-l="grid"] path')).getAttribute('d')||'';
+  ok('Linie zum Netz hat einen Pfad',d.length>5,d.slice(0,40));
+  // mit pv_to_battery: direkt und 3D unverändert
+  e=mount(cfg({battery:{...BAT.battery,power_out:'sensor.bat'},pv_to_battery:'direkt',grid_side:'right'}),1000);await wait(900);
+  ok('mit pv_to_battery: direkt keine Klasse gr (Netz steht dort schon rechts)',!q(e,'.layout').classList.contains('gr'),q(e,'.layout').className);
+  e=mount(cfg({style:'3d',grid_side:'right'}),1000);await wait(900);
+  ok('3D: Option ohne Wirkung',!q(e,'.layout')||!q(e,'.layout').classList.contains('gr'),q(e,'.layout')?q(e,'.layout').className:'kein Layout');
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const o={grid_side:'right'};if(P.get('bat'))Object.assign(o,BAT);if(P.get('pv2'))Object.assign(o,PV2);if(P.get('compact'))o.compact=P.get('compact');mount(cfg(o),+(P.get('w')||1000));}
+</script></body></html>

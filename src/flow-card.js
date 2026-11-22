@@ -159,6 +159,11 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 /* pv_to_battery: direkt: Solar steht über dem Speicher (der Strom läuft durch ihn), das Netz wechselt auf die rechte Seite */
 .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid";row-gap:44px}
 .layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
+/* grid_side: right: Das Netz steht rechts neben dem Haus (bei Batterie darüber), links bleibt nur Solar. Spart Höhe, wenn rechts sonst nichts steht */
+.layout.gr{grid-template-areas:"pv hub grid"}
+.layout.gr.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub grid"}
+.layout.gr.gr-bat{grid-template-areas:"pv hub grid" "pv hub bat"}
+.layout.gr.gr-bat.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub bat"}
 .n-top{display:flex;align-items:center;color:rgb(var(--mut));font-size:calc(.7rem*var(--ts,1));text-transform:uppercase;letter-spacing:.1em;font-weight:650}
 .ico{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(var(--c),.16);color:rgb(var(--c));flex:none;margin-right:9px}
 .ico ha-icon{--mdc-icon-size:18px;display:flex}
@@ -374,6 +379,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .narrow header{margin-bottom:14px}
 .narrow .layout{grid-template-columns:1fr 1fr;grid-template-areas:"hub hub" "pv bat" "grid bat";gap:16px 14px}
 .narrow .layout.has-pv2{grid-template-areas:"hub hub" "pv bat" "pv2 bat" "grid bat"}
+.narrow .layout.gr{grid-template-areas:"hub hub" "pv grid"}
+.narrow .layout.gr.has-pv2{grid-template-areas:"hub hub" "pv grid" "pv2 grid"}
+.narrow .layout.gr.gr-bat{grid-template-areas:"hub hub" "pv grid" "pv bat"}
+.narrow .layout.gr.gr-bat.has-pv2{grid-template-areas:"hub hub" "pv grid" "pv2 bat"}
 /* pv_to_battery: direkt auf dem Handy: Solar und Netz nebeneinander, der Speicher darunter (Solar fließt senkrecht in ihn) */
 .narrow .layout.via-bat{grid-template-areas:"hub hub" "pv grid" "bat bat";row-gap:34px}
 .narrow .layout.via-bat.has-pv2{grid-template-areas:"hub hub" "pv pv2" "bat bat" "grid grid"}
@@ -400,6 +409,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wrap.cmp .layout.has-pv2{grid-template-areas:"pv hub bat" "pv2 hub bat" "grid hub bat"}
 .wrap.cmp .layout.via-bat{grid-template-areas:"pv hub grid" "bat hub grid"}
 .wrap.cmp .layout.via-bat.has-pv2{grid-template-areas:"pv2 hub grid" "pv hub grid" "bat hub grid"}
+.wrap.cmp .layout.gr{grid-template-areas:"pv hub grid"}
+.wrap.cmp .layout.gr.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub grid"}
+.wrap.cmp .layout.gr.gr-bat{grid-template-areas:"pv hub grid" "pv hub bat"}
+.wrap.cmp .layout.gr.gr-bat.has-pv2{grid-template-areas:"pv hub grid" "pv2 hub bat"}
 .cmp .node{padding:10px 11px;border-radius:17px}
 .cmp .n-top{font-size:calc(.58rem*var(--ts,1));letter-spacing:.06em}
 .cmp .ico{width:24px;height:24px;border-radius:8px;margin-right:6px}
@@ -1049,6 +1062,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const WK = ['water', 'water2', 'water3', 'water4'];
     const wats = asList(c.water).concat(asList(c.water2), asList(c.water3)).filter((w) => w && typeof w === 'object' && (w.entity || w.daily)).slice(0, 4).map((w, i) => Object.assign({}, w, { _k: WK[i], _i: i }));
     this._gas = gas; this._oil = oil; this._wats = wats;
+    // grid_side: right (optional): Netz rechts neben dem Haus. Nicht in 3D und nicht mit pv_to_battery: direkt (dort steht das Netz schon rechts)
+    const gridRight = !this._s3d && !this._via && /^(right|rechts)$/i.test(String(c.grid_side || '').trim());
     let util = '';
     if (gas) { util += node('gas', 'util gas', gas.icon || (oil ? 'mdi:oil' : 'mdi:fire'), gas.name || T(oil ? 'flow.oil' : 'flow.gas'), PAL.gas, gas.entity || gas.daily || gas.heating || gas.hot_water, '', gas); links.push('gas'); }
     wats.forEach((w) => { util += node(w._k, 'util water', w.icon || 'mdi:water', w.name || (T('flow.water') + (w._i ? ' ' + (w._i + 1) : '')), PAL.wat, w.entity || w.daily, '', w); links.push(w._k); });
@@ -1135,7 +1150,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <div class="banner"><div class="b-ico"><ha-icon icon="mdi:white-balance-sunny"></ha-icon></div><div class="b-txt"><span class="b-title"></span><span class="b-sub"></span></div><div class="b-chips"></div></div>
       <div class="stage">
         <svg class="links">${links.map((k) => `<g class="link" data-l="${k}"><path class="track"/><path class="glow"/><path class="flow"/></g>`).join('')}</svg>
-        <div class="layout${hasPv2 ? ' has-pv2' : ''}${this._via ? ' via-bat' : ''}">
+        <div class="layout${hasPv2 ? ' has-pv2' : ''}${this._via ? ' via-bat' : ''}${gridRight ? ' gr' : ''}${gridRight && (batH || util) ? ' gr-bat' : ''}">
           ${nodes}
           <div class="hub-wrap">
             <div class="hub" data-e="${esc(c.home && c.home.entity)}">

@@ -1,6 +1,7 @@
 # Änderungsprotokoll
 
 ## Unveröffentlicht
+- **Energiefluss, Netz-Kachel rechts: `grid_side: right`.** Das Netz steht rechts neben dem Haus (mit Batterie darüber), links bleiben nur Solar und Solar 2. Die Karte wird niedriger, besonders ohne Batterie, am Handy und in der Kurzansicht. Optional, im Editor unter „Alle Felder“. Anlass: Wunsch von mairj2345 in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95) und Cross1310 in [#96](https://github.com/msucimaker3112/energy-cockpit/issues/96).
 - **Editor, Prognose heute:** Die beiden Schalter für die Prognose (`forecast_swap` für die ausführliche Ansicht, `compact_forecast` für die Kurzansicht) stehen jetzt direkt untereinander und heißen „Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)“ und „Prognose heute: in der Solar-Kachel (Kurzansicht)“. Vorher standen sie weit auseinander und hießen fast gleich. Auch die Hilfetexte verweisen aufeinander. Anlass: Hinweis von Wunni73 in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).
 - **Energiefluss, Haus-Symbol im Ring:** Das Symbol ist größer und steht in einer abgerundeten Kachel, wie die Symbole der anderen Kacheln (breite Ansicht größer, Kurzansicht kleiner). Neu und optional: `home_icon_color: autarkie` färbt es nach der Autarkie, **grün** bei 100 %, **gelb** von 50 bis 99 %, **rot** darunter. Ohne die Option bleibt es türkis. Im Editor unter „Alle Felder“. Anlass: [#93](https://github.com/msucimaker3112/energy-cockpit/issues/93).
 
