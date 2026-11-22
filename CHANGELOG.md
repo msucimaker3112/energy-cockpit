@@ -1,6 +1,6 @@
 # Änderungsprotokoll
 
-## Unveröffentlicht
+## 0.43.0
 - **Statistik, Feinschliff (Sammel-Issue [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95), Vorschläge von PV-Joe):**
   - **Amortisation:** Der verdiente Betrag steht rechts, so groß wie die Prozentzahl, darunter „von … € Investition“. Unten links „Amortisation ca. … € pro Jahr“, rechts „fertig ca. …“.
   - **Grundlast:** Die Kosten stehen rechts in der Größe der Watt-Zahl, darunter „pro Jahr“ (ohne „≈“). Zahl und Balken haben die Farbe von „Haus“ (`colors.home`), nicht mehr Gelb wie Solar.
