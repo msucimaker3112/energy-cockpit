@@ -1,0 +1,64 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Statistik: Batterieverluste bei Ersparnis und Amortisation (battery_losses)</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1100px;margin:0 auto}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #97: battery_losses zieht die Verluste der Batterie (Ladung mal Verlustanteil) von Solar-Ersparnis und Amortisation ab, aus Gesamtzählern oder battery_efficiency. Ohne die Option, mit pv_ac und ohne Zähler bleibt alles wie bisher. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5;
+// Monat: PV 20, Bezug 73,2, Einspeisung 3,1. Heute laut Gesamtzähler: Stunden seit Mitternacht + Zuwachs seit der letzten Stunde
+const MON={'sensor.pv':20,'sensor.imp':73.2,'sensor.exp':3.1};
+// Stunden: 23 Uhr gestern (Zählerstand zum Tagesbeginn) und zwei Stunden heute
+const HR={'sensor.pv':[[d0-H,0,1000],[d0,1,1001],[d0+H,1.5,1002.5]],'sensor.imp':[[d0-H,.3,5000],[d0,.5,5000.5],[d0+H,.5,5001]],'sensor.exp':[[d0-H,0,800],[d0,.2,800.2],[d0+H,.3,800.5]]};
+let DAY={};
+function hassFor(st,opt){opt=opt||{};return {states:Object.assign({'sensor.pv':S(1003),'sensor.imp':S(5001.4),'sensor.exp':S(800.5)},st||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+  callWS:async(m)=>{const r={};(m.statistic_ids||[]).forEach(id=>{
+    if(m.period==='month')r[id]=MON[id]!==undefined?[{start:new Date(now.getFullYear(),now.getMonth(),1).getTime(),change:MON[id]}]:[];
+    else if(m.period==='day')r[id]=DAY[id]||[];
+    else if(m.period==='hour'&&m.types.includes('state'))r[id]=opt.noHours?[]:(HR[id]||[]).map(([t,c,s])=>({start:t,change:c,state:s}));
+    else r[id]=[];});return r;}};}
+const base={pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',grid_price_ct:30,feed_in_ct:8};
+function mount(c,h){const host=document.getElementById('host');host.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const tab=async(e,p)=>{q(e,`.tab[data-p="${p}"]`).click();await wait(1600);};
+const hint=(e)=>{const x=q(e,'[data-f="dHint"]');return x&&x.style.display!=='none'?x.textContent.replace(/\s+/g,' ').trim():'';};
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+MON['sensor.chg']=6;MON['sensor.dis']=5.4;
+const B={...base,battery_charge_total:'sensor.chg',battery_discharge_total:'sensor.dis',investment_eur:5000};
+const BS={'sensor.chg':S(600),'sensor.dis':S(540)};
+const sav=(e)=>t(e,'[data-t="pvsav"]');
+async function run(){
+  // Monat: PV 20, Einspeisung 3,1: selbst genutzt 16,9 kWh zu 0,30 = 5,07 EUR. Geladen 6 kWh, Wirkungsgrad aus den Zählern 540/600 = 90 %
+  let e=mount(B,hassFor(BS));await wait(1800);
+  ok('ohne Option: Ersparnis wie bisher (16,9 × 0,30 = 5,07)',sav(e)==='5,07',sav(e));
+  const am0=t(e,'[data-f="amoEarned"]');
+  e=mount({...B,battery_losses:true},hassFor(BS));await wait(1800);
+  ok('battery_losses: Verlust 6 × 10 % = 0,6 kWh abgezogen ((16,9 − 0,6) × 0,30 = 4,89)',sav(e)==='4,89',sav(e));
+  ok('Zeile "Selbst genutzt" bleibt 16,9 kWh (Batterie zählt als selbst genutzt)',/Selbst genutzt\s*16,9 kWh/.test(t(e,'[data-f="pvsavSub"]')),t(e,'[data-f="pvsavSub"]'));
+  const am1=t(e,'[data-f="amoEarned"]');
+  ok('Amortisation: weniger verdient als ohne Option (Verlust 600 × 10 % = 60 kWh)',am0!==am1&&/(\d+)/.test(am0),am0+' -> '+am1);
+  // eigener Wirkungsgrad
+  e=mount({...B,battery_losses:true,battery_efficiency:80},hassFor(BS));await wait(1800);
+  ok('battery_efficiency 80: Verlust 6 × 20 % = 1,2 kWh ((16,9 − 1,2) × 0,30 = 4,71)',sav(e)==='4,71',sav(e));
+  e=mount({...B,battery_losses:true,battery_efficiency:'80,5'},hassFor(BS));await wait(1800);
+  ok('battery_efficiency als Text mit Komma: 80,5 %',sav(e)==='4,72'||sav(e)==='4,71',sav(e));
+  // Als Text "true"
+  e=mount({...B,battery_losses:'true'},hassFor(BS));await wait(1800);
+  ok('battery_losses als Text "true" wirkt auch',sav(e)==='4,89',sav(e));
+  // pv_ac: Verluste sind schon heraus, nichts abziehen
+  e=mount({...B,battery_losses:true,pv_ac:true},hassFor(BS));await wait(1800);
+  ok('mit pv_ac: unverändert (5,07)',sav(e)==='5,07',sav(e));
+  // ohne Zähler für Ladung und Entladung: nichts abziehen
+  e=mount({...base,investment_eur:5000,battery_losses:true},hassFor());await wait(1800);
+  ok('ohne Batteriezähler: unverändert (5,07)',sav(e)==='5,07',sav(e));
+  // Entladung größer als Ladung (Zähler passen nicht): kein negativer Verlust
+  e=mount({...B,battery_losses:true},hassFor({'sensor.chg':S(500),'sensor.dis':S(600)}));await wait(1800);
+  ok('Entladung > Ladung: kein Abzug (5,07)',sav(e)==='5,07',sav(e));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(new URLSearchParams(location.search).get('test'))run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});
+</script></body></html>

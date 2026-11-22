@@ -3071,7 +3071,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
       const outExp = via && !via2 ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
-      const subT = via ? T(via2 ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
+      const subT = via ? T(via2 && x.b.power_in ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
       const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;
@@ -5546,6 +5546,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._lt = c.long_term === true;
       // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Batterie-Ladung und mit Batterie-Entladung
       this._c._ac = c.pv_ac === true;
+      // battery_losses (optional, #97): Ersparnis und Amortisation ziehen die Verluste der Batterie ab (Ladung mal Verlustanteil). Nicht mit pv_ac (dort zählen die PV-Zähler nur die Abgabe des Wechselrichters, die Verluste sind schon heraus)
+      this._c._bl = c.battery_losses === true || String(c.battery_losses).toLowerCase() === 'true';
+      { const ef = parseFloat(String(c.battery_efficiency).replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; }
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
@@ -6258,6 +6261,16 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       return { ks, pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), g2: sum(M.g2 || {}), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
     }
 
+    // Anteil der geladenen Energie, der in der Batterie verloren geht (0 bis 1): battery_efficiency, sonst aus den Gesamtzählern (Entladung durch Ladung, wie die Anzeige "Wirkungsgrad"). null: Option aus, pv_ac oder keine Daten
+    _lossK(h) {
+      const c = this._c;
+      if (!c._bl || c._ac) return null;
+      if (c._ef !== null) return 1 - c._ef;
+      const ch = this._sumKwh(h, c._chg), di = this._sumKwh(h, c._dis);
+      return ch > 0 && di > 0 ? Math.max(0, 1 - di / ch) : null;
+    }
+    _sumKwh(h, list) { let t = null; (list || []).forEach((id) => { const v = WD.kwh(h, id, WD.rawUnits(this._c)); if (v !== null && v !== undefined) t = (t || 0) + v; }); return t; }
+
     _render() {
       const c = this._c, h = this._hass;
       if (!h) return;
@@ -6282,6 +6295,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
           impEur = ie; savEur = sk > 0 ? se / sk * self : savEur;
         }
+        // battery_losses: Die in der Batterie verlorene Energie hat nichts gespart (Ladung des Zeitraums mal Verlustanteil), anteilig vom Geldwert abziehen
+        { const kL = this._lossK(h); if (kL && self > 0) { const lost = Math.min(self, (p.chg || 0) * kL); savEur *= (self - lost) / self; } }
         const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         // Mit Stundenpreisen auch bei heutigem Preis 0 oder darunter zeigen (dynamische Tarife), sonst wie bisher ausblenden
@@ -6316,7 +6331,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
-        const earned = Math.max(0, pvT - expT) * price + expT * feed + before;
+        const kL = this._lossK(h), lossLife = kL ? (this._sumKwh(h, c._chg) || 0) * kL : 0;
+        const earned = Math.max(0, pvT - expT - lossLife) * price + expT * feed + before;
         const pct = earned / inv;
         this._count('amo', Math.min(100, pct * 100), 0);
         requestAnimationFrame(() => { const f = this._$('.pfill'); if (f) f.style.width = Math.min(100, pct * 100) + '%'; });
@@ -6324,10 +6340,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         let eta = '', done = '';
         if (this._m && pct < 1) {
           const now = new Date();
-          let pv12 = 0, ex12 = 0, n = 0;
-          for (let i = 1; i <= 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const k = key(d.getFullYear(), d.getMonth()); if (this._m.pv[k] !== undefined) { pv12 += this._m.pv[k]; ex12 += this._m.exp[k] || 0; n++; } }
+          let pv12 = 0, ex12 = 0, ch12 = 0, n = 0;
+          for (let i = 1; i <= 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const k = key(d.getFullYear(), d.getMonth()); if (this._m.pv[k] !== undefined) { pv12 += this._m.pv[k]; ex12 += this._m.exp[k] || 0; ch12 += (this._m.chg && this._m.chg[k]) || 0; n++; } }
           if (n >= 6) {
-            const perYear = (Math.max(0, pv12 - ex12) * price + ex12 * feed) * 12 / n;
+            const perYear = (Math.max(0, pv12 - ex12 - (kL ? ch12 * kL : 0)) * price + ex12 * feed) * 12 / n;
             const yrs = (inv - earned) / perYear;
             // unrealistisch weit weg (oder kein Ertrag): keine Jahreszahl nennen
             if (!isFinite(yrs) || yrs > 60) eta = T('st.eta.far');
@@ -6436,7 +6452,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    battery_losses: 'Batterieverluste bei Ersparnis und Amortisation abziehen', battery_efficiency: 'Wirkungsgrad der Batterie in % (optional, sonst aus den Zählern)', cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -6462,6 +6478,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'earned_before_eur', selector: { number: { min: 0, max: 1000000, step: 1, mode: 'box' } } },
       ent('earned_before', ['sensor', 'input_number']),
       { name: 'pv_ac', selector: { boolean: {} } },
+      { name: 'battery_losses', selector: { boolean: {} } },
+      { name: 'battery_efficiency', selector: { number: { min: 50, max: 100, step: 0.5, mode: 'box' } } },
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
       { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
@@ -6502,6 +6520,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     ] },
     { short: 'Heute', title: 'Tageswerte (optional)', text: 'Für die Ansicht "Heute".', fields: [
       { path: 'pv_ac', label: 'PV-Zähler zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Zähler nur ihre Abgabe zählen. Zeichen dafür: "Autarkie" ist zu niedrig, oder der Verbrauch wirkt zu klein.' },
+      { path: 'battery_losses', label: 'Batterieverluste bei Ersparnis und Amortisation abziehen', kind: 'bool', help: 'Optional. Von der Batterie kommen nur etwa 90 % der geladenen Energie wieder heraus, der Rest ist Verlust und hat nichts gespart. Mit dieser Option zieht die Karte den Verlust von der Solar-Ersparnis und der Amortisation ab (Ladung mal Verlustanteil). Der Wirkungsgrad kommt aus den Gesamtzählern für Ladung und Entladung (wie die Anzeige "Wirkungsgrad") oder aus dem Feld darunter. Nicht mit "PV-Zähler zählt ohne Batterie-Ladung", dort sind die Verluste schon heraus.' },
+      { path: 'battery_efficiency', label: 'Wirkungsgrad der Batterie in % (optional)', kind: 'number', optional: true, help: 'Nur mit "Batterieverluste abziehen". Ohne Angabe rechnet die Karte mit dem Verhältnis von Entladung zu Ladung aus den Gesamtzählern. Beispiel: 90.' },
       { path: 'pv_today', label: 'PV heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /pv|solar|inverter|ertrag|yield/i) },
       { path: 'import_today', label: 'Netzbezug heute (nicht der Gesamtverbrauch)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /import|bezug|verbrauch/i) },
       { path: 'export_today', label: 'Einspeisung heute', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute/i, /export|einspeis/i) },

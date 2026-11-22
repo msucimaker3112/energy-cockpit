@@ -233,6 +233,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       this._c._lt = c.long_term === true;
       // pv_ac: Die PV-Zähler zählen nur die Abgabe des Wechselrichters, also ohne Batterie-Ladung und mit Batterie-Entladung
       this._c._ac = c.pv_ac === true;
+      // battery_losses (optional, #97): Ersparnis und Amortisation ziehen die Verluste der Batterie ab (Ladung mal Verlustanteil). Nicht mit pv_ac (dort zählen die PV-Zähler nur die Abgabe des Wechselrichters, die Verluste sind schon heraus)
+      this._c._bl = c.battery_losses === true || String(c.battery_losses).toLowerCase() === 'true';
+      { const ef = parseFloat(String(c.battery_efficiency).replace(',', '.')); this._c._ef = ef >= 50 && ef <= 100 ? ef / 100 : null; }
       // feed_in_card (optional): Für Anlagen ohne Vergütung die Kachel "Einspeiseerlös" ausblenden oder durch den PV-Eigenverbrauch ersetzen
       this._c._feedCard = ['hidden', 'pv_self_consumption'].includes(c.feed_in_card) ? c.feed_in_card : '';
       // cost_consumers (optional): Kosten je Verbraucher. Mit grid/battery/pv gemessen, sonst nach dem Mix des Hauses je Stunde
@@ -945,6 +948,16 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       return { ks, pv: sum(M.pv), imp: sum(M.imp), exp: sum(M.exp), chg: sum(M.chg), dis: sum(M.dis), g2: sum(M.g2 || {}), label: this._period === 'month' ? MONL[now.getMonth()] : String(now.getFullYear()) };
     }
 
+    // Anteil der geladenen Energie, der in der Batterie verloren geht (0 bis 1): battery_efficiency, sonst aus den Gesamtzählern (Entladung durch Ladung, wie die Anzeige "Wirkungsgrad"). null: Option aus, pv_ac oder keine Daten
+    _lossK(h) {
+      const c = this._c;
+      if (!c._bl || c._ac) return null;
+      if (c._ef !== null) return 1 - c._ef;
+      const ch = this._sumKwh(h, c._chg), di = this._sumKwh(h, c._dis);
+      return ch > 0 && di > 0 ? Math.max(0, 1 - di / ch) : null;
+    }
+    _sumKwh(h, list) { let t = null; (list || []).forEach((id) => { const v = WD.kwh(h, id, WD.rawUnits(this._c)); if (v !== null && v !== undefined) t = (t || 0) + v; }); return t; }
+
     _render() {
       const c = this._c, h = this._hass;
       if (!h) return;
@@ -969,6 +982,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           p.ks.forEach((k) => { const pr = this._monthPrice(k, price), s1 = Math.max(0, (M.pv[k] || 0) - (M.exp[k] || 0)); ie += (M.imp[k] || 0) * pr; se += s1 * pr; sk += s1; });
           impEur = ie; savEur = sk > 0 ? se / sk * self : savEur;
         }
+        // battery_losses: Die in der Batterie verlorene Energie hat nichts gespart (Ladung des Zeitraums mal Verlustanteil), anteilig vom Geldwert abziehen
+        { const kL = this._lossK(h); if (kL && self > 0) { const lost = Math.min(self, (p.chg || 0) * kL); savEur *= (self - lost) / self; } }
         const baseFee = this._baseFee(p), costT = impEur + g2 * price2 + baseFee;
         const cons = c._ac ? p.pv + impT - p.exp : p.pv + impT - p.exp - p.chg + p.dis;
         // Mit Stundenpreisen auch bei heutigem Preis 0 oder darunter zeigen (dynamische Tarife), sonst wie bisher ausblenden
@@ -1003,7 +1018,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
-        const earned = Math.max(0, pvT - expT) * price + expT * feed + before;
+        const kL = this._lossK(h), lossLife = kL ? (this._sumKwh(h, c._chg) || 0) * kL : 0;
+        const earned = Math.max(0, pvT - expT - lossLife) * price + expT * feed + before;
         const pct = earned / inv;
         this._count('amo', Math.min(100, pct * 100), 0);
         requestAnimationFrame(() => { const f = this._$('.pfill'); if (f) f.style.width = Math.min(100, pct * 100) + '%'; });
@@ -1011,10 +1027,10 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         let eta = '', done = '';
         if (this._m && pct < 1) {
           const now = new Date();
-          let pv12 = 0, ex12 = 0, n = 0;
-          for (let i = 1; i <= 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const k = key(d.getFullYear(), d.getMonth()); if (this._m.pv[k] !== undefined) { pv12 += this._m.pv[k]; ex12 += this._m.exp[k] || 0; n++; } }
+          let pv12 = 0, ex12 = 0, ch12 = 0, n = 0;
+          for (let i = 1; i <= 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const k = key(d.getFullYear(), d.getMonth()); if (this._m.pv[k] !== undefined) { pv12 += this._m.pv[k]; ex12 += this._m.exp[k] || 0; ch12 += (this._m.chg && this._m.chg[k]) || 0; n++; } }
           if (n >= 6) {
-            const perYear = (Math.max(0, pv12 - ex12) * price + ex12 * feed) * 12 / n;
+            const perYear = (Math.max(0, pv12 - ex12 - (kL ? ch12 * kL : 0)) * price + ex12 * feed) * 12 / n;
             const yrs = (inv - earned) / perYear;
             // unrealistisch weit weg (oder kein Ertrag): keine Jahreszahl nennen
             if (!isFinite(yrs) || yrs > 60) eta = T('st.eta.far');

@@ -2042,7 +2042,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       // Ausgang = Haus + Einspeisung; ohne Einspeisung geht alles ins Haus, dann genügt der Ausgang allein
       const outExp = via && !via2 ? Math.min(out, gExp) : 0;
       const split = outExp > TH && out - outExp > TH ? T('bat.split', { home: this._fW(out - outExp), grid: this._fW(outExp) }) : '';
-      const subT = via ? T(via2 ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
+      const subT = via ? T(via2 && x.b.power_in ? 'bat.io' : 'bat.io.pv', { in: this._fW(pin + inAc), out: this._fW(out) }) + (via2 && inAc > TH ? T('bat.in2', { pv: this._fW(pin), ac: this._fW(inAc) }) : '') + split + (fc ? '<br>' + fc : '') : fc;
       const mates = tower ? '' : grp.filter((o) => o !== x).map((o) => esc(o.b.name || T('flow.battery') + ' ' + (o.i + 1))).join(', ');
       // Eigenbedarf des Speichers (self_consumption: Sensor, oder true = berechnet aus Eingang, Entladung, Ausgang und Ladung, nur mit pv_to_battery: direkt)
       const sr = (l, v) => `<div class="sr"><span>${l}</span> <b>${v}</b></div>`;
