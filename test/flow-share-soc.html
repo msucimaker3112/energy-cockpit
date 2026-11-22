@@ -1,0 +1,54 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Anteil am Hausverbrauch und Ladestand neben der Leistung Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft show_share (Anteil jedes Verbrauchers am Hausverbrauch in %) und show_soc (Ladestand der Batterie in %) neben der Leistung.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte */
+const P=new URLSearchParams(location.search);
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hass={states:{'sensor.pv':S(0),'sensor.grid':S(1000),'sensor.home':S(1000),'sensor.c1':S(250),'sensor.c2':S(100),'sensor.c3':S(0),'sensor.bat':S(381),'sensor.soc':S(18,'%')},language:'de',locale:{language:'de'},config:{currency:'EUR'}};
+const base=()=>({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},battery:{name:'Hyper',power:'sensor.bat',soc:'sensor.soc',capacity_kwh:5,reserve_pct:10,soc_display:'nutzbar'},consumers:[{name:'Fritz',entity:'sensor.c1'},{name:'Verlust',entity:'sensor.c2'},{name:'Aus',entity:'sensor.c3'},{name:'Nur Zusatz',secondary:'sensor.c1'}]});
+function mount(c,w){const host=document.getElementById('host');host.style.width=(w||1000)+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const t=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,'').trim():null;};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+async function run(){
+  let e=mount(base());await wait(1200);
+  ok('ohne Option: kein Anteil bei Verbrauchern',!q(e,'.cons .shr'),'');
+  ok('ohne Option: kein Ladestand neben der Batterieleistung',!q(e,'.node.bat .shr'),'');
+  const c=base();c.show_share=true;c.show_soc=true;
+  e=mount(c);await wait(1500);
+  ok('Anteil: 250 W von 1000 W = 25 %',t(e,'[data-k="c0"] .shr')==='25%',t(e,'[data-k="c0"] .shr'));
+  ok('Anteil: 100 W = 10 %',t(e,'[data-k="c1"] .shr')==='10%',t(e,'[data-k="c1"] .shr'));
+  ok('Anteil: 0 W = 0 %',t(e,'[data-k="c2"] .shr')==='0%',t(e,'[data-k="c2"] .shr'));
+  ok('Verbraucher ohne Leistungssensor: kein Anteil',!q(e,'[data-k="c3"] .shr'),'');
+  const v=q(e,'[data-k="c0"] .val'),w=q(e,'[data-k="c0"] .val .num'),s=q(e,'[data-k="c0"] .shr'),sn=q(e,'[data-k="c0"] .shr .num');
+  ok('Anteil steht rechts in der Zeile des Wertes',s.getBoundingClientRect().right>v.getBoundingClientRect().right-4&&Math.abs(s.getBoundingClientRect().bottom-w.getBoundingClientRect().bottom)<6,Math.round(s.getBoundingClientRect().right)+' / '+Math.round(v.getBoundingClientRect().right));
+  ok('Anteil: gleiche Größe wie die Leistung',getComputedStyle(sn).fontSize===getComputedStyle(w).fontSize,getComputedStyle(sn).fontSize+' / '+getComputedStyle(w).fontSize);
+  ok('Anteil: gleiche Farbe wie die Leistung',getComputedStyle(sn).color===getComputedStyle(w).color,getComputedStyle(sn).color+' / '+getComputedStyle(w).color);
+  // Batterie
+  ok('Ladestand: gesamt 18 % (nicht "nutzbar")',t(e,'.node.bat .soc-big')==='18%',t(e,'.node.bat .soc-big'));
+  const bv=q(e,'.node.bat .val'),bw=q(e,'.node.bat .val .num'),bs=q(e,'.node.bat .soc-big .num');
+  ok('Ladestand steht rechts neben der Leistung',bs.getBoundingClientRect().left>bw.getBoundingClientRect().right&&q(e,'.node.bat .soc-big').getBoundingClientRect().right>bv.getBoundingClientRect().right-4,Math.round(q(e,'.node.bat .soc-big').getBoundingClientRect().right)+' / '+Math.round(bv.getBoundingClientRect().right));
+  ok('Ladestand: gleiche Größe wie die Leistung',getComputedStyle(bs).fontSize===getComputedStyle(bw).fontSize,getComputedStyle(bs).fontSize+' / '+getComputedStyle(bw).fontSize);
+  ok('Ladestand: gleiche Farbe wie die Leistung',getComputedStyle(bs).color===getComputedStyle(bw).color,getComputedStyle(bs).color+' / '+getComputedStyle(bw).color);
+  ok('Zeile "Ladestand … nutzbar" unten bleibt',/nutzbar/.test(t(e,'.node.bat .soc-txt')||''),t(e,'.node.bat .soc-txt'));
+  // Text "true"
+  const c2=base();c2.show_share='true';c2.show_soc='true';
+  e=mount(c2);await wait(1500);
+  ok('Optionen als Text "true" wirken auch',t(e,'[data-k="c0"] .shr')==='25%'&&t(e,'.node.bat .soc-big')==='18%','');
+  // Aenderung zur Laufzeit
+  e=mount(c);await wait(1500);
+  hass.states['sensor.soc']=S(64,'%');hass.states['sensor.c1']=S(500);e.hass=JSON.parse(JSON.stringify(hass));await wait(3000);
+  ok('Wechsel zur Laufzeit: Ladestand 64 %, Anteil 50 %',t(e,'.node.bat .soc-big')==='64%'&&t(e,'[data-k="c0"] .shr')==='50%',t(e,'.node.bat .soc-big')+' / '+t(e,'[data-k="c0"] .shr'));
+  // Kurzansicht blendet den Anteil aus
+  e=mount({...c,compact:'immer'},380);await wait(1500);
+  ok('Kurzansicht: Anteil ausgeblendet',!q(e,'[data-k="c0"] .shr')||getComputedStyle(q(e,'[data-k="c0"] .shr')).display==='none','');
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{const c=base();c.show_share=true;c.show_soc=true;mount(c,+(P.get('w')||1000));}
+</script></body></html>

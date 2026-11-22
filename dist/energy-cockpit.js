@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.44.1 - MIT License */
+/*! energy-cockpit v0.45.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1253,6 +1253,11 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .cons .lbl{font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:650;margin-bottom:3px}
 .cons .val{margin:0}
 .cons .num{font-size:calc(1.1rem*var(--vs,1))}.cons .unit{font-size:calc(.7rem*var(--vs,1));margin-left:3px}
+/* show_share / show_soc: Zahl rechts in der Zeile des Wertes, gleiche Größe und Farbe (Anteil am Hausverbrauch bzw. Ladestand der Batterie) */
+.shr{margin-left:auto;padding-left:10px;display:inline-flex;align-items:baseline;white-space:nowrap}
+.cons.sh .c-txt{flex:1}
+.node.on .shr .num{color:rgb(var(--c))}
+.cmp .cons .shr{display:none}
 .cons.on .num{color:rgb(var(--c))}
 .c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(118px,calc(118px*var(--ts,1)))),1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
@@ -2119,11 +2124,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const sam = (c.groups_lines === 'sammel' || (!c.groups_lines && ((gc > 0 && gc < nGrp) || cmp))) &&(c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
     this._sam = sam;
     if (sam) links.push('bundle');
+    // show_share (optional): Anteil jedes Verbrauchers am Hausverbrauch in Prozent, rechts neben dem Wert
+    const showShare = c.show_share === true || String(c.show_share).toLowerCase() === 'true';
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}${showShare && x.entity ? ' sh' : ''}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
-        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
+        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span>${showShare && x.entity ? '<span class="shr"><span class="num">—</span><span class="unit">%</span></span>' : ''}</span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
     this._topDirty = true;
@@ -2217,6 +2224,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <footer>${stats}</footer>
     </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${this._whyOn ? '<dialog class="wdlg"></dialog>' : ''}`;
 
+    // show_soc (optional): Ladestand der Batterie (gesamt, nicht "nutzbar") rechts neben der Leistung
+    if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this.shadowRoot.querySelectorAll('.node.bat .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr soc-big"><span class="num">—</span><span class="unit">%</span></span>'); });
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
     this._3k = {};
     this._dlg = null;
@@ -3057,6 +3066,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const shown = bs === null ? null : usable ? Math.max(0, Math.min(100, (bs - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, bs));
       fill.style.width = (shown === null ? 0 : shown) + '%';
       fill.style.setProperty('--sc', shown !== null && shown < 20 ? PAL.imp : shown !== null && shown < 40 ? PAL.pv : col);
+      // show_soc: Gesamt-Ladestand (nicht "nutzbar") rechts neben der Leistung
+      if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this._set('.soc-big .num', bs === null ? '—' : String(Math.round(Math.max(0, Math.min(100, bs)))), false, el);
       this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''), false, el);
       if (x.b.temp) this._set('.temp-txt', this._temp(x.b.temp), false, el);
       const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
@@ -3149,6 +3160,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._set(`[data-m="${k}"]`, tot ? Math.round(sh[k] * 100) + ' %' : '—');
     });
     let sumAll = 0;
+    const showShare = c.show_share === true || String(c.show_share).toLowerCase() === 'true';
     this._wyItems = [];
     const pw = c.consumers.map(() => -1);
     c.consumers.forEach((x, i) => {
@@ -3168,6 +3180,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._wyItems.push({ n: x.name || x.entity, w: p || 0, c: x.color });
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
+        if (showShare) this._set(`[data-k="c${i}"] .shr .num`, p === null || !(home > TH) ? '—' : String(Math.min(999, Math.round(p / home * 100))));
         // #83: secondary_name steht vor dem Wert des Zusatzsensors, z. B. "SoC eAuto 80 %"
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt && x.secondary_name ? x.secondary_name + ' ' + secTxt : secTxt);
         this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
@@ -3333,7 +3346,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3406,6 +3419,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       bool('hide_rest', false),
       bool('show_rest', false),
       bool('forecast_swap', false),
+      bool('show_share', false),
+      bool('show_soc', false),
       bool('compact_forecast', false),
       numb('consumers_top', 1, 30, 1),
       bool('hide_zero', false),
@@ -3559,6 +3574,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'watt_only', label: 'Leistung immer in Watt anzeigen', kind: 'bool', help: 'Standard: ab 1000 W wird auf kW umgeschaltet. Aktiviert: immer Watt, zum Beispiel 2.350 W.' },
       { path: 'style', label: 'Darstellung', kind: 'choice', options: STYLE, help: 'Mit 3D zeigt die Karte Haus, Solar, Netz und Speicher als Objekte. Die Werte bleiben gleich.' },
       { path: 'house_style', label: 'Haus in der 3D-Ansicht', kind: 'choice', options: HOUSE },
+      { path: 'show_share', label: 'Verbraucher: Anteil am Hausverbrauch in %', kind: 'bool', help: 'Optional. Zeigt bei jedem Verbraucher rechts neben der Leistung den Anteil am Hausverbrauch in Prozent, in derselben Farbe und Größe. Nicht in der Kurzansicht.' },
+      { path: 'show_soc', label: 'Batterie: Ladestand in % neben der Leistung', kind: 'bool', help: 'Optional. Zeigt in der Batterie-Kachel rechts neben der Leistung den Ladestand in Prozent (gesamt, nicht "nutzbar"), in derselben Farbe und Größe.' },
       { path: 'grid_side', label: 'Netz-Kachel: Seite', kind: 'choice', options: GRIDSIDE, help: 'Optional. Mit "Rechts" steht die Netz-Kachel rechts neben dem Haus (mit Batterie darüber), links bleibt nur Solar. Das spart Höhe, besonders am Handy, in der Kurzansicht und ohne Batterie. Gilt auch in der 3D-Ansicht.' },
       { path: 'home_icon_color', label: 'Farbe des Haus-Symbols', kind: 'choice', options: HOMEICO, help: 'Optional. Mit "Nach Autarkie" färbt sich das Symbol im Ring: grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Standard bleibt Türkis.' },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },

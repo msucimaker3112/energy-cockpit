@@ -224,6 +224,11 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .cons .lbl{font-size:calc(.64rem*var(--ts,1));color:rgb(var(--mut));text-transform:uppercase;letter-spacing:.08em;font-weight:650;margin-bottom:3px}
 .cons .val{margin:0}
 .cons .num{font-size:calc(1.1rem*var(--vs,1))}.cons .unit{font-size:calc(.7rem*var(--vs,1));margin-left:3px}
+/* show_share / show_soc: Zahl rechts in der Zeile des Wertes, gleiche Größe und Farbe (Anteil am Hausverbrauch bzw. Ladestand der Batterie) */
+.shr{margin-left:auto;padding-left:10px;display:inline-flex;align-items:baseline;white-space:nowrap}
+.cons.sh .c-txt{flex:1}
+.node.on .shr .num{color:rgb(var(--c))}
+.cmp .cons .shr{display:none}
 .cons.on .num{color:rgb(var(--c))}
 .c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(118px,calc(118px*var(--ts,1)))),1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
@@ -1090,11 +1095,13 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const sam = (c.groups_lines === 'sammel' || (!c.groups_lines && ((gc > 0 && gc < nGrp) || cmp))) &&(c.consumers.length > 0 || (c.consumer_groups || []).length > 0);
     this._sam = sam;
     if (sam) links.push('bundle');
+    // show_share (optional): Anteil jedes Verbrauchers am Hausverbrauch in Prozent, rechts neben dem Wert
+    const showShare = c.show_share === true || String(c.show_share).toLowerCase() === 'true';
     const cons = c.consumers.map((x, i) => {
       if (x.entity && !sam) links.push('c' + i);
-      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
+      return `<div class="cons${x.size === 'gross' || x.size === 'big' ? ' big' : (x.size === 'mittel' || x.size === 'mid' ? ' mid' : '')}${showShare && x.entity ? ' sh' : ''}" data-k="c${i}" data-e="${esc(x.entity || x.secondary)}" style="--c:${rgb(x.color, '167,139,250')}">
         ${x.image ? `<span class="ico logo"><img src="${esc(x.image)}" alt=""></span>` : `<span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:power-plug')}"></ha-icon></span>`}
-        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div>
+        <div class="c-txt"><span class="lbl">${esc(x.name || x.entity)}</span><span class="val"><span class="num">—</span><span class="unit"></span>${showShare && x.entity ? '<span class="shr"><span class="num">—</span><span class="unit">%</span></span>' : ''}</span></div>
         <span class="c-sec"></span></div>`;
     }).join('');
     this._topDirty = true;
@@ -1188,6 +1195,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <footer>${stats}</footer>
     </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${this._whyOn ? '<dialog class="wdlg"></dialog>' : ''}`;
 
+    // show_soc (optional): Ladestand der Batterie (gesamt, nicht "nutzbar") rechts neben der Leistung
+    if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this.shadowRoot.querySelectorAll('.node.bat .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr soc-big"><span class="num">—</span><span class="unit">%</span></span>'); });
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
     this._3k = {};
     this._dlg = null;
@@ -2028,6 +2037,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const shown = bs === null ? null : usable ? Math.max(0, Math.min(100, (bs - lm.reserve) / (lm.maxSoc - lm.reserve) * 100)) : Math.max(0, Math.min(100, bs));
       fill.style.width = (shown === null ? 0 : shown) + '%';
       fill.style.setProperty('--sc', shown !== null && shown < 20 ? PAL.imp : shown !== null && shown < 40 ? PAL.pv : col);
+      // show_soc: Gesamt-Ladestand (nicht "nutzbar") rechts neben der Leistung
+      if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this._set('.soc-big .num', bs === null ? '—' : String(Math.round(Math.max(0, Math.min(100, bs)))), false, el);
       this._set('.soc-txt', shown === null ? '—' : Math.round(shown) + ' %' + (usable ? ' ' + T('bat.usable_pct') : ''), false, el);
       if (x.b.temp) this._set('.temp-txt', this._temp(x.b.temp), false, el);
       const lo = el.querySelector('.soc-low'), hi = el.querySelector('.soc-high');
@@ -2120,6 +2131,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       this._set(`[data-m="${k}"]`, tot ? Math.round(sh[k] * 100) + ' %' : '—');
     });
     let sumAll = 0;
+    const showShare = c.show_share === true || String(c.show_share).toLowerCase() === 'true';
     this._wyItems = [];
     const pw = c.consumers.map(() => -1);
     c.consumers.forEach((x, i) => {
@@ -2139,6 +2151,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
         this._wyItems.push({ n: x.name || x.entity, w: p || 0, c: x.color });
         el.classList.toggle('on', on);
         this._anim('c' + i, p, el);
+        if (showShare) this._set(`[data-k="c${i}"] .shr .num`, p === null || !(home > TH) ? '—' : String(Math.min(999, Math.round(p / home * 100))));
         // #83: secondary_name steht vor dem Wert des Zusatzsensors, z. B. "SoC eAuto 80 %"
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt && x.secondary_name ? x.secondary_name + ' ' + secTxt : secTxt);
         this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
