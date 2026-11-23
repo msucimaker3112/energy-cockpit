@@ -96,6 +96,14 @@ async function run(){
   const h2=hassFor();h2.callWS=async(m)=>{if(m.period==='hour')throw new Error('keine Statistik');return {};};
   e=mount({...base,pv_ac:true},h2);await wait(600);
   ok('Abfrage fehlgeschlagen: Bereich aus, kein Absturz',q(e,'.cc').style.display==='none');
+  // #85: Inselanlage ohne grid_export_total: Karte erscheint, keine Fehlermeldung, Werte ohne NaN
+  const errs=[];window.addEventListener('error',x=>errs.push(String(x.message)));
+  const noExp={...base};delete noExp.grid_export_total;
+  e=mount(noExp,hassFor());await wait(600);await tab(e,'day');
+  ok('#85 ohne grid_export_total: Karte erscheint ohne Hinweis „nötig“',!!q(e,'.wrap')&&!/nötig/.test(e.shadowRoot.textContent),t(e,'ha-card')&&t(e,'ha-card').slice(0,80));
+  ok('#85 ohne grid_export_total: Kosten gemessen 0,50, nirgends NaN',t(e,'[data-t="ccC0"]')==='0,50'&&!/NaN/.test(e.shadowRoot.textContent)&&!errs.length,t(e,'[data-t="ccC0"]')+' '+errs.join(';'));
+  await tab(e,'month');
+  ok('#85 ohne grid_export_total: Monat ohne NaN und ohne Skriptfehler',!/NaN/.test(e.shadowRoot.textContent)&&!errs.length,errs.join(';'));
   document.getElementById('res').textContent=`${fail?'FEHLER '+fail:'ALLE OK'}\n`+lines.join('\n');
 }
 if(new URLSearchParams(location.search).get('test'))run();else{const P=new URLSearchParams(location.search);let c={...base,pv_ac:true},st={};

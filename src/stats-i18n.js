@@ -1,6 +1,6 @@
 /* Texte der Statistik-Karte */
 WD.addStrings({
-  'st.title': 'Statistik', 'st.err': 'pv_total, grid_import_total und grid_export_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
+  'st.title': 'Statistik', 'st.err': 'pv_total und grid_import_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',

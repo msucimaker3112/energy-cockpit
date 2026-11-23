@@ -44,7 +44,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `animations` | `auto` (Standard), `always` | `auto`: Ist am Gerät "Bewegung reduzieren" eingeschaltet, stehen Linien, Ring und das Leuchten von Kacheln und Symbolen still, und die Zahlen zählen nicht hoch. `always`: immer animieren. Unabhängig davon rechnet die Karte höchstens einmal pro Sekunde neu, und Zahlen zählen nur bei großen Sprüngen hoch |
 | `style` | `flach` (Standard), `3d` | `3d`: Haus, Solar, Netz und Speicher erscheinen als Objekte. Die Werte und Kennzahlen bleiben gleich, siehe [3D-Ansicht](#3d-ansicht-style-3d) |
 | `house_style` | `sattel` (Standard), `flach` | Dachform des Hauses in der 3D-Ansicht |
-| `show_share` | `true` / `false` (Standard) | Bei jedem Verbraucher rechts neben der Leistung der **Anteil am Hausverbrauch in %**, in derselben Farbe und Größe. Nicht in der Kurzansicht |
+| `show_share` | `true` / `false` (Standard) | Bei jedem Verbraucher rechts neben der Leistung der **Anteil am Hausverbrauch in %**, in derselben Farbe und Größe, auch in der Kurzansicht und bei „Nicht erfasst“ |
 | `show_soc` | `true` / `false` (Standard) | In der Batterie-Kachel rechts neben der Leistung der **Ladestand in %** (gesamt, nicht „nutzbar“), in derselben Farbe und Größe |
 | `grid_side` | `left` (Standard), `right` | `right`: Die Netz-Kachel steht rechts neben dem Haus (mit Batterie darüber), links bleibt nur Solar (und Solar 2). Spart Höhe, besonders am Handy, in der Kurzansicht und ohne Batterie. Gilt auch in der 3D-Ansicht. Mit `pv_to_battery: direkt` steht das Netz schon rechts. Siehe [Netz-Kachel rechts](#netz-kachel-rechts-grid_side-right) |
 | `home_icon_color` | `standard` (Standard), `autarkie` | `autarkie`: Das Haus-Symbol im Ring ist grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Ohne Verbrauch bleibt es türkis. Siehe [Farbe des Haus-Symbols](#farbe-des-haus-symbols-home_icon_color-autarkie) |
@@ -703,7 +703,7 @@ type: custom:energy-cockpit-stats-card
 title: Statistik
 pv_total: sensor.pv_gesamt_kwh
 grid_import_total: sensor.netzbezug_gesamt_kwh
-grid_export_total: sensor.einspeisung_gesamt_kwh
+grid_export_total: sensor.einspeisung_gesamt_kwh       # optional: leer lassen bei einer Inselanlage ohne Einspeisung
 battery_charge_total: sensor.batterie_geladen_kwh      # bei mehreren Speichern auch als Liste: [sensor.a, sensor.b]
 battery_discharge_total: sensor.batterie_entladen_kwh
 battery_capacity_kwh: 7.5
@@ -735,7 +735,7 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # decimals: 2                               # feste Nachkommastellen bei kWh, siehe Darstellung
 ```
 
-Pflicht sind `pv_total`, `grid_import_total` und `grid_export_total`. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
+Pflicht sind `pv_total` und `grid_import_total`. `grid_export_total` ist optional: Bei einer Inselanlage ohne Einspeisung lässt du ihn weg, die Einspeisung zählt dann als 0 kWh. Alles andere blendet die jeweilige Anzeige ein. Ohne Preise zeigt die Karte keine Geldwerte, ohne `investment_eur` (fester Betrag) oder `investment` (Sensor oder Helfer) keine Amortisation.
 
 **"Heute":** Die Karte nimmt die Tagessensoren (`pv_today`, `import_today`, `export_today`, `charge_today`, `discharge_today`). Fehlt einer oder liefert er gerade keinen Wert, rechnet sie den Wert aus dem Gesamtzähler seit Mitternacht, so wie Monat und Jahr. Die Tagessensoren sind damit optional. Unter den Kacheln steht dann ein gelber Hinweis, welcher Sensor fehlt. Ebenso warnt die Karte, wenn in einem Tagesfeld offenbar ein Gesamtzähler steckt (der Wert ist viel größer als der Zuwachs des Gesamtzählers seit Mitternacht) oder wenn heute mehr eingespeist als erzeugt wurde. Ohne Statistik und ohne Tagessensor zeigt die Kachel einen Strich, nie die Werte eines anderen Zeitraums.
 

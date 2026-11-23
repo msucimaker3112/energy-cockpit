@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## 0.45.1
+- **Energiefluss, „Ruhende Verbraucher ausblenden“ (`hide_zero`) ging verloren:** Ohne „Nur die größten Verbraucher“ (`consumers_top`) erschienen ruhende Verbraucher wieder, sobald sich die Karte neu aufbaute, zum Beispiel am Handy beim Wechsel in die Kurzansicht. Jetzt reicht `hide_zero` allein. Gemeldet in [#99](https://github.com/msucimaker3112/energy-cockpit/issues/99).
+- **Energiefluss, Batterie:** Die Zeile „Entladung“ steht nur noch, wenn sie vom Ausgang abweicht. Bisher doppelte sie die große Zahl. Hinweis von Wunni73 in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).
+- **Energiefluss, Anteil in % (`show_share`):** jetzt auch in der Kurzansicht (zum Beispiel am iPhone) und bei der Kachel „Nicht erfasst“. Wünsche von PV-Joe in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).
+- **Statistik ohne Einspeisung:** `grid_export_total` ist jetzt optional. Bei einer Inselanlage ohne Einspeisung lässt du das Feld leer, die Einspeisung zählt dann als 0 kWh. Bisher blieb die Karte bei der Einrichtung stehen. Gemeldet in [#85](https://github.com/msucimaker3112/energy-cockpit/issues/85).
+- **Tests:** Zwei Layout-Tests hingen von der Fenstergröße ab (`fit_screen` verkleinerte die Karte) und prüfen jetzt ohne Skalierung.
+
 ## 0.45.0
 - **Energiefluss, Zahlen rechts neben der Leistung (Wünsche von PV-Joe, [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)):** Mit `show_share: true` zeigt jeder Verbraucher rechts neben der Leistung seinen **Anteil am Hausverbrauch in Prozent**. Mit `show_soc: true` zeigt die Batterie-Kachel rechts neben der Leistung den **Ladestand in Prozent** (gesamt, nicht „nutzbar“). Beides in derselben Farbe und Größe wie die Leistung, optional und im Editor unter „Alle Felder“.
 - **Energiefluss, zweite Anlage durch einen Speicher:** Die Zeile bei einem Speicher mit `pv2.to_battery` heißt jetzt auch „Solar-Eingang … · Ausgang …“, wenn kein `power_in` (AC-Ladung) eingetragen ist. Mehrere Speicher mit eigenen Solarmodulen gehen so: erste Anlage als `pv` mit `pv_to_battery: direkt`, zweite als `pv2` mit `to_battery: 2` (zweiter Speicher unter `batteries`). Anlass: Frage von kotana in [#98](https://github.com/msucimaker3112/energy-cockpit/issues/98).

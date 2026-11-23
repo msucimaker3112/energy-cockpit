@@ -53,7 +53,7 @@ WD.addTranslations('fr', {
   'dev.st.playing': "en lecture",
   'dev.st.standby': "veille",
   'st.title': "Statistiques",
-  'st.err': "pv_total, grid_import_total et grid_export_total sont nécessaires",
+  'st.err': "pv_total et grid_import_total sont nécessaires",
   'st.today': "Aujourd'hui",
   'st.next': "Suite →",
   'st.pvsav': "Économies PV",

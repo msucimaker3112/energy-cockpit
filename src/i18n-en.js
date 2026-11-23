@@ -59,7 +59,7 @@ WD.addTranslations('en', {
   'dev.st.ready': 'ready', 'dev.st.brewing': 'brewing', 'dev.st.inactive': 'inactive', 'dev.st.finished': 'finished', 'dev.st.pause': 'paused',
   'dev.st.action': 'Action required', 'dev.st.error': 'Error', 'dev.st.playing': 'playing', 'dev.st.standby': 'standby',
 
-  'st.title': 'Statistics', 'st.err': 'pv_total, grid_import_total and grid_export_total are required', 'st.today': 'Today', 'st.next': 'Next →',
+  'st.title': 'Statistics', 'st.err': 'pv_total and grid_import_total are required', 'st.today': 'Today', 'st.next': 'Next →',
   'st.pvsav': 'Solar savings', 'st.feed': 'Export revenue', 'st.selfc': 'Solar self-consumption', 'st.cost': 'Grid electricity costs', 'st.aut': 'Energy independence',
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',

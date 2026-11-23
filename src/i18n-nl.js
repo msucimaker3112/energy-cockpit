@@ -59,7 +59,7 @@ WD.addTranslations('nl', {
   'dev.st.ready': 'gereed', 'dev.st.brewing': 'zet koffie', 'dev.st.inactive': 'inactief', 'dev.st.finished': 'gereed', 'dev.st.pause': 'gepauzeerd',
   'dev.st.action': 'Actie nodig', 'dev.st.error': 'Fout', 'dev.st.playing': 'speelt af', 'dev.st.standby': 'stand-by',
 
-  'st.title': 'Statistieken', 'st.err': 'pv_total, grid_import_total en grid_export_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
+  'st.title': 'Statistieken', 'st.err': 'pv_total en grid_import_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
   'st.pvsav': 'Besparing door zonne-energie', 'st.feed': 'Opbrengst teruglevering', 'st.selfc': 'Zelfverbruik zonne-energie', 'st.cost': 'Kosten netstroom', 'st.aut': 'Zelfvoorziening',
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',

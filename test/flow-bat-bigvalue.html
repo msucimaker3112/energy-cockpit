@@ -37,6 +37,9 @@ async function run(){
   e=mount(cfg({big_value:'out'}),hassFor(cases.entladen));await wait(800);
   ok('Entladung: große Zahl ist der Ausgang 450 W',tag(e)==='Entladung'&&big(e)==='450 W',tag(e)+' / '+big(e));
   ok('Entladung: Zeile mit der Entladeleistung 380 W',/Entladung\s*380 W/.test(sub(e)),sub(e));
+  // #95 (Wunni73): Entladung gleich Ausgang -> keine doppelte Zeile
+  e=mount(cfg({big_value:'out'}),hassFor({pv:0,out:450,chg:0,dis:450,grid:0,self:0}));await wait(800);
+  ok('Entladung gleich Ausgang: keine Zeile Entladung',big(e)==='450 W'&&!/Entladung\s*450/.test(sub(e)),sub(e));
   e=mount(cfg({big_value:'auto'}),hassFor(cases.entladen));await wait(800);
   ok('big_value auto: wie bisher 380 W',big(e)==='380 W',big(e));
   // ohne pv_to_battery wirkt big_value nicht

@@ -228,7 +228,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .shr{margin-left:auto;padding-left:10px;display:inline-flex;align-items:baseline;white-space:nowrap}
 .cons.sh .c-txt{flex:1}
 .node.on .shr .num{color:rgb(var(--c))}
-.cmp .cons .shr{display:none}
+.cmp .cons .shr{padding-left:6px}
 .cons.on .num{color:rgb(var(--c))}
 .c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(118px,calc(118px*var(--ts,1)))),1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
@@ -1108,9 +1108,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn show_rest: true oder hide_rest: false ausdrücklich gesetzt ist (#34, #58)
     const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && (c.hide_rest === false || (c.show_rest === true && c.hide_rest !== true)) && c.rest !== false;
     if (restC && !sam) links.push('crest');
-    const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
+    // #95 (PV-Joe): show_share auch bei "Nicht erfasst" und in der Kurzansicht
+    const consRest = restC ? `<div class="cons rest${showShare ? ' sh' : ''}" data-k="crest" style="--c:${PAL.mut}">
         <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
-        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div></div>` : '';
+        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span>${showShare ? '<span class="shr"><span class="num">—</span><span class="unit">%</span></span>' : ''}</span></div></div>` : '';
     const G = c.consumer_groups;
     let grps = '';
     if (G.length) {
@@ -1489,8 +1490,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const hzs = this._hzOn() ? (this._hzS || {}) : null;
     const hzHide = (i) => !!(hzs && hzs['c' + i] && hzs['c' + i].h);
     if (!(n > 0)) {
-      if (!this._hzOn() || !this._hzDirty) return;
-      this._hzDirty = false;
+      // #99: nach einem Neuaufbau (_build setzt _topDirty, z. B. Wechsel in die Kurzansicht) die Ausblendung wieder anwenden
+      if (!this._hzOn() || (!this._hzDirty && !this._topDirty)) return;
+      this._hzDirty = false; this._topDirty = false;
       pw.forEach((w, i) => { const el = this._$(`[data-k="c${i}"]`); if (el) el.style.display = hzHide(i) ? 'none' : ''; });
       this._schedLayout();
       return;
@@ -2069,7 +2071,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         else if ((x.b.power || x.b.power_charge) && bp !== null && bp > TH) acG = Math.max(0, bp - Math.max(0, pin - out));
         if (acG <= TH) acG = 0;
       }
-      const rowsX = (acG ? sr(T('bat.gridchg'), this._fW(acG)) : '') + (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
+      // #95 (Wunni73): "Entladung" nur, wenn sie vom Ausgang abweicht, sonst doppelt sie die große Zahl
+      const rowsX = (acG ? sr(T('bat.gridchg'), this._fW(acG)) : '') + (bigOut && net && !chg && Math.abs(Math.abs(bp) - out) > TH ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
       const subF = rowsX ? (subT ? subT + rowsX : rowsX) : subT;
       this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subF ? '<br>' + subF : '') : subF, true, el);
       if (via2) {
@@ -2171,6 +2174,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       crel.style.display = show ? '' : 'none';
       crel.classList.toggle('on', on);
       this._anim('crest', restW, crel);
+      if (showShare) this._set('[data-k="crest"] .shr .num', !(home > TH) ? '—' : String(Math.min(999, Math.round(restW / home * 100))));
       this._link('crest', on, false, PAL.mut, restW);
     }
     const G = c.consumer_groups || [];

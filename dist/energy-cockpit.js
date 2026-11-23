@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.45.0 - MIT License */
+/*! energy-cockpit v0.45.1 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1257,7 +1257,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .shr{margin-left:auto;padding-left:10px;display:inline-flex;align-items:baseline;white-space:nowrap}
 .cons.sh .c-txt{flex:1}
 .node.on .shr .num{color:rgb(var(--c))}
-.cmp .cons .shr{display:none}
+.cmp .cons .shr{padding-left:6px}
 .cons.on .num{color:rgb(var(--c))}
 .c-sec{margin-left:auto;padding-left:6px;font-size:calc(.72rem*var(--ts,1));color:rgb(var(--mut));white-space:nowrap;font-variant-numeric:tabular-nums}
 footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(118px,calc(118px*var(--ts,1)))),1fr));grid-gap:10px;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--stroke);position:relative}
@@ -2137,9 +2137,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen, aber nur wenn show_rest: true oder hide_rest: false ausdrücklich gesetzt ist (#34, #58)
     const restC = c.consumers.length > 0 && !(c.consumer_groups || []).length && (c.hide_rest === false || (c.show_rest === true && c.hide_rest !== true)) && c.rest !== false;
     if (restC && !sam) links.push('crest');
-    const consRest = restC ? `<div class="cons rest" data-k="crest" style="--c:${PAL.mut}">
+    // #95 (PV-Joe): show_share auch bei "Nicht erfasst" und in der Kurzansicht
+    const consRest = restC ? `<div class="cons rest${showShare ? ' sh' : ''}" data-k="crest" style="--c:${PAL.mut}">
         <span class="ico"><ha-icon icon="mdi:help-circle-outline"></ha-icon></span>
-        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span></span></div></div>` : '';
+        <div class="c-txt"><span class="lbl">${esc((c.rest && c.rest.name) || T('flow.rest'))}</span><span class="val"><span class="num">—</span><span class="unit"></span>${showShare ? '<span class="shr"><span class="num">—</span><span class="unit">%</span></span>' : ''}</span></div></div>` : '';
     const G = c.consumer_groups;
     let grps = '';
     if (G.length) {
@@ -2518,8 +2519,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const hzs = this._hzOn() ? (this._hzS || {}) : null;
     const hzHide = (i) => !!(hzs && hzs['c' + i] && hzs['c' + i].h);
     if (!(n > 0)) {
-      if (!this._hzOn() || !this._hzDirty) return;
-      this._hzDirty = false;
+      // #99: nach einem Neuaufbau (_build setzt _topDirty, z. B. Wechsel in die Kurzansicht) die Ausblendung wieder anwenden
+      if (!this._hzOn() || (!this._hzDirty && !this._topDirty)) return;
+      this._hzDirty = false; this._topDirty = false;
       pw.forEach((w, i) => { const el = this._$(`[data-k="c${i}"]`); if (el) el.style.display = hzHide(i) ? 'none' : ''; });
       this._schedLayout();
       return;
@@ -3098,7 +3100,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         else if ((x.b.power || x.b.power_charge) && bp !== null && bp > TH) acG = Math.max(0, bp - Math.max(0, pin - out));
         if (acG <= TH) acG = 0;
       }
-      const rowsX = (acG ? sr(T('bat.gridchg'), this._fW(acG)) : '') + (bigOut && net && !chg ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
+      // #95 (Wunni73): "Entladung" nur, wenn sie vom Ausgang abweicht, sonst doppelt sie die große Zahl
+      const rowsX = (acG ? sr(T('bat.gridchg'), this._fW(acG)) : '') + (bigOut && net && !chg && Math.abs(Math.abs(bp) - out) > TH ? sr(T('tag.discharging'), this._fW(Math.abs(bp))) : '') + (selfW !== null && selfW >= 1 ? sr(T('bat.selfuse'), this._fW(selfW)) : '');
       const subF = rowsX ? (subT ? subT + rowsX : rowsX) : subT;
       this._set('.sub', mates ? T('bat.shared', { name: mates }) + (subF ? '<br>' + subF : '') : subF, true, el);
       if (via2) {
@@ -3200,6 +3203,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       crel.style.display = show ? '' : 'none';
       crel.classList.toggle('on', on);
       this._anim('crest', restW, crel);
+      if (showShare) this._set('[data-k="crest"] .shr .num', !(home > TH) ? '—' : String(Math.min(999, Math.round(restW / home * 100))));
       this._link('crest', on, false, PAL.mut, restW);
     }
     const G = c.consumer_groups || [];
@@ -5306,7 +5310,7 @@ tr.sub td{font-size:.68rem;color:rgb(var(--mut));text-align:left;border-top:0;pa
 /* ---- stats-i18n.js ---- */
 /* Texte der Statistik-Karte */
 WD.addStrings({
-  'st.title': 'Statistik', 'st.err': 'pv_total, grid_import_total und grid_export_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
+  'st.title': 'Statistik', 'st.err': 'pv_total und grid_import_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.pvall': 'Solar gesamt',
@@ -5547,7 +5551,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     static getConfigElement() { return document.createElement('energy-cockpit-stats-card-editor'); }
     setConfig(c) {
       WD.applyTheme(this, c, this._hass);
-      if (!c.pv_total || !c.grid_import_total || !c.grid_export_total) {
+      // #85: grid_export_total ist optional (Inselanlage ohne Einspeisung), fehlt er, zählt die Einspeisung als 0 kWh
+      if (!c.pv_total || !c.grid_import_total) {
         this._c = null;
         this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Statistik</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
         return;
@@ -5767,7 +5772,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if ((!c._cc.length && !c._hp) || !h || !h.callWS) return;
       const now = new Date(), y0 = new Date(now.getFullYear(), 0, 1), m0 = new Date(now.getFullYear(), now.getMonth(), 1), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const w0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() - (d0.getDay() + 6) % 7), first = w0 < m0 ? w0 : m0;
-      const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis);
+      const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
       const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : x._parts ? x._parts.map((q) => q.entity) : [x.energy]).filter(Boolean);
       const ids = [...new Set(house.concat(c._g2 ? [c._g2] : [], ...c._cc.map(mine)))];
       const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
@@ -6349,7 +6354,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       if (amoP) amoP.style.display = noInv ? 'none' : '';
       if (duo) duo.classList.toggle('one', noInv);
       // pv_lifetime (optional, #28): durchlaufender Zähler für Amortisation und "PV gesamt", wenn pv_total täglich auf 0 geht
-      const pvT = WD.kwh(h, c.pv_lifetime || c.pv_total, WD.rawUnits(c)), expT = WD.kwh(h, c.grid_export_total, WD.rawUnits(c));
+      const pvT = WD.kwh(h, c.pv_lifetime || c.pv_total, WD.rawUnits(c)), expT = c.grid_export_total ? WD.kwh(h, c.grid_export_total, WD.rawUnits(c)) : 0;
       if (inv > 0 && price > 0 && pvT !== null && expT !== null) {
         // earned_before(_eur): vor Beginn der Zähler bereits erwirtschaftet (z. B. Anlage älter als die Home-Assistant-Daten)
         const before = Math.max(0, val(h, c.earned_before, typeof c.earned_before_eur === 'number' ? c.earned_before_eur : 0));
@@ -6469,7 +6474,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
 /* Editor der Statistik-Karte: Assistent (Schritt für Schritt) und Formular (alle Felder). */
 (() => {
   const LABELS = {
-    title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', pv_lifetime: 'PV-Zähler ohne Zurücksetzen für Amortisation (optional, wenn der PV-Zähler täglich auf 0 geht)', decimals: 'Nachkommastellen bei kWh (leer = automatisch)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh)',
+    title: 'Titel', pv_total: 'PV Gesamtertrag (Zähler, kWh)', pv_lifetime: 'PV-Zähler ohne Zurücksetzen für Amortisation (optional, wenn der PV-Zähler täglich auf 0 geht)', decimals: 'Nachkommastellen bei kWh (leer = automatisch)', grid_import_total: 'Netzbezug gesamt (Zähler, kWh)', grid_export_total: 'Einspeisung gesamt (Zähler, kWh, optional: leer bei Inselanlage)',
     battery_charge_total: 'Batterie geladen gesamt (kWh)', battery_discharge_total: 'Batterie entladen gesamt (kWh)', battery_capacity_kwh: 'Batteriekapazität (kWh)', battery_temp: 'Batterietemperatur',
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
@@ -6526,7 +6531,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     { short: 'Zähler', title: 'Gesamtzähler', text: 'Diese drei Zähler sind Pflicht. Sie zählen dauerhaft hoch (kWh seit Inbetriebnahme).', fields: [
       { path: 'pv_total', label: 'PV Gesamtertrag', kind: 'energy', hints: H(/pv|solar|inverter|wechselrichter|ertrag|yield/i, TOTAL) },
       { path: 'grid_import_total', label: 'Netzbezug gesamt', kind: 'energy', hints: H(/import|bezug|verbrauch|consumption|grid/i, TOTAL) },
-      { path: 'grid_export_total', label: 'Einspeisung gesamt', kind: 'energy', hints: H(/export|einspeis|feed/i, TOTAL) },
+      { path: 'grid_export_total', label: 'Einspeisung gesamt (leer lassen bei einer Inselanlage ohne Einspeisung)', kind: 'energy', optional: true, hints: H(/export|einspeis|feed/i, TOTAL) },
     ] },
     { short: 'Zähler 2', title: 'Zweiter Netzzähler (optional)', text: 'Nur für einen zweiten Zähler mit eigenem Tarif, der Strom bezieht, zum Beispiel eine Wärmepumpe. Sein Bezug zählt zum Netzbezug und zu den Kosten, zu seinem eigenen Preis.', fields: [
       { path: 'grid2_total', label: 'Zweiter Zähler gesamt (kWh)', kind: 'energy', optional: true, hints: H(/waerme|wärme|heiz|pump|zaehler|zähler|energie|energy/i, TOTAL), help: 'Bei drei Phasen den Summen-Sensor nehmen.' },
@@ -6622,7 +6627,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
   ];
 
   WD.defineEditor('energy-cockpit-stats-card-editor', {
-    needsSetup: (c) => !c.pv_total || !c.grid_import_total || !c.grid_export_total,
+    needsSetup: (c) => !c.pv_total || !c.grid_import_total,
     steps,
     form: () => WD.statsForm(),
   });
@@ -6691,7 +6696,7 @@ WD.addTranslations('en', {
   'dev.st.ready': 'ready', 'dev.st.brewing': 'brewing', 'dev.st.inactive': 'inactive', 'dev.st.finished': 'finished', 'dev.st.pause': 'paused',
   'dev.st.action': 'Action required', 'dev.st.error': 'Error', 'dev.st.playing': 'playing', 'dev.st.standby': 'standby',
 
-  'st.title': 'Statistics', 'st.err': 'pv_total, grid_import_total and grid_export_total are required', 'st.today': 'Today', 'st.next': 'Next →',
+  'st.title': 'Statistics', 'st.err': 'pv_total and grid_import_total are required', 'st.today': 'Today', 'st.next': 'Next →',
   'st.pvsav': 'Solar savings', 'st.feed': 'Export revenue', 'st.selfc': 'Solar self-consumption', 'st.cost': 'Grid electricity costs', 'st.aut': 'Energy independence',
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.pvall': 'Total solar',
@@ -6847,7 +6852,7 @@ WD.addTranslations('nl', {
   'dev.st.ready': 'gereed', 'dev.st.brewing': 'zet koffie', 'dev.st.inactive': 'inactief', 'dev.st.finished': 'gereed', 'dev.st.pause': 'gepauzeerd',
   'dev.st.action': 'Actie nodig', 'dev.st.error': 'Fout', 'dev.st.playing': 'speelt af', 'dev.st.standby': 'stand-by',
 
-  'st.title': 'Statistieken', 'st.err': 'pv_total, grid_import_total en grid_export_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
+  'st.title': 'Statistieken', 'st.err': 'pv_total en grid_import_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
   'st.pvsav': 'Besparing door zonne-energie', 'st.feed': 'Opbrengst teruglevering', 'st.selfc': 'Zelfverbruik zonne-energie', 'st.cost': 'Kosten netstroom', 'st.aut': 'Zelfvoorziening',
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.pvall': 'Zonne-energie totaal',
@@ -6997,7 +7002,7 @@ WD.addTranslations('fr', {
   'dev.st.playing': "en lecture",
   'dev.st.standby': "veille",
   'st.title': "Statistiques",
-  'st.err': "pv_total, grid_import_total et grid_export_total sont nécessaires",
+  'st.err': "pv_total et grid_import_total sont nécessaires",
   'st.today': "Aujourd'hui",
   'st.next': "Suite →",
   'st.pvsav': "Économies PV",
@@ -7436,7 +7441,7 @@ WD.addTranslations('fi', {
   'dev.st.playing': "toistaa",
   'dev.st.standby': "Valmiustila",
   'st.title': "Tilastot",
-  'st.err': "pv_total, grid_import_total ja grid_export_total tarvitaan",
+  'st.err': "pv_total ja grid_import_total tarvitaan",
   'st.today': "Tänään",
   'st.next': "Seuraava →",
   'st.pvsav': "Aurinkosähkön säästö",

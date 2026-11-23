@@ -53,7 +53,7 @@ WD.addTranslations('fi', {
   'dev.st.playing': "toistaa",
   'dev.st.standby': "Valmiustila",
   'st.title': "Tilastot",
-  'st.err': "pv_total, grid_import_total ja grid_export_total tarvitaan",
+  'st.err': "pv_total ja grid_import_total tarvitaan",
   'st.today': "Tänään",
   'st.next': "Seuraava →",
   'st.pvsav': "Aurinkosähkön säästö",

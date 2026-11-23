@@ -44,11 +44,18 @@ async function run(){
   e=mount(c);await wait(1500);
   hass.states['sensor.soc']=S(64,'%');hass.states['sensor.c1']=S(500);e.hass=JSON.parse(JSON.stringify(hass));await wait(3000);
   ok('Wechsel zur Laufzeit: Ladestand 64 %, Anteil 50 %',t(e,'.node.bat .soc-big')==='64%'&&t(e,'[data-k="c0"] .shr')==='50%',t(e,'.node.bat .soc-big')+' / '+t(e,'[data-k="c0"] .shr'));
-  // Kurzansicht blendet den Anteil aus
+  // #95 (PV-Joe): Kurzansicht zeigt den Anteil auch, innerhalb der Kachel
   e=mount({...c,compact:'immer'},380);await wait(1500);
-  ok('Kurzansicht: Anteil ausgeblendet',!q(e,'[data-k="c0"] .shr')||getComputedStyle(q(e,'[data-k="c0"] .shr')).display==='none','');
+  const cs=q(e,'[data-k="c0"] .shr'),ck=q(e,'[data-k="c0"]');
+  ok('Kurzansicht: Anteil sichtbar (50 %) und innerhalb der Kachel',!!cs&&getComputedStyle(cs).display!=='none'&&t(e,'[data-k="c0"] .shr')==='50%'&&cs.getBoundingClientRect().right<=ck.getBoundingClientRect().right+1,cs&&(Math.round(cs.getBoundingClientRect().right)+' / '+Math.round(ck.getBoundingClientRect().right)));
+  // #95 (PV-Joe): Anteil auch bei "Nicht erfasst": 1000 − 500 − 100 − 0 = 400 W = 40 %
+  e=mount({...c,show_rest:true});await wait(1500);
+  ok('„Nicht erfasst“: Anteil 40 %',t(e,'[data-k="crest"] .shr')==='40%',t(e,'[data-k="crest"] .shr'));
+  e=mount({...c,show_rest:true,compact:'immer'},380);await wait(1500);
+  const rs=q(e,'[data-k="crest"] .shr'),rk=q(e,'[data-k="crest"]');
+  ok('„Nicht erfasst“ in der Kurzansicht: Anteil sichtbar und in der Kachel',!!rs&&getComputedStyle(rs).display!=='none'&&rs.getBoundingClientRect().right<=rk.getBoundingClientRect().right+1);
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
 }
 if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
-else{const c=base();c.show_share=true;c.show_soc=true;mount(c,+(P.get('w')||1000));}
+else{const c=base();c.show_share=true;c.show_soc=true;if(P.get('cmp'))c.compact='immer';if(P.get('rest'))c.show_rest=true;mount(c,+(P.get('w')||1000));}
 </script></body></html>

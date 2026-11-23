@@ -14,7 +14,7 @@ const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
 const q=(e,s)=>e.shadowRoot.querySelector(s);
 const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
 async function run(){
-  let e=mount(cfg(),360);await wait(1500);
+  let e=mount(cfg({fit_screen:false}),360);await wait(1500);
   const ps=Array.from(e.shadowRoot.querySelectorAll('header .pill.pd')),r=ps.map(x=>x.getBoundingClientRect()),ti=q(e,'header .title').getBoundingClientRect();
   ok('Handy: zwei Blasen mit Punkt',ps.length===2&&ps.every(x=>getComputedStyle(x,'::before').content!=='none'),ps.length+'');
   ok('Handy: Blasen stehen in der Zeile unter dem Titel',r[0].top>=ti.bottom-1&&Math.abs(r[0].top-r[1].top)<2,Math.round(r[0].top)+' '+Math.round(r[1].top)+' '+Math.round(ti.bottom));

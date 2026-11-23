@@ -60,6 +60,10 @@ async function run(){
   // hide_zero: "true" als Text
   e=mount(cfg({hide_zero:'true'}));await wait(900);
   ok('hide_zero als Text "true" wirkt auch',!shown(e,'[data-k="c1"]'));
+  // #99: Nach einem Neuaufbau der Karte (z. B. Wechsel in die Kurzansicht am Handy) bleiben ruhende Verbraucher ausgeblendet, auch ohne consumers_top
+  e=mount(cfg({hide_zero_delay:30,consumer_groups:[]}));await wait(900);
+  e._build();e.hass=hassFor();await wait(1300);
+  ok('#99: nach Neuaufbau bleibt der ruhende Verbraucher weg (ohne consumers_top)',!shown(e,'[data-k="c1"]')&&shown(e,'[data-k="c0"]'));
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
 }
 if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
