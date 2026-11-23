@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.45.2
+- **Energiefluss, Größe der Zahl über dem Haus (optional, `home_size`, Wunsch von Cle2301, [#102](https://github.com/msucimaker3112/energy-cockpit/issues/102)):** Mit einer Zahl (zum Beispiel `home_size: 1.5`) wird nur die Zahl über dem Haus größer, auch in der 3D-Ansicht und in der Kurzansicht. Gut für Wandtablets. Ohne Angabe bleibt alles wie bisher. Im Editor unter „Größe der Zahl über dem Haus“.
+- **Statistik, Gesundheit der Batterie (optional, `battery_soh`, Wunsch von PV-Joe, [#100](https://github.com/msucimaker3112/energy-cockpit/issues/100)):** Ein Sensor mit dem Gesundheitszustand (SOH) in Prozent erscheint als eigene Kachel in der Fußzeile. Ohne Sensor ändert sich nichts.
+- **Statistik, Grundlast:** Der Betrag in Euro steht jetzt in der Farbe der Kachel statt in Weiß (Wunsch von PV-Joe, [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)).
+- **Energiefluss, Wetterband:** Das „?“ hat jetzt dieselbe türkise Farbe wie die anderen „?“ der Karte (Wunsch von PV-Joe, [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)).
+- **Statistik-Assistent:** Der Text im Schritt „Gesamtzähler“ sagte noch, alle drei Zähler seien Pflicht. Pflicht sind PV und Netzbezug, die Einspeisung ist optional ([#85](https://github.com/msucimaker3112/energy-cockpit/issues/85)).
+- **Tests:** Neue Seite `test/v0452-wishes.html`.
+
 ## 0.45.1
 - **Energiefluss, „Ruhende Verbraucher ausblenden“ (`hide_zero`) ging verloren:** Ohne „Nur die größten Verbraucher“ (`consumers_top`) erschienen ruhende Verbraucher wieder, sobald sich die Karte neu aufbaute, zum Beispiel am Handy beim Wechsel in die Kurzansicht. Jetzt reicht `hide_zero` allein. Gemeldet in [#99](https://github.com/msucimaker3112/energy-cockpit/issues/99).
 - **Energiefluss, Batterie:** Die Zeile „Entladung“ steht nur noch, wenn sie vom Ausgang abweicht. Bisher doppelte sie die große Zahl. Hinweis von Wunni73 in [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).

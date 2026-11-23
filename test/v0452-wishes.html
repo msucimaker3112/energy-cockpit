@@ -1,0 +1,49 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Wünsche 0.45.2 (home_size, Wetter-?, SOH, Grundlast-Farbe) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+/* Prüft #102 (home_size), Wetter-"?" in der Farbe von Haus (#95), SOH-Kachel der Statistik (#100) und den Grundlast-Betrag in der Farbe von Haus (#95). Aufruf: ?test=1&still=1 */
+const S=(v,u,a)=>({state:String(v),attributes:Object.assign({unit_of_measurement:u||'W'},a||{}),last_updated:'x'});
+const hassFlow={states:{'sensor.pv':S(1000),'sensor.grid':S(0),'sensor.home':S(1000),'weather.w':{state:'sunny',attributes:{temperature:12,friendly_name:'Wetter'},last_updated:'x'}},language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})};
+const hassStats=(soh)=>({states:Object.assign({'sensor.pv':S(900,'kWh'),'sensor.imp':S(1,'kWh')},soh===null?{}:{'sensor.soh':S(soh,'%')}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})});
+function mount(tag,c,h,w){const host=document.getElementById('host');host.style.width=(w||800)+'px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const fs=(e)=>parseFloat(getComputedStyle(q(e,'.core .num')).fontSize);
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},weather:'weather.w'};
+async function run(){
+  let e=mount('energy-cockpit-flow-card',base,hassFlow);await wait(900);
+  const f0=fs(e);
+  e=mount('energy-cockpit-flow-card',Object.assign({home_size:1.5},base),hassFlow);await wait(900);
+  ok('home_size 1.5: Zahl über dem Haus 1,5-fach',Math.abs(fs(e)/f0-1.5)<0.05,f0+' -> '+fs(e)+' | '+e._hsn+' | '+q(e,'.wrap').getAttribute('style'));
+  e=mount('energy-cockpit-flow-card',Object.assign({home_size:'2,0',style:'3d'},base),hassFlow);await wait(900);
+  ok('home_size mit Komma, 3D: größer als Standard',fs(e)>f0*1.8,String(fs(e)));
+  e=mount('energy-cockpit-flow-card',Object.assign({home_size:99},base),hassFlow);await wait(900);
+  ok('home_size 99: auf 4 begrenzt',Math.abs(fs(e)/f0-4)<0.1,String(fs(e)/f0));
+  e=mount('energy-cockpit-flow-card',Object.assign({home_size:'abc'},base),hassFlow);await wait(900);
+  ok('home_size ungültig: wie Standard',Math.abs(fs(e)-f0)<0.1,String(fs(e)));
+  // Wetter-?
+  e=mount('energy-cockpit-flow-card',base,hassFlow);await wait(900);
+  const sq=q(e,'.sky-q'),hv=getComputedStyle(q(e,'.core .hico')).color;
+  ok('Wetter-? hat die Farbe von Haus (türkis)',!!sq&&getComputedStyle(sq).color===hv,sq?getComputedStyle(sq).color+' / '+hv:'fehlt');
+  // SOH
+  let s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp',battery_soh:'sensor.soh'},hassStats(93));await wait(900);
+  const sv=q(s,'[data-f="soh"]');
+  ok('battery_soh: Kachel zeigt 93 %',!!sv&&/93\s*%/.test(sv.textContent),sv?sv.textContent:'fehlt');
+  ok('battery_soh: Beschriftung "Gesundheit (SOH)"',/Gesundheit \(SOH\)/.test(s.shadowRoot.querySelector('footer').textContent));
+  s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp',battery_soh:'sensor.soh'},hassStats(92.5));await wait(900);
+  ok('battery_soh 92,5: eine Nachkommastelle',/92,5\s*%/.test(q(s,'[data-f="soh"]').textContent),q(s,'[data-f="soh"]').textContent);
+  s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp'},hassStats(null));await wait(900);
+  ok('ohne battery_soh: keine Kachel',!q(s,'[data-f="soh"]'));
+  // Grundlast-Betrag in Farbe von Haus (Stylesheet)
+  const css=Array.from(s.shadowRoot.querySelectorAll('style')).map(x=>x.textContent).join('');
+  ok('Grundlast: Betrag und Euro-Zeichen in der Farbe von Haus',/\.gl \.big \.cost b\{[^}]*color:rgb\(var\(--home\)\)/.test(css)&&/\.gl \.big \.cost i\{[^}]*color:rgb\(var\(--home\)\)/.test(css));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount('energy-cockpit-flow-card',Object.assign({home_size:1.5},base),hassFlow);}
+</script></body></html>

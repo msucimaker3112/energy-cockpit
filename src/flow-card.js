@@ -89,8 +89,8 @@ header>*{margin:3px 0 3px 8px}
 .sky-now{position:absolute;top:-3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--txt);box-shadow:0 0 0 3px rgba(var(--ov),.18)}
 .sky-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:7px;font-size:calc(.7rem*var(--ts,1));color:var(--txt);font-variant-numeric:tabular-nums}
 .sky-lw{display:inline-flex;align-items:center;min-width:0}
-.sky-q{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;margin-left:7px;border-radius:50%;border:1px solid rgba(var(--ov),.28);background:var(--glass);color:rgb(var(--mut));font-size:.62rem;font-weight:700;line-height:1}
-.sky.open .sky-q{color:var(--txt);border-color:rgba(var(--ov),.5)}
+.sky-q{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;margin-left:7px;border-radius:50%;border:1px solid rgba(var(--home),.4);background:rgba(var(--home),.14);color:rgb(var(--home));font-size:.62rem;font-weight:700;line-height:1}
+.sky.open .sky-q{background:rgba(var(--home),.26);border-color:rgba(var(--home),.7)}
 .sky-det{display:none;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--stroke);font-size:calc(.74rem*var(--ts,1));color:rgb(var(--mut))}
 .sky.open .sky-det{display:block}
 .sky-det b{color:var(--txt);font-weight:650}
@@ -206,7 +206,7 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .core .hico{display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:16px;margin-bottom:6px;color:rgb(var(--hic,var(--home)));background:rgba(var(--hic,var(--home)),.16);transition:color .6s,background .6s}
 .core .hico ha-icon{color:inherit;--mdc-icon-size:32px;margin:0;display:flex}
 .core .val{margin:0}
-.core .num{font-size:calc(2.15rem*var(--vs,1));color:rgb(var(--home));text-shadow:none}
+.core .num{font-size:calc(2.15rem*var(--vs,1)*var(--hs,1));color:rgb(var(--home));text-shadow:none}
 .hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
 .mix{display:flex;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
 .mix span{display:flex;align-items:center;margin:0 6px}
@@ -277,7 +277,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wide .soc-row{font-size:calc(.86rem*var(--ts,1))}
 .wide .tag{font-size:calc(.72rem*var(--ts,1));padding:4px 11px}
 .wide .hub{max-width:300px}
-.wide .core .num{font-size:calc(2.8rem*var(--vs,1))}
+.wide .core .num{font-size:calc(2.8rem*var(--vs,1)*var(--hs,1))}
 .wide .core .hico{width:62px;height:62px;border-radius:19px}
 .wide .core .hico ha-icon{--mdc-icon-size:40px}
 .wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
@@ -402,7 +402,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .narrow .via-bat .mix{order:-1;margin:0 0 12px}
 .narrow .hub{max-width:210px}
 .narrow .num{font-size:calc(1.5rem*var(--vs,1))}
-.narrow .core .num{font-size:calc(1.8rem*var(--vs,1))}
+.narrow .core .num{font-size:calc(1.8rem*var(--vs,1)*var(--hs,1))}
 .narrow .core .hico{width:40px;height:40px;border-radius:13px}
 .narrow .core .hico ha-icon{--mdc-icon-size:26px}
 .narrow .groups{margin-top:26px}
@@ -440,7 +440,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cmp .hub{max-width:130px}
 .cmp .core .hico{width:24px;height:24px;border-radius:8px;margin-bottom:2px}
 .cmp .core .hico ha-icon{--mdc-icon-size:16px}
-.cmp .core .num{font-size:calc(1.1rem*var(--vs,1))}
+.cmp .core .num{font-size:calc(1.1rem*var(--vs,1)*var(--hs,1))}
 .cmp .sambox{margin-top:30px;padding:24px 8px 8px;border-radius:20px}
 .cmp .sam{padding:5px 12px}
 .wrap.cmp .consumers,.wrap.cmp .groups{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:8px;justify-content:stretch}
@@ -536,6 +536,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // label_size (optional): Faktor nur fuer die kleinen Texte (Namen, Zusatzwerte, Beschriftungen), unabhaengig von den Zahlen in den Kacheln
     const lsn = parseFloat(String(this._c.label_size).replace(',', '.'));
     this._lsn = !isNaN(lsn) && lsn > 0 ? Math.min(4, Math.max(0.5, lsn)) : 0;
+    // home_size (optional, #102): Faktor nur fuer die Zahl ueber dem Haus (und ihre Einheit)
+    const hsn = parseFloat(String(this._c.home_size).replace(',', '.'));
+    this._hsn = !isNaN(hsn) && hsn > 0 ? Math.min(4, Math.max(0.5, hsn)) : 0;
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._topCur = null; this._topPend = 0;
@@ -1153,7 +1156,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._hsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._hsn ? `--hs:${this._hsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>

@@ -625,6 +625,7 @@ waste:
 | `compact_forecast` | `false` | Zwei Schalter für die Prognose heute: `compact_forecast` gilt für die **Kurzansicht**, `forecast_swap` (darunter) für die **ausführliche Ansicht**. Nur mit Kurzansicht: `true` zeigt in der Solar-Kachel die Zeile „Prognose heute … kWh“ (aus `pv.forecast`), alle anderen Zusatzzeilen bleiben ausgeblendet. Gut für die Startseite auf dem Wandtablet ([#69](https://github.com/msucimaker3112/energy-cockpit/issues/69)) |
 | `forecast_swap` | `false` | `true`: unten „Prognose heute / morgen / übermorgen“ nebeneinander, „Solar heute“ in der Solar-Kachel. Nur mit einer Tagesprognose in kWh als `pv.forecast`, siehe [PV-Prognose](#pv-prognose-für-morgen-und-übermorgen) |
 | `label_size` | | Zahl (0,5 bis 4, zum Beispiel `1.5`): vergrößert **nur die kleinen Texte** (Namen, Zusatzwerte, Beschriftungen), die Zahlen in den Kacheln bleiben. Gut, wenn die Karte auf einen Bildschirm passen soll, die Beschriftungen aber zu klein sind. Bei den kleinen Texten gilt `label_size` vor `text_size` |
+| `home_size` | | Zahl (0,5 bis 4, zum Beispiel `1.5`): vergrößert **nur die Zahl über dem Haus** (und ihre Einheit), alles andere bleibt. Gut für Wandtablets, auch in der 3D-Ansicht. Ohne Angabe: Standardgröße. |
 | `watt_only` | `false` | `true`: Leistung immer in Watt (zum Beispiel 2.350 W) statt ab 1000 W in kW |
 | `decimals` | automatisch | Feste Nachkommastellen. Eine Zahl gilt für Energie (kWh): `decimals: 2` zeigt `10,80 kWh` und `0,00 kWh`. Einzeln: `decimals: { energy: 2, power: 1, percentage: 1 }`. `power` gilt für Werte in kW, Watt bleiben ganzzahlig. `percentage` gilt für Autarkie und Eigenverbrauch. Gibt es auch in der Statistik-Karte |
 | `fit_margin` | `8` | Abstand unten in Pixel |
@@ -708,6 +709,7 @@ battery_charge_total: sensor.batterie_geladen_kwh      # bei mehreren Speichern 
 battery_discharge_total: sensor.batterie_entladen_kwh
 battery_capacity_kwh: 7.5
 battery_temp: sensor.batterie_temperatur
+battery_soh: sensor.batterie_gesundheit      # optional: Gesundheit der Batterie (SOH) in Prozent, eigene Kachel in der Fußzeile
 pv_today: sensor.pv_heute
 import_today: sensor.bezug_heute
 export_today: sensor.einspeisung_heute
