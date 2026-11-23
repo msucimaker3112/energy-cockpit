@@ -44,6 +44,8 @@ Falls der Menüpunkt "Ressourcen" fehlt: In deinem Profil den **erweiterten Modu
 
 **Tipp:** Für Wandtablets die Ansicht auf den Typ **Panel** (eine Karte, volle Breite) stellen. Die Karten füllen dann die ganze Bildschirmhöhe.
 
+**Tipp: Vollbild ohne Seitenleiste und Kopfzeile (Wandtablet, Fernseher).** Das kann das Energy-Cockpit nicht selbst, aber die HACS-Erweiterung **Kiosk Mode** (von NemesisRE) macht es. Nach der Installation hängst du `?kiosk` an die Adresse des Dashboards, zum Beispiel `http://homeassistant.local:8123/lovelace/0?kiosk`. Nur die Seitenleiste ausblenden: `?hide_sidebar`. Nur die Kopfzeile: `?hide_header`. Zum Bearbeiten rufst du die Adresse einfach ohne den Parameter auf. Die Adresse mit dem Parameter speicherst du als Startseite im Browser oder in der Kiosk-App des Tablets. (Ohne zusätzliche Erweiterung geht nur die Seitenleiste: Profil → „Seitenleiste immer ausblenden“, das gilt dann pro Gerät.)
+
 ## 5. Einrichtungsassistent
 
 Beim ersten Hinzufügen einer Karte (oder über **Bearbeiten** an einer noch leeren Karte) öffnet sich der Editor im Reiter **Assistent**. Oben stehen die Schritte der Karte als Knöpfe, du kannst jederzeit springen. Jede Änderung wird sofort gespeichert.

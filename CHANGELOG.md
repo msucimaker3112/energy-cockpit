@@ -1,5 +1,8 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+- **Dokumentation, Vollbild ohne Seitenleiste:** In der Installationsanleitung und im README steht jetzt, wie ein Wandtablet oder Fernseher ohne Seitenleiste und Kopfzeile läuft: mit der HACS-Erweiterung Kiosk Mode und `?kiosk` (oder `?hide_sidebar`, `?hide_header`) an der Adresse des Dashboards.
+
 ## 0.45.2
 - **Energiefluss, Größe der Zahl über dem Haus (optional, `home_size`, Wunsch von Cle2301, [#102](https://github.com/msucimaker3112/energy-cockpit/issues/102)):** Mit einer Zahl (zum Beispiel `home_size: 1.5`) wird nur die Zahl über dem Haus größer, auch in der 3D-Ansicht und in der Kurzansicht. Gut für Wandtablets. Ohne Angabe bleibt alles wie bisher. Im Editor unter „Größe der Zahl über dem Haus“.
 - **Statistik, Gesundheit der Batterie (optional, `battery_soh`, Wunsch von PV-Joe, [#100](https://github.com/msucimaker3112/energy-cockpit/issues/100)):** Ein Sensor mit dem Gesundheitszustand (SOH) in Prozent erscheint als eigene Kachel in der Fußzeile. Ohne Sensor ändert sich nichts.
