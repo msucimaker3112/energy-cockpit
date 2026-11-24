@@ -45,7 +45,7 @@ WD.addTranslations('en', {
   'why.none': 'There is no data to explain this right now.', 'why.top': 'including {n} {w}', 'bat.in2': ' (solar 2 <b>{pv}</b> · home <b>{ac}</b>)',
   'xt.alarm': 'Alarm',
   'sky.sunny': 'Sunny', 'sky.clear-night': 'Clear night', 'sky.partlycloudy': 'Partly cloudy', 'sky.cloudy': 'Cloudy', 'sky.fog': 'Fog', 'sky.rainy': 'Rain', 'sky.pouring': 'Heavy rain', 'sky.snowy': 'Snow', 'sky.snowy-rainy': 'Sleet', 'sky.lightning': 'Thunderstorm', 'sky.lightning-rainy': 'Thunderstorm with rain', 'sky.hail': 'Hail', 'sky.windy': 'Windy', 'sky.windy-variant': 'Windy and cloudy', 'sky.exceptional': 'Exceptional weather', 'sky.cloud': 'Cloud cover', 'sky.wind': 'Wind', 'sky.nofc': 'No forecast available from the weather entity',
-  'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'close': 'Close',
+  'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'stat.cdaily': '{n} today', 'stat.home.excl': 'Home today without {n}', 'status.on': 'ON', 'status.off': 'OFF', 'status.unknown': 'Unknown', 'close': 'Close',
 
   'dev.title': 'Devices & consumption', 'dev.room': 'Room', 'dev.err': 'rooms is missing: configure at least one room', 'dev.next': 'Next →',
   'dev.days': 'days', 'dev.p.day': 'Today', 'dev.p.week': 'Week', 'dev.p.month': 'Month', 'dev.p.year': 'Year',

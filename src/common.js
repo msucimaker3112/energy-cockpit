@@ -92,6 +92,21 @@ const WD = (() => {
   // Preis in Euro pro kWh: Sensor, Helfer oder Zahl, sonst fester Preis in Cent (…_ct), sonst Standardwert
   const price = (h, v, ct, def) => { const x = val(h, v, null); if (x !== null) return x; return typeof ct === 'number' && ct >= 0 ? ct / 100 : def; };
 
+  // grid_price_times (optional, #105): Preise nach Uhrzeit in ganzen Stunden, jeden Tag gleich. Liste {from, to, ct} (Uhrzeit als Zahl oder "HH:MM"), auch über Mitternacht
+  // (zum Beispiel 22 bis 6). Der erste passende Eintrag gilt, sonst der normale Preis. Gibt eine Liste {from, to, eur} zurück, ungültige Einträge fallen weg
+  const hourOf = (v) => { if (typeof v === 'number') return v; const m = String(v).trim().match(/^(\d{1,2})(?::(\d{2}))?$/); return m ? +m[1] + (m[2] ? +m[2] / 60 : 0) : NaN; };
+  const priceTimes = (l) => (Array.isArray(l) ? l : l && typeof l === 'object' ? Object.keys(l).sort((a, b) => a - b).map((k) => l[k]) : [])
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({ from: hourOf(x.from), to: hourOf(x.to), eur: parseFloat(String(x.ct).replace(',', '.')) / 100 }))
+    .filter((x) => isFinite(x.from) && isFinite(x.to) && x.from >= 0 && x.from <= 24 && x.to >= 0 && x.to <= 24 && x.from !== x.to && isFinite(x.eur) && x.eur >= 0);
+  // Preis zu einer Uhrzeit (Stunde als Zahl, zum Beispiel 5,5 für 5:30), null außerhalb aller Zeiten
+  const timesPrice = (times, hr) => { for (let i = 0; i < times.length; i++) { const t = times[i]; if (t.from < t.to ? hr >= t.from && hr < t.to : hr >= t.from || hr < t.to) return t.eur; } return null; };
+  // Preis jetzt: Preis der aktuellen Uhrzeit aus grid_price_times, sonst der normale Preis (Sensor, Helfer oder fester Preis)
+  const priceNow = (h, c, def, d) => {
+    const t = priceTimes(c && c.grid_price_times), x = d || new Date(), hit = t.length ? timesPrice(t, x.getHours() + x.getMinutes() / 60) : null;
+    return hit !== null ? hit : price(h, c && c.grid_price, c && c.grid_price_ct, def);
+  };
+
   // Farbschemen: alle Karten färben sich über CSS-Variablen. Standard ist "dunkel" (bisheriges Design).
   const THEMES = {
     dunkel: { n: 'Dunkel', d: 'Mitternachtsblau (Standard)', ov: '255,255,255', bg0: '#070b14', bg1: '#121b30', bg2: '#172440', panel: '#0c1322', txt: '#e8eefc', mut: '139,151,179', stroke: 'rgba(255,255,255,.08)', glass: 'rgba(255,255,255,.035)', y1: '#fef08a', o1: '#fed7aa', y0: '#fff7c2' },
@@ -203,5 +218,5 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, priceTimes, timesPrice, priceNow, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();

@@ -45,7 +45,7 @@ WD.addTranslations('nl', {
   'why.none': 'Er zijn op dit moment geen gegevens voor een uitleg.', 'why.top': 'waarvan {n} {w}', 'bat.in2': ' (zonne-energie 2 <b>{pv}</b> · huis <b>{ac}</b>)',
   'xt.alarm': 'Alarm',
   'sky.sunny': 'Zonnig', 'sky.clear-night': 'Heldere nacht', 'sky.partlycloudy': 'Half bewolkt', 'sky.cloudy': 'Bewolkt', 'sky.fog': 'Mist', 'sky.rainy': 'Regen', 'sky.pouring': 'Stortregen', 'sky.snowy': 'Sneeuw', 'sky.snowy-rainy': 'Natte sneeuw', 'sky.lightning': 'Onweer', 'sky.lightning-rainy': 'Onweer met regen', 'sky.hail': 'Hagel', 'sky.windy': 'Winderig', 'sky.windy-variant': 'Winderig en bewolkt', 'sky.exceptional': 'Uitzonderlijk weer', 'sky.cloud': 'Bewolking', 'sky.wind': 'Wind', 'sky.nofc': 'Geen prognose beschikbaar van de weerentiteit',
-  'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'close': 'Sluiten',
+  'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'stat.cdaily': '{n} vandaag', 'stat.home.excl': 'Huis vandaag zonder {n}', 'status.on': 'AAN', 'status.off': 'UIT', 'status.unknown': 'Onbekend', 'close': 'Sluiten',
 
   'dev.title': 'Apparaten en verbruik', 'dev.room': 'Ruimte', 'dev.err': 'rooms ontbreekt: configureer ten minste één ruimte', 'dev.next': 'Volgende →',
   'dev.days': 'dagen', 'dev.p.day': 'Vandaag', 'dev.p.week': 'Week', 'dev.p.month': 'Maand', 'dev.p.year': 'Jaar',

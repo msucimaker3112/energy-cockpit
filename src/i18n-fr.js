@@ -268,6 +268,11 @@ WD.addTranslations('fr', {
   'xt.alarm': "Alarme",
   'ban.tonet0': "Courant injecté au réseau",
   'stat.home': "Maison aujourd'hui",
+  'stat.cdaily': "{n} aujourd'hui",
+  'stat.home.excl': "Maison aujourd'hui sans {n}",
+  'status.on': "MARCHE",
+  'status.off': "ARRÊT",
+  'status.unknown': "Inconnu",
   'close': "Fermer",
 
   // --- Météo (sky.*) ---

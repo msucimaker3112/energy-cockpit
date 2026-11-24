@@ -94,6 +94,21 @@ const WD = (() => {
   // Preis in Euro pro kWh: Sensor, Helfer oder Zahl, sonst fester Preis in Cent (…_ct), sonst Standardwert
   const price = (h, v, ct, def) => { const x = val(h, v, null); if (x !== null) return x; return typeof ct === 'number' && ct >= 0 ? ct / 100 : def; };
 
+  // grid_price_times (optional, #105): Preise nach Uhrzeit in ganzen Stunden, jeden Tag gleich. Liste {from, to, ct} (Uhrzeit als Zahl oder "HH:MM"), auch über Mitternacht
+  // (zum Beispiel 22 bis 6). Der erste passende Eintrag gilt, sonst der normale Preis. Gibt eine Liste {from, to, eur} zurück, ungültige Einträge fallen weg
+  const hourOf = (v) => { if (typeof v === 'number') return v; const m = String(v).trim().match(/^(\d{1,2})(?::(\d{2}))?$/); return m ? +m[1] + (m[2] ? +m[2] / 60 : 0) : NaN; };
+  const priceTimes = (l) => (Array.isArray(l) ? l : l && typeof l === 'object' ? Object.keys(l).sort((a, b) => a - b).map((k) => l[k]) : [])
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({ from: hourOf(x.from), to: hourOf(x.to), eur: parseFloat(String(x.ct).replace(',', '.')) / 100 }))
+    .filter((x) => isFinite(x.from) && isFinite(x.to) && x.from >= 0 && x.from <= 24 && x.to >= 0 && x.to <= 24 && x.from !== x.to && isFinite(x.eur) && x.eur >= 0);
+  // Preis zu einer Uhrzeit (Stunde als Zahl, zum Beispiel 5,5 für 5:30), null außerhalb aller Zeiten
+  const timesPrice = (times, hr) => { for (let i = 0; i < times.length; i++) { const t = times[i]; if (t.from < t.to ? hr >= t.from && hr < t.to : hr >= t.from || hr < t.to) return t.eur; } return null; };
+  // Preis jetzt: Preis der aktuellen Uhrzeit aus grid_price_times, sonst der normale Preis (Sensor, Helfer oder fester Preis)
+  const priceNow = (h, c, def, d) => {
+    const t = priceTimes(c && c.grid_price_times), x = d || new Date(), hit = t.length ? timesPrice(t, x.getHours() + x.getMinutes() / 60) : null;
+    return hit !== null ? hit : price(h, c && c.grid_price, c && c.grid_price_ct, def);
+  };
+
   // Farbschemen: alle Karten färben sich über CSS-Variablen. Standard ist "dunkel" (bisheriges Design).
   const THEMES = {
     dunkel: { n: 'Dunkel', d: 'Mitternachtsblau (Standard)', ov: '255,255,255', bg0: '#070b14', bg1: '#121b30', bg2: '#172440', panel: '#0c1322', txt: '#e8eefc', mut: '139,151,179', stroke: 'rgba(255,255,255,.08)', glass: 'rgba(255,255,255,.035)', y1: '#fef08a', o1: '#fed7aa', y0: '#fff7c2' },
@@ -205,7 +220,7 @@ const WD = (() => {
     return ka;
   })();
 
-  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
+  return { state, setLocale, hhmm, LANG_OPTIONS, PAL, palFor, colorVars, TH, rgb, num, watt, kwh, rawUnits, statUnits, val, price, priceTimes, timesPrice, priceNow, THEMES, THEME_OPTIONS, themeCss, applyTheme, clock, nf, splitW, fW, fKwh, fPct, decOf, cur, esc, accentRgb, haNavigate, KA };
 })();
 
 
@@ -286,6 +301,8 @@ const WD = (() => {
       else if (kind === 'flow') ok = dom === 'sensor' && (/^(l|L)\/(min|h|s)$|^m(³|3)\/h$/.test(u) || dc === 'volume_flow_rate');
       else if (kind === 'weather') ok = dom === 'weather';
       else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
+      // Statuskachel (#108): Schalter und Binärsensoren ohne Leistungsmessung
+      else if (kind === 'status') ok = ['input_boolean', 'binary_sensor', 'switch', 'light', 'fan', 'lock', 'cover'].indexOf(dom) >= 0;
       if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
     });
     return out.sort((x, y) => x.name.localeCompare(y.name, 'de'));
@@ -458,9 +475,20 @@ const WD = (() => {
       const items = arr(cfg[f.path]).filter((x) => x && typeof x === 'object');
       const used = items.map((x) => x[KEY]);
       const sugs = all.filter((e) => used.indexOf(e.id) < 0 && getPath(cfg, 'pv.entity') !== e.id && getPath(cfg, 'grid.entity') !== e.id && getPath(cfg, 'battery.power') !== e.id && getPath(cfg, 'home.entity') !== e.id);
-      const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY]); emit(); };
+      const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY] || (f.statusKey && x[f.statusKey])); emit(); };
       items.forEach((it, i) => {
         const row = el('div', css.box);
+        // Statuskachel (ohne Leistungssensor): nur Name und Entfernen
+        if (f.statusKey && !it[KEY] && it[f.statusKey]) {
+          row.appendChild(el('div', css.help, 'Statuskachel (EIN oder AUS): ' + ((own(hass, it[f.statusKey]) || { name: it[f.statusKey] }).name)));
+          const nm0 = el('input', css.input + ';margin-top:6px');
+          nm0.placeholder = 'Anzeigename'; nm0.value = it.name || '';
+          nm0.addEventListener('change', () => { it.name = nm0.value; write(items); });
+          const rm0 = el('button', css.btn, 'Entfernen'); rm0.type = 'button';
+          rm0.addEventListener('click', () => { items.splice(i, 1); write(items); render(); });
+          row.appendChild(nm0); row.appendChild(rm0); wrap.appendChild(row);
+          return;
+        }
         const sel = el('select', css.input);
         const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || own(hass, it[KEY]) || { name: it[KEY] || '—' }).name;
         sel.appendChild(o0);
@@ -484,6 +512,30 @@ const WD = (() => {
           ms.value = cur || '';
           ms.addEventListener('change', () => { if (ms.value) it[f.minusKey] = ms.value; else delete it[f.minusKey]; write(items); });
           row.appendChild(ms);
+        }
+        if (f.invertKey) {
+          const ir = el('label', css.help + ';margin-top:8px;display:flex;gap:8px;align-items:center'), ic = document.createElement('input');
+          ic.type = 'checkbox'; ic.checked = it[f.invertKey] === true;
+          ic.addEventListener('change', () => { if (ic.checked) it[f.invertKey] = true; else delete it[f.invertKey]; write(items); });
+          ir.appendChild(ic); ir.appendChild(document.createTextNode(f.invertLabel || 'Vorzeichen umkehren (der Sensor meldet den Verbrauch negativ)'));
+          row.appendChild(ir);
+        }
+        if (f.dailyKey) {
+          row.appendChild(el('div', css.help + ';margin-top:8px', f.dailyLabel || 'Tagesverbrauch heute (kWh, optional): eigene Kachel unten in der Karte'));
+          const ds = el('select', css.input), d0 = document.createElement('option'); d0.value = ''; d0.textContent = '— keiner —'; ds.appendChild(d0);
+          const eall = list(hass, 'energy');
+          if (it[f.dailyKey] && !eall.some((e) => e.id === it[f.dailyKey])) { const o = document.createElement('option'); o.value = it[f.dailyKey]; o.textContent = it[f.dailyKey]; ds.appendChild(o); }
+          eall.forEach((e) => { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; ds.appendChild(o); });
+          ds.value = it[f.dailyKey] || '';
+          ds.addEventListener('change', () => { if (ds.value) it[f.dailyKey] = ds.value; else { delete it[f.dailyKey]; delete it[f.dailyFromHomeKey]; } write(items); render(); });
+          row.appendChild(ds);
+          if (it[f.dailyKey] && f.dailyFromHomeKey) {
+            const fr = el('label', css.help + ';margin-top:6px;display:flex;gap:8px;align-items:center'), fc = document.createElement('input');
+            fc.type = 'checkbox'; fc.checked = it[f.dailyFromHomeKey] === true;
+            fc.addEventListener('change', () => { if (fc.checked) it[f.dailyFromHomeKey] = true; else delete it[f.dailyFromHomeKey]; write(items); });
+            fr.appendChild(fc); fr.appendChild(document.createTextNode('Von „Haus heute“ abziehen'));
+            row.appendChild(fr);
+          }
         }
         if (f.priceKey) {
           const pr = el('input', css.input + ';margin-top:6px');
@@ -509,6 +561,18 @@ const WD = (() => {
           write(items); render();
         });
         add.appendChild(sel);
+        if (f.statusKey) {
+          add.appendChild(el('div', css.help + ';margin-top:10px', f.statusLabel || 'Statuskachel ohne Leistungssensor hinzufügen (zeigt EIN oder AUS, zählt nicht zum Verbrauch):'));
+          const ss = el('select', css.input), s0 = document.createElement('option'); s0.value = ''; s0.textContent = '— Schalter oder Binärsensor wählen —'; ss.appendChild(s0);
+          list(hass, 'status').forEach((e) => { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; ss.appendChild(o); });
+          ss.addEventListener('change', () => {
+            if (!ss.value) return;
+            const e = list(hass, 'status').find((x) => x.id === ss.value);
+            items.push({ name: e ? e.name : '', [f.statusKey]: ss.value, secondary_mode: 'status' });
+            write(items); render();
+          });
+          add.appendChild(ss);
+        }
         wrap.appendChild(add);
       }
       return wrap;
@@ -1029,7 +1093,7 @@ WD.D3 = { stack, solar, meter, house, boiler, wmeter, css, draw, ring, roof };
 /* ---- flow-card.js ---- */
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'stat.cdaily': '{n} heute', 'stat.home.excl': 'Haus heute ohne {n}', 'status.on': 'EIN', 'status.off': 'AUS', 'status.unknown': 'Unbekannt', 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 // Warum? für Solar und Batterie (#50)
 WD.addStrings({
   'why.aria.pv': 'Warum liefert Solar gerade so viel?', 'why.aria.bat': 'Was macht die Batterie gerade?',
@@ -1577,6 +1641,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
     this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
+    // Derselbe Sensor bei grid und grid2 würde den Bezug doppelt zählen (zum Beispiel bei einer Zählerkaskade): grid2 gilt dann nicht
+    if (this._c.grid2 && this._c.grid && this._c.grid.entity && this._c.grid2.entity === this._c.grid.entity) {
+      console.warn('energy-cockpit: grid2 nutzt denselben Sensor wie grid (' + this._c.grid2.entity + ') und wird ignoriert, sonst zählt der Bezug doppelt. Bei zwei Zählern in Reihe siehe docs/ZWEI-ZAEHLER.md.');
+      this._c.grid2 = null;
+    }
     if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || '', icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
@@ -1616,6 +1685,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.grid) { add(c.grid.daily_import); add(c.grid.daily_export); }
     c.batteries.forEach((b) => { add(b.daily_charge); add(b.daily_discharge); });
     if (c.home) add(c.home.daily);
+    c.consumers.forEach((x) => { if (x && x.daily) add(x.daily); });
     return ids;
   }
   async _loadDaily() {
@@ -2183,6 +2253,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (fe('forecast_day_after')) stats += d('fc2', T(fsw ? 'stat.fc2p' : 'stat.fc2'), PAL.pv, fe('forecast_day_after'));
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
+    // Tageswert je Verbraucher (optional, #106): eigene Kachel "<Name> heute" mit dem Sensor consumers[].daily (kWh)
+    c.consumers.forEach((x, i) => { if (x && x.daily) stats += d('cd' + i, T('stat.cdaily', { n: x.daily_name || x.name || x.entity || x.daily }), rgb(x.color, '167,139,250'), x.daily); });
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
     // Hausverbrauch heute: eigener Sensor (home.daily) oder berechnet wie die Autarkie
     if ((c.home && c.home.daily) || (((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) && c.grid && c.grid.daily_import)) stats += d('home', T('stat.home'), PAL.home);
@@ -2762,7 +2834,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!el) return;
     const sc = c.surplus || {}, gc = c.grid_alert || {};
     const now = Date.now();
-    const price = WD.price(h, c.grid_price, c.grid_price_ct, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
+    const price = WD.priceNow(h, c, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
     const thrS = sc.threshold || 1500, thrG = gc.threshold || 1000;
     const delayS = (sc.delay === undefined ? 60 : sc.delay) * 1000, delayG = (gc.delay === undefined ? 120 : gc.delay) * 1000;
     const surOn = sc.enabled !== false && x.gExp > (this._modeB === 'sur' ? thrS * 0.7 : thrS);
@@ -2883,11 +2955,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (s) s.textContent = tot !== null ? this._fW(tot) : any ? this._fW(sum) : '';
   }
 
+  // Statuskachel (#108): secondary_mode: status, oder ohne Leistungssensor mit einem Schalter oder Binärsensor als secondary
+  _statusMode(x) {
+    if (!x || x.entity || !x.secondary) return false;
+    if (x.secondary_mode === 'status') return true;
+    return x.secondary_mode === undefined && /^(input_boolean|binary_sensor|switch|light|fan|lock|cover)\./.test(String(x.secondary));
+  }
+
   // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
   _cw(x) {
     if (!x || !x.entity) return null;
     const h = this._hass, L = (v) => (Array.isArray(v) ? v : v ? [v] : []);
-    const p = watt(h, x.entity), mi = L(x.minus);
+    let p = watt(h, x.entity);
+    // invert (optional): Vorzeichen des Hauptsensors umkehren, wenn er den Verbrauch negativ meldet
+    if (p !== null && (x.invert === true || String(x.invert).toLowerCase() === 'true')) p = -p;
+    const mi = L(x.minus);
     if (!mi.length || p === null) return p;
     // mehrere Unterzähler möglich: Hauptzähler minus Summe der Unterzähler (plus Summe der Zusatzwerte)
     let s = 0;
@@ -3204,6 +3286,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const p = this._cw(x), on = (p || 0) > onW(x);
         // grid2: Kosten pro Stunde mit dem eigenen Preis
         if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
+        // eigener Preis je Verbraucher (optional): price (Sensor, Euro pro kWh) oder price_ct (Cent pro kWh), zum Beispiel ein Wärmepumpentarif. Ein eigener Zusatzwert (secondary) hat Vorrang
+        else if (!x._g2 && !secTxt && on && (x.price || typeof x.price_ct === 'number')) { const pr = WD.price(h, x.price, x.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
         pw[i] = p || 0;
         if (this._hzOn()) this._hz('c' + i, p === null || p <= onW(x));
@@ -3214,6 +3298,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
         // #83: secondary_name steht vor dem Wert des Zusatzsensors, z. B. "SoC eAuto 80 %"
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt && x.secondary_name ? x.secondary_name + ' ' + secTxt : secTxt);
         this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
+      } else if (this._statusMode(x)) {
+        // Statuskachel (#108): kein Leistungssensor, zeigt EIN, AUS oder Unbekannt. Geht nicht in die Leistungsrechnung ein
+        const sv = secSt ? String(secSt.state).trim().toLowerCase() : '';
+        const ON = ['on', 'true', 'ein', 'an', 'open', 'offen', 'yes', 'ja', 'active', 'aktiv', 'running', 'heat', 'cool', 'home', 'unlocked'], OFF = ['off', 'false', 'aus', 'closed', 'geschlossen', 'no', 'nein', 'inactive', 'idle', 'standby', 'not_home', 'locked'];
+        const isNum = sv !== '' && !isNaN(parseFloat(sv)) && isFinite(sv), unk = !secSt || ['unavailable', 'unknown', 'none', ''].includes(sv);
+        const isOn = !unk && (ON.includes(sv) || (isNum && parseFloat(sv) > 0)), isOff = !unk && (OFF.includes(sv) || (isNum && parseFloat(sv) <= 0));
+        const txt = unk ? T('status.unknown') : isOn ? T('status.on') : isOff ? T('status.off') : String(secSt.state);
+        el.classList.toggle('on', isOn);
+        el.style.setProperty('--c', isOn ? PAL.exp : rgb(x.color, '167,139,250'));
+        this._set(`[data-k="c${i}"] .num`, txt);
+        this._set(`[data-k="c${i}"] .unit`, '');
+        this._set(`[data-k="c${i}"] .c-sec`, x.secondary_name || '');
       } else {
         el.classList.add('on');
         const parts = secTxt ? secTxt.split(' ') : ['—'];
@@ -3341,6 +3437,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
       if (cons > 0) aut = 1 - dImp / cons;
       if (dHome === null && !(c.home && c.home.daily)) dHome = Math.max(0, cons);
     }
+    // consumers[].daily: Kachel je Verbraucher. daily_from_home: true zieht den Wert von "Haus heute" ab (zum Beispiel die Wallbox)
+    const subN = [];
+    let subV = 0;
+    c.consumers.forEach((x, i) => {
+      if (!x || !x.daily) return;
+      const dv = en(x.daily);
+      this._set(`[data-s="cd${i}"] b`, `${this._fk(dv)}<small>kWh</small>`, true);
+      if (x.daily_from_home === true || String(x.daily_from_home).toLowerCase() === 'true') { subN.push(x.daily_name || x.name || x.entity || x.daily); subV += dv || 0; }
+    });
+    if (subN.length && dHome !== null) {
+      dHome = Math.max(0, dHome - subV);
+      this._set('[data-s="home"] > span', '<i></i>' + esc(T('stat.home.excl', { n: subN.join(', ') })), true);
+    }
     this._set('[data-s="home"] b', `${this._fk(dHome)}<small>kWh</small>`, true);
     this._set('[data-s="aut"] b', this._fp(aut));
     if (this._dlg !== null && this._dlg !== undefined) this._dlgUpd();
@@ -3369,14 +3478,14 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const LABELS = {
     text_muted: 'Beschriftungen (sonst grau)', text: 'Werte und Titel',
     title: 'Titel', name: 'Anzeigename', icon: 'Symbol', minus: 'Differenz: abziehen (Sensor, W), z. B. Zähler 2 einer Zählerkaskade', plus: 'Differenz: dazurechnen (Sensor, W, optional)',
-    entity: 'Sensor (Leistung)', daily: 'Tagesertrag (kWh)', daily_ac: 'Tagesertrag zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
+    entity: 'Sensor (Leistung)', daily: 'Tageswert heute (kWh)', daily_name: 'Name der Tageswert-Kachel (optional)', daily_from_home: 'Tageswert von „Haus heute“ abziehen', price_ct: 'Eigener Preis (Cent pro kWh, zeigt Kosten pro Stunde)', secondary_mode: 'Zusatzwert anzeigen als', daily_ac: 'Tagesertrag zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
     power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', hide_zero: 'Ruhende Verbraucher ausblenden (unter „Aktiv ab“)', hide_zero_delay: 'Ausblenden erst nach (Sekunden, Standard 30)', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', consumers_top: 'Nur die größten Verbraucher zeigen (Anzahl)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
-    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
+    grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', grid_price_times: 'Preise nach Uhrzeit (Liste, siehe Assistent)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
     daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', home_size: 'Größe der Zahl über dem Haus (Faktor, z. B. 1,5)', kwp: 'Anlagenleistung (kWp): zeigt die aktuelle Erzeugung in % davon', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
@@ -3395,8 +3504,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   // Listen als Platzhalter-Abschnitte "0", "1", ...: Home Assistant speichert sie als Objekt, die Karte macht daraus wieder eine Liste
   const extraFields = () => [ent('entity', ['sensor', 'binary_sensor', 'input_number', 'number']), txt('name'), txt('unit'), numb('decimals', 0, 4, 1), numb('warn_above', -1000000, 1000000, 0.1), numb('warn_below', -1000000, 1000000, 0.1), bool('no_name')];
   const slots = (n, titleOf, schemaOf) => Array.from({ length: n }, (_, i) => sec(String(i), titleOf(i + 1), schemaOf(i)));
-  const consumerFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), txt('secondary_name'), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'mittel', label: 'Mittel (eine Spalte, größere Zahl)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
-  const itemFields = () => [ent('entity', ['sensor']), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), txt('secondary_name'), numb('on_w', 0, 100000, 1)];
+  const consumerFields = () => [ent('entity', ['sensor']), bool('invert', false), entm('minus', ['sensor']), entm('plus', ['sensor']), ent('daily', ['sensor']), txt('daily_name'), bool('daily_from_home', false), numb('price_ct', 0, 200, 0.01), { name: 'secondary_mode', selector: { select: { mode: 'dropdown', options: [{ value: 'zahl', label: 'Zahl (Standard)' }, { value: 'status', label: 'Status: EIN, AUS oder Unbekannt' }] } } }, txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), ent('secondary', ['sensor']), txt('secondary_name'), numb('on_w', 0, 100000, 1), { name: 'size', selector: { select: { mode: 'dropdown', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'mittel', label: 'Mittel (eine Spalte, größere Zahl)' }, { value: 'gross', label: 'Groß (breite Kachel mit großer Zahl)' }] } } }];
+  const itemFields = () => [ent('entity', ['sensor']), bool('invert', false), entm('minus', ['sensor']), entm('plus', ['sensor']), txt('name'), ent('secondary', ['sensor']), txt('secondary_name'), numb('on_w', 0, 100000, 1)];
   const groupFields = () => [
     txt('name'), { name: 'icon', selector: { icon: {} } }, txt('image'), txt('color'), numb('on_w', 0, 100000, 1), ent('entity', ['sensor']), txt('rest_name'),
     sec('items', 'Verbraucher der Gruppe', slots(10, (n) => `Verbraucher ${n}`, itemFields)),
@@ -3437,6 +3546,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('consumer_groups', 'Gruppen (bis zu 10)', slots(10, (n) => `Gruppe ${n}`, groupFields)),
       ent('grid_price', ['sensor', 'input_number']),
       numb('grid_price_ct', 0, 200, 0.1),
+      { name: 'grid_price_times', selector: { object: {} } },
       ent('feed_in', ['sensor', 'input_number']),
       numb('feed_in_ct', 0, 200, 0.1),
       bool('daily_from_total', false),
@@ -3604,8 +3714,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'water2.daily', label: 'Zweiter Wasserzähler: Verbrauch heute (Liter oder m³)', kind: 'water', optional: true, hints: H(/zisterne|regen|garten|wasser.*2|water.*2/i, /heute|today|daily|tag/i), help: 'Optional. Eine eigene Kachel, zum Beispiel für Zisternenwasser. Einen dritten Zähler und Durchfluss-Sensoren gibt es im Reiter „Alle Felder“.' },
       { path: 'water2.name', label: 'Zweiter Wasserzähler: Name', kind: 'text', optional: true },
     ] },
-    { short: 'Verbraucher', title: 'Einzelverbraucher', text: 'Wähle Geräte mit eigenem Leistungssensor, zum Beispiel Wärmepumpe, Wallbox oder Trockner. Gruppen (z. B. je Raum) findest du unter "Alle Felder".', fields: [
-      { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 30, minusKey: 'minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Haushaltszähler):' },
+    { short: 'Verbraucher', title: 'Einzelverbraucher', text: 'Wähle Geräte mit eigenem Leistungssensor, zum Beispiel Wärmepumpe, Wallbox oder Trockner. Geräte ohne Leistungssensor (zum Beispiel eine Boiler-Freigabe) zeigst du als Statuskachel mit EIN oder AUS. Gruppen (z. B. je Raum) findest du unter "Alle Felder".', fields: [
+      { path: 'consumers', label: 'Verbraucher', kind: 'list', max: 30, minusKey: 'minus', minusLabel: 'Optional, nur bei zwei Zählern hintereinander: Davon abziehen (Differenz, z. B. Haushaltszähler):', invertKey: 'invert', dailyKey: 'daily', dailyFromHomeKey: 'daily_from_home', priceKey: 'price_ct', priceLabel: 'Eigener Preis in Cent pro kWh (optional): zeigt die Kosten pro Stunde in der Kachel', statusKey: 'secondary' },
       { path: 'rest_min', label: 'Kachel "Nicht erfasst" erst anzeigen ab (% vom Hausverbrauch)', kind: 'number', optional: true, step: '1', help: 'Zum Beispiel 10: Die Kachel erscheint nur, wenn mindestens 10 % des Hausverbrauchs keiner Gruppe zugeordnet sind.' },
       { path: 'groups_columns', label: 'Gruppen pro Reihe', kind: 'number', optional: true, step: '1', help: 'Leer: alle Gruppen nebeneinander in einer Reihe. 1: jede Gruppe in einer eigenen Reihe über die volle Breite, die Namen sind dann besser lesbar. Stehen Gruppen untereinander, zeichnet die Karte eine Sammel-Linie.' },
       { path: 'hide_zero', label: 'Ruhende Verbraucher ausblenden', kind: 'bool', help: 'Optional. Verbraucher, Gruppen und Geräte in Gruppen verschwinden, wenn sie unter „Aktiv ab“ (Standard 10 W) liegen, und erscheinen sofort wieder, sobald sie laufen. Damit nichts flackert, müssen sie 30 Sekunden ruhen (einstellbar mit „hide_zero_delay“ im YAML). Sie zählen weiter zum Hausverbrauch und zu „Nicht erfasst“.' },
@@ -3617,6 +3727,15 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Preise', title: 'Strompreise (optional)', text: 'Mit Preisen zeigt die Karte Kosten und Ersparnis. Wähle Sensoren oder input_number-Helfer in Euro pro kWh.', fields: [
       { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
       { path: 'grid_price_ct', label: 'oder fester Strompreis (Cent pro kWh)', kind: 'number', optional: true, step: '0.1', help: 'Ohne Sensor oder Helfer: einfach den Preis aus deiner Rechnung eintragen, zum Beispiel 34.' },
+      { path: 'grid_price_times.0.from', label: 'Preis nach Uhrzeit 1: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1', help: 'Für einen Tarif mit zwei Preisen am Tag, zum Beispiel 0 bis 5 Uhr günstiger. Zeiten in ganzen Stunden, jeden Tag gleich, auch über Mitternacht (22 bis 6). Alle anderen Stunden zählen zum normalen Preis oben. Die Statistik rechnet Stunde für Stunde, der Energiefluss nimmt den Preis der aktuellen Stunde.' },
+      { path: 'grid_price_times.0.to', label: 'Preis nach Uhrzeit 1: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.0.ct', label: 'Preis nach Uhrzeit 1: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_price_times.1.from', label: 'Preis nach Uhrzeit 2: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.1.to', label: 'Preis nach Uhrzeit 2: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.1.ct', label: 'Preis nach Uhrzeit 2: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_price_times.2.from', label: 'Preis nach Uhrzeit 3: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.2.to', label: 'Preis nach Uhrzeit 3: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.2.ct', label: 'Preis nach Uhrzeit 3: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
       { path: 'feed_in', label: 'Einspeisevergütung', kind: 'price', optional: true, hints: H(/einspeis|vergüt|verguet|feed|export/i) },
       { path: 'feed_in_ct', label: 'oder feste Einspeisevergütung (Cent pro kWh)', kind: 'number', optional: true, step: '0.1' },
     ] },
@@ -5638,7 +5757,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { const bf = parseFloat(String(c.grid_base_fee).replace(',', '.')); this._c._bf = bf > 0 ? bf : 0; }
       this._c._bfh = lst(c.grid_base_fee_history).filter((x) => x && x.until && !isNaN(parseFloat(String(x.eur).replace(',', '.')))).map((x) => ({ until: String(x.until), eur: Math.max(0, parseFloat(String(x.eur).replace(',', '.'))) })).sort((a, b) => (a.until < b.until ? -1 : 1));
       // hourly_pricing (optional): Geldkacheln Stunde für Stunde mit dem Stundenmittel des Preis-Sensors. Standard: aus, nur mit true und grid_price als Sensor
-      this._c._hp = c.hourly_pricing === true && typeof c.grid_price === 'string' && !!c.grid_price.trim();
+      // grid_price_times (optional, #105): Preise nach Uhrzeit. Schaltet die Rechnung Stunde für Stunde ein, auch ohne Preis-Sensor
+      this._c._pt = WD.priceTimes(c.grid_price_times);
+      this._c._hp = (c.hourly_pricing === true && typeof c.grid_price === 'string' && !!c.grid_price.trim()) || this._c._pt.length > 0;
       this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {};
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
@@ -5825,7 +5946,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const house = [c.pv_total, c.grid_import_total, c.grid_export_total].concat(c._chg, c._dis).filter(Boolean);
       const mine = (x) => (x.grid ? [x.grid, x.battery, x.pv] : x._parts ? x._parts.map((q) => q.entity) : [x.energy]).filter(Boolean);
       const ids = [...new Set(house.concat(c._g2 ? [c._g2] : [], ...c._cc.map(mine)))];
-      const priceId = typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
+      // grid_price_times (#105): der Preis kommt aus den Uhrzeiten, nicht aus einem Sensor. VP steht für diesen berechneten Preis je Stunde
+      const VP = '__grid_price_times__', pt = c._pt || [];
+      const priceId = pt.length ? VP : typeof c.grid_price === 'string' ? c.grid_price : null, nowEur = WD.price(h, c.grid_price, c.grid_price_ct, 0);
       // grid2_total (z. B. Niedertarif-Zaehler): Bezug zaehlt zum Netzbezug, bewertet mit grid2_price, sonst mit dem normalen Preis
       const price2 = WD.price(h, c.grid2_price, c.grid2_price_ct, nowEur);
       const stat = (period, types, list, start, end) => h.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), ...(end ? { end_time: end.toISOString() } : {}), period, statistic_ids: list, types, ...WD.statUnits(c) });
@@ -5862,6 +5985,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       const means = async (start, end, id = priceId, split = null) => {
         const out = {};
         if (!id) return out;
+        if (id === VP) {
+          // Preis je Stunde aus den Uhrzeiten, sonst früherer Preis (grid_price_history), sonst der normale Preis. Bis einschließlich der laufenden Stunde
+          const e = end ? +end : Date.now();
+          for (let t = Math.floor(+start / 36e5) * 36e5; t <= e; t += 36e5) {
+            const hit = WD.timesPrice(pt, new Date(t).getHours()), day = ymd(t), ph = c._ph.find((x) => day.slice(0, x.until.length) <= x.until);
+            out[t] = hit !== null ? hit : ph ? ph.eur : nowEur;
+          }
+          return out;
+        }
         const r = await stat('hour', split ? ['mean', 'min', 'max'] : ['mean'], [id], start, end).catch(() => ({}));
         (r[id] || []).forEach((x) => {
           if (typeof x.mean === 'number') out[stamp(x)] = x.mean;
@@ -5878,7 +6010,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // (nach kWh gewichteter Preis), null ohne Bezug bzw. Einspeisung. Die Kurzzeitstatistik gibt es nur purge_keep_days lang (Standard 10 Tage),
       // ältere Stunden behalten das Stundenmittel. Abgeschlossene Stunden merkt sich die Karte (_h5). Neueste zuerst, nahe Stunden in einer Abfrage;
       // ist ein Abschnitt älter als alle mit Daten leer, ist der Rest schon gelöscht
-      const HR = 36e5, ids5 = [c.grid_import_total, c.grid_export_total, priceId, feedId].filter(Boolean);
+      const HR = 36e5, ids5 = [c.grid_import_total, c.grid_export_total, priceId === VP ? null : priceId, feedId].filter(Boolean);
       const slice5 = async (split, m, fm) => {
         const out = {}, todo = [], done = (t) => t + HR <= Date.now();
         [...split].sort((a, b) => b - a).forEach((t) => { const x = this._h5[t]; if (x === undefined || !done(t)) todo.push(t); else if (x) out[t] = x; });
@@ -6351,7 +6483,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     _render() {
       const c = this._c, h = this._hass;
       if (!h) return;
-      const price = WD.price(h, c.grid_price, c.grid_price_ct, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
+      const price = WD.priceNow(h, c, 0), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0), CUR = cur();
       this.shadowRoot.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.p === this._period));
       this._renderCC(price);
       this._renderBud(price);
@@ -6531,7 +6663,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    battery_losses: 'Batterieverluste bei Ersparnis und Amortisation abziehen', battery_efficiency: 'Wirkungsgrad der Batterie in % (optional, sonst aus den Zählern)', cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    battery_losses: 'Batterieverluste bei Ersparnis und Amortisation abziehen', battery_efficiency: 'Wirkungsgrad der Batterie in % (optional, sonst aus den Zählern)', cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_price_times: 'Preise nach Uhrzeit (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -6561,6 +6693,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       ent('battery_efficiency', ['sensor', 'input_number']),
       { name: 'cost_consumers', selector: { object: {} } },
       { name: 'grid_price_history', selector: { object: {} } },
+      { name: 'grid_price_times', selector: { object: {} } },
       { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
       { name: 'grid_base_fee', selector: { number: { min: 0, max: 1000, step: 'any', mode: 'box' } } },
       { name: 'grid_base_fee_history', selector: { object: {} } },
@@ -6611,6 +6744,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     { short: 'Preise', title: 'Preise, Haus und Anlage (optional)', text: 'Mit Preisen zeigt die Karte Geldwerte. Die Anschaffungskosten ergeben die Amortisation, der Hausverbrauch die nächtliche Grundlast.', fields: [
       { path: 'grid_price', label: 'Strompreis Bezug', kind: 'price', optional: true, hints: H(/bezug|netz|strom|import|grid|price|preis/i) },
       { path: 'grid_price_ct', label: 'oder fester Strompreis (Cent pro kWh)', kind: 'number', optional: true, step: '0.1', help: 'Ohne Sensor oder Helfer: einfach den Preis aus deiner Rechnung eintragen, zum Beispiel 34.' },
+      { path: 'grid_price_times.0.from', label: 'Preis nach Uhrzeit 1: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1', help: 'Für einen Tarif mit zwei Preisen am Tag, zum Beispiel 0 bis 5 Uhr günstiger. Zeiten in ganzen Stunden, jeden Tag gleich, auch über Mitternacht (22 bis 6). Alle anderen Stunden zählen zum normalen Preis oben. Die Statistik rechnet dann Stunde für Stunde, auch rückwirkend, der Energiefluss nimmt den Preis der aktuellen Stunde.' },
+      { path: 'grid_price_times.0.to', label: 'Preis nach Uhrzeit 1: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.0.ct', label: 'Preis nach Uhrzeit 1: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_price_times.1.from', label: 'Preis nach Uhrzeit 2: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.1.to', label: 'Preis nach Uhrzeit 2: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.1.ct', label: 'Preis nach Uhrzeit 2: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
+      { path: 'grid_price_times.2.from', label: 'Preis nach Uhrzeit 3: von (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.2.to', label: 'Preis nach Uhrzeit 3: bis (ganze Stunde, 0 bis 24)', kind: 'number', optional: true, step: '1' },
+      { path: 'grid_price_times.2.ct', label: 'Preis nach Uhrzeit 3: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
       { path: 'grid_price_history.0.until', label: 'Früherer Preis 1: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true, help: 'Für Stromkosten, PV-Ersparnis und Kosten pro Verbraucher: So rechnen vergangene Monate mit dem Preis von damals. Danach gilt der Preis oben. Ein Sensor mit Langzeitstatistik, etwa bei dynamischem Tarif, braucht das nicht.' },
       { path: 'grid_price_history.0.ct', label: 'Früherer Preis 1: Cent pro kWh', kind: 'number', optional: true, step: '0.01' },
       { path: 'grid_price_history.1.until', label: 'Früherer Preis 2: gültig bis (JJJJ-MM-TT)', kind: 'text', optional: true },
@@ -6735,7 +6877,7 @@ WD.addTranslations('en', {
   'why.none': 'There is no data to explain this right now.', 'why.top': 'including {n} {w}', 'bat.in2': ' (solar 2 <b>{pv}</b> · home <b>{ac}</b>)',
   'xt.alarm': 'Alarm',
   'sky.sunny': 'Sunny', 'sky.clear-night': 'Clear night', 'sky.partlycloudy': 'Partly cloudy', 'sky.cloudy': 'Cloudy', 'sky.fog': 'Fog', 'sky.rainy': 'Rain', 'sky.pouring': 'Heavy rain', 'sky.snowy': 'Snow', 'sky.snowy-rainy': 'Sleet', 'sky.lightning': 'Thunderstorm', 'sky.lightning-rainy': 'Thunderstorm with rain', 'sky.hail': 'Hail', 'sky.windy': 'Windy', 'sky.windy-variant': 'Windy and cloudy', 'sky.exceptional': 'Exceptional weather', 'sky.cloud': 'Cloud cover', 'sky.wind': 'Wind', 'sky.nofc': 'No forecast available from the weather entity',
-  'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'close': 'Close',
+  'ban.tonet0': 'Power is flowing to the grid', 'stat.home': 'Home today', 'stat.cdaily': '{n} today', 'stat.home.excl': 'Home today without {n}', 'status.on': 'ON', 'status.off': 'OFF', 'status.unknown': 'Unknown', 'close': 'Close',
 
   'dev.title': 'Devices & consumption', 'dev.room': 'Room', 'dev.err': 'rooms is missing: configure at least one room', 'dev.next': 'Next →',
   'dev.days': 'days', 'dev.p.day': 'Today', 'dev.p.week': 'Week', 'dev.p.month': 'Month', 'dev.p.year': 'Year',
@@ -6891,7 +7033,7 @@ WD.addTranslations('nl', {
   'why.none': 'Er zijn op dit moment geen gegevens voor een uitleg.', 'why.top': 'waarvan {n} {w}', 'bat.in2': ' (zonne-energie 2 <b>{pv}</b> · huis <b>{ac}</b>)',
   'xt.alarm': 'Alarm',
   'sky.sunny': 'Zonnig', 'sky.clear-night': 'Heldere nacht', 'sky.partlycloudy': 'Half bewolkt', 'sky.cloudy': 'Bewolkt', 'sky.fog': 'Mist', 'sky.rainy': 'Regen', 'sky.pouring': 'Stortregen', 'sky.snowy': 'Sneeuw', 'sky.snowy-rainy': 'Natte sneeuw', 'sky.lightning': 'Onweer', 'sky.lightning-rainy': 'Onweer met regen', 'sky.hail': 'Hagel', 'sky.windy': 'Winderig', 'sky.windy-variant': 'Winderig en bewolkt', 'sky.exceptional': 'Uitzonderlijk weer', 'sky.cloud': 'Bewolking', 'sky.wind': 'Wind', 'sky.nofc': 'Geen prognose beschikbaar van de weerentiteit',
-  'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'close': 'Sluiten',
+  'ban.tonet0': 'Stroom gaat naar het net', 'stat.home': 'Huis vandaag', 'stat.cdaily': '{n} vandaag', 'stat.home.excl': 'Huis vandaag zonder {n}', 'status.on': 'AAN', 'status.off': 'UIT', 'status.unknown': 'Onbekend', 'close': 'Sluiten',
 
   'dev.title': 'Apparaten en verbruik', 'dev.room': 'Ruimte', 'dev.err': 'rooms ontbreekt: configureer ten minste één ruimte', 'dev.next': 'Volgende →',
   'dev.days': 'dagen', 'dev.p.day': 'Vandaag', 'dev.p.week': 'Week', 'dev.p.month': 'Maand', 'dev.p.year': 'Jaar',
@@ -7270,6 +7412,11 @@ WD.addTranslations('fr', {
   'xt.alarm': "Alarme",
   'ban.tonet0': "Courant injecté au réseau",
   'stat.home': "Maison aujourd'hui",
+  'stat.cdaily': "{n} aujourd'hui",
+  'stat.home.excl': "Maison aujourd'hui sans {n}",
+  'status.on': "MARCHE",
+  'status.off': "ARRÊT",
+  'status.unknown': "Inconnu",
   'close': "Fermer",
 
   // --- Météo (sky.*) ---
@@ -7570,6 +7717,11 @@ WD.addTranslations('fi', {
   'st.lt.price.h': "Rahamäärät laskettu tilastojen tuntihinnoilla, kun ne ovat saatavilla",
   'ban.tonet0': "Sähköä menee verkkoon",
   'stat.home': "Kulutus tänään",
+  'stat.cdaily': "{n} tänään",
+  'stat.home.excl': "Kulutus tänään ilman {n}",
+  'status.on': "PÄÄLLÄ",
+  'status.off': "POIS",
+  'status.unknown': "Tuntematon",
   'close': "Sulje",
   'room.title': "Huonekohtainen kulutus",
   'room.week': "Tämä viikko",

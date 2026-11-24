@@ -1,6 +1,6 @@
 /* energy-cockpit-flow-card: animierter Energiefluss. Hilfsfunktionen kommen aus common.js und i18n.js. */
 (() => {
-WD.addStrings({ 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
+WD.addStrings({ 'stat.cdaily': '{n} heute', 'stat.home.excl': 'Haus heute ohne {n}', 'status.on': 'EIN', 'status.off': 'AUS', 'status.unknown': 'Unbekannt', 'why.q.bal': 'Warum kein Netzbezug?', 'why.q.baldis': 'Warum entlädt die Batterie?', 'why.q.balchg': 'Warum lädt die Batterie?', 'why.bal.both': 'Solar liefert {pv} und die Batterie {bat}. Zusammen decken sie das Haus ({home}).', 'why.bal.sun': 'Solar liefert {pv} und deckt das Haus ({home}) allein.', 'why.bal.bat': 'Die Batterie ({soc} %) liefert {bat} und deckt das Haus ({home}) allein.', 'why.bal.low': 'Das Haus braucht gerade kaum Strom ({home}).', 'why.bal.dis': 'Solar reicht allein nicht für {home}. Die Batterie liefert den Rest ({bat}), Ladestand {soc} %.', 'why.bal.chg': 'Solar liefert mehr, als das Haus braucht. Der Überschuss ({w}) lädt die Batterie.', 'why.imp': 'Warum {w} Netzbezug?', 'why.exp': 'Warum {w} Einspeisung?', 'why.bal': 'Netz ausgeglichen', 'why.asof': 'Stand {t} Uhr', 'why.cover': 'Das Haus braucht {home}. Gedeckt von: {parts}', 'why.solar': 'Solar', 'why.batt': 'Batterie', 'why.grid': 'Netz', 'why.bm': 'Speicher lädt', 'why.row.pv': 'Solar erzeugt', 'why.row.home': 'Haus braucht', 'why.row.chg': 'Batterie lädt', 'why.row.exp': 'Einspeisung', 'why.q.bat': 'Warum nicht aus der Batterie?', 'why.q.sun': 'Warum nicht Solar?', 'why.q.feed': 'Warum nicht in die Batterie?', 'why.q.tip': 'Tipp', 'why.q.hint': 'Hinweis', 'why.bat.empty': 'Die Batterie ist leer ({soc} %, Entladegrenze {res} %).', 'why.bat.idle': 'Die Batterie hat {soc} %, gibt aber gerade keinen Strom ab. Betriebsart oder Sperrzeit im Speicher prüfen.', 'why.bat.dis': 'Die Batterie liefert bereits {w}.', 'why.sun.night': 'Es ist Nacht. Sonnenaufgang um {t} Uhr.', 'why.sun.fc': ' Prognose morgen {kwh} kWh.', 'why.sun.low': 'Solar liefert gerade nur {w}.', 'why.sun.zero': 'Solar liefert gerade nichts.', 'why.sun.wx': ' Wetter: {cnd}.', 'why.sun.part': 'Solar liefert {pv}, das reicht nicht für {home}.', 'why.rest': 'Ein großer Teil ({w}) ist keinem Verbraucher zugeordnet. Trage weitere Verbraucher in die Karte ein.', 'why.full': 'Die Batterie ist voll ({soc} %) und lädt nicht mehr.', 'why.notfull': 'Die Batterie lädt gerade nicht, obwohl noch Platz ist ({soc} %). Betriebsart im Speicher prüfen.', 'why.charging': 'Die Batterie lädt bereits mit {w}.', 'why.tip.sug': '{w} Überschuss: Jetzt passt {names}.', 'why.bal.txt': 'Solar und Batterie decken das Haus ({home}), ohne Netz.', 'why.none': 'Gerade keine Daten für eine Erklärung.', 'why.top': 'davon {n} {w}', 'bat.in2': ' (Solar 2 <b>{pv}</b> · Haus <b>{ac}</b>)', 'xt.alarm': 'Alarm', 'sky.sunny': 'Sonnig', 'sky.clear-night': 'Klare Nacht', 'sky.partlycloudy': 'Teils bewölkt', 'sky.cloudy': 'Bewölkt', 'sky.fog': 'Nebel', 'sky.rainy': 'Regen', 'sky.pouring': 'Starkregen', 'sky.snowy': 'Schnee', 'sky.snowy-rainy': 'Schneeregen', 'sky.lightning': 'Gewitter', 'sky.lightning-rainy': 'Gewitter mit Regen', 'sky.hail': 'Hagel', 'sky.windy': 'Windig', 'sky.windy-variant': 'Windig und bewölkt', 'sky.exceptional': 'Ausnahmewetter', 'sky.cloud': 'Bewölkung', 'sky.wind': 'Wind', 'sky.nofc': 'Keine Vorhersage von der Wetter-Entität', 'ban.tonet0': 'Strom fließt ins Netz', 'stat.home': 'Haus heute', 'close': 'Schließen' });
 // Warum? für Solar und Batterie (#50)
 WD.addStrings({
   'why.aria.pv': 'Warum liefert Solar gerade so viel?', 'why.aria.bat': 'Was macht die Batterie gerade?',
@@ -548,6 +548,11 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // zählt zum Hausverbrauch und im Ring zum Netz. Der Preis (price oder price_ct) steht als Kosten pro Stunde in der Kachel
     const g2 = this._c.grid2;
     this._c.grid2 = g2 && typeof g2 === 'object' && typeof g2.entity === 'string' && g2.entity ? g2 : null;
+    // Derselbe Sensor bei grid und grid2 würde den Bezug doppelt zählen (zum Beispiel bei einer Zählerkaskade): grid2 gilt dann nicht
+    if (this._c.grid2 && this._c.grid && this._c.grid.entity && this._c.grid2.entity === this._c.grid.entity) {
+      console.warn('energy-cockpit: grid2 nutzt denselben Sensor wie grid (' + this._c.grid2.entity + ') und wird ignoriert, sonst zählt der Bezug doppelt. Bei zwei Zählern in Reihe siehe docs/ZWEI-ZAEHLER.md.');
+      this._c.grid2 = null;
+    }
     if (this._c.grid2) this._c.consumers.unshift({ entity: g2.entity, name: g2.name || '', icon: g2.icon || 'mdi:heat-pump-outline', color: '#ff5c7a', _g2: true });
     this._c.consumer_groups = arr(this._c.consumer_groups)
       .map((g) => Object.assign({}, g, { items: arr(g && g.items).filter(used) }))
@@ -587,6 +592,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.grid) { add(c.grid.daily_import); add(c.grid.daily_export); }
     c.batteries.forEach((b) => { add(b.daily_charge); add(b.daily_discharge); });
     if (c.home) add(c.home.daily);
+    c.consumers.forEach((x) => { if (x && x.daily) add(x.daily); });
     return ids;
   }
   async _loadDaily() {
@@ -1154,6 +1160,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (fe('forecast_day_after')) stats += d('fc2', T(fsw ? 'stat.fc2p' : 'stat.fc2'), PAL.pv, fe('forecast_day_after'));
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
+    // Tageswert je Verbraucher (optional, #106): eigene Kachel "<Name> heute" mit dem Sensor consumers[].daily (kWh)
+    c.consumers.forEach((x, i) => { if (x && x.daily) stats += d('cd' + i, T('stat.cdaily', { n: x.daily_name || x.name || x.entity || x.daily }), rgb(x.color, '167,139,250'), x.daily); });
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
     // Hausverbrauch heute: eigener Sensor (home.daily) oder berechnet wie die Autarkie
     if ((c.home && c.home.daily) || (((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) && c.grid && c.grid.daily_import)) stats += d('home', T('stat.home'), PAL.home);
@@ -1733,7 +1741,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!el) return;
     const sc = c.surplus || {}, gc = c.grid_alert || {};
     const now = Date.now();
-    const price = WD.price(h, c.grid_price, c.grid_price_ct, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
+    const price = WD.priceNow(h, c, null), feed = WD.price(h, c.feed_in, c.feed_in_ct, 0);
     const thrS = sc.threshold || 1500, thrG = gc.threshold || 1000;
     const delayS = (sc.delay === undefined ? 60 : sc.delay) * 1000, delayG = (gc.delay === undefined ? 120 : gc.delay) * 1000;
     const surOn = sc.enabled !== false && x.gExp > (this._modeB === 'sur' ? thrS * 0.7 : thrS);
@@ -1854,11 +1862,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (s) s.textContent = tot !== null ? this._fW(tot) : any ? this._fW(sum) : '';
   }
 
+  // Statuskachel (#108): secondary_mode: status, oder ohne Leistungssensor mit einem Schalter oder Binärsensor als secondary
+  _statusMode(x) {
+    if (!x || x.entity || !x.secondary) return false;
+    if (x.secondary_mode === 'status') return true;
+    return x.secondary_mode === undefined && /^(input_boolean|binary_sensor|switch|light|fan|lock|cover)\./.test(String(x.secondary));
+  }
+
   // Leistung eines Verbrauchers. Mit minus (Differenz, z. B. Zählerkaskade): entity - minus (+ plus), nie negativ. Ohne minus unverändert.
   _cw(x) {
     if (!x || !x.entity) return null;
     const h = this._hass, L = (v) => (Array.isArray(v) ? v : v ? [v] : []);
-    const p = watt(h, x.entity), mi = L(x.minus);
+    let p = watt(h, x.entity);
+    // invert (optional): Vorzeichen des Hauptsensors umkehren, wenn er den Verbrauch negativ meldet
+    if (p !== null && (x.invert === true || String(x.invert).toLowerCase() === 'true')) p = -p;
+    const mi = L(x.minus);
     if (!mi.length || p === null) return p;
     // mehrere Unterzähler möglich: Hauptzähler minus Summe der Unterzähler (plus Summe der Zusatzwerte)
     let s = 0;
@@ -2175,6 +2193,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
         const p = this._cw(x), on = (p || 0) > onW(x);
         // grid2: Kosten pro Stunde mit dem eigenen Preis
         if (x._g2 && on) { const pr = WD.price(h, c.grid2.price, c.grid2.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
+        // eigener Preis je Verbraucher (optional): price (Sensor, Euro pro kWh) oder price_ct (Cent pro kWh), zum Beispiel ein Wärmepumpentarif. Ein eigener Zusatzwert (secondary) hat Vorrang
+        else if (!x._g2 && !secTxt && on && (x.price || typeof x.price_ct === 'number')) { const pr = WD.price(h, x.price, x.price_ct, 0); if (pr > 0) secTxt = `${nf(p / 1000 * pr, 2)} ${cur()}/h`; }
         sumAll += p || 0;
         pw[i] = p || 0;
         if (this._hzOn()) this._hz('c' + i, p === null || p <= onW(x));
@@ -2185,6 +2205,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
         // #83: secondary_name steht vor dem Wert des Zusatzsensors, z. B. "SoC eAuto 80 %"
         this._set(`[data-k="c${i}"] .c-sec`, p === null ? T('offline') : secTxt && x.secondary_name ? x.secondary_name + ' ' + secTxt : secTxt);
         this._link('c' + i, on, false, rgb(x.color, '167,139,250'), p);
+      } else if (this._statusMode(x)) {
+        // Statuskachel (#108): kein Leistungssensor, zeigt EIN, AUS oder Unbekannt. Geht nicht in die Leistungsrechnung ein
+        const sv = secSt ? String(secSt.state).trim().toLowerCase() : '';
+        const ON = ['on', 'true', 'ein', 'an', 'open', 'offen', 'yes', 'ja', 'active', 'aktiv', 'running', 'heat', 'cool', 'home', 'unlocked'], OFF = ['off', 'false', 'aus', 'closed', 'geschlossen', 'no', 'nein', 'inactive', 'idle', 'standby', 'not_home', 'locked'];
+        const isNum = sv !== '' && !isNaN(parseFloat(sv)) && isFinite(sv), unk = !secSt || ['unavailable', 'unknown', 'none', ''].includes(sv);
+        const isOn = !unk && (ON.includes(sv) || (isNum && parseFloat(sv) > 0)), isOff = !unk && (OFF.includes(sv) || (isNum && parseFloat(sv) <= 0));
+        const txt = unk ? T('status.unknown') : isOn ? T('status.on') : isOff ? T('status.off') : String(secSt.state);
+        el.classList.toggle('on', isOn);
+        el.style.setProperty('--c', isOn ? PAL.exp : rgb(x.color, '167,139,250'));
+        this._set(`[data-k="c${i}"] .num`, txt);
+        this._set(`[data-k="c${i}"] .unit`, '');
+        this._set(`[data-k="c${i}"] .c-sec`, x.secondary_name || '');
       } else {
         el.classList.add('on');
         const parts = secTxt ? secTxt.split(' ') : ['—'];
@@ -2311,6 +2343,19 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const cons = dPv + dImp - (dExp || 0) - (sumBat('daily_charge', balB) || 0) + (sumBat('daily_discharge', balB) || 0);
       if (cons > 0) aut = 1 - dImp / cons;
       if (dHome === null && !(c.home && c.home.daily)) dHome = Math.max(0, cons);
+    }
+    // consumers[].daily: Kachel je Verbraucher. daily_from_home: true zieht den Wert von "Haus heute" ab (zum Beispiel die Wallbox)
+    const subN = [];
+    let subV = 0;
+    c.consumers.forEach((x, i) => {
+      if (!x || !x.daily) return;
+      const dv = en(x.daily);
+      this._set(`[data-s="cd${i}"] b`, `${this._fk(dv)}<small>kWh</small>`, true);
+      if (x.daily_from_home === true || String(x.daily_from_home).toLowerCase() === 'true') { subN.push(x.daily_name || x.name || x.entity || x.daily); subV += dv || 0; }
+    });
+    if (subN.length && dHome !== null) {
+      dHome = Math.max(0, dHome - subV);
+      this._set('[data-s="home"] > span', '<i></i>' + esc(T('stat.home.excl', { n: subN.join(', ') })), true);
     }
     this._set('[data-s="home"] b', `${this._fk(dHome)}<small>kWh</small>`, true);
     this._set('[data-s="aut"] b', this._fp(aut));

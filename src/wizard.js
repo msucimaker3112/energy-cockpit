@@ -26,6 +26,8 @@
       else if (kind === 'flow') ok = dom === 'sensor' && (/^(l|L)\/(min|h|s)$|^m(³|3)\/h$/.test(u) || dc === 'volume_flow_rate');
       else if (kind === 'weather') ok = dom === 'weather';
       else if (kind === 'switch') ok = ['switch', 'light', 'input_boolean'].indexOf(dom) >= 0;
+      // Statuskachel (#108): Schalter und Binärsensoren ohne Leistungsmessung
+      else if (kind === 'status') ok = ['input_boolean', 'binary_sensor', 'switch', 'light', 'fan', 'lock', 'cover'].indexOf(dom) >= 0;
       if (ok) out.push({ id, name: a.friendly_name || id, state: s.state, unit: u });
     });
     return out.sort((x, y) => x.name.localeCompare(y.name, 'de'));
@@ -198,9 +200,20 @@
       const items = arr(cfg[f.path]).filter((x) => x && typeof x === 'object');
       const used = items.map((x) => x[KEY]);
       const sugs = all.filter((e) => used.indexOf(e.id) < 0 && getPath(cfg, 'pv.entity') !== e.id && getPath(cfg, 'grid.entity') !== e.id && getPath(cfg, 'battery.power') !== e.id && getPath(cfg, 'home.entity') !== e.id);
-      const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY]); emit(); };
+      const write = (arr) => { cfg[f.path] = arr.filter((x) => x[KEY] || (f.statusKey && x[f.statusKey])); emit(); };
       items.forEach((it, i) => {
         const row = el('div', css.box);
+        // Statuskachel (ohne Leistungssensor): nur Name und Entfernen
+        if (f.statusKey && !it[KEY] && it[f.statusKey]) {
+          row.appendChild(el('div', css.help, 'Statuskachel (EIN oder AUS): ' + ((own(hass, it[f.statusKey]) || { name: it[f.statusKey] }).name)));
+          const nm0 = el('input', css.input + ';margin-top:6px');
+          nm0.placeholder = 'Anzeigename'; nm0.value = it.name || '';
+          nm0.addEventListener('change', () => { it.name = nm0.value; write(items); });
+          const rm0 = el('button', css.btn, 'Entfernen'); rm0.type = 'button';
+          rm0.addEventListener('click', () => { items.splice(i, 1); write(items); render(); });
+          row.appendChild(nm0); row.appendChild(rm0); wrap.appendChild(row);
+          return;
+        }
         const sel = el('select', css.input);
         const o0 = document.createElement('option'); o0.value = it[KEY] || ''; o0.textContent = (all.find((e) => e.id === it[KEY]) || own(hass, it[KEY]) || { name: it[KEY] || '—' }).name;
         sel.appendChild(o0);
@@ -224,6 +237,30 @@
           ms.value = cur || '';
           ms.addEventListener('change', () => { if (ms.value) it[f.minusKey] = ms.value; else delete it[f.minusKey]; write(items); });
           row.appendChild(ms);
+        }
+        if (f.invertKey) {
+          const ir = el('label', css.help + ';margin-top:8px;display:flex;gap:8px;align-items:center'), ic = document.createElement('input');
+          ic.type = 'checkbox'; ic.checked = it[f.invertKey] === true;
+          ic.addEventListener('change', () => { if (ic.checked) it[f.invertKey] = true; else delete it[f.invertKey]; write(items); });
+          ir.appendChild(ic); ir.appendChild(document.createTextNode(f.invertLabel || 'Vorzeichen umkehren (der Sensor meldet den Verbrauch negativ)'));
+          row.appendChild(ir);
+        }
+        if (f.dailyKey) {
+          row.appendChild(el('div', css.help + ';margin-top:8px', f.dailyLabel || 'Tagesverbrauch heute (kWh, optional): eigene Kachel unten in der Karte'));
+          const ds = el('select', css.input), d0 = document.createElement('option'); d0.value = ''; d0.textContent = '— keiner —'; ds.appendChild(d0);
+          const eall = list(hass, 'energy');
+          if (it[f.dailyKey] && !eall.some((e) => e.id === it[f.dailyKey])) { const o = document.createElement('option'); o.value = it[f.dailyKey]; o.textContent = it[f.dailyKey]; ds.appendChild(o); }
+          eall.forEach((e) => { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; ds.appendChild(o); });
+          ds.value = it[f.dailyKey] || '';
+          ds.addEventListener('change', () => { if (ds.value) it[f.dailyKey] = ds.value; else { delete it[f.dailyKey]; delete it[f.dailyFromHomeKey]; } write(items); render(); });
+          row.appendChild(ds);
+          if (it[f.dailyKey] && f.dailyFromHomeKey) {
+            const fr = el('label', css.help + ';margin-top:6px;display:flex;gap:8px;align-items:center'), fc = document.createElement('input');
+            fc.type = 'checkbox'; fc.checked = it[f.dailyFromHomeKey] === true;
+            fc.addEventListener('change', () => { if (fc.checked) it[f.dailyFromHomeKey] = true; else delete it[f.dailyFromHomeKey]; write(items); });
+            fr.appendChild(fc); fr.appendChild(document.createTextNode('Von „Haus heute“ abziehen'));
+            row.appendChild(fr);
+          }
         }
         if (f.priceKey) {
           const pr = el('input', css.input + ';margin-top:6px');
@@ -249,6 +286,18 @@
           write(items); render();
         });
         add.appendChild(sel);
+        if (f.statusKey) {
+          add.appendChild(el('div', css.help + ';margin-top:10px', f.statusLabel || 'Statuskachel ohne Leistungssensor hinzufügen (zeigt EIN oder AUS, zählt nicht zum Verbrauch):'));
+          const ss = el('select', css.input), s0 = document.createElement('option'); s0.value = ''; s0.textContent = '— Schalter oder Binärsensor wählen —'; ss.appendChild(s0);
+          list(hass, 'status').forEach((e) => { const o = document.createElement('option'); o.value = e.id; o.textContent = `${e.name} (${fmtState(e)})`; ss.appendChild(o); });
+          ss.addEventListener('change', () => {
+            if (!ss.value) return;
+            const e = list(hass, 'status').find((x) => x.id === ss.value);
+            items.push({ name: e ? e.name : '', [f.statusKey]: ss.value, secondary_mode: 'status' });
+            write(items); render();
+          });
+          add.appendChild(ss);
+        }
         wrap.appendChild(add);
       }
       return wrap;
