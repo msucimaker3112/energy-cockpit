@@ -47,6 +47,28 @@ async function run(){
   ok('Sensor offline: Strich statt Prozent',/—/.test(kt(e,'pv')||''),kt(e,'pv'));
   e=mount('energy-cockpit-flow-card',Object.assign({style:'3d'},base({kwp:9.8})),hassFlow());await wait(900);
   ok('3D-Ansicht: Prozentzahl vorhanden',kt(e,'pv')==='50%',kt(e,'pv'));
+  // #104: Prognose der zweiten Anlage
+  const K=(v)=>({state:String(v),attributes:{unit_of_measurement:'kWh'},last_updated:'x'});
+  const fh=hassFlow({'sensor.f1':K(10),'sensor.f2':K(4.5),'sensor.t1':K(18),'sensor.t2':K(6),'sensor.a1':K(20),'sensor.a2':K(7.5),'sensor.fw':{state:'900',attributes:{unit_of_measurement:'W'},last_updated:'x'}});
+  const bb=(p1,p2)=>({pv:Object.assign({entity:'sensor.pv'},p1),grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},pv2:Object.assign({entity:'sensor.pv2'},p2)});
+  const bt=(el,k)=>{const x=q(el,`[data-s="${k}"] b`);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+  e=mount('energy-cockpit-flow-card',bb({forecast_tomorrow:'sensor.t1',forecast_day_after:'sensor.a1'},{forecast_tomorrow:'sensor.t2',forecast_day_after:'sensor.a2'}),fh);await wait(900);
+  ok('Unten morgen: Summe beider Anlagen 24 kWh',/24,0\s?kWh/.test(bt(e,'fc1')||''),bt(e,'fc1'));
+  ok('Unten übermorgen: Summe 27,5 kWh',/27,5\s?kWh/.test(bt(e,'fc2')||''),bt(e,'fc2'));
+  e=mount('energy-cockpit-flow-card',bb({forecast_tomorrow:'sensor.t1'},{}),fh);await wait(900);
+  ok('Nur erste Anlage: wie bisher 18 kWh',/18,0\s?kWh/.test(bt(e,'fc1')||''),bt(e,'fc1'));
+  e=mount('energy-cockpit-flow-card',bb({},{forecast_tomorrow:'sensor.t2'}),fh);await wait(900);
+  ok('Nur zweite Anlage: 6 kWh',/6,0\s?kWh/.test(bt(e,'fc1')||''),bt(e,'fc1'));
+  e=mount('energy-cockpit-flow-card',bb({},{}),fh);await wait(900);
+  ok('Ohne Prognosen: keine Kachel unten',!q(e,'[data-s="fc1"]')&&!q(e,'[data-s="fc2"]'));
+  e=mount('energy-cockpit-flow-card',bb({forecast:'sensor.f1'},{forecast:'sensor.f2'}),fh);await wait(900);
+  ok('Kachel der ersten Anlage: eigene Prognose 10 kWh',/Prognose heute\s*10,0 kWh/.test(sub(e,'pv')),sub(e,'pv'));
+  ok('Kachel der zweiten Anlage: eigene Prognose 4,5 kWh',/Prognose heute\s*4,5 kWh/.test(sub(e,'pv2')),sub(e,'pv2'));
+  e=mount('energy-cockpit-flow-card',bb({forecast:'sensor.fw'},{forecast:'sensor.fw'}),fh);await wait(900);
+  ok('Leistungsprognose der zweiten Anlage in Watt',/Prognose\s*900 W/.test(sub(e,'pv2')),sub(e,'pv2'));
+  e=mount('energy-cockpit-flow-card',Object.assign({forecast_swap:true},bb({forecast:'sensor.f1',forecast_tomorrow:'sensor.t1'},{forecast:'sensor.f2',forecast_tomorrow:'sensor.t2'})),fh);await wait(900);
+  ok('forecast_swap: unten Prognose heute als Summe 14,5 kWh',/14,5\s?kWh/.test(bt(e,'fc0')||''),bt(e,'fc0'));
+  ok('forecast_swap: morgen als Summe 24 kWh',/24,0\s?kWh/.test(bt(e,'fc1')||''),bt(e,'fc1'));
   // Editor: Felder im Assistenten
   const ed=document.createElement('energy-cockpit-flow-card-editor');document.getElementById('host').innerHTML='';document.getElementById('host').appendChild(ed);ed.hass=hassFlow();ed.setConfig({type:'custom:energy-cockpit-flow-card',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'}});await wait(1800);
   const ta=Array.from(ed.querySelectorAll('button')).find(b=>b.textContent.trim()==='Assistent');if(ta)ta.click();await wait(500);
@@ -55,6 +77,7 @@ async function run(){
   const tx=ed.textContent;lines.push('INFO Knöpfe: '+Array.from(ed.querySelectorAll('button')).map(b=>b.textContent.trim()).join(' | ').slice(0,300)+' || '+tx.slice(0,200));
   ok('Assistent: Feld "Anlagenleistung (kWp)"',/Anlagenleistung \(kWp\)/.test(tx));
   ok('Assistent: Felder "String 1: Leistung" und "String 8: Name"',/String 1: Leistung/.test(tx)&&/String 8: Name/.test(tx));
+  ok('Assistent: Prognose-Felder der zweiten Anlage',/Zweite Anlage: Prognose morgen/.test(tx)&&/Zweite Anlage: Prognose übermorgen/.test(tx));
   // Statistik: Reihenfolge
   const cfgS={pv_total:'sensor.pvt',grid_import_total:'sensor.imp',grid_price_ct:30,cost_consumers:[{name:'Wärmepumpe',energy:'sensor.e'}]};
   const hs={states:{'sensor.pvt':S(900,'kWh'),'sensor.imp':S(1,'kWh'),'sensor.e':S(5,'kWh')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};

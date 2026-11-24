@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.47.0
+- **Energiefluss, Prognose auch für die zweite Anlage (optional, `pv2.forecast`, `pv2.forecast_tomorrow`, `pv2.forecast_day_after`, Wunsch von SVHennenbach, [#104](https://github.com/msucimaker3112/energy-cockpit/issues/104)):** Die Kachel der zweiten Anlage zeigt ihre eigene „Prognose heute“. Die Kacheln unten (morgen, übermorgen und mit `forecast_swap` auch heute) zeigen die Summe beider Anlagen. Hat nur eine Anlage einen Sensor, zählt nur diese. Auch die Erklärung „Warum?“ rechnet für morgen mit der Summe. Ohne die neuen Felder bleibt alles wie bisher. Im Editor unter „Solar“ als „Zweite Anlage: Prognose …“.
+- **Tests:** `test/v0453-wishes.html` prüft die Summen, die einzelnen Anlagen und den Tausch `forecast_swap`.
+
 ## 0.46.0
 - **Energiefluss, Anlagenleistung in Prozent (optional, `pv.kwp` und `pv2.kwp`, Wunsch von PV-Joe, [#103](https://github.com/msucimaker3112/energy-cockpit/issues/103)):** Trägst du die Anlagenleistung in kWp ein (zum Beispiel `kwp: 9.8`), zeigt die Solar-Kachel rechts neben der Leistung in Prozent, wie viel davon gerade erzeugt wird. Das gilt auch in der 3D-Ansicht und für die zweite Anlage. Ohne Angabe bleibt alles wie bisher. Im Editor unter „Solar“ als „Anlagenleistung (kWp)“.
 - **Energiefluss, einzelne Strings im Editor (Wunsch von 84c7958vct-pixel, [#101](https://github.com/msucimaker3112/energy-cockpit/issues/101)):** Bis zu 8 Strings lassen sich jetzt direkt im Assistenten eintragen („String 1: Leistung“ und „String 1: Name“, unter „Solar“), nicht mehr nur im YAML. Die Solar-Kachel zeigt pro String eine Zeile mit Name und Leistung. Leere Einträge fallen weg. Für die zweite Anlage (`pv2.strings`) gibt es die Felder im Formular unter „Alle Felder“.

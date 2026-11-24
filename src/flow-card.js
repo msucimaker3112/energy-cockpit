@@ -794,7 +794,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const bats = y.bats || [];
     const sunSt = h.states['sun.sun'], night = sunSt && sunSt.state === 'below_horizon';
     const wxId = this._skyEnt(), wx = wxId && h.states[wxId];
-    const fcT = c.pv && c.pv.forecast_tomorrow ? kwh(h, c.pv.forecast_tomorrow, rawUnits(c)) : null;
+    const fcT = this._fcSum('forecast_tomorrow');
     const fmtT = (v) => { const d = new Date(v); return isNaN(d) ? '' : WD.hhmm(d); };
     const consRows = () => {
       const r = items.map((x) => ({ n: x.n, w: x.w, c: col(x.c, '167,139,250'), sub: x.top ? T('why.top', { n: x.top.n, w: fW(x.top.w) }) : '' }));
@@ -898,7 +898,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const cloud = wx && wx.attributes && parseFloat(wx.attributes.cloud_coverage);
     const elev = sunSt && sunSt.attributes ? parseFloat(sunSt.attributes.elevation) : NaN;
     const daily = c.pv && c.pv.daily ? kwh(h, c.pv.daily, rawUnits(c)) : null, fcDay = c.pv && c.pv.forecast ? kwh(h, c.pv.forecast, rawUnits(c)) : null;
-    const fcT = c.pv && c.pv.forecast_tomorrow ? kwh(h, c.pv.forecast_tomorrow, rawUnits(c)) : null;
+    const fcT = this._fcSum('forecast_tomorrow');
     if (night) {
       const nr = sunSt.attributes && sunSt.attributes.next_rising;
       hints += hint(T('why.pv.q.low'), T('why.sun.night', { t: fmtT(nr) }) + (fcT !== null ? T('why.sun.fc', { kwh: nf(fcT, 0) }) : ''));
@@ -1148,8 +1148,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (fsw) stats += d('fc0', T('stat.fc0'), PAL.pv, c.pv.forecast);
     else if ((c.pv && c.pv.daily) || (c.pv2 && c.pv2.daily)) stats += d('pv', T('stat.pv'), PAL.pv);
     // PV-Prognose für morgen und übermorgen (optional, z. B. Forecast.Solar oder Solcast). Antippen öffnet den Verlauf. Wunsch aus #22
-    if (c.pv && c.pv.forecast_tomorrow) stats += d('fc1', T(fsw ? 'stat.fc1p' : 'stat.fc1'), PAL.pv, c.pv.forecast_tomorrow);
-    if (c.pv && c.pv.forecast_day_after) stats += d('fc2', T(fsw ? 'stat.fc2p' : 'stat.fc2'), PAL.pv, c.pv.forecast_day_after);
+    // #104: Mit Prognosen für die zweite Anlage (pv2.forecast_tomorrow, pv2.forecast_day_after) steht hier die Summe beider Anlagen
+    const fe = (k) => (c.pv && c.pv[k]) || (c.pv2 && c.pv2[k]) || '';
+    if (fe('forecast_tomorrow')) stats += d('fc1', T(fsw ? 'stat.fc1p' : 'stat.fc1'), PAL.pv, fe('forecast_tomorrow'));
+    if (fe('forecast_day_after')) stats += d('fc2', T(fsw ? 'stat.fc2p' : 'stat.fc2'), PAL.pv, fe('forecast_day_after'));
     if (c.grid && c.grid.daily_import) stats += d('imp', T('stat.imp'), PAL.imp);
     if (c.grid && c.grid.daily_export) stats += d('exp', T('stat.exp'), PAL.exp);
     if (c.batteries.some((b) => b.daily_charge || b.daily_discharge)) stats += d('bat', T('stat.bat'), PAL.bat);
@@ -1458,13 +1460,21 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._raf = running ? requestAnimationFrame((n) => this._tick(n)) : null;
   }
 
-  // Tagesprognose aus pv.forecast in kWh (Einheit Wh, kWh oder MWh), sonst null
-  _fcDay() {
-    const c = this._c, h = this._hass, id = c.pv && c.pv.forecast, st = id && h ? h.states[id] : null;
+  // Tagesprognose aus pv.forecast (oder pv2.forecast mit k = 'pv2') in kWh (Einheit Wh, kWh oder MWh), sonst null
+  _fcDay(k) {
+    const c = this._c, h = this._hass, o = c[k || 'pv'], id = o && o.forecast, st = id && h ? h.states[id] : null;
     const u = st ? String(st.attributes.unit_of_measurement || '') : '';
     if (!/^(k|m)?wh$/i.test(u)) return null;
     const e = num(h, id);
     return e === null ? null : /^mwh$/i.test(u) ? e * 1000 : /^kwh$/i.test(u) ? e : e / 1000;
+  }
+  // #104: Summe der Tagesprognosen beider Anlagen (nur kWh-Prognosen), sonst null
+  _fcDaySum() { const a = this._fcDay('pv'), b = this._fcDay('pv2'); return a === null && b === null ? null : (a || 0) + (b || 0); }
+  // #104: Prognose morgen oder übermorgen (key = forecast_tomorrow / forecast_day_after): Summe aus pv und pv2, soweit vorhanden, sonst null
+  _fcSum(key) {
+    const c = this._c, h = this._hass, raw = rawUnits(c); let t = null;
+    ['pv', 'pv2'].forEach((k) => { if (c[k] && c[k][key]) { const v = kwh(h, c[k][key], raw); if (v !== null && v !== undefined) t = (t || 0) + v; } });
+    return t;
   }
   // #80: forecast_swap gilt nur mit einer Tagesprognose in Wh/kWh/MWh. Ohne hass (erster Aufbau) zählt die Einstellung allein
   _fcSwap() {
@@ -1971,6 +1981,12 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const u2 = on ? (this._via2 >= 0 ? row(T('pv.use.store'), this._fW(p2raw)) : useText(p2Home + p2Rest, 0, p2Exp)) : '';
       if (u2) parts2.push(u2);
       (c.pv2.strings || []).forEach((s) => parts2.push(row(esc(s.name || s.entity), this._fW(watt(h, s.entity)))));
+      // #104: Prognose heute der zweiten Anlage, wie bei der ersten
+      if (c.pv2.forecast) {
+        const f2 = h.states[c.pv2.forecast], u2f = f2 ? String(f2.attributes.unit_of_measurement || '') : '';
+        if (/^(k|m)?wh$/i.test(u2f)) { const k2 = this._fcDay('pv2'); if (k2 !== null) parts2.push(row(T('forecast.day'), this._fk(k2) + ' kWh')); }
+        else { const w2 = watt(h, c.pv2.forecast); if (w2 !== null) parts2.push(row(T('forecast'), this._fW(w2))); }
+      }
       this._set('.pv2 .sub', parts2.join(''), true);
       if (this._via2 < 0) this._link('pv2', on, true, PAL.pv, pv2);
     }
@@ -2284,9 +2300,9 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (c.pv && c.pv.daily_ac === true && dPv !== null) dPv = Math.max(0, dPv + (sumBat('daily_charge', balB) || 0) - (sumBat('daily_discharge', balB) || 0));
     this._set('[data-s="pv"] b', `${this._fk(dPv)}<small>kWh</small>`, true);
     this._dPv = dPv;
-    if (this._fsw) { const f0 = this._fcDay(); this._set('[data-s="fc0"] b', `${this._fk(f0)}<small>kWh</small>`, true); }
-    if (c.pv && c.pv.forecast_tomorrow) this._set('[data-s="fc1"] b', `${this._fk(kwh(h, c.pv.forecast_tomorrow, raw))}<small>kWh</small>`, true);
-    if (c.pv && c.pv.forecast_day_after) this._set('[data-s="fc2"] b', `${this._fk(kwh(h, c.pv.forecast_day_after, raw))}<small>kWh</small>`, true);
+    if (this._fsw) { const f0 = this._fcDaySum(); this._set('[data-s="fc0"] b', `${this._fk(f0)}<small>kWh</small>`, true); }
+    if ((c.pv && c.pv.forecast_tomorrow) || (c.pv2 && c.pv2.forecast_tomorrow)) this._set('[data-s="fc1"] b', `${this._fk(this._fcSum('forecast_tomorrow'))}<small>kWh</small>`, true);
+    if ((c.pv && c.pv.forecast_day_after) || (c.pv2 && c.pv2.forecast_day_after)) this._set('[data-s="fc2"] b', `${this._fk(this._fcSum('forecast_day_after'))}<small>kWh</small>`, true);
     this._set('[data-s="imp"] b', `${this._fk(dImp)}<small>kWh</small>`, true);
     this._set('[data-s="exp"] b', `${this._fk(dExp)}<small>kWh</small>`, true);
     this._set('[data-s="bat"] b', `+${this._fk(dChg)}<small>/</small> −${this._fk(dDis)}<small>kWh</small>`, true);
