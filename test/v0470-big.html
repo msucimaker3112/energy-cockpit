@@ -1,0 +1,107 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit großes Update 0.47.0 Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft das große Update 0.47.0: Preise nach Uhrzeit (#105, Funktionen und Statistik), Tageswert je Verbraucher mit Abzug von "Haus heute" (#106), Statuskachel EIN/AUS (#108),
+   invert für Verbraucher, Preis je Verbraucher und den Schutz bei grid2 gleich grid (Zählerkaskade). Aufruf: ?test=1&still=1 */
+const S=(v,u,a)=>({state:String(v),attributes:Object.assign(u?{unit_of_measurement:u}:{},a||{}),last_updated:'x'});
+const states={'sensor.pv':S(700,'W'),'sensor.grid':S(1280,'W'),'sensor.wp':S(-1410,'W'),'sensor.waerme':S(1400,'W'),'sensor.wb':S(2000,'W'),'sensor.wb_day':S(12.4,'kWh'),'sensor.home_day':S(20,'kWh'),
+ 'input_boolean.boiler_a':S('on'),'input_boolean.boiler_b':S('off'),'sensor.pumpe_text':S('EIN'),'sensor.pumpe_zahl':S(1),'switch.kaputt':S('unavailable')};
+const hassFlow={states,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})};
+const base=(o)=>Object.assign({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},show_rest:true},o||{});
+function mount(tag,c,h){const host=document.getElementById('host');host.style.width='800px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const tx=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(v?'':(x!==undefined?' -> '+x:'')));};
+// Statistik: Bezug heute um 00 Uhr 10 kWh und um 01 Uhr 1 kWh (beide Stunden liegen in der Vergangenheit)
+const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),H=36e5,t02=d0+2*H,t12=d0+12*H;
+const hours={'sensor.imp':[[t02,10],[t12,1]],'sensor.pv':[[t12,5]],'sensor.exp':[[t12,2]]};
+const mStart=(t)=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),1).getTime();};
+const hassStats={states:{'sensor.pv':S(24000,'kWh'),'sensor.imp':S(7800,'kWh'),'sensor.exp':S(13600,'kWh'),'sensor.pvd':S(5,'kWh'),'sensor.impd':S(11,'kWh'),'sensor.expd':S(2,'kWh'),'sensor.price':S(0.30,'EUR/kWh')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={},ids=m.statistic_ids||[],T=m.types||[];
+  if(m.period==='month'){ids.forEach(id=>{const o={};(hours[id]||[]).forEach(([t,v])=>{const k=mStart(t);o[k]=(o[k]||0)+v;});
+    ['sensor.pv','sensor.imp','sensor.exp'].forEach(x=>(hours[x]||[]).forEach(([t])=>{if(!(mStart(t) in o))o[mStart(t)]=0;}));
+    const rows=Object.keys(o).map(Number).filter(k=>k>=from&&k<to).sort((a,b)=>a-b).map(k=>({start:k,change:o[k]}));if(rows.length&&hours[id])r[id]=rows;});return r;}
+  if(m.period==='5minute')return {};
+  if(m.period!=='hour'||T.includes('state')||T.includes('mean'))return {};
+  ids.forEach(id=>{const x=(hours[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>({start:t,change:v}));if(x.length)r[id]=x;});return r;}};
+const sbase={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price:'sensor.price',feed_in_ct:15};
+async function run(){
+  // Preise nach Uhrzeit: Funktionen
+  const pt=WD.priceTimes([{from:0,to:5,ct:25.5},{from:'22:00',to:'24:00',ct:30},{from:5,to:5,ct:99},{from:'x',to:3,ct:1},{from:1,to:2}]);
+  ok('priceTimes: zwei gültige Einträge, ungültige fallen weg',pt.length===2&&Math.abs(pt[0].eur-0.255)<1e-9&&pt[1].from===22&&pt[1].to===24,JSON.stringify(pt));
+  ok('timesPrice: 3 Uhr 25,5 ct, 12 Uhr kein Treffer, 23 Uhr 30 ct, 5 Uhr kein Treffer',WD.timesPrice(pt,3)===0.255&&WD.timesPrice(pt,12)===null&&WD.timesPrice(pt,23)===0.30&&WD.timesPrice(pt,5)===null);
+  const wr=WD.priceTimes([{from:22,to:6,ct:20}]);
+  ok('Zeit über Mitternacht (22 bis 6): 23 Uhr, 3 Uhr ja, 12 Uhr nein',WD.timesPrice(wr,23)===0.20&&WD.timesPrice(wr,3)===0.20&&WD.timesPrice(wr,12)===null);
+  ok('priceTimes als Objekt {0:…} (Formular) und leer',WD.priceTimes({0:{from:1,to:2,ct:10}}).length===1&&WD.priceTimes(undefined).length===0&&WD.priceTimes('x').length===0);
+  const cfgP={grid_price_ct:34,grid_price_times:[{from:0,to:5,ct:25.5}]};
+  ok('priceNow: 3 Uhr 25,5 ct, 12 Uhr normaler Preis 34 ct',WD.priceNow(hassFlow,cfgP,0,new Date(2026,10,24,3,0))===0.255&&WD.priceNow(hassFlow,cfgP,0,new Date(2026,10,24,12,0))===0.34);
+  ok('priceNow ohne Zeiten: wie bisher',WD.priceNow(hassFlow,{grid_price_ct:34},0)===0.34);
+  // Statistik mit Preisen nach Uhrzeit
+  let e=mount('energy-cockpit-stats-card',{...sbase,grid_price_times:[{from:0,to:5,ct:6.6}]},hassStats);await wait(2500);
+  const cost=tx(e,'[data-t="cost"]');
+  ok('Statistik: Stromkosten je Stunde 02 Uhr 10 × 0,066 + 12 Uhr 1 × 0,30 = 0,96',cost==='0,96',cost);
+  e=mount('energy-cockpit-stats-card',{...sbase},hassStats);await wait(2500);
+    e=mount('energy-cockpit-stats-card',{...sbase,grid_price_times:[{from:3,to:3,ct:5}]},hassStats);await wait(2500);
+  ok('Statistik mit ungültigen Zeiten wie bisher: 3,30',tx(e,'[data-t="cost"]')==='3,30',tx(e,'[data-t="cost"]'));
+
+  // invert für Verbraucher
+  e=mount('energy-cockpit-flow-card',base({consumers:[{name:'WP',entity:'sensor.wp',invert:true}]}),hassFlow);await wait(900);
+  ok('invert: Wärmepumpe zeigt 1,41 kW und ist aktiv',tx(e,'[data-k="c0"] .num')==='1,41'&&q(e,'[data-k="c0"]').classList.contains('on'),tx(e,'[data-k="c0"] .num')+' on='+q(e,'[data-k="c0"]').classList.contains('on'));
+  ok('invert: Nicht erfasst = 1,98 − 1,41 = 570 W',tx(e,'[data-k="crest"] .num')==='570'&&tx(e,'[data-k="crest"] .unit')==='W',tx(e,'[data-k="crest"] .num'));
+  e=mount('energy-cockpit-flow-card',base({consumers:[{name:'WP',entity:'sensor.wp'}]}),hassFlow);await wait(900);
+  ok('ohne invert (wie bisher): Kachel inaktiv, Nicht erfasst zu groß 3,39 kW',!q(e,'[data-k="c0"]').classList.contains('on')&&tx(e,'[data-k="crest"] .num')==='3,39',tx(e,'[data-k="crest"] .num'));
+  e=mount('energy-cockpit-flow-card',base({consumers:[{name:'WP',entity:'sensor.wp',invert:'true'}]}),hassFlow);await wait(900);
+  ok('invert als Text "true" wirkt ebenso',tx(e,'[data-k="c0"] .num')==='1,41');
+  // grid2 mit demselben Sensor wie grid
+  const hg=Object.assign({},hassFlow);
+  e=mount('energy-cockpit-flow-card',base({grid2:{entity:'sensor.grid',name:'Wärmestrom',price_ct:13.4}}),hg);await wait(900);
+  ok('grid2 gleich grid: Ring 1,98 kW (nicht 3,26), keine zusätzliche Kachel',tx(e,'.core .num')==='1,98'&&!q(e,'[data-k="c0"]'),tx(e,'.core .num'));
+  e=mount('energy-cockpit-flow-card',base({grid2:{entity:'sensor.waerme',name:'Wärme',price_ct:13.4}}),hg);await wait(900);
+  ok('grid2 mit eigenem Sensor wie bisher: Ring 3,38 kW, Kachel da',tx(e,'.core .num')==='3,38'&&!!q(e,'[data-k="c0"]'),tx(e,'.core .num'));
+  // Preis je Verbraucher
+  e=mount('energy-cockpit-flow-card',base({consumers:[{name:'WP',entity:'sensor.waerme',price_ct:13.4},{name:'Wallbox',entity:'sensor.wb'}]}),hassFlow);await wait(900);
+  ok('Preis je Verbraucher: 1,4 kW × 13,4 ct = 0,19 €/h',/0,19\s*€\/h/.test(tx(e,'[data-k="c0"] .c-sec')||''),tx(e,'[data-k="c0"] .c-sec'));
+  ok('ohne Preis keine Kosten',!/€\/h/.test(tx(e,'[data-k="c1"] .c-sec')||''),tx(e,'[data-k="c1"] .c-sec'));
+  // Tageswert je Verbraucher
+  const dcfg={home:{daily:'sensor.home_day'},consumers:[{name:'Wallbox',entity:'sensor.wb',daily:'sensor.wb_day',daily_from_home:true}]};
+  e=mount('energy-cockpit-flow-card',base(dcfg),hassFlow);await wait(900);
+  ok('Tageswert: Kachel "Wallbox heute" mit 12,4 kWh',/Wallbox heute/.test(tx(e,'[data-s="cd0"]')||'')&&/12,4/.test(tx(e,'[data-s="cd0"] b')||''),tx(e,'[data-s="cd0"]'));
+  ok('Abzug: Haus heute 20,0 − 12,4 = 7,6 kWh, Beschriftung "ohne Wallbox"',/7,6/.test(tx(e,'[data-s="home"] b')||'')&&/ohne Wallbox/.test(tx(e,'[data-s="home"]')||''),tx(e,'[data-s="home"]'));
+  e=mount('energy-cockpit-flow-card',base({home:{daily:'sensor.home_day'},consumers:[{name:'Wallbox',entity:'sensor.wb',daily:'sensor.wb_day'}]}),hassFlow);await wait(900);
+  ok('ohne daily_from_home: Haus heute bleibt 20,0 kWh',/20,0/.test(tx(e,'[data-s="home"] b')||'')&&!/ohne/.test(tx(e,'[data-s="home"]')||''),tx(e,'[data-s="home"]'));
+  e=mount('energy-cockpit-flow-card',base({home:{daily:'sensor.home_day'},consumers:[{name:'Wallbox',entity:'sensor.wb'}]}),hassFlow);await wait(900);
+  ok('ohne daily: keine Kachel, Haus heute wie bisher',!q(e,'[data-s="cd0"]')&&/20,0/.test(tx(e,'[data-s="home"] b')||''));
+  e=mount('energy-cockpit-flow-card',base({home:{daily:'sensor.home_day'},consumers:[{name:'Wallbox',entity:'sensor.wb',daily:'sensor.wb_day',daily_name:'Laden',daily_from_home:true}]}),hassFlow);await wait(900);
+  ok('daily_name ersetzt den Namen: "Laden heute", "ohne Laden"',/Laden heute/.test(tx(e,'[data-s="cd0"]')||'')&&/ohne Laden/.test(tx(e,'[data-s="home"]')||''),tx(e,'[data-s="cd0"]')+' | '+tx(e,'[data-s="home"]'));
+  // Statuskachel
+  const scfg=base({consumers:[{name:'Boiler Keller',icon:'mdi:water-boiler',secondary:'input_boolean.boiler_a'},{name:'Boiler Bad',secondary:'input_boolean.boiler_b'},{name:'Weg',secondary:'switch.kaputt'},{name:'Pumpe Text',secondary:'sensor.pumpe_text',secondary_mode:'status'},{name:'Pumpe Zahl',secondary:'sensor.pumpe_zahl',secondary_mode:'status'},{name:'Fehlt',secondary:'input_boolean.gibtsnicht'}]});
+  e=mount('energy-cockpit-flow-card',scfg,hassFlow);await wait(900);
+  const cls=(i)=>q(e,`[data-k="c${i}"]`).classList.contains('on');
+  ok('Status: input_boolean an zeigt EIN, grün und aktiv',tx(e,'[data-k="c0"] .num')==='EIN'&&cls(0)&&/52,\s?211,\s?153/.test(q(e,'[data-k="c0"]').style.getPropertyValue('--c')||'x52, 211, 153'),tx(e,'[data-k="c0"] .num')+' on='+cls(0)+' '+q(e,'[data-k="c0"]').style.getPropertyValue('--c'));
+  ok('Status: input_boolean aus zeigt AUS und ist grau',tx(e,'[data-k="c1"] .num')==='AUS'&&!cls(1),tx(e,'[data-k="c1"] .num')+' on='+cls(1));
+  ok('Status: nicht verfügbar zeigt Unbekannt',tx(e,'[data-k="c2"] .num')==='Unbekannt'&&!cls(2),tx(e,'[data-k="c2"] .num'));
+  ok('Status: Text-Sensor "EIN" mit secondary_mode status zeigt EIN',tx(e,'[data-k="c3"] .num')==='EIN'&&cls(3),tx(e,'[data-k="c3"] .num'));
+  ok('Status: Zahl 1 mit secondary_mode status zeigt EIN',tx(e,'[data-k="c4"] .num')==='EIN'&&cls(4),tx(e,'[data-k="c4"] .num'));
+  ok('Status: fehlende Entität zeigt Unbekannt',tx(e,'[data-k="c5"] .num')==='Unbekannt',tx(e,'[data-k="c5"] .num'));
+  ok('Status: geht nicht in die Leistungsrechnung ein (Nicht erfasst = ganzer Verbrauch 1,98 kW)',tx(e,'[data-k="crest"] .num')==='1,98',tx(e,'[data-k="crest"] .num'));
+  ok('Status: Kachel ohne Leistung hat keinen Leistungs-Wert in Watt',!/\bW\b|kW/.test(tx(e,'[data-k="c0"] .unit')||''),tx(e,'[data-k="c0"] .unit'));
+  // Zahl ohne secondary_mode bleibt wie bisher (Zahl), Schalter-Domäne ohne Mode wird Status
+  e=mount('energy-cockpit-flow-card',base({consumers:[{name:'Z',secondary:'sensor.pumpe_zahl'}]}),hassFlow);await wait(900);
+  ok('secondary ohne Mode bei Sensor: wie bisher als Zahl (1,0)',tx(e,'[data-k="c0"] .num')==='1,0',tx(e,'[data-k="c0"] .num'));
+  // Editor: Felder im Assistenten
+  const ed=document.createElement('energy-cockpit-flow-card-editor');document.getElementById('host').innerHTML='';document.getElementById('host').appendChild(ed);ed.hass=hassFlow;ed.setConfig({type:'custom:energy-cockpit-flow-card',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},consumers:[{entity:'sensor.waerme',name:'WP'}]});await wait(1800);
+  const ta=Array.from(ed.querySelectorAll('button')).find(b=>b.textContent.trim()==='Assistent');if(ta)ta.click();await wait(500);
+  const sv=Array.from(ed.querySelectorAll('button')).find(b=>/Verbraucher/.test(b.textContent)&&/^\s*\d+\./.test(b.textContent));if(sv)sv.click();await wait(500);
+  const et=ed.textContent;
+  ok('Assistent Verbraucher: Vorzeichen umkehren, Tageswert, Preis und Statuskachel',/Vorzeichen umkehren/.test(et)&&/Tagesverbrauch heute/.test(et)&&Array.from(ed.querySelectorAll('input')).some(i=>/Eigener Preis in Cent pro kWh/.test(i.placeholder))&&/Statuskachel ohne Leistungssensor/.test(et),et.slice(0,160));
+  const se=ed.querySelectorAll('select');
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount('energy-cockpit-flow-card',base({consumers:[{name:'Boiler Keller',secondary:'input_boolean.boiler_a'},{name:'Boiler Bad',secondary:'input_boolean.boiler_b'},{name:'WP',entity:'sensor.waerme',price_ct:13.4}]}),hassFlow);}
+</script></body></html>

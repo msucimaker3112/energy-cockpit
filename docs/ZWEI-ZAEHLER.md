@@ -120,7 +120,19 @@ consumers:
     # plus: sensor.pv_leistung          # nur wenn Z2 keinen Rückfluss anzeigt: Z2 = Haushalt - PV
 ```
 
-Die Karte zeigt `Z1 − Z2 (+ plus)`, nie negativ. **Wichtig:** Das stimmt nur, wenn beide Werte ein Vorzeichen haben. Zeigt dein Z2 bei PV-Überschuss nur "0", fehlt der Rückfluss, dann gibst du bei `minus` den Hausverbrauch an und bei `plus` die PV-Leistung, oder du bildest Z2 als Helfer (Haushaltsverbrauch minus PV).
+Die Karte zeigt `Z1 − Z2 (+ plus)`, nie negativ. **Wichtig:** `plus` wirkt nur zusammen mit `minus`. Das stimmt nur, wenn beide Werte ein Vorzeichen haben. Zeigt dein Z2 bei PV-Überschuss nur "0", fehlt der Rückfluss, dann gibst du bei `minus` den Hausverbrauch an und bei `plus` die PV-Leistung, oder du bildest Z2 als Helfer (Haushaltsverbrauch minus PV).
+
+**Haushalt und Wärmepumpe mit zwei Preisen (Z1 und Z2):** Die Wärmepumpe ist Z1 minus Z2, der Haushalt ist Z2. Für Z2 legst du dir einen Helfer an (Template-Sensor) oder nimmst den Hausverbrauch. Mit `price_ct` bekommt jede Kachel ihren eigenen Preis und zeigt die Kosten pro Stunde:
+
+```yaml
+consumers:
+  - name: Wärmepumpe
+    entity: sensor.z1_wirkleistung
+    minus: sensor.z2_wirkleistung
+    price_ct: 13.4                     # Wärmestromtarif
+```
+
+Meldet ein Sensor den Verbrauch **negativ**, setzt du bei diesem Verbraucher `invert: true`. Sonst zeigt die Kachel nichts und „Nicht erfasst“ wird um das Doppelte zu groß.
 
 **Raum-Abrechnung (Energie, Kosten, eigener Tarif):**
 

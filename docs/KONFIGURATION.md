@@ -39,7 +39,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `battery.power_out` | Sensor | Nur mit `pv_to_battery: direkt`: Leistung, die der erste Speicher ans Haus abgibt |
 | `pv.forecast` | Sensor | Prognose in W/kW (zeigt "Prognose 6,0 kW") oder Tagesprognose in kWh (zeigt "Prognose heute 6,0 kWh"), z. B. Solcast |
 | `battery.soc` | Sensor | Ladestand in % |
-| `battery.invert` | Ja/Nein | Vorzeichen umkehren |
+| `battery.invert` | Ja/Nein | Laden und Entladen vertauschen. Aktivieren, wenn die Karte beim Laden „Entladung“ zeigt (der Sensor meldet Laden negativ und Entladen positiv). Im Assistenten unter „Batterie“, im Formular unter „Alle Felder“ |
 | `battery.capacity_kwh` | Zahl | Kapazität für die Prognose "voll um / reicht bis" |
 | `battery.reserve_soc`, `battery.max_soc` | Sensor oder Helfer (Zahl-Entität) | Entladegrenze und Maximalladung der Batterie in %. Der Sensor heißt bei jedem Wechselrichter anders, deshalb frei wählbar (zum Beispiel "Entlade-Ende-Ladestand") |
 | `battery.reserve_pct`, `battery.max_pct` | Zahl | Alternative ohne Sensor: fester Wert in %, zum Beispiel `10`, wenn die Batterie nur bis 10 % entladen wird. Ein Sensor hat Vorrang |
@@ -74,6 +74,7 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `theme` | Text | Farbschema: `dunkel` (Standard), `graphit`, `hell`, `warm`, `auto` (folgt dem Home-Assistant-Design hell/dunkel) oder `ha` (Farben des HA-Designs). Gilt für alle vier Karten |
 | `accent` | Text | Nur Raum-Abrechnung: Akzentfarbe als `R,G,B` oder `#rrggbb` |
 | `grid_base_fee` | Zahl | Nur Statistik: Grundpreis Strom in Euro pro Monat, zählt anteilig in „Stromkosten Netz“ mit (siehe Abschnitt Statistik), mit `grid_base_fee_history` auch für frühere Grundpreise |
+| `grid_price_times` | Liste | Preise nach Uhrzeit, zum Beispiel Nachttarif: `- {from: 0, to: 5, ct: 25.5}`. `from` und `to` sind volle Stunden (0 bis 24, auch `22:00`), `to` zählt nicht mit, Zeiten über Mitternacht gehen (22 bis 6). Außerhalb der Zeiten gilt `grid_price` oder `grid_price_ct`. Wirkt im Energiefluss (Kosten pro Stunde) und in der Statistik (Stromkosten Stunde für Stunde, auch rückwirkend). Wunsch aus [#105](https://github.com/msucimaker3112/energy-cockpit/issues/105) |
 | `grid_price_ct`, `feed_in_ct` | Zahl | Alternative ohne Sensor: fester Preis in **Cent** pro kWh, zum Beispiel `34`. Gilt, wenn `grid_price` oder `feed_in` nicht gesetzt ist (Energiefluss, Geräte & Verbrauch, Statistik) |
 
 ### PV-Prognose für morgen und übermorgen
@@ -229,6 +230,28 @@ consumers:
     secondary_name: Vorlauf                    # optional: Name vor dem Zusatzwert, z. B. "SoC eAuto"
     on_w: 3                                    # aktiv (Rahmen, Linie) ab 3 W, Standard 10 W
 ```
+
+**Tageswert, Preis, Vorzeichen und Status je Verbraucher (optional):**
+
+```yaml
+consumers:
+  - name: Wallbox
+    entity: sensor.wallbox_leistung
+    daily: sensor.wallbox_heute            # Tagesverbrauch in kWh: eigene Kachel "Wallbox heute" unten
+    daily_name: Laden                      # optional, Name der Kachel ("Laden heute")
+    daily_from_home: true                  # optional: von "Haus heute" abziehen ("Haus heute ohne Laden")
+    price_ct: 13.4                         # optional: eigener Preis, zeigt die Kosten pro Stunde in der Kachel
+  - name: Wärmepumpe
+    entity: sensor.waermepumpe_leistung
+    invert: true                           # der Sensor meldet den Verbrauch negativ
+  - name: Boiler Keller                    # Gerät ohne Leistungssensor: Statuskachel
+    secondary: input_boolean.boiler_freigabe
+```
+
+- `daily` (Wunsch aus [#106](https://github.com/msucimaker3112/energy-cockpit/issues/106)): zeigt den Tagesverbrauch des Geräts als eigene Kachel. Mit `daily_from_home: true` zieht die Karte ihn von „Haus heute“ ab, damit die Wallbox den Hausverbrauch nicht verfälscht. Die Kachel heißt dann „Haus heute ohne Wallbox“.
+- `price_ct` rechnet Leistung mal Preis, zum Beispiel „0,19 €/h“ bei 1,4 kW und 13,4 ct. Praktisch bei zwei Zählern mit verschiedenen Tarifen (Wärmepumpe und Haushalt).
+- `invert: true` kehrt das Vorzeichen um, wenn ein Sensor den Verbrauch negativ meldet. Ohne die Option würde die Kachel nichts zeigen und „Nicht erfasst“ um das Doppelte zu groß werden. Gilt auch für Einträge in Gruppen.
+- **Statuskachel (Wunsch aus [#108](https://github.com/msucimaker3112/energy-cockpit/issues/108)):** Gibst du nur `secondary` an (Schalter, `input_boolean`, Binärsensor, Sensor mit Text), zeigt die Kachel EIN, AUS oder Unbekannt, grün wenn ein. Bei einem Sensor mit Zahl oder Text setzt du zusätzlich `secondary_mode: status` (Zahl größer 0 oder Text wie `on`, `ein`, `an`, `true` gilt als EIN). Die Statuskachel zählt nicht zum Verbrauch.
 
 `on_w` gibt es auch für Gruppen und ihre Einträge. Damit bekommt zum Beispiel eine Zirkulationspumpe mit 6 W einen Rahmen.
 
@@ -788,6 +811,8 @@ grid2_price_ct: 25.45
 
 Der Preis gilt für alle Zeiträume. Einen Preisverlauf (`grid_price_history`) gibt es für den zweiten Zähler nicht.
 
+**Preise nach Uhrzeit: `grid_price_times`.** Für einen Tarif mit festen Zeiten (Nachtstrom 0 bis 5 Uhr zu 25,5 ct, sonst `grid_price_ct`) trägst du `grid_price_times` ein, siehe Tabelle oben. Die Statistik rechnet damit Stromkosten, Solar-Ersparnis und Kosten pro Verbraucher Stunde für Stunde, auch für vergangene Tage, ohne Preis-Sensor mit Langzeitstatistik. Ungültige Einträge (gleiche Start- und Endzeit) werden ignoriert.
+
 **Zeittarife (Hochtarif und Niedertarif):** Trage den Hochtarif-Zähler als `grid_import_total` und den Niedertarif-Zähler als `grid2_total` ein, jeweils mit eigenem Preis (`grid_price_ct` und `grid2_price_ct`). Bei „Kosten pro Verbraucher“ zählt der Niedertarif-Bezug dann zum Netzbezug, und die Kosten rechnen mit dem Mischpreis aus beiden Zählern, je Stunde nach den bezogenen kWh. Die Geldwerte oben (Netzkosten, Solar-Ersparnis) rechnen weiter mit dem aktuellen Preis. Ist `grid_price` ein Sensor, dessen Preis je Stunde wechselt, rechnen sie mit `hourly_pricing: true` Stunde für Stunde, siehe `hourly_pricing`.
 
 ### Jahresbudget (optional): `budget_kwh`
@@ -1048,6 +1073,7 @@ grid2:
 
 - **Hausverbrauch:** Der zweite Zähler steckt nicht im Hauptzähler. Deshalb zählt die Karte ihn zum Hausverbrauch dazu (Haus plus Wärmepumpe) und im Ring zum Netz. Die Netz-Kachel zeigt weiter nur den Hauptzähler.
 - **Preis:** `price` (Sensor oder Helfer, Euro pro kWh) hat Vorrang vor `price_ct`. Ohne Preis zeigt die Kachel keine Kosten pro Stunde.
+- **Nicht derselbe Sensor wie das Netz:** Ist `grid2.entity` derselbe Sensor wie `grid.entity`, ignoriert die Karte `grid2` (sonst würde der Bezug doppelt gezählt). Für zwei Zähler in Reihe nimmst du stattdessen einen Verbraucher mit `entity` und `minus`, siehe [Zwei Zähler in Reihe](ZWEI-ZAEHLER.md).
 - **Mehrere Phasen:** `entity` ist ein einzelner Sensor. Bei einem dreiphasigen Zähler legst du dir in Home Assistant einen Summen-Sensor an (Helfer „Min/Max“ mit Typ „Summe“). Das Saldieren von Bezug und Einspeisung auf verschiedenen Phasen ist bei einem reinen Verbraucher wie einer Wärmepumpe nicht nötig.
 - **Statistik:** Dort gibt es dazu `grid2_total` (kWh-Zähler), `grid2_name`, `grid2_price` und `grid2_price_ct`, siehe Statistik-Karte unten.
 - Die Kachel steht in der Reihe der Verbraucher, nicht neben dem Netz. Ein Eintrag unter `consumers` ist dafür nicht nötig.
