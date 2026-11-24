@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.45.2 - MIT License */
+/*! energy-cockpit v0.46.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1547,6 +1547,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const first = this._c.battery;
     const bl = more.length ? (usedB(first) ? [first].concat(more) : more) : (first ? [first] : []);
     this._c.batteries = bl;
+    // pv.strings und pv2.strings (#101): Lücken aus dem Editor (leere Einträge) fallen weg, die Liste darf auch als Objekt {0:…} vorliegen
+    ['pv', 'pv2'].forEach((k) => { const o = this._c[k]; if (o && typeof o === 'object' && o.strings !== undefined) this._c[k] = Object.assign({}, o, { strings: arr(o.strings).filter(used) }); });
     if (bl.length) this._c.battery = bl[0];
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
@@ -2228,6 +2230,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <footer>${stats}</footer>
     </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${this._whyOn ? '<dialog class="wdlg"></dialog>' : ''}`;
 
+    // pv.kwp / pv2.kwp (optional, #103): Anlagenleistung in kWp. Die Solar-Kachel zeigt rechts neben der Leistung, wie viel Prozent davon gerade erzeugt werden
+    [['pv', 'pv'], ['pv2', 'pv2']].forEach(([k, cl]) => { if (this._kwp(c[k]) > 0) this.shadowRoot.querySelectorAll('.node.' + cl + ' .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr kwp-big"><span class="num">—</span><span class="unit">%</span></span>'); }); });
     // show_soc (optional): Ladestand der Batterie (gesamt, nicht "nutzbar") rechts neben der Leistung
     if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this.shadowRoot.querySelectorAll('.node.bat .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr soc-big"><span class="num">—</span><span class="unit">%</span></span>'); });
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
@@ -2887,6 +2891,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _fk(v) { return fKwh(v, this._dec.e); }
   _fp(v) { return fPct(v, this._dec.q); }
 
+  // kWp aus der Konfiguration (Zahl oder Text mit Komma), 0 = nicht gesetzt
+  _kwp(o) { const v = o && typeof o === 'object' ? parseFloat(String(o.kwp).replace(',', '.')) : NaN; return isNaN(v) || v <= 0 ? 0 : v; }
   _set(sel, txt, isHtml, root) {
     const el = root ? root.querySelector(sel) : this._$(sel);
     if (!el) return;
@@ -2988,6 +2994,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const el = this._$('[data-k="pv2"]'), on = p2raw > TH;
       el.classList.toggle('on', on);
       this._anim('pv2', pv2, el);
+      { const kw = this._kwp(c.pv2); if (kw > 0) this._set('.kwp-big .num', pv2 === null ? '—' : String(Math.min(999, Math.round(Math.max(0, pv2) / (kw * 1000) * 100))), false, el); }
       this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts2 = [];
       const u2 = on ? (this._via2 >= 0 ? row(T('pv.use.store'), this._fW(p2raw)) : useText(p2Home + p2Rest, 0, p2Exp)) : '';
@@ -3000,6 +3007,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const el = this._$('[data-k="pv"]'), on = p1 > TH;
       el.classList.toggle('on', on);
       this._anim('pv', pv1, el);
+      { const kw = this._kwp(c.pv); if (kw > 0) this._set('.kwp-big .num', pv1 === null ? '—' : String(Math.min(999, Math.round(Math.max(0, pv1) / (kw * 1000) * 100))), false, el); }
       this._set('.pv .tag', pv1 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts = [];
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz
@@ -3353,7 +3361,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', home_size: 'Größe der Zahl über dem Haus (Faktor, z. B. 1,5)', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', home_size: 'Größe der Zahl über dem Haus (Faktor, z. B. 1,5)', kwp: 'Anlagenleistung (kWp): zeigt die aktuelle Erzeugung in % davon', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3389,8 +3397,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   WD.flowForm = () => ({
     schema: [
       txt('title'),
-      sec('pv', 'Solar', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
-      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [numb('to_battery', 0, 6, 1), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
+      sec('pv', 'Solar', [sec('strings', 'Einzelne Strings (bis zu 8, mit Name und Leistung)', slots(8, (n) => `String ${n}`, () => [ent('entity', ['sensor']), txt('name')])), numb('kwp', 0, 1000, 0.01), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
+      sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [sec('strings', 'Einzelne Strings (bis zu 8, mit Name und Leistung)', slots(8, (n) => `String ${n}`, () => [ent('entity', ['sensor']), txt('name')])), numb('kwp', 0, 1000, 0.01), numb('to_battery', 0, 6, 1), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), bool('add_to_home', false)]),
       sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('grid2', 'Zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Zähler)', [ent('entity', ['sensor']), txt('name'), ent('price', ['sensor', 'input_number', 'number']), numb('price_ct', 0, 200, 0.01)]),
       sec('battery', 'Batterie', [
@@ -3461,6 +3469,23 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   const steps = () => [
     { short: 'Solar', title: 'Solaranlage', text: 'Wähle den Sensor, der die aktuelle Erzeugung der PV-Anlage in Watt anzeigt.', fields: [
       { path: 'pv.entity', label: 'PV-Leistung', kind: 'power', hints: H(/pv|solar|photovolt|inverter|wechselrichter|erzeugung/i, /input|eingang|power|leistung/i) },
+      { path: 'pv.kwp', label: 'Anlagenleistung (kWp)', kind: 'number', optional: true, step: '0.01', help: 'Optional. Zum Beispiel 9.8 für 9,8 kWp. Die Solar-Kachel zeigt dann rechts neben der Leistung in Prozent, wie viel von der Anlagenleistung gerade erzeugt wird (bei 4,9 kW und 9,8 kWp also 50 %).' },
+      { path: 'pv.strings.0.entity', label: 'String 1: Leistung', kind: 'power', optional: true, help: 'Optional. Einzelne Strings, zum Beispiel Süd und West. Die Solar-Kachel zeigt pro String eine Zeile mit Name und Leistung. Die Gesamtleistung oben bleibt der Sensor „PV-Leistung“.' },
+      { path: 'pv.strings.0.name', label: 'String 1: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.1.entity', label: 'String 2: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.1.name', label: 'String 2: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.2.entity', label: 'String 3: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.2.name', label: 'String 3: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.3.entity', label: 'String 4: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.3.name', label: 'String 4: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.4.entity', label: 'String 5: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.4.name', label: 'String 5: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.5.entity', label: 'String 6: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.5.name', label: 'String 6: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.6.entity', label: 'String 7: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.6.name', label: 'String 7: Name', kind: 'text', optional: true },
+      { path: 'pv.strings.7.entity', label: 'String 8: Leistung', kind: 'power', optional: true },
+      { path: 'pv.strings.7.name', label: 'String 8: Name', kind: 'text', optional: true },
       { path: 'pv.invert', label: 'Solar: Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn der Zähler die Erzeugung als negativen Wert meldet.' },
       { path: 'pv.daily', label: 'Tagesertrag (kWh)', kind: 'energy', optional: true, hints: H(/tag|daily|today|heute|yield|ertrag/i, /pv|solar|inverter/i) },
       { path: 'pv.daily_ac', label: 'Tagesertrag zählt ohne Batterie-Ladung', kind: 'bool', help: 'Für Hybrid-Wechselrichter, deren Tagesertrag nur die Abgabe des Wechselrichters zählt. Zeichen dafür: "Autarkie heute" steht bei 0 %, und "Haus heute" ist viel zu niedrig. Braucht "Geladen heute" und "Entladen heute" beim Speicher.' },
@@ -5707,6 +5732,15 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           ${m('aut', T('st.aut'), 'var(--home)')}
         </div>
         <div class="dhint" data-f="dHint" style="display:none"></div>
+        ${c._cc.length ? `<div class="panel cc" style="display:none">
+          <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
+          <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
+            <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid || T('st.cc.group'))}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
+            <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><div class="cc-val s"><span class="num" data-t="ccS${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
+            <div class="cc-bar">${['--imp', '--bat', '--pv'].map((s) => `<i style="--s:var(${s})"></i>`).join('')}</div>
+            <div class="cc-leg" data-f="ccK${i}"></div>${x._parts ? `<div class="cc-parts" data-f="ccD${i}"></div>` : ''}
+          </div>`).join('')}</div>
+        </div>` : ''}
         <div class="duo">
           <div class="panel amo"><span class="lbl" style="--c:var(--sav)"><i></i>${T('st.amo')}</span>
             <div class="big"><span class="num" data-t="amo">—</span><span class="unit">%</span><span class="earn" data-f="amoEarned">—</span></div>
@@ -5730,15 +5764,6 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
             <div><small>${T('st.bud.fcabw')}</small><b data-f="budFcAbw">—</b><em data-f="budFcAbwE"></em></div>
           </div>
           <div class="hint" data-f="budHint"></div>
-        </div>` : ''}
-        ${c._cc.length ? `<div class="panel cc" style="display:none">
-          <div class="cc-head"><span class="lbl" style="--c:var(--imp)"><i></i>${T('st.cc.title')} · <span data-f="ccP" style="margin-left:4px"></span></span><span class="cc-sum" data-f="ccSum"></span></div>
-          <div class="cc-grid">${c._cc.map((x, i) => `<div class="ccard" data-c="${i}" style="--c:${WD.rgb(x.color, '167,139,250')}">
-            <div class="cc-top"><span class="ico"><ha-icon icon="${esc(x.icon || 'mdi:flash')}"></ha-icon></span><div class="cc-name"><b>${esc(x.name || x.energy || x.grid || T('st.cc.group'))}</b><small>${T(x.grid ? 'st.cc.meas' : 'st.cc.est')}</small></div><span class="cc-live" data-f="ccL${i}"></span></div>
-            <div class="cc-main"><div><div class="cc-val"><span class="num" data-t="ccC${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.cost')}</span></div><div class="cc-sav"><div class="cc-val s"><span class="num" data-t="ccS${i}">—</span><span class="unit">${cur()}</span></div><span class="cc-cap">${T('st.cc.saved')}</span></div></div>
-            <div class="cc-bar">${['--imp', '--bat', '--pv'].map((s) => `<i style="--s:var(${s})"></i>`).join('')}</div>
-            <div class="cc-leg" data-f="ccK${i}"></div>${x._parts ? `<div class="cc-parts" data-f="ccD${i}"></div>` : ''}
-          </div>`).join('')}</div>
         </div>` : ''}
         <div class="panel chart">
           <div class="chart-head"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.monthly')}</span>

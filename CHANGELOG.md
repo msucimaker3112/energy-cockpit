@@ -1,7 +1,11 @@
 # Änderungsprotokoll
 
-## Unveröffentlicht
+## 0.46.0
+- **Energiefluss, Anlagenleistung in Prozent (optional, `pv.kwp` und `pv2.kwp`, Wunsch von PV-Joe, [#103](https://github.com/msucimaker3112/energy-cockpit/issues/103)):** Trägst du die Anlagenleistung in kWp ein (zum Beispiel `kwp: 9.8`), zeigt die Solar-Kachel rechts neben der Leistung in Prozent, wie viel davon gerade erzeugt wird. Das gilt auch in der 3D-Ansicht und für die zweite Anlage. Ohne Angabe bleibt alles wie bisher. Im Editor unter „Solar“ als „Anlagenleistung (kWp)“.
+- **Energiefluss, einzelne Strings im Editor (Wunsch von 84c7958vct-pixel, [#101](https://github.com/msucimaker3112/energy-cockpit/issues/101)):** Bis zu 8 Strings lassen sich jetzt direkt im Assistenten eintragen („String 1: Leistung“ und „String 1: Name“, unter „Solar“), nicht mehr nur im YAML. Die Solar-Kachel zeigt pro String eine Zeile mit Name und Leistung. Leere Einträge fallen weg. Für die zweite Anlage (`pv2.strings`) gibt es die Felder im Formular unter „Alle Felder“.
+- **Statistik, Reihenfolge (Wunsch von PV-Joe, [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)):** „Kosten pro Verbraucher“ steht jetzt direkt unter den vier Geldkacheln, weil beide Kosten zeigen. Amortisation und Grundlast folgen darunter.
 - **Dokumentation, Vollbild ohne Seitenleiste:** In der Installationsanleitung und im README steht jetzt, wie ein Wandtablet oder Fernseher ohne Seitenleiste und Kopfzeile läuft: mit der HACS-Erweiterung Kiosk Mode und `?kiosk` (oder `?hide_sidebar`, `?hide_header`) an der Adresse des Dashboards.
+- **Tests:** Neue Seite `test/v0453-wishes.html` (Strings, kWp in Prozent, Reihenfolge in der Statistik, Felder im Assistenten).
 
 ## 0.45.2
 - **Energiefluss, Größe der Zahl über dem Haus (optional, `home_size`, Wunsch von Cle2301, [#102](https://github.com/msucimaker3112/energy-cockpit/issues/102)):** Mit einer Zahl (zum Beispiel `home_size: 1.5`) wird nur die Zahl über dem Haus größer, auch in der 3D-Ansicht und in der Kurzansicht. Gut für Wandtablets. Ohne Angabe bleibt alles wie bisher. Im Editor unter „Größe der Zahl über dem Haus“.

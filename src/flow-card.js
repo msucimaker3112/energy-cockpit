@@ -518,6 +518,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     const first = this._c.battery;
     const bl = more.length ? (usedB(first) ? [first].concat(more) : more) : (first ? [first] : []);
     this._c.batteries = bl;
+    // pv.strings und pv2.strings (#101): Lücken aus dem Editor (leere Einträge) fallen weg, die Liste darf auch als Objekt {0:…} vorliegen
+    ['pv', 'pv2'].forEach((k) => { const o = this._c[k]; if (o && typeof o === 'object' && o.strings !== undefined) this._c[k] = Object.assign({}, o, { strings: arr(o.strings).filter(used) }); });
     if (bl.length) this._c.battery = bl[0];
     // pv_to_battery: direkt (Speicher vor dem Wechselrichter, z. B. Marstek B2500): nur mit PV-Sensor und Ausgangsleistung des ersten Speichers
     const vb = this._c.pv_to_battery;
@@ -1199,6 +1201,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
       <footer>${stats}</footer>
     </div></ha-card>${cmp ? '<dialog class="gdlg"></dialog>' : ''}${this._whyOn ? '<dialog class="wdlg"></dialog>' : ''}`;
 
+    // pv.kwp / pv2.kwp (optional, #103): Anlagenleistung in kWp. Die Solar-Kachel zeigt rechts neben der Leistung, wie viel Prozent davon gerade erzeugt werden
+    [['pv', 'pv'], ['pv2', 'pv2']].forEach(([k, cl]) => { if (this._kwp(c[k]) > 0) this.shadowRoot.querySelectorAll('.node.' + cl + ' .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr kwp-big"><span class="num">—</span><span class="unit">%</span></span>'); }); });
     // show_soc (optional): Ladestand der Batterie (gesamt, nicht "nutzbar") rechts neben der Leistung
     if (c.show_soc === true || String(c.show_soc).toLowerCase() === 'true') this.shadowRoot.querySelectorAll('.node.bat .val').forEach((v) => { v.insertAdjacentHTML('beforeend', '<span class="shr soc-big"><span class="num">—</span><span class="unit">%</span></span>'); });
     this._links = links.map((k) => ({ k, g: this._$(`g[data-l="${k}"]`), el: this._$(`[data-k="${k}"]`) }));
@@ -1858,6 +1862,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
   _fk(v) { return fKwh(v, this._dec.e); }
   _fp(v) { return fPct(v, this._dec.q); }
 
+  // kWp aus der Konfiguration (Zahl oder Text mit Komma), 0 = nicht gesetzt
+  _kwp(o) { const v = o && typeof o === 'object' ? parseFloat(String(o.kwp).replace(',', '.')) : NaN; return isNaN(v) || v <= 0 ? 0 : v; }
   _set(sel, txt, isHtml, root) {
     const el = root ? root.querySelector(sel) : this._$(sel);
     if (!el) return;
@@ -1959,6 +1965,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const el = this._$('[data-k="pv2"]'), on = p2raw > TH;
       el.classList.toggle('on', on);
       this._anim('pv2', pv2, el);
+      { const kw = this._kwp(c.pv2); if (kw > 0) this._set('.kwp-big .num', pv2 === null ? '—' : String(Math.min(999, Math.round(Math.max(0, pv2) / (kw * 1000) * 100))), false, el); }
       this._set('.pv2 .tag', pv2 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts2 = [];
       const u2 = on ? (this._via2 >= 0 ? row(T('pv.use.store'), this._fW(p2raw)) : useText(p2Home + p2Rest, 0, p2Exp)) : '';
@@ -1971,6 +1978,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
       const el = this._$('[data-k="pv"]'), on = p1 > TH;
       el.classList.toggle('on', on);
       this._anim('pv', pv1, el);
+      { const kw = this._kwp(c.pv); if (kw > 0) this._set('.kwp-big .num', pv1 === null ? '—' : String(Math.min(999, Math.round(Math.max(0, pv1) / (kw * 1000) * 100))), false, el); }
       this._set('.pv .tag', pv1 === null ? T('tag.offline') : on ? T('tag.producing') : T('tag.idle'));
       const parts = [];
       // Wohin die erzeugte Leistung geht: Haus, Batterie, Netz

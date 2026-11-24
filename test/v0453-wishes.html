@@ -1,0 +1,72 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Wünsche 0.45.3 (Strings im Editor, kWp in Prozent, Kosten pro Verbraucher oben) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script>
+// Minimaler Ersatz für ha-form (Home Assistant fehlt in der Testseite), nur damit der Assistent zeichnet
+customElements.define('ha-form',class extends HTMLElement{set schema(v){}set data(v){}set computeLabel(f){}set computeHelper(f){}set hass(h){}});
+</script>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script>
+<script>
+/* Prüft #101 (Strings: Liste aus dem Editor, Lücken, Objektform), #103 (pv.kwp und pv2.kwp: Erzeugung in % der Anlagenleistung) und die Reihenfolge
+   in der Statistik (Kosten pro Verbraucher direkt unter den vier Geldkacheln). Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFlow=(o)=>({states:Object.assign({'sensor.pv':S(4900),'sensor.s1':S(2500),'sensor.s2':S(1800),'sensor.s3':S(600),'sensor.pv2':S(200),'sensor.grid':S(0),'sensor.home':S(1000)},o||{}),language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})});
+function mount(tag,c,h,w){const host=document.getElementById('host');host.style.width=(w||800)+'px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const sub=(e,k)=>q(e,`[data-k="${k}"] .sub`).textContent.replace(/\s+/g,' ').trim();
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const base=(pv,pv2)=>({pv:Object.assign({entity:'sensor.pv'},pv),grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},pv2:pv2||undefined});
+async function run(){
+  // Strings
+  let e=mount('energy-cockpit-flow-card',base({strings:[{entity:'sensor.s1',name:'Süd'},{entity:'sensor.s2',name:'West'}]}),hassFlow());await wait(900);
+  ok('Strings als Liste: Name und Leistung je String',/Süd 2[.,]5 kW|Süd 2500 W|Süd 2[.,]50 kW/.test(sub(e,'pv'))&&/West/.test(sub(e,'pv')),sub(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base({strings:{0:{entity:'sensor.s1',name:'Süd'},1:{name:'leer'},2:{entity:'sensor.s3',name:'Ost'}}}),hassFlow());await wait(900);
+  ok('Strings als Objekt mit Lücke: leerer Eintrag fällt weg',/Süd/.test(sub(e,'pv'))&&/Ost/.test(sub(e,'pv'))&&!/leer/.test(sub(e,'pv')),sub(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base({strings:[{name:'nur Name'}]}),hassFlow());await wait(900);
+  ok('Nur Name ohne Sensor: kein Fehler, keine Zeile',!!q(e,'[data-k="pv"]')&&!/nur Name/.test(sub(e,'pv')),sub(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base({strings:[{entity:'sensor.s1',name:'Süd'}]},{entity:'sensor.pv2',strings:[{entity:'sensor.s3',name:'Dach 2'}]}),hassFlow());await wait(900);
+  ok('pv2.strings wirkt ebenso',/Dach 2/.test(sub(e,'pv2')),sub(e,'pv2'));
+  // kWp
+  const kt=(el,k)=>{const x=q(el,`[data-k="${k}"] .kwp-big`);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+  e=mount('energy-cockpit-flow-card',base({kwp:9.8}),hassFlow());await wait(900);
+  ok('kwp 9,8 bei 4,9 kW: 50 %',kt(e,'pv')==='50%',kt(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base({kwp:'9,8'}),hassFlow());await wait(900);
+  ok('kwp als Text mit Komma: 50 %',kt(e,'pv')==='50%',kt(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base(),hassFlow());await wait(900);
+  ok('ohne kwp: keine Prozentzahl',kt(e,'pv')===null);
+  e=mount('energy-cockpit-flow-card',base({kwp:0}),hassFlow());await wait(900);
+  ok('kwp 0: keine Prozentzahl',kt(e,'pv')===null);
+  e=mount('energy-cockpit-flow-card',base({kwp:'abc'}),hassFlow());await wait(900);
+  ok('kwp ungültig: keine Prozentzahl, kein Fehler',kt(e,'pv')===null&&!!q(e,'[data-k="pv"]'));
+  e=mount('energy-cockpit-flow-card',base({kwp:2},{entity:'sensor.pv2',kwp:0.4}),hassFlow());await wait(900);
+  ok('pv2.kwp 0,4 bei 200 W: 50 %',kt(e,'pv2')==='50%',kt(e,'pv2'));
+  ok('pv.kwp 2 bei 4,9 kW: 245 %',kt(e,'pv')==='245%',kt(e,'pv'));
+  e=mount('energy-cockpit-flow-card',base({kwp:9.8}),hassFlow({'sensor.pv':{state:'unavailable',attributes:{unit_of_measurement:'W'},last_updated:'x'}}));await wait(900);
+  ok('Sensor offline: Strich statt Prozent',/—/.test(kt(e,'pv')||''),kt(e,'pv'));
+  e=mount('energy-cockpit-flow-card',Object.assign({style:'3d'},base({kwp:9.8})),hassFlow());await wait(900);
+  ok('3D-Ansicht: Prozentzahl vorhanden',kt(e,'pv')==='50%',kt(e,'pv'));
+  // Editor: Felder im Assistenten
+  const ed=document.createElement('energy-cockpit-flow-card-editor');document.getElementById('host').innerHTML='';document.getElementById('host').appendChild(ed);ed.hass=hassFlow();ed.setConfig({type:'custom:energy-cockpit-flow-card',pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'}});await wait(1800);
+  const ta=Array.from(ed.querySelectorAll('button')).find(b=>b.textContent.trim()==='Assistent');if(ta)ta.click();await wait(500);
+  const sol=Array.from(ed.querySelectorAll('button')).find(b=>/Solar/.test(b.textContent)&&/^\s*\d+\./.test(b.textContent));
+  if(sol)sol.click();await wait(300);
+  const tx=ed.textContent;lines.push('INFO Knöpfe: '+Array.from(ed.querySelectorAll('button')).map(b=>b.textContent.trim()).join(' | ').slice(0,300)+' || '+tx.slice(0,200));
+  ok('Assistent: Feld "Anlagenleistung (kWp)"',/Anlagenleistung \(kWp\)/.test(tx));
+  ok('Assistent: Felder "String 1: Leistung" und "String 8: Name"',/String 1: Leistung/.test(tx)&&/String 8: Name/.test(tx));
+  // Statistik: Reihenfolge
+  const cfgS={pv_total:'sensor.pvt',grid_import_total:'sensor.imp',grid_price_ct:30,cost_consumers:[{name:'Wärmepumpe',energy:'sensor.e'}]};
+  const hs={states:{'sensor.pvt':S(900,'kWh'),'sensor.imp':S(1,'kWh'),'sensor.e':S(5,'kWh')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],callWS:async()=>({})};
+  const s=mount('energy-cockpit-stats-card',cfgS,hs);await wait(900);
+  const money=q(s,'.money'),cc=q(s,'.panel.cc'),duo=q(s,'.duo'),chart=q(s,'.panel.chart');
+  const pos=(a,b)=>!!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING));
+  ok('Statistik: Kosten pro Verbraucher steht nach den Geldkacheln',pos(money,cc));
+  ok('Statistik: Kosten pro Verbraucher steht vor Amortisation und Grundlast',pos(cc,duo));
+  ok('Statistik: Diagramm weiter unten',pos(duo,chart));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount('energy-cockpit-flow-card',base({kwp:9.8,strings:[{entity:'sensor.s1',name:'Süd'},{entity:'sensor.s2',name:'West'}]}),hassFlow());}
+</script></body></html>
