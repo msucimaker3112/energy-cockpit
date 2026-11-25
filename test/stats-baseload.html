@@ -22,14 +22,16 @@ const means={
 };
 // Zahl der Stundenmittel-Abfragen je Preis-Sensor (zeigt, dass die Preise auch ohne cost_consumers geladen werden)
 let priceCalls={};
+// Jede Stundenmittel-Abfrage eines Preis-Sensors mit ihrem Beginn (zeigt die zusätzliche Abfrage für die 7 Tage)
+let priceLog=[];
 const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.e':S(100),'sensor.home':S(300,'W'),
-  'sensor.price':S(0.3545,'EUR/kWh'),'sensor.price24':S(0.3545,'EUR/kWh'),'sensor.price23':S(0.3545,'EUR/kWh'),'sensor.price2':S(0.3545,'EUR/kWh')},
+  'sensor.price':S(0.3545,'EUR/kWh'),'sensor.price24':S(0.3545,'EUR/kWh'),'sensor.price23':S(0.3545,'EUR/kWh'),'sensor.price2':S(0.3545,'EUR/kWh'),'sensor.priceW':S(0.3545,'EUR/kWh')},
  language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
  callWS:async(m)=>{
   const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={},ids=m.statistic_ids||[],T=m.types||[];
   if(m.period!=='hour'||!T.includes('mean'))return {};
   ids.forEach((id)=>{
-    if(id.startsWith('sensor.price'))priceCalls[id]=(priceCalls[id]||0)+1;
+    if(id.startsWith('sensor.price')){priceCalls[id]=(priceCalls[id]||0)+1;priceLog.push({id,from});}
     const x=(means[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>Object.assign({start:t,mean:v},T.includes('min')?{min:v,max:v}:{}));
     if(x.length)r[id]=x;
   });
@@ -95,6 +97,31 @@ async function run(){
   e=mount({...base,language:'en'});await wait(2500);
   ok('Englisch: "per year at 7-day avg price"',tx(e,'glCost').endsWith('per year at 7-day avg price'),tx(e,'glCost'));
   ok('Englisch: "100 W less ≈ … per year at 7-day avg price"',/100 W less ≈ .+ per year at 7-day avg price$/.test(tx(e,'glTip')),tx(e,'glTip'));
+
+  // 8. Geladene Stunden reichen nur gut 2 Tage zurück: Uhr auf Mittwoch, 2. Dezember 2026, 12:30 (Woche ab Montag 30.11., Monat ab 1.12.).
+  //    Mit Option genau eine zusätzliche Abfrage ab 7 Tagen vorher, Mittel über alle 7 Tage (453 €). Nur die geladenen Stunden ergäben 415 €.
+  //    Ohne Option keine zusätzliche Abfrage
+  {
+    const RealDate=Date,FIX=new RealDate(2026,11,2,12,30).getTime(),OFF=FIX-RealDate.now();
+    class FakeDate extends RealDate{constructor(...a){super(...(a.length?a:[RealDate.now()+OFF]));}static now(){return RealDate.now()+OFF;}}
+    const hF=Math.floor(FIX/H)*H,g0F=Math.floor((FIX-7*864e5)/H)*H,lastF=(n)=>Array.from({length:n},(x,i)=>hF-(n-i)*H);
+    means['sensor.priceW']=lastF(10*24).map((t)=>[t,tou(t)]);
+    means['sensor.homeW']=lastF(9*24).filter((t)=>{const h=new RealDate(t).getHours();return h===2||h===3;}).map((t)=>[t,new RealDate(t).getHours()===2?200:260]);
+    const loaded=means['sensor.priceW'].filter(([t])=>t>=new RealDate(2026,10,30).getTime()),AVG2=loaded.reduce((a,[,v])=>a+v,0)/loaded.length;
+    const cfgW={...base,grid_price:'sensor.priceW',home_power:'sensor.homeW'},ext=(l)=>l.filter((x)=>x.id==='sensor.priceW'&&x.from===g0F).length;
+    try{
+      window.Date=FakeDate;
+      priceLog=[];e=mount({...cfgW,baseload_avg_price:false});await wait(2500);
+      const offLog=priceLog.slice();
+      ok('Nur 2 Tage geladen, Option aus: keine zusätzliche Abfrage ab 7 Tagen vorher',ext(offLog)===0,offLog.length+' Abfragen');
+      ok(`Nur 2 Tage geladen, Option aus: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+      priceLog=[];e=mount(cfgW);await wait(2500);
+      const onLog=priceLog.slice();
+      ok('Nur 2 Tage geladen, Option an: genau eine zusätzliche Abfrage ab 7 Tagen vorher',ext(onLog)===1&&onLog.length===offLog.length+1,`${onLog.length} statt ${offLog.length} Abfragen, davon ${ext(onLog)} ab 7 Tagen vorher`);
+      ok(`Nur 2 Tage geladen, Option an: Mittel über volle 7 Tage ${yr(AVG)}, nicht nur die geladenen Stunden ${yr(AVG2)}`,yr(AVG)!==yr(AVG2)&&tx(e,'glCost').startsWith(yr(AVG))&&tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+      ok(`Nur 2 Tage geladen, Option an: 100 W weniger ≈ ${h100(AVG)}`,tx(e,'glTip').includes(`100 W weniger ≈ ${h100(AVG)} € pro Jahr zum ${AVGTXT}`),tx(e,'glTip'));
+    }finally{window.Date=RealDate;}
+  }
 
   document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
 }
