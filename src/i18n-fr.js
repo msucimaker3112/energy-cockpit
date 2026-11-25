@@ -77,7 +77,7 @@ WD.addTranslations('fr', {
   'st.price.warn': "⚠ Prix électricité seulement {p} ct/kWh : ce champ attend des <b>centimes</b> (par exemple 23.88), pas des euros.",
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>par an</small>",
   'st.gltip': "Valeur horaire minimale 0–5 h, médiane des {n} dernières nuits",
-  'st.gl100': "100 W de moins ≈ {x} {cur} par an",
+  'st.gl100': "100 W de moins ≈ {x} {cur} par an", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>par an au prix moyen sur 7 jours</small>", 'st.gl100.avg': "100 W de moins ≈ {x} {cur} par an au prix moyen sur 7 jours",
   'st.full': "× complet",
   'st.noprice': "Configurer les prix (grid_price, feed_in) pour voir coûts et économies",
   'st.nodata': "pas encore de données",

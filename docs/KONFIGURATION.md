@@ -755,6 +755,7 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # hide: [monthly, footer]                  # Bereiche ausblenden: monthly, amortisation, baseload, footer, money
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
 # hourly_pricing: true                     # Geldwerte Stunde für Stunde mit dem Preis-Sensor rechnen (Standard: aus), siehe unten
+# baseload_avg_price: true                 # Grundlast zum 7-Tage-Durchschnittspreis (Standard: aus, nur mit hourly_pricing), siehe unten
 # text_size: sehr_gross                     # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die großen Werte)
 # colors: { pv: "#b7791f" }                # eigene Farben, siehe "Eigene Farben: colors"
 # grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
@@ -785,6 +786,12 @@ Pflicht sind `pv_total` und `grid_import_total`. `grid_export_total` ist optiona
 - **Preis 0 oder negativ:** Mit Stundenpreisen bleiben die Kacheln sichtbar, und die Fußzeile zeigt den Preis statt „Preise konfigurieren“. Ohne Preisstatistik zeigen die Kacheln dann wie bisher einen Strich.
 - **Unverändert:** Der zweite Zähler (`grid2_total`) zählt weiter zu seinem eigenen Preis, Grundpreis und Amortisation bleiben wie bisher. Der Hinweis in der Langzeit-Ansicht nennt die Stundenpreise, sobald sie verwendet wurden.
 - **Ladezeit:** Ohne `cost_consumers` lädt die Karte dafür die Stundenwerte des laufenden Jahres, mit `long_term` auch frühere Jahre ab der ersten Stunde mit Preisstatistik, dazu bei Preiswechseln in der Stunde 5-Minuten-Werte. Auf schwachen Geräten (zum Beispiel Echo Show) kann das spürbar dauern.
+
+**Grundlast zum Durchschnittspreis: `baseload_avg_price`.** Die Kachel „Grundlast (nachts)“ rechnet die Jahreskosten der Grundlast und den Tipp „100 W weniger ≈ … pro Jahr“ normalerweise mit dem Preis, der gerade gilt. Bei einem Zeittarif springt der Wert dann je nach Uhrzeit, zum Beispiel zwischen 6,6 ct nachts und 35,45 ct tagsüber, obwohl die Grundlast rund um die Uhr läuft. Mit `baseload_avg_price: true` nimmt die Kachel stattdessen den einfachen Mittelwert der Stundenpreise der letzten 7 Tage, jede Stunde gleich gewichtet, und schreibt „zum 7-Tage-Durchschnittspreis“ dazu. Standard ist aus. Einschalten geht auch im Editor unter „Alle Felder“, direkt unter `hourly_pricing`.
+
+- **Nur zusammen mit Stundenpreisen:** Die Option wirkt nur, wenn die Karte Stunde für Stunde rechnet, also mit `hourly_pricing: true` und einem `grid_price`-Sensor mit Langzeitstatistik, oder mit `grid_price_times`. Sonst bleibt die Kachel wie bisher.
+- **Zu wenig Preisdaten:** Gibt es in den letzten 7 Tagen weniger als 24 Stunden mit Preisstatistik (zum Beispiel kurz nach dem Einrichten des Sensors), rechnet die Kachel wie bisher mit dem aktuellen Preis und ohne den Zusatz. Bei mehr als 24 Stunden, aber weniger als 7 Tagen, mittelt sie über die Stunden, die es gibt.
+- **Ladezeit:** Meist sind die Stundenpreise schon geladen. Reichen sie nicht 7 Tage zurück (Anfang einer Woche oder eines Monats), lädt die Karte die fehlenden Stunden mit einer zusätzlichen Abfrage nach.
 
 **`hide`:** Blendet einzelne Bereiche der Statistik aus, die du nicht brauchst. Eine Liste mit diesen Namen, auch im Editor unter „Alle Felder“ auswählbar:
 

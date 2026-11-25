@@ -77,7 +77,7 @@ WD.addTranslations('fi', {
   'st.price.warn': "⚠ Sähkön hinta vain {p} c/kWh: kenttä odottaa <b>senttejä</b> (esimerkiksi 23.88), ei euroja.",
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>vuodessa</small>",
   'st.gltip': "Pienin tuntikeskiarvo klo 0–5, {n} viimeisen yön mediaani",
-  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa",
+  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>vuodessa 7 päivän keskihinnalla</small>", 'st.gl100.avg': "100 W vähemmän ≈ {x} {cur} vuodessa 7 päivän keskihinnalla",
   'st.full': "× täynnä",
   'st.noprice': "Määritä hinnat (grid_price, feed_in), niin kustannukset ja säästöt näkyvät",
   'st.nodata': "ei vielä tietoja",

@@ -5528,7 +5528,7 @@ WD.addStrings({
   'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.soh': 'Gesundheit', 'st.pvall': 'Solar gesamt',
   'st.r.pv': 'Erzeugung', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>von {i} {cur} Investition</small>", 'st.eta': "Amortisation ca. <b>{y} {cur}</b> pro Jahr", "st.eta.d": "fertig ca. <b>{yr}</b>", 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
-  'st.glcost': "<b>{x}</b><i>{cur}</i><small>pro Jahr</small>", 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': "100 W weniger ≈ {x} {cur} pro Jahr",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>pro Jahr</small>", 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': "100 W weniger ≈ {x} {cur} pro Jahr", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>pro Jahr zum 7-Tage-Durchschnittspreis</small>", 'st.gl100.avg': "100 W weniger ≈ {x} {cur} pro Jahr zum 7-Tage-Durchschnittspreis",
   'st.full': '× voll', 'st.note': 'Netzstrom {p} ct/kWh · Einspeisung {f} ct/kWh · {g} · Amortisation mit heutigen Preisen geschätzt', 'st.note.nofee': 'reine Energiekosten ohne Grundgebühr', 'st.note.fee': 'Stromkosten Netz mit Grundpreis',
   'st.noprice': 'Preise (grid_price, feed_in) konfigurieren, um Kosten und Ersparnis zu sehen', 'st.nodata': 'noch keine Daten', 'st.vsprev': 'ggü. Vorjahr',
   'st.import': 'Bezug', 'st.export': 'Einspeisung',
@@ -5804,7 +5804,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_times (optional, #105): Preise nach Uhrzeit. Schaltet die Rechnung Stunde für Stunde ein, auch ohne Preis-Sensor
       this._c._pt = WD.priceTimes(c.grid_price_times);
       this._c._hp = (c.hourly_pricing === true && typeof c.grid_price === 'string' && !!c.grid_price.trim()) || this._c._pt.length > 0;
-      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {};
+      // baseload_avg_price (optional): Grundlast-Kachel zum Mittel der Stundenpreise der letzten 7 Tage statt zum Preis dieser Stunde. Standard: aus, nur zusammen mit hourly_pricing
+      this._c._gla = c.baseload_avg_price === true && this._c._hp;
+      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {}; this._glAvg = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
       this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
@@ -6119,6 +6121,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const day = zero(), week = zero(), month = zero(), wk = { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 };
         const hd = hz(), hw = hz(), hm = {};
         const sp = c._hp ? new Set() : null, m = await means(first, null, priceId, sp), fm = feedId ? await means(first, null, feedId, sp) : {}, s5 = sp ? await slice5(sp, m, fm) : {};
+        // baseload_avg_price: Grundlast läuft rund um die Uhr, dort gilt der einfache Mittelwert der Stundenpreise der letzten 7 Tage statt des Preises
+        // dieser Stunde. Reichen die schon geladenen Stunden nicht 7 Tage zurück, einmal nachladen. Unter 24 Stunden mit Preis: null, dann der heutige Preis
+        if (c._gla) {
+          const g0 = Math.floor((Date.now() - 7 * 864e5) / HR) * HR, gm = first.getTime() <= g0 ? m : await means(new Date(g0), null, priceId);
+          const gv = Object.keys(gm).filter((k) => +k >= g0).map((k) => gm[k]);
+          this._glAvg = gv.length >= 24 ? gv.reduce((a, v) => a + v, 0) / gv.length : null;
+        } else this._glAvg = null;
         add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => {
           if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; });
           if (c._hp) { if (t >= m0) hAdd(hMon(hm, t), t, x, m, fm, s5); if (t >= w0) hAdd(hw, t, x, m, fm, s5); if (t >= d0) hAdd(hd, t, x, m, fm, s5); }
@@ -6612,7 +6621,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const vals = N.map((x) => x.v).sort((a, b) => a - b);
         const med = vals[Math.floor(vals.length / 2)];
         this._count('gl', med, 0);
-        this._f('glCost', price > 0 ? T('st.glcost', { x: fEur(med / 1000 * 8760 * price), cur: CUR }) : '');
+        // baseload_avg_price: Mittel der Stundenpreise der letzten 7 Tage (aus _loadCC), sonst der heutige Preis
+        const glAvg = c._gla && typeof this._glAvg === 'number' ? this._glAvg : null, glPrice = glAvg !== null ? glAvg : price, glK = glAvg !== null ? '.avg' : '';
+        this._f('glCost', glPrice > 0 ? T('st.glcost' + glK, { x: fEur(med / 1000 * 8760 * glPrice), cur: CUR }) : '');
         const mx = Math.max(...N.map((x) => x.v), 1);
         const bars = this._$('.nights'), lbl = this._$('.nl');
         if (bars.children.length !== N.length) {
@@ -6620,7 +6631,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           lbl.innerHTML = N.map((x) => `<span>${x.t.toLocaleDateString(WD.state.loc, { weekday: 'short' }).replace('.', '').slice(0, 2)}</span>`).join('');
         }
         requestAnimationFrame(() => N.forEach((x, i) => { bars.children[i].style.height = Math.max(6, x.v / mx * 100) + '%'; }));
-        this._f('glTip', T('st.gltip', { n: N.length }) + (price > 0 ? ' · ' + T('st.gl100', { x: fEur(0.1 * 8760 * price), cur: CUR }) : ''));
+        this._f('glTip', T('st.gltip', { n: N.length }) + (glPrice > 0 ? ' · ' + T('st.gl100' + glK, { x: fEur(0.1 * 8760 * glPrice), cur: CUR }) : ''));
       }
       // Monatsbalken
       if (this._m) {
@@ -6707,7 +6718,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
     pv_today: 'PV heute (kWh)', import_today: 'Netzbezug heute (kWh, nicht der Gesamtverbrauch)', export_today: 'Einspeisung heute (kWh)', charge_today: 'Batterie geladen heute (kWh)', discharge_today: 'Batterie entladen heute (kWh)',
     language: 'Sprache der Karte', pv: 'Solar', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie', battery_charge: 'Batterie lädt (gilt, wenn „Batterie“ leer ist)', home: 'Haus', feed_in_card: 'Kachel Einspeiseerlös', start_period: 'Reiter beim Öffnen', hide: 'Bereiche ausblenden', grid2_total: 'Zweiter Zähler gesamt (kWh, optional, z. B. Wärmepumpe)', grid2_name: 'Name des zweiten Zählers', grid2_price: 'Preis des zweiten Zählers (Sensor oder Helfer, pro kWh)', grid2_price_ct: 'oder fester Preis des zweiten Zählers (Cent pro kWh)', budget_kwh: 'Jahresziel Netzbezug (kWh)', budget_profile: 'Soll im Jahresbudget', home_power: 'Hausverbrauch (Leistung, für Grundlast)', grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', investment_eur: 'Anschaffungskosten der PV-Anlage (Euro, fest)', theme: 'Farbschema', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)', investment: 'Anschaffungskosten PV-Anlage (Sensor oder input_number)', earned_before_eur: 'Bereits erwirtschaftet vor Beginn der Zähler (Euro)', earned_before: 'oder bereits erwirtschaftet aus Sensor oder Helfer (Euro)',
     text_size: 'Textgröße', nav_path: 'Weiter-Schaltfläche: Pfad', nav_label: 'Weiter-Schaltfläche: Text', fit_screen: 'Auf Bildschirmhöhe skalieren',
-    battery_losses: 'Batterieverluste bei Ersparnis und Amortisation abziehen', battery_efficiency: 'Wirkungsgrad der Batterie in % (optional, sonst aus den Zählern)', cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_price_times: 'Preise nach Uhrzeit (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
+    battery_losses: 'Batterieverluste bei Ersparnis und Amortisation abziehen', battery_efficiency: 'Wirkungsgrad der Batterie in % (optional, sonst aus den Zählern)', cost_consumers: 'Kosten pro Verbraucher (Liste, siehe Assistent)', grid_price_history: 'Frühere Strompreise (Liste, siehe Assistent)', grid_price_times: 'Preise nach Uhrzeit (Liste, siehe Assistent)', hourly_pricing: 'Geldwerte Stunde für Stunde mit dem Preis-Sensor (Zeittarife, dynamische Tarife)', baseload_avg_price: 'Grundlast zum 7-Tage-Durchschnittspreis (nur mit Geldwerten Stunde für Stunde)',grid_base_fee: 'Grundpreis Strom (Euro pro Monat, optional)', grid_base_fee_history: 'Frühere Grundpreise (Liste, siehe Assistent)', pv_ac: 'PV-Zähler zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', long_term: 'Langzeit-Ansicht (alle Jahre, Reiter "Gesamt")', pv_history: 'Importierte PV-Historie (Statistik-ID)', pv_history_until: 'Historie gilt bis einschließlich (JJJJ-MM)', pv_history_name: 'Bezeichnung der Historie',
   };
   const ent = (name, d) => ({ name, selector: { entity: d ? { domain: d } : {} } });
   const txt = (name) => ({ name, selector: { text: {} } });
@@ -6739,6 +6750,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       { name: 'grid_price_history', selector: { object: {} } },
       { name: 'grid_price_times', selector: { object: {} } },
       { name: 'hourly_pricing', default: false, selector: { boolean: {} } },
+      { name: 'baseload_avg_price', default: false, selector: { boolean: {} } },
       { name: 'grid_base_fee', selector: { number: { min: 0, max: 1000, step: 'any', mode: 'box' } } },
       { name: 'grid_base_fee_history', selector: { object: {} } },
       { name: 'long_term', selector: { boolean: {} } },
@@ -6941,7 +6953,7 @@ WD.addTranslations('en', {
   'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.soh': 'Health', 'st.pvall': 'Total solar',
   'st.r.pv': 'Production', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>of {i} {cur} investment</small>", 'st.eta': "Return approx. <b>{y} {cur}</b> per year", 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
-  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per year</small>", 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': "100 W less ≈ {x} {cur} per year",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per year</small>", 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': "100 W less ≈ {x} {cur} per year", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>per year at 7-day avg price</small>", 'st.gl100.avg': "100 W less ≈ {x} {cur} per year at 7-day avg price",
   'st.full': '× full', 'st.note': 'Grid electricity {p} ¢/kWh · export {f} ¢/kWh · {g} · payback estimated using today’s prices', 'st.note.nofee': 'energy costs only, excluding fixed charges', 'st.note.fee': 'grid electricity costs including fixed charges',
   'st.noprice': 'Configure prices (grid_price, feed_in) to see costs and savings', 'st.nodata': 'no data yet', 'st.vsprev': 'vs. previous year',
   'st.import': 'Grid import', 'st.export': 'Grid export',
@@ -7097,7 +7109,7 @@ WD.addTranslations('nl', {
   'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.soh': 'Gezondheid', 'st.pvall': 'Zonne-energie totaal',
   'st.r.pv': 'Opwekking', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>van {i} {cur} investering</small>", 'st.eta': "Rendement ca. <b>{y} {cur}</b> per jaar", 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
-  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per jaar</small>", 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': "100 W minder ≈ {x} {cur} per jaar",
+  'st.glcost': "<b>{x}</b><i>{cur}</i><small>per jaar</small>", 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': "100 W minder ≈ {x} {cur} per jaar", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>per jaar tegen de gemiddelde prijs van 7 dagen</small>", 'st.gl100.avg': "100 W minder ≈ {x} {cur} per jaar tegen de gemiddelde prijs van 7 dagen",
   'st.full': '× vol', 'st.note': 'Netstroom {p} ct/kWh · teruglevering {f} ct/kWh · {g} · terugverdientijd geschat met de huidige prijzen', 'st.note.nofee': 'alleen energiekosten, zonder vastrecht', 'st.note.fee': 'kosten netstroom inclusief vastrecht',
   'st.noprice': 'Configureer prijzen (grid_price, feed_in) om kosten en besparingen te zien', 'st.nodata': 'nog geen gegevens', 'st.vsprev': 't.o.v. vorig jaar',
   'st.import': 'Netafname', 'st.export': 'Teruglevering',
@@ -7265,7 +7277,7 @@ WD.addTranslations('fr', {
   'st.price.warn': "⚠ Prix électricité seulement {p} ct/kWh : ce champ attend des <b>centimes</b> (par exemple 23.88), pas des euros.",
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>par an</small>",
   'st.gltip': "Valeur horaire minimale 0–5 h, médiane des {n} dernières nuits",
-  'st.gl100': "100 W de moins ≈ {x} {cur} par an",
+  'st.gl100': "100 W de moins ≈ {x} {cur} par an", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>par an au prix moyen sur 7 jours</small>", 'st.gl100.avg': "100 W de moins ≈ {x} {cur} par an au prix moyen sur 7 jours",
   'st.full': "× complet",
   'st.noprice': "Configurer les prix (grid_price, feed_in) pour voir coûts et économies",
   'st.nodata': "pas encore de données",
@@ -7710,7 +7722,7 @@ WD.addTranslations('fi', {
   'st.price.warn': "⚠ Sähkön hinta vain {p} c/kWh: kenttä odottaa <b>senttejä</b> (esimerkiksi 23.88), ei euroja.",
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>vuodessa</small>",
   'st.gltip': "Pienin tuntikeskiarvo klo 0–5, {n} viimeisen yön mediaani",
-  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa",
+  'st.gl100': "100 W vähemmän ≈ {x} {cur} vuodessa", 'st.glcost.avg': "<b>{x}</b><i>{cur}</i><small>vuodessa 7 päivän keskihinnalla</small>", 'st.gl100.avg': "100 W vähemmän ≈ {x} {cur} vuodessa 7 päivän keskihinnalla",
   'st.full': "× täynnä",
   'st.noprice': "Määritä hinnat (grid_price, feed_in), niin kustannukset ja säästöt näkyvät",
   'st.nodata': "ei vielä tietoja",
