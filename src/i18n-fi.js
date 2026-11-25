@@ -68,7 +68,7 @@ WD.addTranslations('fi', {
   'st.eff': "Hyötysuhde",
   'st.cycles': "Akun syklit",
   'st.temp': "Lämpötila",
-  'st.soh': "Kunto (SOH)",
+  'st.soh': "Kunto",
   'st.pvall': "Aurinkotuotto yhteensä",
   'st.earned': "<b>{e}</b><i>{cur}</i><small>{i} {cur} investoinnista</small>",
   'st.eta': "Tuotto noin <b>{y} {cur}</b> vuodessa",

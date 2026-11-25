@@ -3,7 +3,7 @@ WD.addStrings({
   'st.title': 'Statistik', 'st.err': 'pv_total und grid_import_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
-  'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.soh': 'Gesundheit (SOH)', 'st.pvall': 'Solar gesamt',
+  'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.soh': 'Gesundheit', 'st.pvall': 'Solar gesamt',
   'st.r.pv': 'Erzeugung', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>von {i} {cur} Investition</small>", 'st.eta': "Amortisation ca. <b>{y} {cur}</b> pro Jahr", "st.eta.d": "fertig ca. <b>{yr}</b>", 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>pro Jahr</small>", 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': "100 W weniger ≈ {x} {cur} pro Jahr",

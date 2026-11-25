@@ -1,4 +1,4 @@
-/*! energy-cockpit v0.47.0 - MIT License */
+/*! energy-cockpit v0.48.0 - MIT License */
 /* ---- common.js ---- */
 /* Gemeinsame Helfer für alle energy-cockpit-Karten. Wird im Bundle als globales Objekt WD bereitgestellt. */
 const WD = (() => {
@@ -1054,7 +1054,7 @@ function wmeter(fl,pre,large,text,label){
   return `<svg viewBox="${xMin.toFixed(1)} ${yMin.toFixed(1)} ${(xMax-xMin).toFixed(1)} ${(yMax-yMin).toFixed(1)}" role="img" aria-label="${WD.esc(label)}"><defs>${defs}</defs>${body}</svg>`;
 }
 
-const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n.d3-spin{animation:d3spin 2s linear infinite;transform-origin:0 0}\n@keyframes d3spin{to{transform:rotate(360deg)}}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl,.wrap:not(.anim-on) .d3-spin{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
+const css = '.s3d{--hl0:#46536b;--hl1:#262f42;--hr0:#2a3448;--hr1:#161d2b;--ht0:#5a6880;--ht1:#3c485e;--edge:rgba(255,255,255,.34);--slot:#080c14;--hole:#05080f;--wall:#111827;--alu0:#aeb9ca;--alu1:#5c6a80;--ink:#06101f;--shadow:rgba(0,0,0,.6);--rf0:#8a4a3c;--rf1:#54291f;--wl0:#d9d5ca;--wl1:#b4b0a5;--wr0:#8d8a81;--wr1:#6f6c64;--plinth:#4a4d55;--path:rgba(255,255,255,.14);--terrace:#6a6e76;--step:#7c8089}\n:host([data-theme="hell"]) .s3d,:host([data-theme="warm"]) .s3d{--hl0:#fbfcfe;--hl1:#d4dbe6;--hr0:#c2ccd9;--hr1:#9aa6b8;--ht0:#ffffff;--ht1:#e8ecf3;--edge:rgba(255,255,255,.9);--slot:#5d6a7e;--hole:#1a2233;--wall:#2a3448;--alu0:#c9d2de;--alu1:#7d8a9e;--shadow:rgba(15,23,42,.3);--rf0:#a8574a;--rf1:#7c3d33;--wl0:#fffdf7;--wl1:#e4dfd3;--wr0:#bdb8ac;--wr1:#a09b8f;--plinth:#737780;--path:rgba(15,23,42,.14);--terrace:#a7abb3;--step:#b8bcc4}\n.s3d .node{display:grid;grid-template-columns:minmax(0,calc(132px*min(var(--ts,1),1.4))) minmax(0,1fr);column-gap:14px;align-content:center}\n.s3d .node>*{grid-column:2}\n.s3d .node>.o3d{grid-column:1;grid-row:1 / span 7;align-self:center;min-width:0}\n.s3d .o3d svg{display:block;width:100%;height:auto;overflow:visible}\n.s3d .node .ico,.s3d .soc{display:none}\n.s3d .tag{justify-self:start}\n.s3d .soc-row{gap:6px}\n.s3d .soc-row b{white-space:nowrap}\n.s3d.cmp .node{grid-template-columns:calc(52px*min(var(--ts,1),1.4)) minmax(0,1fr);column-gap:9px}\n.s3d.cmp .node>*{grid-column:2}\n.s3d.cmp .node>.o3d{grid-column:1;grid-row:1 / span 7}\n.s3d.cmp .node>.o3d svg{height:auto;margin-bottom:0}\n.s3d .node.d3tall{grid-template-columns:minmax(0,1fr)}\n.s3d .node.d3tall>*,.s3d .node.d3tall>.o3d{grid-column:1;grid-row:auto}\n.s3d .node.d3tall>.o3d svg{height:calc(112px*min(var(--ts,1),1.9));margin-bottom:6px}\n.s3d.cmp .node.d3tall>.o3d svg{height:calc(60px*min(var(--ts,1),1.9));margin-bottom:4px}\n.s3d .hub{display:flex;flex-direction:column;max-width:340px}\n.wide.s3d .hub{max-width:460px}\n.wide.s3d .layout{row-gap:72px}\n.s3d .hub:before,.s3d .hub>svg{display:none}\n.s3d .hub .o3d svg{position:static;transform:none;height:auto}\n.s3d.cmp .hub{max-width:240px}\n.s3d .core{position:static;order:-1;background:none;border:0;box-shadow:none;animation:none;padding:0;margin-bottom:2px}\n.s3d .core ha-icon{display:none}\n.s3d .hub-wrap .mix{order:-1;margin:0 0 6px}\n.s3d .link[data-l^="r:"]:not(.on){display:none}\n.d3-band{animation:d3rise var(--dur) linear infinite;animation-delay:var(--dl)}\n@keyframes d3rise{0%{transform:translateY(0);opacity:0}12%{opacity:.75}88%{opacity:.75}100%{transform:translateY(var(--d));opacity:0}}\n.d3-band.rev{animation-direction:reverse}\n.d3-lamp{animation:d3lamp 2.2s ease-in-out infinite}\n.d3-spin{animation:d3spin 2s linear infinite;transform-origin:0 0}\n@keyframes d3spin{to{transform:rotate(360deg)}}\n@keyframes d3lamp{50%{opacity:.4}}\n.d3-sheen{animation:d3sheen var(--dur) ease-in-out infinite}\n@keyframes d3sheen{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}\n.d3-fl{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1.5 11;animation:d3flow 1.1s linear infinite}\n@keyframes d3flow{to{stroke-dashoffset:-12.5}}\n.anim-off .d3-band,.anim-off .d3-lamp,.anim-off .d3-sheen,.anim-off .d3-fl,.anim-off .d3-spin{animation:none}.anim-off .d3-band,.anim-off .d3-sheen{opacity:0}@media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-lamp,.wrap:not(.anim-on) .d3-sheen,.wrap:not(.anim-on) .d3-fl,.wrap:not(.anim-on) .d3-spin{animation:none}.wrap:not(.anim-on) .d3-band,.wrap:not(.anim-on) .d3-sheen{opacity:0}}';
 // Überträgt nur die Unterschiede in das vorhandene SVG, damit laufende Animationen nicht neu starten
 const tpl = document.createElement('template');
 const patch = (a, b) => {
@@ -1300,10 +1300,10 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .core .hico ha-icon{color:inherit;--mdc-icon-size:32px;margin:0;display:flex}
 .core .val{margin:0}
 .core .num{font-size:calc(2.15rem*var(--vs,1)*var(--hs,1));color:rgb(var(--home));text-shadow:none}
-.hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
-.mix{display:flex;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
+.hub-lbl{font-size:calc(.62rem*var(--ts,1)*var(--hls,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
+.mix{display:flex;font-size:calc(.7rem*var(--ts,1)*var(--hps,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
 .mix span{display:flex;align-items:center;margin:0 6px}
-.mix i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
+.mix i{width:calc(7px*var(--hps,1));height:calc(7px*var(--hps,1));border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
 .mix b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600;margin-left:4px}
 .consumers{position:relative;z-index:1;display:grid;justify-content:center;grid-template-columns:repeat(auto-fit,minmax(max(140px,calc(140px*var(--ts,1))),max(240px,calc(240px*var(--ts,1)))));grid-gap:12px;gap:12px;margin-top:54px}
 .cons{display:flex;align-items:center;padding:11px 12px;border-radius:17px;background:var(--glass);border:1px solid var(--stroke);cursor:pointer;transition:all .5s,order 0s;min-width:0}
@@ -1373,8 +1373,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wide .core .num{font-size:calc(2.8rem*var(--vs,1)*var(--hs,1))}
 .wide .core .hico{width:62px;height:62px;border-radius:19px}
 .wide .core .hico ha-icon{--mdc-icon-size:40px}
-.wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
-.wide .mix{font-size:calc(.82rem*var(--ts,1))}
+.wide .hub-lbl{font-size:calc(.72rem*var(--ts,1)*var(--hls,1))}
+.wide .mix{font-size:calc(.82rem*var(--ts,1)*var(--hps,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(max(200px,calc(200px*var(--ts,1))),max(260px,calc(260px*var(--ts,1)))));gap:14px;margin-top:60px}
 .wide .cons{padding:14px 16px;border-radius:20px}
 .wide .cons .num{font-size:calc(1.35rem*var(--vs,1))}
@@ -1568,6 +1568,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cons .ico.logo img{height:30px;max-width:80px}
 /* animations: always (oder immer) animiert auch bei "Bewegung reduzieren" am Gerät */
 @media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .flow,.wrap:not(.anim-on) .orbit,.wrap:not(.anim-on) .node.on:after,.wrap:not(.anim-on) .live:after,.wrap:not(.anim-on) .cons.on .ico:after,.wrap:not(.anim-on) .grp.on .ico:after{animation-duration:0s!important}}
+.anim-off .flow,.anim-off .orbit,.anim-off .node.on:after,.anim-off .live:after,.anim-off .cons.on .ico:after,.anim-off .grp.on .ico:after{animation-duration:0s!important}
+.ec-paused,.ec-paused *,.ec-paused *::before,.ec-paused *::after{animation-play-state:paused!important}
 `;
 
 class EnergyCockpitFlowCard extends HTMLElement {
@@ -1589,13 +1591,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
   static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
   setConfig(config) {
     WD.applyTheme(this, config, this._hass);
-    if (!config || ((!config.pv || !config.pv.entity) && (!config.grid || !config.grid.entity))) {
+    const gridSet = (g) => !!(g && (g.entity || g.power_import || g.power_export));
+    if (!config || ((!config.pv || !config.pv.entity) && !gridSet(config.grid))) {
       // Noch nicht eingerichtet: Hinweisfläche statt Fehlermeldung, der Assistent im Editor hilft weiter
       this._c = null;
       this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Energiefluss</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
       return;
     }
     this._c = JSON.parse(JSON.stringify(config));
+    // grid.power_import / grid.power_export (optional, #111): zwei Sensoren statt einem mit Vorzeichen. Die Karte rechnet Bezug minus Einspeisung.
+    // Für Tippen (Verlauf) und alle Stellen, die nur nach grid.entity fragen, gilt der Bezugssensor als Netz-Sensor
+    const gc = this._c.grid;
+    if (gc && typeof gc === 'object' && !gc.entity && (gc.power_import || gc.power_export)) { gc._split = true; gc.entity = gc.power_import || gc.power_export; }
     this._dec = WD.decOf(this._c);
     // consumer_groups_sort: leistung (#24): Geräte einer Gruppe nach aktueller Leistung, aktive oben. Reihenfolge je Gruppe merken
     this._gSort = this._c.consumer_groups_sort === 'leistung' || this._c.consumer_groups_sort === 'power';
@@ -1634,6 +1641,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // home_size (optional, #102): Faktor nur fuer die Zahl ueber dem Haus (und ihre Einheit)
     const hsn = parseFloat(String(this._c.home_size).replace(',', '.'));
     this._hsn = !isNaN(hsn) && hsn > 0 ? Math.min(4, Math.max(0.5, hsn)) : 0;
+    // home_label_size / home_percentage_size (optional, #102): Faktor fuer "Hausverbrauch" unter der Zahl bzw. die Prozente (Solar, Batterie, Netz) darueber
+    const fac = (v) => { const n = parseFloat(String(v).replace(',', '.')); return !isNaN(n) && n > 0 ? Math.min(4, Math.max(0.5, n)) : 0; };
+    this._hls = fac(this._c.home_label_size);
+    this._hps = fac(this._c.home_percentage_size);
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._topCur = null; this._topPend = 0;
@@ -2077,9 +2088,31 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._clockT = setInterval(() => { this._clock(); this._wasteChip(); this._sky(); }, 15000);
     this._clock();
     this._schedLayout();
+    // Nicht sichtbar (weggescrollt, anderer Tab, Bildschirm aus): Animationen anhalten, das spart auf Wandtablets Rechenleistung und Akku
+    if (!this._io && window.IntersectionObserver) this._io = new IntersectionObserver((en) => { const e = en[en.length - 1]; this._setVis(!!(e && e.isIntersecting)); });
+    if (this._io) this._io.observe(this);
+    if (!this._onVis) this._onVis = () => this._setVis(this._ioVis !== false, true);
+    document.addEventListener('visibilitychange', this._onVis);
+  }
+  _animOff() { return !!this._c && ['off', 'aus', 'none', false].includes(this._c.animations); }
+  // fromDoc: Aufruf durch visibilitychange (Sichtbarkeit im Fenster bleibt, nur der Tab wechselt)
+  _setVis(inView, fromDoc) {
+    if (!fromDoc) this._ioVis = inView;
+    const vis = inView && document.visibilityState !== 'hidden';
+    if (vis === this._vis) return;
+    this._vis = vis;
+    const w = this._$ && this._$('.wrap');
+    if (w) w.classList.toggle('ec-paused', !vis);
+    if (!vis) {
+      // Laufendes Hochzählen sofort auf den Zielwert setzen
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      Object.values(this._tw || {}).forEach((t) => { if (t.from !== undefined && t.target !== null && t.numEl) { t.cur = t.target; t.from = undefined; const [n, u] = this._sw(t.target); t.numEl.textContent = n; t.unitEl.textContent = u; } });
+    } else this._schedLayout();
   }
   disconnectedCallback() {
     clearTimeout(this._hT); this._hT = null;
+    if (this._io) this._io.disconnect();
+    if (this._onVis) document.removeEventListener('visibilitychange', this._onVis);
     if (this._ro) this._ro.disconnect();
     window.removeEventListener('resize', this._onResize);
     if (this._kaSub) KA.subs.delete(this._kaSub);
@@ -2261,7 +2294,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._hsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._hsn ? `--hs:${this._hsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : this._animOff() ? ' anim-off' : ''}${this._vis === false ? ' ec-paused' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._hsn || this._hls || this._hps || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._hsn ? `--hs:${this._hsn};` : ''}${this._hls ? `--hls:${this._hls};` : ''}${this._hps ? `--hps:${this._hps};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -2534,7 +2567,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!t || t.target === null || t.cur === undefined) t = this._tw[key] = { cur: target };
     if (t.target === target && t.numEl === numEl) return;
     // Nur große Sprünge zählen hoch. Jedes Hochzählen schreibt in jedem Bild Text und zwingt das Gerät, neu zu messen und zu zeichnen
-    const calm = !['always', 'immer'].includes(this._c.animations) && window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    // Nicht hochzählen: Animationen aus, Karte nicht sichtbar oder "Bewegung reduzieren" am Gerät
+    const calm = this._animOff() || this._vis === false || (!['always', 'immer'].includes(this._c.animations) && window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
     if (calm || Math.abs(target - t.cur) < Math.max(50, Math.abs(t.cur) * 0.15)) {
       Object.assign(t, { cur: target, from: undefined, target, numEl, unitEl });
       const [n, u] = this._sw(target);
@@ -3004,6 +3038,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Summe aller Erzeuger. Mit pv2 gilt: PV 2 (z. B. Balkonkraftwerk) speist zuerst ins Haus.
     const pv = pv1 === null && pv2 === null ? null : (pv1 || 0) + (pv2 || 0);
     let grid = c.grid ? watt(h, c.grid.entity) : null;
+    if (c.grid && c.grid._split) {
+      const gi = c.grid.power_import ? watt(h, c.grid.power_import) : null, ge = c.grid.power_export ? watt(h, c.grid.power_export) : null;
+      grid = gi === null && ge === null ? null : Math.max(0, gi || 0) - Math.max(0, ge || 0);
+    }
     if (grid !== null && c.grid.invert) grid = -grid;
     // Je Speicher Leistung (Laden positiv) und Ladestand; Summe bzw. nach Kapazität gewichteter Mittelwert für Ring und Banner
     const bats = c.batteries.map((b, i) => {
@@ -3481,12 +3519,12 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     entity: 'Sensor (Leistung)', daily: 'Tageswert heute (kWh)', daily_name: 'Name der Tageswert-Kachel (optional)', daily_from_home: 'Tageswert von „Haus heute“ abziehen', price_ct: 'Eigener Preis (Cent pro kWh, zeigt Kosten pro Stunde)', secondary_mode: 'Zusatzwert anzeigen als', daily_ac: 'Tagesertrag zählt ohne Batterie-Ladung (Hybrid-Wechselrichter)', forecast: 'Prognose (Leistung in W/kW oder Tagesprognose in kWh)', forecast_tomorrow: 'Prognose morgen (kWh, z. B. Forecast.Solar)', forecast_day_after: 'Prognose übermorgen (kWh, optional)',
     price: 'Preis (Sensor oder Helfer, pro kWh)', price_ct: 'oder fester Preis (Cent pro kWh)',
     invert: 'Vorzeichen umkehren', daily_import: 'Bezug heute (kWh)', daily_export: 'Einspeisung heute (kWh)',
-    power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
+    power_import: 'oder getrennt: Bezug aus dem Netz (Sensor, W)', power_export: 'oder getrennt: Einspeisung ins Netz (Sensor, W)', power_charge: 'oder getrennt: Ladeleistung (Sensor)', power_discharge: 'oder getrennt: Entladeleistung (Sensor)', power: 'Sensor Lade-/Entladeleistung', soc: 'Sensor Ladestand (%)', capacity_kwh: 'Kapazität (kWh)',
     reserve_soc: 'Entladegrenze (Sensor oder Helfer, %)', max_soc: 'Maximalladung (Sensor oder Helfer, %)', groups_lines: 'Linien zu den Verbrauchern', hide_rest: 'Kachel "Nicht erfasst" ausblenden', hide_zero: 'Ruhende Verbraucher ausblenden (unter „Aktiv ab“)', hide_zero_delay: 'Ausblenden erst nach (Sekunden, Standard 30)', show_rest: 'Kachel "Nicht erfasst" auch bei einzelnen Verbrauchern ohne Gruppen zeigen', add_to_home: 'Hausverbrauch enthält die zweite Anlage nicht', rest_min: 'Kachel "Nicht erfasst" erst ab (%)', consumers_top: 'Nur die größten Verbraucher zeigen (Anzahl)', text_size: 'Textgröße', reserve_pct: 'oder feste Entladegrenze (%)', max_pct: 'oder feste Maximalladung (%)', soc_display: 'Ladestand anzeigen als', tap: 'Klick auf die Batterie-Kachel öffnet',
     power_out: 'Ausgangsleistung ins Haus (Sensor, nur für Speicher mit angeschlossenen Modulen, z. B. Anker Solarbank „AC-Hausabgabe“)', pv_to_battery: 'Solar läuft durch den Speicher (z. B. Marstek B2500, Anker Solarbank)',
     temp: 'Temperatur (Sensor, optional)', daily_charge: 'Geladen heute (kWh)', daily_discharge: 'Entladen heute (kWh)', behind_meter: 'Speicher hinter dem Zähler (zählt wie ein Gerät im Haus)',
     grid_price: 'Strompreis Bezug (Sensor, pro kWh)', feed_in: 'Einspeisevergütung (Sensor, pro kWh)', grid_price_ct: 'oder fester Strompreis (Cent pro kWh)', grid_price_times: 'Preise nach Uhrzeit (Liste, siehe Assistent)', theme: 'Farbschema', language: 'Sprache der Karte', fuel: 'Brennstoff', big_value: 'Große Zahl der Batterie-Kachel (nur mit „Solar läuft durch den Speicher“)', self_consumption: 'Eigenbedarf des Speichers (Sensor, optional)', kwh_per_l: 'kWh je Liter (nur Öl, Standard 10)', no_name: 'Ohne Namen (nur der Wert)', accent: 'Akzentfarbe (z. B. 34,197,94 oder #22c55e)', feed_in_ct: 'oder feste Einspeisevergütung (Cent pro kWh)',
-    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', home_size: 'Größe der Zahl über dem Haus (Faktor, z. B. 1,5)', kwp: 'Anlagenleistung (kWp): zeigt die aktuelle Erzeugung in % davon', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
+    daily_from_total: 'Tageswerte aus Gesamtzählern berechnen (wie das Energie-Dashboard)', show_clock: 'Uhr anzeigen', compact_forecast: 'Prognose heute: in der Solar-Kachel (Kurzansicht)', forecast_swap: 'Prognose heute: unten neben morgen und übermorgen (ausführliche Ansicht)', why: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', to_battery: 'Läuft durch Speicher Nr. (0 = direkt ins Haus)', power_in: 'AC-Ladung aus dem Haus (Sensor, nur mit „Läuft durch Speicher“)', label_size: 'Größe der Beschriftungen (nur kleine Texte, Zahl z. B. 1,5)', home_size: 'Größe der Zahl über dem Haus (Faktor, z. B. 1,5)', home_label_size: 'Größe von „Hausverbrauch“ unter der Zahl (Faktor)', home_percentage_size: 'Größe der Prozente über der Zahl (Faktor)', kwp: 'Anlagenleistung (kWp): zeigt die aktuelle Erzeugung in % davon', extra: 'Zusatzwerte', alarm: 'Alarm (Sensor, schaltet die Kachel rot)', unit: 'Einheit (optional)', warn_above: 'Warnung ab (Wert wird gelb)', warn_below: 'Warnung unter (Wert wird gelb)', grid_import: 'Netzbezug', grid_export: 'Einspeisung', battery: 'Batterie (Ruhezustand)', battery_charge: 'Batterie lädt', battery_discharge: 'Batterie entlädt', size: 'Größe der Kachel', weather: 'Wetter (Entität, zeigt das Himmelsband)', home_color: 'Farbe der Zahl beim Haus', home_icon_color: 'Farbe des Haus-Symbols', grid_side: 'Netz-Kachel: Seite', show_share: 'Verbraucher: Anteil am Hausverbrauch in % anzeigen', show_soc: 'Batterie: Ladestand in % neben der Leistung anzeigen', style: 'Darstellung', house_style: 'Haus in der 3D-Ansicht', compact: 'Kurzansicht (kompakt)', watt_only: 'Leistung immer in Watt (nie kW)', animations: 'Animationen', groups_columns: 'Gruppen pro Reihe (leer = alle nebeneinander)', on_w: 'Aktiv ab (W, Standard 10)', fit_screen: 'Auf Bildschirmhöhe skalieren',
     roof_color: 'Dachfarbe in der 3D-Ansicht', consumer_groups_sort: 'Reihenfolge der Geräte in Gruppen', decimals: 'Nachkommastellen bei kWh (leer = automatisch)',
     nav_path: 'Weiter-Schaltfläche: Pfad (z. B. /lovelace/geraete)', nav_label: 'Weiter-Schaltfläche: Text',
     secondary: 'Zusatzwert (Sensor, z. B. Temperatur)', secondary_name: 'Name vor dem Zusatzwert (z. B. SoC eAuto)', rest_name: 'Gruppe: Name der Zeile Rest (nur mit Gesamtsensor)', color: 'Farbe (z. B. #a78bfa)', image: 'Logo (Bild-URL, ersetzt das Symbol)',
@@ -3524,7 +3562,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       txt('title'),
       sec('pv', 'Solar', [sec('strings', 'Einzelne Strings (bis zu 8, mit Name und Leistung)', slots(8, (n) => `String ${n}`, () => [ent('entity', ['sensor']), txt('name')])), numb('kwp', 0, 1000, 0.01), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily', ['sensor']), bool('daily_ac', false), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor'])]),
       sec('pv2', 'Zweite Solaranlage (z. B. Balkonkraftwerk)', [sec('strings', 'Einzelne Strings (bis zu 8, mit Name und Leistung)', slots(8, (n) => `String ${n}`, () => [ent('entity', ['sensor']), txt('name')])), numb('kwp', 0, 1000, 0.01), numb('to_battery', 0, 6, 1), sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), ent('daily', ['sensor']), ent('forecast', ['sensor']), ent('forecast_tomorrow', ['sensor']), ent('forecast_day_after', ['sensor']), bool('add_to_home', false)]),
-      sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
+      sec('grid', 'Netz', [sec('extra', 'Zusatzwerte (bis zu 6, z. B. Spannung, Strom, Temperatur)', slots(6, (n) => `Zusatzwert ${n}`, extraFields)), ent('alarm', ['sensor', 'binary_sensor']), ent('entity', ['sensor']), ent('power_import', ['sensor']), ent('power_export', ['sensor']), txt('name'), bool('invert', false), ent('daily_import', ['sensor']), ent('daily_export', ['sensor'])]),
       sec('grid2', 'Zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Zähler)', [ent('entity', ['sensor']), txt('name'), ent('price', ['sensor', 'input_number', 'number']), numb('price_ct', 0, 200, 0.01)]),
       sec('battery', 'Batterie', [
         { name: 'big_value', selector: { select: { mode: 'dropdown', options: BIGV } } }, ent('self_consumption', ['sensor']),
@@ -3554,6 +3592,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       sec('colors', 'Farben (z. B. #22c55e)', [txt('pv'), txt('grid_import'), txt('grid_export'), txt('battery'), txt('battery_charge'), txt('battery_discharge'), txt('home'), txt('text_muted'), txt('text')]),
       numb('label_size', 0.5, 4, 0.1),
       numb('home_size', 0.5, 4, 0.1),
+      numb('home_label_size', 0.5, 4, 0.1),
+      numb('home_percentage_size', 0.5, 4, 0.1),
       bool('why', false),
       bool('show_clock', true),
       bool('fit_screen', true),
@@ -3579,7 +3619,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       numb('decimals', 0, 3, 1),
       { name: 'compact', selector: { select: { mode: 'dropdown', options: COMPACT } } },
       { name: 'text_size', selector: { select: { mode: 'dropdown', custom_value: true, options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }] } } },
-      { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }] } } },
+      { name: 'animations', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }, { value: 'off', label: 'Aus (spart Rechenleistung, z. B. ältere Wandtablets)' }] } } },
       { name: 'groups_lines', selector: { select: { mode: 'dropdown', options: [{ value: 'direkt', label: 'Eine Linie je Gerät oder Gruppe (Standard)' }, { value: 'sammel', label: 'Eine Sammel-Linie zum ganzen Verbraucherbereich' }] } } },
       { name: 'theme', selector: { select: { mode: 'dropdown', options: WD.THEME_OPTIONS } } },
       { name: 'language', selector: { select: { mode: 'dropdown', options: WD.LANG_OPTIONS } } },
@@ -3633,6 +3673,8 @@ if (!customElements.get('energy-cockpit-flow-card')) {
     { short: 'Netz', title: 'Stromnetz', text: 'Der Netzsensor zeigt Bezug und Einspeisung. Wenn später Bezug als Einspeisung angezeigt wird, setze "Vorzeichen umkehren".', fields: [
       { path: 'grid.entity', label: 'Netzleistung', kind: 'power', hints: H(/grid|netz|meter|zähler|zaehler|wirkleistung|smart.?meter/i, /power|leistung/i) },
       { path: 'grid.invert', label: 'Vorzeichen umkehren', kind: 'bool', help: 'Aktivieren, wenn der Sensor bei Einspeisung positive Werte liefert.' },
+      { path: 'grid.power_import', label: 'oder getrennt: Bezug aus dem Netz', kind: 'power', optional: true, hints: H(/grid|netz|meter|zähler|zaehler/i, /import|bezug|consum|purchase|buy/i), help: 'Nur wenn dein System zwei Sensoren hat (Bezug und Einspeisung, beide positiv). Dann das Feld "Netzleistung" leer lassen.' },
+      { path: 'grid.power_export', label: 'oder getrennt: Einspeisung ins Netz', kind: 'power', optional: true, hints: H(/grid|netz|meter|zähler|zaehler/i, /export|einspeis|feed|sell/i) },
       { path: 'grid.daily_import', label: 'Netzbezug heute (kWh)', kind: 'energy', optional: true, hints: H(/import|bezug|verbrauch|consumption/i, /tag|daily|today|heute/i) },
       { path: 'grid.daily_export', label: 'Einspeisung heute (kWh)', kind: 'energy', optional: true, hints: H(/export|einspeis|feed/i, /tag|daily|today|heute/i) },
       { path: 'grid2.entity', label: 'Zweiter Netzzähler, z. B. Wärmepumpe (Leistung in Watt)', kind: 'power', optional: true, help: 'Nur für einen zweiten Zähler mit eigenem Tarif, der nur Strom bezieht. Er erscheint als Kachel bei den Verbrauchern, zählt zum Hausverbrauch und im Ring zum Netz. Bei drei Phasen den Summen-Sensor nehmen.' },
@@ -3751,15 +3793,17 @@ if (!customElements.get('energy-cockpit-flow-card')) {
       { path: 'home_icon_color', label: 'Farbe des Haus-Symbols', kind: 'choice', options: HOMEICO, help: 'Optional. Mit "Nach Autarkie" färbt sich das Symbol im Ring: grün bei 100 % Autarkie (kein Netzbezug), gelb von 50 bis 99 %, rot darunter. Standard bleibt Türkis.' },
       { path: 'home_color', label: 'Farbe der Zahl beim Haus', kind: 'choice', options: HOMECOL, help: 'Mit "Farbe der größten Quelle" nimmt die Zahl über dem Haus die Farbe des größten Anteils im Ring an.' },
       { path: 'home_size', label: 'Größe der Zahl über dem Haus', kind: 'number', optional: true, step: '0.1', help: 'Optional. Ein Faktor von 0,5 bis 4: 1,5 macht die Zahl über dem Haus anderthalbmal so groß, zum Beispiel für ein Wandtablet. Leer lassen heißt Standardgröße. Wirkt auch in der 3D-Ansicht.' },
+      { path: 'home_label_size', label: 'Größe von „Hausverbrauch“ unter der Zahl', kind: 'number', optional: true, step: '0.1', help: 'Optional. Ein Faktor von 0,5 bis 4 nur für die Beschriftung unter der Zahl am Haus. Leer lassen heißt Standardgröße. Wirkt auch in der 3D-Ansicht.' },
+      { path: 'home_percentage_size', label: 'Größe der Prozente über der Zahl', kind: 'number', optional: true, step: '0.1', help: 'Optional. Ein Faktor von 0,5 bis 4 für die Anteile Solar, Batterie und Netz am Haus. Leer lassen heißt Standardgröße. Wirkt auch in der 3D-Ansicht.' },
       { path: 'compact', label: 'Kurzansicht', kind: 'choice', options: COMPACT, help: 'Kompakte Übersicht auf einen Blick: Solar, Netz und Batterie neben dem Ring, Gruppen ohne Geräteliste, ohne Zusatztexte. Ein Tipp auf eine Gruppe zeigt alle ihre Geräte. "Nur auf dem Handy" zeigt auf dem Tablet weiter die ausführliche Ansicht.' },
       { path: 'weather', label: 'Wetter (Himmelsband)', kind: 'weather', optional: true, hints: H(/forecast|home|haus|zuhause|dwd|met|wetter/i), help: 'Optional. Zeigt unter der Kopfzeile ein Band mit dem Wetter der nächsten Stunden, dazu Temperatur sowie Sonnenaufgang und -untergang. Die Stundenwerte brauchen eine Wetter-Integration mit Vorhersage (zum Beispiel Met.no oder Deutscher Wetterdienst). Im YAML-Editor schaltet weather: auto die erste vorhandene Wetter-Entität ein.' },
       { path: 'why', label: 'Warum?-Erklärung (? an Netz, Solar und Batterie)', kind: 'bool', help: 'Optional. Zeigt an der Netz-, der Solar- und der Batterie-Kachel ein „?“. Ein Tipp erklärt in einfachem Deutsch, woher der Netzbezug oder die Einspeisung kommt, warum Solar gerade so viel oder so wenig liefert und was die Batterie gerade tut oder warum sie nichts tut. Je mehr Verbraucher in der Karte stehen, desto genauer wird die Erklärung. Nur an einer Kachel: im YAML-Editor `why: [grid]`, `why: [pv]` oder `why: [battery]`.' },
-      { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem.' },
+      { path: 'animations', label: 'Animationen', kind: 'choice', options: [{ value: 'auto', label: 'Wie am Gerät eingestellt (Standard)' }, { value: 'always', label: 'Immer, auch bei "Bewegung reduzieren"' }, { value: 'off', label: 'Aus (spart Rechenleistung, z. B. ältere Wandtablets)' }], help: 'Ist am Handy oder Tablet "Bewegung reduzieren" eingeschaltet (iPhone: Einstellungen → Bedienungshilfen → Bewegung), stehen Linien und Ring still. "Immer" animiert trotzdem. "Aus" hält alle Bewegungen an, auch das Hochzählen der Zahlen, und entlastet schwache Geräte.' },
       { path: 'text_size', label: 'Textgröße', kind: 'choice', options: [{ value: 'normal', label: 'Normal (Standard)' }, { value: 'gross', label: 'Groß' }, { value: 'sehr_gross', label: 'Sehr groß (für Handy und Tablet)' }, { value: '2', label: 'Doppelt (2, auch die Zahlen in den Kacheln)' }, { value: '3', label: 'Dreifach (3)' }], help: 'Groß und Sehr groß vergrößern die kleinen Texte, zum Beispiel Ladestand, Kennzahlen oben rechts und Beschriftungen. Doppelt und Dreifach (eine Zahl) vergrößern zusätzlich die Zahlen in den Kacheln. Im Formular unter Alle Felder kannst du auch eine eigene Zahl eintragen, zum Beispiel 1,5. Wird die Karte dadurch zu hoch, schalte Auf Bildschirmhöhe skalieren aus.' },
     ] },
     { short: 'Fertig', title: 'Zusammenfassung', text: 'Alles ist gespeichert. Mit "Fertig" siehst du alle Felder, zum Beispiel für Gruppen. Abfallkalender, Überschussvorschläge und Netzalarm stellst du im YAML-Editor ein.', summary: (c) => [
       `Solar: ${(c.pv && c.pv.entity) || 'nicht gewählt'}`,
-      `Netz: ${(c.grid && c.grid.entity) || 'nicht gewählt'}${c.grid && c.grid.invert ? ' (umgekehrt)' : ''}`,
+      `Netz: ${(c.grid && (c.grid.entity || [c.grid.power_import, c.grid.power_export].filter(Boolean).join(' / '))) || 'nicht gewählt'}${c.grid && c.grid.invert ? ' (umgekehrt)' : ''}`,
       `Batterie: ${(c.battery && (c.battery.power || c.battery.power_charge)) || 'keine'}${WD.toList(c.batteries).filter((b) => b && (b.power || b.power_charge || b.soc)).length ? ' und ' + WD.toList(c.batteries).filter((b) => b && (b.power || b.power_charge || b.soc)).length + ' weitere' : ''}`,
       `Haus: ${(c.home && c.home.entity) || 'berechnet'}`,
       `Einzelverbraucher: ${WD.toList(c.consumers).filter((x) => x && x.entity).length}`,
@@ -3768,7 +3812,7 @@ if (!customElements.get('energy-cockpit-flow-card')) {
   ];
 
   WD.defineEditor('energy-cockpit-flow-card-editor', {
-    needsSetup: (c) => !(c.pv && c.pv.entity) && !(c.grid && c.grid.entity),
+    needsSetup: (c) => !(c.pv && c.pv.entity) && !(c.grid && (c.grid.entity || c.grid.power_import || c.grid.power_export)),
     steps,
     form: () => WD.flowForm(),
   });
@@ -5481,7 +5525,7 @@ WD.addStrings({
   'st.title': 'Statistik', 'st.err': 'pv_total und grid_import_total sind nötig', 'st.today': 'Heute', 'st.next': 'Weiter →',
   'st.pvsav': 'Solar-Ersparnis', 'st.feed': 'Einspeiseerlös', 'st.selfc': 'Solar-Eigenverbrauch', 'st.cost': 'Stromkosten Netz', 'st.aut': 'Autarkie',
   'st.amo': 'Amortisation Solaranlage', 'st.base': 'Grundlast (nachts)', 'st.monthly': 'Solarertrag pro Monat', 'st.record': 'Rekordtag',
-  'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.soh': 'Gesundheit (SOH)', 'st.pvall': 'Solar gesamt',
+  'st.eff': 'Wirkungsgrad', 'st.bat': 'Batterie', 'st.sum': 'Gesamt', 'st.solar': 'Solar', 'st.recon': 'am {d}', 'st.cycles': 'Batteriezyklen', 'st.temp': 'Temperatur', 'st.soh': 'Gesundheit', 'st.pvall': 'Solar gesamt',
   'st.r.pv': 'Erzeugung', 'st.r.self': 'Selbst genutzt', 'st.r.fed': 'Einspeisung', 'st.r.drawn': 'Bezug', 'st.r.selfq': 'Eigenverbrauch', 'st.r.cons': 'Verbrauch',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>von {i} {cur} Investition</small>", 'st.eta': "Amortisation ca. <b>{y} {cur}</b> pro Jahr", "st.eta.d": "fertig ca. <b>{yr}</b>", 'st.paid': '<b>Anlage hat sich bezahlt gemacht 🎉</b>', 'st.eta.far': 'Prognose noch nicht aussagekräftig', 'st.price.warn': '⚠ Strompreis nur {p} ct/kWh: Das Feld erwartet <b>Cent</b> (zum Beispiel 23.88), nicht Euro.',
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>pro Jahr</small>", 'st.gltip': 'Niedrigster Stundenmittelwert 0–5 Uhr, Median der letzten {n} Nächte', 'st.gl100': "100 W weniger ≈ {x} {cur} pro Jahr",
@@ -5919,7 +5963,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.eff')}</span><b data-f="eff">—</b></div></div>
           <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.cycles')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="cyc">—</b></div></div>
           <div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.temp')}</span><b data-f="temp">—</b></div></div>
-          ${c.battery_soh ? `<div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')}</span><div class="sv"><span>${T('st.soh')}</span><b data-f="soh">—</b></div></div>` : ''}
+          ${c.battery_soh ? `<div class="stat"><span class="lbl" style="--c:var(--bat)"><i></i>${T('st.bat')} (SOH)</span><div class="sv"><span>${T('st.soh')}</span><b data-f="soh">—</b></div></div>` : ''}
           <div class="stat"><span class="lbl" style="--c:var(--pv)"><i></i>${T('st.solar')}</span><div class="sv"><span>${T('st.sum')}</span><b data-f="pvAll">—</b></div></div>
         </footer>
         <div class="note" data-f="note"></div>
@@ -6894,7 +6938,7 @@ WD.addTranslations('en', {
   'st.title': 'Statistics', 'st.err': 'pv_total and grid_import_total are required', 'st.today': 'Today', 'st.next': 'Next →',
   'st.pvsav': 'Solar savings', 'st.feed': 'Export revenue', 'st.selfc': 'Solar self-consumption', 'st.cost': 'Grid electricity costs', 'st.aut': 'Energy independence',
   'st.amo': 'Solar system payback', 'st.base': 'Base load (overnight)', 'st.monthly': 'Solar yield per month', 'st.record': 'Record day',
-  'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.soh': 'Health (SOH)', 'st.pvall': 'Total solar',
+  'st.eff': 'Efficiency', 'st.bat': 'Battery', 'st.sum': 'Total', 'st.solar': 'Solar', 'st.recon': 'on {d}', 'st.cycles': 'Battery cycles', 'st.temp': 'Temperature', 'st.soh': 'Health', 'st.pvall': 'Total solar',
   'st.r.pv': 'Production', 'st.r.self': 'Used directly', 'st.r.fed': 'Exported', 'st.r.drawn': 'Imported', 'st.r.selfq': 'Self-consumption', 'st.r.cons': 'Consumption',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>of {i} {cur} investment</small>", 'st.eta': "Return approx. <b>{y} {cur}</b> per year", 'st.paid': '<b>System has paid for itself 🎉</b>', 'st.eta.far': 'Not enough data for a meaningful forecast', 'st.price.warn': '⚠ Electricity price is only {p} ¢/kWh: this field expects <b>cents</b> (for example 23.88), not euros.',
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>per year</small>", 'st.gltip': 'Lowest hourly average from 00:00–05:00, median of the last {n} nights', 'st.gl100': "100 W less ≈ {x} {cur} per year",
@@ -7050,7 +7094,7 @@ WD.addTranslations('nl', {
   'st.title': 'Statistieken', 'st.err': 'pv_total en grid_import_total zijn vereist', 'st.today': 'Vandaag', 'st.next': 'Volgende →',
   'st.pvsav': 'Besparing door zonne-energie', 'st.feed': 'Opbrengst teruglevering', 'st.selfc': 'Zelfverbruik zonne-energie', 'st.cost': 'Kosten netstroom', 'st.aut': 'Zelfvoorziening',
   'st.amo': 'Terugverdientijd zonne-installatie', 'st.base': 'Basisverbruik (nacht)', 'st.monthly': 'Opbrengst zonne-energie per maand', 'st.record': 'Recorddag',
-  'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.soh': 'Gezondheid (SOH)', 'st.pvall': 'Zonne-energie totaal',
+  'st.eff': 'Rendement', 'st.bat': 'Batterij', 'st.sum': 'Totaal', 'st.solar': 'Zonne-energie', 'st.recon': 'op {d}', 'st.cycles': 'Batterijcycli', 'st.temp': 'Temperatuur', 'st.soh': 'Gezondheid', 'st.pvall': 'Zonne-energie totaal',
   'st.r.pv': 'Opwekking', 'st.r.self': 'Direct gebruikt', 'st.r.fed': 'Teruggeleverd', 'st.r.drawn': 'Afgenomen', 'st.r.selfq': 'Zelfverbruik', 'st.r.cons': 'Verbruik',
   'st.earned': "<b>{e}</b><i>{cur}</i><small>van {i} {cur} investering</small>", 'st.eta': "Rendement ca. <b>{y} {cur}</b> per jaar", 'st.paid': '<b>Installatie heeft zichzelf terugverdiend 🎉</b>', 'st.eta.far': 'Nog onvoldoende gegevens voor een betrouwbare prognose', 'st.price.warn': '⚠ De stroomprijs is slechts {p} ct/kWh: dit veld verwacht <b>centen</b> (bijvoorbeeld 23.88), geen euro’s.',
   'st.glcost': "<b>{x}</b><i>{cur}</i><small>per jaar</small>", 'st.gltip': 'Laagste uurgemiddelde tussen 00:00 en 05:00, mediaan van de laatste {n} nachten', 'st.gl100': "100 W minder ≈ {x} {cur} per jaar",
@@ -7212,7 +7256,7 @@ WD.addTranslations('fr', {
   'st.eff': "Rendement batterie",
   'st.cycles': "Cycles complets",
   'st.temp': "Température batterie",
-  'st.soh': "État de santé (SOH)",
+  'st.soh': "Santé",
   'st.pvall': "PV total",
   'st.earned': "<b>{e}</b><i>{cur}</i><small>sur {i} {cur} investis</small>",
   'st.eta': "Gain env. <b>{y} {cur}</b> par an",
@@ -7657,7 +7701,7 @@ WD.addTranslations('fi', {
   'st.eff': "Hyötysuhde",
   'st.cycles': "Akun syklit",
   'st.temp': "Lämpötila",
-  'st.soh': "Kunto (SOH)",
+  'st.soh': "Kunto",
   'st.pvall': "Aurinkotuotto yhteensä",
   'st.earned': "<b>{e}</b><i>{cur}</i><small>{i} {cur} investoinnista</small>",
   'st.eta': "Tuotto noin <b>{y} {cur}</b> vuodessa",

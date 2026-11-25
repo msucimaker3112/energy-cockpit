@@ -68,7 +68,7 @@ WD.addTranslations('fr', {
   'st.eff': "Rendement batterie",
   'st.cycles': "Cycles complets",
   'st.temp': "Température batterie",
-  'st.soh': "État de santé (SOH)",
+  'st.soh': "Santé",
   'st.pvall': "PV total",
   'st.earned': "<b>{e}</b><i>{cur}</i><small>sur {i} {cur} investis</small>",
   'st.eta': "Gain env. <b>{y} {cur}</b> par an",

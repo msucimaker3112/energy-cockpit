@@ -33,7 +33,7 @@ async function run(){
   let s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp',battery_soh:'sensor.soh'},hassStats(93));await wait(900);
   const sv=q(s,'[data-f="soh"]');
   ok('battery_soh: Kachel zeigt 93 %',!!sv&&/93\s*%/.test(sv.textContent),sv?sv.textContent:'fehlt');
-  ok('battery_soh: Beschriftung "Gesundheit (SOH)"',/Gesundheit \(SOH\)/.test(s.shadowRoot.querySelector('footer').textContent));
+  ok('battery_soh: Titel "Batterie (SOH)", Beschriftung "Gesundheit" (#95)',/Batterie \(SOH\)\s*Gesundheit/.test(s.shadowRoot.querySelector('footer').textContent),s.shadowRoot.querySelector('footer').textContent);
   s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp',battery_soh:'sensor.soh'},hassStats(92.5));await wait(900);
   ok('battery_soh 92,5: eine Nachkommastelle',/92,5\s*%/.test(q(s,'[data-f="soh"]').textContent),q(s,'[data-f="soh"]').textContent);
   s=mount('energy-cockpit-stats-card',{pv_total:'sensor.pv',grid_import_total:'sensor.imp'},hassStats(null));await wait(900);

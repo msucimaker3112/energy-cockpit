@@ -207,10 +207,10 @@ svg.links{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible
 .core .hico ha-icon{color:inherit;--mdc-icon-size:32px;margin:0;display:flex}
 .core .val{margin:0}
 .core .num{font-size:calc(2.15rem*var(--vs,1)*var(--hs,1));color:rgb(var(--home));text-shadow:none}
-.hub-lbl{font-size:calc(.62rem*var(--ts,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
-.mix{display:flex;font-size:calc(.7rem*var(--ts,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
+.hub-lbl{font-size:calc(.62rem*var(--ts,1)*var(--hls,1));letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--mut));font-weight:650;margin-top:7px}
+.mix{display:flex;font-size:calc(.7rem*var(--ts,1)*var(--hps,1));color:rgb(var(--mut));flex-wrap:wrap;justify-content:center;margin-top:14px}
 .mix span{display:flex;align-items:center;margin:0 6px}
-.mix i{width:7px;height:7px;border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
+.mix i{width:calc(7px*var(--hps,1));height:calc(7px*var(--hps,1));border-radius:50%;background:rgb(var(--c));box-shadow:0 0 0 1px rgba(var(--c),.35);margin-right:5px}
 .mix b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600;margin-left:4px}
 .consumers{position:relative;z-index:1;display:grid;justify-content:center;grid-template-columns:repeat(auto-fit,minmax(max(140px,calc(140px*var(--ts,1))),max(240px,calc(240px*var(--ts,1)))));grid-gap:12px;gap:12px;margin-top:54px}
 .cons{display:flex;align-items:center;padding:11px 12px;border-radius:17px;background:var(--glass);border:1px solid var(--stroke);cursor:pointer;transition:all .5s,order 0s;min-width:0}
@@ -280,8 +280,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .wide .core .num{font-size:calc(2.8rem*var(--vs,1)*var(--hs,1))}
 .wide .core .hico{width:62px;height:62px;border-radius:19px}
 .wide .core .hico ha-icon{--mdc-icon-size:40px}
-.wide .hub-lbl{font-size:calc(.72rem*var(--ts,1))}
-.wide .mix{font-size:calc(.82rem*var(--ts,1))}
+.wide .hub-lbl{font-size:calc(.72rem*var(--ts,1)*var(--hls,1))}
+.wide .mix{font-size:calc(.82rem*var(--ts,1)*var(--hps,1))}
 .wide .consumers{grid-template-columns:repeat(auto-fit,minmax(max(200px,calc(200px*var(--ts,1))),max(260px,calc(260px*var(--ts,1)))));gap:14px;margin-top:60px}
 .wide .cons{padding:14px 16px;border-radius:20px}
 .wide .cons .num{font-size:calc(1.35rem*var(--vs,1))}
@@ -475,6 +475,8 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,max(11
 .cons .ico.logo img{height:30px;max-width:80px}
 /* animations: always (oder immer) animiert auch bei "Bewegung reduzieren" am Gerät */
 @media (prefers-reduced-motion:reduce){.wrap:not(.anim-on) .flow,.wrap:not(.anim-on) .orbit,.wrap:not(.anim-on) .node.on:after,.wrap:not(.anim-on) .live:after,.wrap:not(.anim-on) .cons.on .ico:after,.wrap:not(.anim-on) .grp.on .ico:after{animation-duration:0s!important}}
+.anim-off .flow,.anim-off .orbit,.anim-off .node.on:after,.anim-off .live:after,.anim-off .cons.on .ico:after,.anim-off .grp.on .ico:after{animation-duration:0s!important}
+.ec-paused,.ec-paused *,.ec-paused *::before,.ec-paused *::after{animation-play-state:paused!important}
 `;
 
 class EnergyCockpitFlowCard extends HTMLElement {
@@ -496,13 +498,18 @@ class EnergyCockpitFlowCard extends HTMLElement {
   static getConfigElement() { return document.createElement('energy-cockpit-flow-card-editor'); }
   setConfig(config) {
     WD.applyTheme(this, config, this._hass);
-    if (!config || ((!config.pv || !config.pv.entity) && (!config.grid || !config.grid.entity))) {
+    const gridSet = (g) => !!(g && (g.entity || g.power_import || g.power_export));
+    if (!config || ((!config.pv || !config.pv.entity) && !gridSet(config.grid))) {
       // Noch nicht eingerichtet: Hinweisfläche statt Fehlermeldung, der Assistent im Editor hilft weiter
       this._c = null;
       this.shadowRoot.innerHTML = '<style>' + WD.themeCss() + 'ha-card{padding:22px;border-radius:24px;background:var(--panel);color:var(--txt);font-family:system-ui,sans-serif}b{color:#60a5fa}</style><ha-card><b>Energy-Cockpit Energiefluss</b><div style="margin-top:8px;opacity:.8">Noch nicht eingerichtet. Karte bearbeiten (Stift): Der <b>Assistent</b> hilft dir, die Sensoren auszuwählen.</div></ha-card>';
       return;
     }
     this._c = JSON.parse(JSON.stringify(config));
+    // grid.power_import / grid.power_export (optional, #111): zwei Sensoren statt einem mit Vorzeichen. Die Karte rechnet Bezug minus Einspeisung.
+    // Für Tippen (Verlauf) und alle Stellen, die nur nach grid.entity fragen, gilt der Bezugssensor als Netz-Sensor
+    const gc = this._c.grid;
+    if (gc && typeof gc === 'object' && !gc.entity && (gc.power_import || gc.power_export)) { gc._split = true; gc.entity = gc.power_import || gc.power_export; }
     this._dec = WD.decOf(this._c);
     // consumer_groups_sort: leistung (#24): Geräte einer Gruppe nach aktueller Leistung, aktive oben. Reihenfolge je Gruppe merken
     this._gSort = this._c.consumer_groups_sort === 'leistung' || this._c.consumer_groups_sort === 'power';
@@ -541,6 +548,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // home_size (optional, #102): Faktor nur fuer die Zahl ueber dem Haus (und ihre Einheit)
     const hsn = parseFloat(String(this._c.home_size).replace(',', '.'));
     this._hsn = !isNaN(hsn) && hsn > 0 ? Math.min(4, Math.max(0.5, hsn)) : 0;
+    // home_label_size / home_percentage_size (optional, #102): Faktor fuer "Hausverbrauch" unter der Zahl bzw. die Prozente (Solar, Batterie, Netz) darueber
+    const fac = (v) => { const n = parseFloat(String(v).replace(',', '.')); return !isNaN(n) && n > 0 ? Math.min(4, Math.max(0.5, n)) : 0; };
+    this._hls = fac(this._c.home_label_size);
+    this._hps = fac(this._c.home_percentage_size);
     this._tsn = !isNaN(tsn) && !/^(normal|gross|sehr_gross)$/.test(String(this._c.text_size)) ? Math.min(4, Math.max(0.5, tsn)) : 0;
     this._c.consumers = arr(this._c.consumers).filter(used);
     this._topCur = null; this._topPend = 0;
@@ -984,9 +995,31 @@ class EnergyCockpitFlowCard extends HTMLElement {
     this._clockT = setInterval(() => { this._clock(); this._wasteChip(); this._sky(); }, 15000);
     this._clock();
     this._schedLayout();
+    // Nicht sichtbar (weggescrollt, anderer Tab, Bildschirm aus): Animationen anhalten, das spart auf Wandtablets Rechenleistung und Akku
+    if (!this._io && window.IntersectionObserver) this._io = new IntersectionObserver((en) => { const e = en[en.length - 1]; this._setVis(!!(e && e.isIntersecting)); });
+    if (this._io) this._io.observe(this);
+    if (!this._onVis) this._onVis = () => this._setVis(this._ioVis !== false, true);
+    document.addEventListener('visibilitychange', this._onVis);
+  }
+  _animOff() { return !!this._c && ['off', 'aus', 'none', false].includes(this._c.animations); }
+  // fromDoc: Aufruf durch visibilitychange (Sichtbarkeit im Fenster bleibt, nur der Tab wechselt)
+  _setVis(inView, fromDoc) {
+    if (!fromDoc) this._ioVis = inView;
+    const vis = inView && document.visibilityState !== 'hidden';
+    if (vis === this._vis) return;
+    this._vis = vis;
+    const w = this._$ && this._$('.wrap');
+    if (w) w.classList.toggle('ec-paused', !vis);
+    if (!vis) {
+      // Laufendes Hochzählen sofort auf den Zielwert setzen
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      Object.values(this._tw || {}).forEach((t) => { if (t.from !== undefined && t.target !== null && t.numEl) { t.cur = t.target; t.from = undefined; const [n, u] = this._sw(t.target); t.numEl.textContent = n; t.unitEl.textContent = u; } });
+    } else this._schedLayout();
   }
   disconnectedCallback() {
     clearTimeout(this._hT); this._hT = null;
+    if (this._io) this._io.disconnect();
+    if (this._onVis) document.removeEventListener('visibilitychange', this._onVis);
     if (this._ro) this._ro.disconnect();
     window.removeEventListener('resize', this._onResize);
     if (this._kaSub) KA.subs.delete(this._kaSub);
@@ -1168,7 +1201,7 @@ class EnergyCockpitFlowCard extends HTMLElement {
     stats += d('aut', T('stat.aut'), PAL.home);
 
     this.shadowRoot.innerHTML = `<style>${CSS}</style>
-    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._hsn || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._hsn ? `--hs:${this._hsn};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
+    <ha-card><div class="wrap${this._mode ? ' ' + this._mode : ''}${cmp ? ' cmp' : ''}${this._s3d ? ' s3d' : ''}${sam ? ' sam-on' : ''}${c.text_size === 'gross' ? ' ts-l' : c.text_size === 'sehr_gross' ? ' ts-xl' : ((this._lsn || this._tsn) > 1.2 ? ' ts-l' : '')}${c.animations === 'always' || c.animations === 'immer' ? ' anim-on' : this._animOff() ? ' anim-off' : ''}${this._vis === false ? ' ec-paused' : ''}"${(this._s3d && WD.D3.roof(c.roof_color)) || this._tsn || this._lsn || this._hsn || this._hls || this._hps || this._palSet ? ` style="${(this._s3d && WD.D3.roof(c.roof_color)) || ''}${this._lsn || this._tsn ? `--ts:${this._lsn || this._tsn};` : ''}${this._tsn ? `--vs:${this._tsn};` : ''}${this._hsn ? `--hs:${this._hsn};` : ''}${this._hls ? `--hls:${this._hls};` : ''}${this._hps ? `--hps:${this._hps};` : ''}${this._palSet ? `--pv:${PAL.pv};--imp:${PAL.imp};--exp:${PAL.exp};--bat:${PAL.bat};--home:${PAL.home};` : ''}"` : ''}>
       <header>
         <div class="title"><span class="live"></span>${esc(c.title || T('flow.title'))}<span class="clock"></span></div>
         <div class="pill ka"></div>
@@ -1441,7 +1474,8 @@ class EnergyCockpitFlowCard extends HTMLElement {
     if (!t || t.target === null || t.cur === undefined) t = this._tw[key] = { cur: target };
     if (t.target === target && t.numEl === numEl) return;
     // Nur große Sprünge zählen hoch. Jedes Hochzählen schreibt in jedem Bild Text und zwingt das Gerät, neu zu messen und zu zeichnen
-    const calm = !['always', 'immer'].includes(this._c.animations) && window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    // Nicht hochzählen: Animationen aus, Karte nicht sichtbar oder "Bewegung reduzieren" am Gerät
+    const calm = this._animOff() || this._vis === false || (!['always', 'immer'].includes(this._c.animations) && window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
     if (calm || Math.abs(target - t.cur) < Math.max(50, Math.abs(t.cur) * 0.15)) {
       Object.assign(t, { cur: target, from: undefined, target, numEl, unitEl });
       const [n, u] = this._sw(target);
@@ -1911,6 +1945,10 @@ class EnergyCockpitFlowCard extends HTMLElement {
     // Summe aller Erzeuger. Mit pv2 gilt: PV 2 (z. B. Balkonkraftwerk) speist zuerst ins Haus.
     const pv = pv1 === null && pv2 === null ? null : (pv1 || 0) + (pv2 || 0);
     let grid = c.grid ? watt(h, c.grid.entity) : null;
+    if (c.grid && c.grid._split) {
+      const gi = c.grid.power_import ? watt(h, c.grid.power_import) : null, ge = c.grid.power_export ? watt(h, c.grid.power_export) : null;
+      grid = gi === null && ge === null ? null : Math.max(0, gi || 0) - Math.max(0, ge || 0);
+    }
     if (grid !== null && c.grid.invert) grid = -grid;
     // Je Speicher Leistung (Laden positiv) und Ladestand; Summe bzw. nach Kapazität gewichteter Mittelwert für Ring und Banner
     const bats = c.batteries.map((b, i) => {

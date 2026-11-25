@@ -1,0 +1,79 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Wünsche 0.48.0 (Schriftgrößen am Haus, Netz mit zwei Sensoren, Animationen aus, Pause) Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft #102 (home_label_size, home_percentage_size), #111 (grid.power_import / power_export), animations: off und das Anhalten,
+   wenn die Karte nicht sichtbar ist. Aufruf: ?test=1&still=1 */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'W'},last_updated:'x'});
+const hassFor=(o)=>{const st={'sensor.pv':S(3000),'sensor.grid':S(500),'sensor.home':S(2000),'sensor.imp':S(0),'sensor.exp':S(1000),'sensor.bat':S(0),'sensor.soc':S(50,'%')};Object.keys(o||{}).forEach(k=>{st[k]=S(o[k]);});return {states:st,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({}),callApi:async()=>[]};};
+function mount(c,h,w){const host=document.getElementById('host');host.style.width=(w||800)+'px';host.innerHTML='';const e=document.createElement('energy-cockpit-flow-card');e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h||hassFor();return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const fs=(e,s)=>parseFloat(getComputedStyle(q(e,s)).fontSize);
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const base={pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'},battery:{power:'sensor.bat',soc:'sensor.soc'}};
+const withC=(o)=>Object.assign(JSON.parse(JSON.stringify(base)),o);
+async function run(){
+  // #102 Schriftgrößen rund um die Zahl am Haus
+  let e=mount(base);await wait(900);
+  const l0=fs(e,'.hub-lbl'),m0=fs(e,'.mix'),n0=fs(e,'.core .num');
+  e=mount(withC({home_label_size:2,home_percentage_size:1.5}));await wait(900);
+  ok('home_label_size 2: "Hausverbrauch" doppelt so groß',Math.abs(fs(e,'.hub-lbl')/l0-2)<0.05,l0+' -> '+fs(e,'.hub-lbl'));
+  ok('home_percentage_size 1,5: Prozente 1,5-fach',Math.abs(fs(e,'.mix')/m0-1.5)<0.05,m0+' -> '+fs(e,'.mix'));
+  ok('Zahl über dem Haus bleibt unverändert',Math.abs(fs(e,'.core .num')-n0)<0.1,n0+' / '+fs(e,'.core .num'));
+  e=mount(withC({home_label_size:'1,5',style:'3d'}));await wait(900);
+  ok('home_label_size mit Komma, 3D: größer als Standard',fs(e,'.hub-lbl')>l0*1.3,String(fs(e,'.hub-lbl')));
+  e=mount(withC({home_percentage_size:'abc',home_label_size:99}));await wait(900);
+  ok('ungültig bzw. zu groß: Standard bzw. auf 4 begrenzt',Math.abs(fs(e,'.mix')-m0)<0.1&&Math.abs(fs(e,'.hub-lbl')/l0-4)<0.1,fs(e,'.mix')+' / '+fs(e,'.hub-lbl')/l0);
+  // #111 Netz mit zwei Sensoren
+  const g=(e)=>q(e,'[data-k="grid"]').textContent.replace(/\s+/g,' ').trim();
+  e=mount({pv:{entity:'sensor.pv'},grid:{power_import:'sensor.imp',power_export:'sensor.exp'},home:{entity:'sensor.home'}});await wait(900);
+  ok('ohne grid.entity: Karte richtet sich ein (keine Hinweisfläche)',!!q(e,'[data-k="grid"]'));
+  const exT=g(e);
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'}},hassFor({'sensor.grid':-1000}));await wait(900);
+  ok('Einspeisung 1000 W über zwei Sensoren = wie ein Sensor mit -1000 W',exT===g(e),exT+' / '+g(e));
+  e=mount({pv:{entity:'sensor.pv'},grid:{power_import:'sensor.imp',power_export:'sensor.exp'},home:{entity:'sensor.home'}},hassFor({'sensor.imp':800,'sensor.exp':0}));await wait(900);
+  const imT=g(e);
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid'},home:{entity:'sensor.home'}},hassFor({'sensor.grid':800}));await wait(900);
+  ok('Bezug 800 W über zwei Sensoren = wie ein Sensor mit 800 W',imT===g(e),imT+' / '+g(e));
+  e=mount({pv:{entity:'sensor.pv'},grid:{entity:'sensor.grid',power_import:'sensor.imp',power_export:'sensor.exp'},home:{entity:'sensor.home'}},hassFor({'sensor.grid':800,'sensor.imp':0,'sensor.exp':500}));await wait(900);
+  ok('grid.entity gesetzt: hat Vorrang vor den zwei Sensoren',g(e)===imT,g(e));
+  e=mount({pv:{entity:'sensor.pv'},grid:{power_import:'sensor.imp'},home:{entity:'sensor.home'}},hassFor({'sensor.imp':800}));await wait(900);
+  ok('nur Bezugssensor: Bezug wird angezeigt',g(e)===imT,g(e));
+  ok('Tippen öffnet den Bezugssensor',q(e,'[data-k="grid"]').dataset.e==='sensor.imp',q(e,'[data-k="grid"]').dataset.e);
+  // Animationen aus
+  e=mount(withC({animations:'off'}));await wait(900);
+  ok('animations: off -> Klasse anim-off',q(e,'.wrap').classList.contains('anim-off'));
+  const fl=q(e,'.flow');
+  ok('animations: off -> Linien stehen (animation-duration 0)',!fl||getComputedStyle(fl).animationDuration==='0s',fl?getComputedStyle(fl).animationDuration:'keine Linie');
+  e.hass=hassFor({'sensor.home':6000});await wait(1300);
+  ok('animations: off -> Zahl springt sofort, kein Hochzählen',!e._raf&&/6,0/.test(q(e,'.core .num').textContent),q(e,'.core .num').textContent);
+  e=mount(withC({animations:false}));await wait(900);
+  ok('animations: false (YAML) gilt als aus',q(e,'.wrap').classList.contains('anim-off'));
+  e=mount(base);await wait(900);
+  ok('Standard: keine Klasse anim-off',!q(e,'.wrap').classList.contains('anim-off'));
+  // Anhalten, wenn nicht sichtbar
+  e._setVis(false);
+  ok('nicht sichtbar -> Klasse ec-paused, Animationen angehalten',q(e,'.wrap').classList.contains('ec-paused')&&(!q(e,'.flow')||getComputedStyle(q(e,'.flow')).animationPlayState==='paused'));
+  e.hass=hassFor({'sensor.home':6000});await wait(1300);
+  ok('nicht sichtbar -> kein Hochzählen',!e._raf&&/6,0/.test(q(e,'.core .num').textContent),q(e,'.core .num').textContent);
+  e._setVis(true);
+  ok('wieder sichtbar -> läuft weiter',!q(e,'.wrap').classList.contains('ec-paused'));
+  // echt weggescrollt (IntersectionObserver)
+  // Im Zeitraffer (still=1, virtual time) meldet Chrome keine Sichtbarkeitswechsel: dann nur in Echtzeit prüfen (?test=1)
+  if(new URLSearchParams(location.search).get('still')){lines.push('OK   weggescrollt/zurückgescrollt: übersprungen im Zeitraffer, in Echtzeit mit ?test=1 prüfen');}else{
+  const host=document.getElementById('host');host.style.marginTop='5000px';await wait(1500);
+  ok('weggescrollt -> automatisch angehalten',e._vis===false&&q(e,'.wrap').classList.contains('ec-paused'),String(e._vis));
+  host.style.marginTop='';await wait(1500);
+  ok('zurückgescrollt -> läuft wieder',e._vis===true&&!q(e,'.wrap').classList.contains('ec-paused'),String(e._vis));
+  }
+  e.setConfig(JSON.parse(JSON.stringify(withC({}))));e._setVis(false);e.setConfig(JSON.parse(JSON.stringify(withC({name:'x'}))));
+  ok('Neuaufbau, während nicht sichtbar: bleibt angehalten',q(e,'.wrap').classList.contains('ec-paused'));
+  e._setVis(true);
+  document.getElementById('res').textContent=(fail?fail+' FEHLER':'ALLE OK')+'\n'+lines.join('\n');
+}
+if(new URLSearchParams(location.search).get('test'))run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x.message+'\n'+lines.join('\n');});
+else mount(withC({home_label_size:1.6,home_percentage_size:1.4}));
+</script></body></html>

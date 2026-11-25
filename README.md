@@ -205,7 +205,12 @@ consumers:
   - { entity: sensor.waermepumpe_leistung, name: Wärmepumpe, size: gross }
   - { entity: sensor.wallbox, name: Wallbox, size: gross }
 label_size: 1.5     # nur Namen und Zusatzwerte größer
+home_size: 1.5      # nur die Zahl über dem Haus
+home_label_size: 1.5       # „Hausverbrauch“ unter der Zahl
+home_percentage_size: 1.4  # Prozente über der Zahl
 ```
+
+Für ältere Wandtablets: `animations: off` schaltet alle Bewegungen ab und spart Rechenleistung.
 
 ![Große Kacheln für Wärmepumpe und Wallboxen](https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow-grosse-kacheln.png)
 
@@ -455,6 +460,7 @@ Fehlt dir etwas oder passt etwas bei dir nicht? Schreib ein [Issue](https://gith
 - **Optional extras:** a weather band under the header (`weather`), extra values and an alarm on the solar, grid and battery tiles (`extra`, `alarm`), your own colors (`colors`), large consumer tiles (`size: gross`), separate label size (`label_size`) and a storage with its own solar modules such as the Anker SOLIX Solarbank (`pv2.to_battery`). See the [configuration](https://github.com/msucimaker3112/energy-cockpit/blob/main/docs/KONFIGURATION.md) (German).
 - **Devices & consumption, statistics** (savings, self-sufficiency, payback, cost per consumer) and **room billing** (cost per room, source grid/battery/PV, base load, monthly archive).
 - **New: time-of-use and dynamic tariffs in the statistics.** With `hourly_pricing: true` and a `grid_price` sensor with long-term statistics, grid cost, solar savings and feed-in revenue are priced hour by hour at that hour's price, so cheap overnight charging shows its real cost. Hours where the price changes mid-hour (e.g. at 23:30) are priced in 5-minute slices while Home Assistant still keeps short-term statistics (the recorder's `purge_keep_days`, 10 days by default). Solar self-use is counted per hour, so battery export outside solar hours no longer reduces it. It is off by default, and without price statistics nothing changes.
+- **Older wall tablets:** `animations: off` stops all motion, including the counting numbers, and roughly halves the card's CPU load. The card also pauses its animations while it is not visible.
 
 **Install:** Energy-Cockpit is in the default HACS store. Open HACS, search for *energy-cockpit*, download it and reload the browser. Then add a card and search for *Energy-Cockpit*.
 
