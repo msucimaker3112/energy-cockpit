@@ -1,0 +1,130 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Grundlast zum Durchschnittspreis Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:1200px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft die Grundlast-Kachel mit baseload_avg_price und hourly_pricing: Jahreskosten (st.glcost) und "100 W weniger" (st.gl100) zum einfachen Mittel der Stundenpreise
+   der letzten 7 Tage statt zum Preis der laufenden Stunde. Zeittarif: 00–08 Uhr 6,6 ct, sonst 35,45 ct, heutiger Preis 35,45 ct.
+   7 × 24 Stunden: (8 × 0,066 + 16 × 0,3545) / 24 = 0,25833 €/kWh. Grundlast 200 W in jeder Nacht.
+   Aufruf: ?test=1&still=1, ohne test zeigt die Seite die Karte */
+const S=(v,u)=>({state:String(v),attributes:{unit_of_measurement:u||'kWh'},last_updated:'x'});
+const H=36e5,now=Date.now(),hNow=Math.floor(now/H)*H,g0=Math.floor((now-7*864e5)/H)*H;
+const tou=(t)=>new Date(t).getHours()<8?0.066:0.3545,AVG=(8*0.066+16*0.3545)/24;
+// Abgeschlossene Stunden vor der laufenden: n Stunden mit Preisstatistik (die laufende Stunde hat in Home Assistant noch keine)
+const last=(n)=>Array.from({length:n},(x,i)=>hNow-(n-i)*H);
+const means={
+  'sensor.price':last(10*24).map((t)=>[t,tou(t)]),   // 10 Tage: genug für 7 Tage
+  'sensor.price24':last(24).map((t)=>[t,tou(t)]),     // genau 24 Stunden: Mittel gilt
+  'sensor.price23':last(23).map((t)=>[t,tou(t)]),     // 23 Stunden: zu wenig, heutiger Preis
+  // Grundlast: 02 und 03 Uhr der letzten 8 Nächte, niedrigster Wert 200 W
+  'sensor.home':last(9*24).filter((t)=>{const h=new Date(t).getHours();return h===2||h===3;}).map((t)=>[t,new Date(t).getHours()===2?200:260]),
+};
+// Zahl der Stundenmittel-Abfragen je Preis-Sensor (zeigt, dass die Preise auch ohne cost_consumers geladen werden)
+let priceCalls={};
+// Jede Stundenmittel-Abfrage eines Preis-Sensors mit ihrem Beginn (zeigt die zusätzliche Abfrage für die 7 Tage)
+let priceLog=[];
+const hass={states:{'sensor.pv':S(24000),'sensor.imp':S(7800),'sensor.exp':S(13600),'sensor.e':S(100),'sensor.home':S(300,'W'),
+  'sensor.price':S(0.3545,'EUR/kWh'),'sensor.price24':S(0.3545,'EUR/kWh'),'sensor.price23':S(0.3545,'EUR/kWh'),'sensor.price2':S(0.3545,'EUR/kWh'),'sensor.priceW':S(0.3545,'EUR/kWh')},
+ language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{
+  const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={},ids=m.statistic_ids||[],T=m.types||[];
+  if(m.period!=='hour'||!T.includes('mean'))return {};
+  ids.forEach((id)=>{
+    if(id.startsWith('sensor.price')){priceCalls[id]=(priceCalls[id]||0)+1;priceLog.push({id,from});}
+    const x=(means[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>Object.assign({start:t,mean:v},T.includes('min')?{min:v,max:v}:{}));
+    if(x.length)r[id]=x;
+  });
+  return r;}};
+const base={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',home_power:'sensor.home',grid_price:'sensor.price',feed_in_ct:8,hourly_pricing:true,baseload_avg_price:true};
+function mount(c){const h=document.getElementById('host');h.innerHTML='';const e=document.createElement('energy-cockpit-stats-card');e.setConfig(JSON.parse(JSON.stringify(c)));h.appendChild(e);e.hass=hass;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const lines=[];let fail=0;
+const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(x!==undefined?' -> '+x:''));};
+const fmt=(v,loc)=>v.toLocaleString(loc||'de-DE',{minimumFractionDigits:Math.abs(v)<100?2:0,maximumFractionDigits:Math.abs(v)<100?2:0});
+async function run(){
+  const q=(e,s)=>e.shadowRoot.querySelector(s),tx=(e,f)=>(q(e,`[data-f="${f}"]`)||{textContent:''}).textContent.replace(/\s+/g,' ').trim();
+  const gl=(e)=>q(e,'[data-t="gl"]').textContent.trim();
+  // Erwartung: 200 W × 8760 h × Preis, 100 W × 8760 h × Preis
+  const yr=(p)=>fmt(0.2*8760*p),h100=(p)=>fmt(0.1*8760*p);
+  const AVGTXT='7-Tage-Durchschnittspreis';
+  // Kachel genau wie vor baseload_avg_price: Preis dieser Stunde (35,45 ct), alter Text
+  const asToday=(e)=>tx(e,'glCost').replace(/\s/g,'')===`${yr(0.3545)}€proJahr`&&tx(e,'glTip').endsWith(`· 100 W weniger ≈ ${h100(0.3545)} € pro Jahr`);
+
+  // 1. Mein Aufbau: hourly_pricing an, keine cost_consumers
+  priceCalls={};let e=mount(base);await wait(2500);
+  ok('Ohne cost_consumers: Stundenpreise werden geladen',(priceCalls['sensor.price']||0)>0,JSON.stringify(priceCalls));
+  ok('Grundlast 200 W',gl(e)==='200',gl(e));
+  ok(`Ohne cost_consumers: Jahreskosten zum 7-Tage-Mittel ${yr(AVG)} statt ${yr(0.3545)}`,tx(e,'glCost').startsWith(yr(AVG)),tx(e,'glCost'));
+  ok('Ohne cost_consumers: Hinweis "zum 7-Tage-Durchschnittspreis" an den Jahreskosten',tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+  ok(`Ohne cost_consumers: 100 W weniger ≈ ${h100(AVG)} zum 7-Tage-Durchschnittspreis`,tx(e,'glTip').includes(`100 W weniger ≈ ${h100(AVG)} € pro Jahr zum ${AVGTXT}`),tx(e,'glTip'));
+  ok('Kein Ø-Zeichen',!tx(e,'glCost').includes('Ø')&&!tx(e,'glTip').includes('Ø'));
+
+  // 2. Mit cost_consumers: gleiches Ergebnis
+  e=mount({...base,cost_consumers:[{name:'X',energy:'sensor.e'}]});await wait(2500);
+  ok(`Mit cost_consumers: Jahreskosten ${yr(AVG)}`,tx(e,'glCost').startsWith(yr(AVG))&&tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+
+  // 3. Grenze: 24 Stunden reichen, 23 nicht
+  e=mount({...base,grid_price:'sensor.price24'});await wait(2500);
+  ok(`Genau 24 Stundenpreise: Mittel ${yr(AVG)}`,tx(e,'glCost').startsWith(yr(AVG))&&tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+  e=mount({...base,grid_price:'sensor.price23'});await wait(2500);
+  ok(`Nur 23 Stundenpreise: heutiger Preis ${yr(0.3545)}`,tx(e,'glCost').startsWith(yr(0.3545)),tx(e,'glCost'));
+  ok('Nur 23 Stundenpreise: Kachel wie bisher, ohne Durchschnittspreis',asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+  ok(`Nur 23 Stundenpreise: 100 W weniger ≈ ${h100(0.3545)} wie bisher`,tx(e,'glTip').endsWith(`100 W weniger ≈ ${h100(0.3545)} € pro Jahr`),tx(e,'glTip'));
+
+  // 4. Sensor ganz ohne Statistik: heutiger Preis wie bisher
+  e=mount({...base,grid_price:'sensor.price2'});await wait(2500);
+  ok(`Sensor ohne Statistik: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+
+  // 5. baseload_avg_price aus, hourly_pricing an: Kachel genau wie bisher (Preis dieser Stunde, alter Text)
+  for(const v of [undefined,false,'true',1]){
+    e=mount({...base,baseload_avg_price:v});await wait(2500);
+    ok(`baseload_avg_price: ${JSON.stringify(v)} mit hourly_pricing: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+  }
+  // 5b. baseload_avg_price an, hourly_pricing aus: wie bisher, keine Preisabfrage
+  priceCalls={};e=mount({...base,hourly_pricing:false});await wait(2500);
+  ok(`hourly_pricing: false: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+  ok('hourly_pricing: false: keine Abfrage der Stundenpreise',!priceCalls['sensor.price'],JSON.stringify(priceCalls));
+  e=mount({...base,hourly_pricing:undefined});await wait(2500);
+  ok(`hourly_pricing nicht gesetzt: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+
+  // 6. grid_price_times ohne Sensor: Preis je Stunde aus den Uhrzeiten, bis einschließlich der laufenden Stunde (169 Stunden)
+  const tAvg=(()=>{let s=0,n=0;for(let t=g0;t<=now;t+=H){s+=tou(t);n++;}return s/n;})();
+  e=mount({...base,grid_price:undefined,hourly_pricing:undefined,grid_price_ct:35.45,grid_price_times:[{from:0,to:8,ct:6.6}]});await wait(2500);
+  ok(`grid_price_times: Jahreskosten zum Mittel der Uhrzeiten ${yr(tAvg)}`,tx(e,'glCost').startsWith(yr(tAvg))&&tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+
+  // 7. Englisch
+  e=mount({...base,language:'en'});await wait(2500);
+  ok('Englisch: "per year at 7-day avg price"',tx(e,'glCost').endsWith('per year at 7-day avg price'),tx(e,'glCost'));
+  ok('Englisch: "100 W less ≈ … per year at 7-day avg price"',/100 W less ≈ .+ per year at 7-day avg price$/.test(tx(e,'glTip')),tx(e,'glTip'));
+
+  // 8. Geladene Stunden reichen nur gut 2 Tage zurück: Uhr auf Mittwoch, 2. Dezember 2026, 12:30 (Woche ab Montag 30.11., Monat ab 1.12.).
+  //    Mit Option genau eine zusätzliche Abfrage ab 7 Tagen vorher, Mittel über alle 7 Tage (453 €). Nur die geladenen Stunden ergäben 415 €.
+  //    Ohne Option keine zusätzliche Abfrage
+  {
+    const RealDate=Date,FIX=new RealDate(2026,11,2,12,30).getTime(),OFF=FIX-RealDate.now();
+    class FakeDate extends RealDate{constructor(...a){super(...(a.length?a:[RealDate.now()+OFF]));}static now(){return RealDate.now()+OFF;}}
+    const hF=Math.floor(FIX/H)*H,g0F=Math.floor((FIX-7*864e5)/H)*H,lastF=(n)=>Array.from({length:n},(x,i)=>hF-(n-i)*H);
+    means['sensor.priceW']=lastF(10*24).map((t)=>[t,tou(t)]);
+    means['sensor.homeW']=lastF(9*24).filter((t)=>{const h=new RealDate(t).getHours();return h===2||h===3;}).map((t)=>[t,new RealDate(t).getHours()===2?200:260]);
+    const loaded=means['sensor.priceW'].filter(([t])=>t>=new RealDate(2026,10,30).getTime()),AVG2=loaded.reduce((a,[,v])=>a+v,0)/loaded.length;
+    const cfgW={...base,grid_price:'sensor.priceW',home_power:'sensor.homeW'},ext=(l)=>l.filter((x)=>x.id==='sensor.priceW'&&x.from===g0F).length;
+    try{
+      window.Date=FakeDate;
+      priceLog=[];e=mount({...cfgW,baseload_avg_price:false});await wait(2500);
+      const offLog=priceLog.slice();
+      ok('Nur 2 Tage geladen, Option aus: keine zusätzliche Abfrage ab 7 Tagen vorher',ext(offLog)===0,offLog.length+' Abfragen');
+      ok(`Nur 2 Tage geladen, Option aus: Kachel wie bisher ${yr(0.3545)}`,asToday(e),tx(e,'glCost')+' | '+tx(e,'glTip'));
+      priceLog=[];e=mount(cfgW);await wait(2500);
+      const onLog=priceLog.slice();
+      ok('Nur 2 Tage geladen, Option an: genau eine zusätzliche Abfrage ab 7 Tagen vorher',ext(onLog)===1&&onLog.length===offLog.length+1,`${onLog.length} statt ${offLog.length} Abfragen, davon ${ext(onLog)} ab 7 Tagen vorher`);
+      ok(`Nur 2 Tage geladen, Option an: Mittel über volle 7 Tage ${yr(AVG)}, nicht nur die geladenen Stunden ${yr(AVG2)}`,yr(AVG)!==yr(AVG2)&&tx(e,'glCost').startsWith(yr(AVG))&&tx(e,'glCost').includes(AVGTXT),tx(e,'glCost'));
+      ok(`Nur 2 Tage geladen, Option an: 100 W weniger ≈ ${h100(AVG)}`,tx(e,'glTip').includes(`100 W weniger ≈ ${h100(AVG)} € pro Jahr zum ${AVGTXT}`),tx(e,'glTip'));
+    }finally{window.Date=RealDate;}
+  }
+
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+'\n'+lines.join('\n');
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run();}else{if(P.get('w'))document.getElementById('host').style.maxWidth=P.get('w')+'px';mount(base);}
+</script></body></html>

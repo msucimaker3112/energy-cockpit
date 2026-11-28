@@ -258,7 +258,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
       // grid_price_times (optional, #105): Preise nach Uhrzeit. Schaltet die Rechnung Stunde für Stunde ein, auch ohne Preis-Sensor
       this._c._pt = WD.priceTimes(c.grid_price_times);
       this._c._hp = (c.hourly_pricing === true && typeof c.grid_price === 'string' && !!c.grid_price.trim()) || this._c._pt.length > 0;
-      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {};
+      // baseload_avg_price (optional): Grundlast-Kachel zum Mittel der Stundenpreise der letzten 7 Tage statt zum Preis dieser Stunde. Standard: aus, nur zusammen mit hourly_pricing
+      this._c._gla = c.baseload_avg_price === true && this._c._hp;
+      this._ccY = null; this._ccV = null; this._hpV = null; this._hpOld = null; this._h5 = {}; this._glAvg = null;
       // grid2_total (optional, #29): zweiter Netzzähler (z. B. Wärmepumpe mit eigenem Tarif, nur Bezug) in kWh. Eigener Preis: grid2_price oder grid2_price_ct, sonst der normale
       this._c._g2 = typeof c.grid2_total === 'string' && c.grid2_total ? c.grid2_total : '';
       this._c._g2n = typeof c.grid2_name === 'string' ? c.grid2_name.trim() : '';
@@ -573,6 +575,13 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const day = zero(), week = zero(), month = zero(), wk = { pv: 0, imp: 0, exp: 0, chg: 0, dis: 0 };
         const hd = hz(), hw = hz(), hm = {};
         const sp = c._hp ? new Set() : null, m = await means(first, null, priceId, sp), fm = feedId ? await means(first, null, feedId, sp) : {}, s5 = sp ? await slice5(sp, m, fm) : {};
+        // baseload_avg_price: Grundlast läuft rund um die Uhr, dort gilt der einfache Mittelwert der Stundenpreise der letzten 7 Tage statt des Preises
+        // dieser Stunde. Reichen die schon geladenen Stunden nicht 7 Tage zurück, einmal nachladen. Unter 24 Stunden mit Preis: null, dann der heutige Preis
+        if (c._gla) {
+          const g0 = Math.floor((Date.now() - 7 * 864e5) / HR) * HR, gm = first.getTime() <= g0 ? m : await means(new Date(g0), null, priceId);
+          const gv = Object.keys(gm).filter((k) => +k >= g0).map((k) => gm[k]);
+          this._glAvg = gv.length >= 24 ? gv.reduce((a, v) => a + v, 0) / gv.length : null;
+        } else this._glAvg = null;
         add(await stat('hour', ['change'], ids, first), m, (t) => [t >= m0 && month, t >= w0 && week, t >= d0 && day].filter(Boolean), (t, x) => {
           if (t >= w0) Object.keys(wk).forEach((n) => { wk[n] += x[n]; });
           if (c._hp) { if (t >= m0) hAdd(hMon(hm, t), t, x, m, fm, s5); if (t >= w0) hAdd(hw, t, x, m, fm, s5); if (t >= d0) hAdd(hd, t, x, m, fm, s5); }
@@ -1066,7 +1075,9 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
         const vals = N.map((x) => x.v).sort((a, b) => a - b);
         const med = vals[Math.floor(vals.length / 2)];
         this._count('gl', med, 0);
-        this._f('glCost', price > 0 ? T('st.glcost', { x: fEur(med / 1000 * 8760 * price), cur: CUR }) : '');
+        // baseload_avg_price: Mittel der Stundenpreise der letzten 7 Tage (aus _loadCC), sonst der heutige Preis
+        const glAvg = c._gla && typeof this._glAvg === 'number' ? this._glAvg : null, glPrice = glAvg !== null ? glAvg : price, glK = glAvg !== null ? '.avg' : '';
+        this._f('glCost', glPrice > 0 ? T('st.glcost' + glK, { x: fEur(med / 1000 * 8760 * glPrice), cur: CUR }) : '');
         const mx = Math.max(...N.map((x) => x.v), 1);
         const bars = this._$('.nights'), lbl = this._$('.nl');
         if (bars.children.length !== N.length) {
@@ -1074,7 +1085,7 @@ footer{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gri
           lbl.innerHTML = N.map((x) => `<span>${x.t.toLocaleDateString(WD.state.loc, { weekday: 'short' }).replace('.', '').slice(0, 2)}</span>`).join('');
         }
         requestAnimationFrame(() => N.forEach((x, i) => { bars.children[i].style.height = Math.max(6, x.v / mx * 100) + '%'; }));
-        this._f('glTip', T('st.gltip', { n: N.length }) + (price > 0 ? ' · ' + T('st.gl100', { x: fEur(0.1 * 8760 * price), cur: CUR }) : ''));
+        this._f('glTip', T('st.gltip', { n: N.length }) + (glPrice > 0 ? ' · ' + T('st.gl100' + glK, { x: fEur(0.1 * 8760 * glPrice), cur: CUR }) : ''));
       }
       // Monatsbalken
       if (this._m) {
