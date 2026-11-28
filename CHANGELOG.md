@@ -1,5 +1,15 @@
 # Änderungsprotokoll
 
+## 0.49.0
+- **Statistik, Grundlast zum Durchschnittspreis (optional, `baseload_avg_price`, Beitrag von abbabubba, [#113](https://github.com/msucimaker3112/energy-cockpit/pull/113)):** Bei Zeittarifen rechnet die Kachel die Jahreskosten mit dem Mittel der Stundenpreise der letzten 7 Tage, nicht mit dem Preis der aktuellen Stunde.
+- **Statistik, Monat antippen (optional, `month_select`, [#117](https://github.com/msucimaker3112/energy-cockpit/issues/117)):** Die Geldkacheln zeigen den angetippten Monat.
+- **CO₂ (optional, `co2_intensity` und `co2_fossil` in der Statistik, `grid.co2_intensity` und `grid.co2_fossil` im Energiefluss, Wunsch von PV-Joe, [#115](https://github.com/msucimaker3112/energy-cockpit/issues/115)):** CO₂ aus dem Netzbezug, durch Solar vermiedene Menge und fossiler Anteil; im Energiefluss CO₂ pro Stunde beim Bezug.
+- **Energiefluss, Watt je kWp (optional, `pv.show_wkwp`, `pv2.show_wkwp`, Wunsch von PV-Joe, [#114](https://github.com/msucimaker3112/energy-cockpit/issues/114)):** Zusätzlich zu den Prozent.
+- **Statistik, „Nicht erfasst“ bei den Kosten pro Verbraucher (optional, `cost_rest`, [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)).**
+- **Statistik, Fußzeile ([#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)):** „Solar gesamt“ steht jetzt an erster Stelle, danach „Rekordtag“. Die Batterietemperatur lässt sich mit `hide: [battery_temp]` ausblenden.
+- **Texte und Schrift ([#95](https://github.com/msucimaker3112/energy-cockpit/issues/95)):** „davon Grundpreis“ heißt jetzt „Anteil Grundpreis“. Die Uhrzeit im Energiefluss ist so groß wie die Überschrift.
+- **Tests:** `test/v0490.html` und `test/stats-baseload.html`.
+
 ## 0.48.0
 - **Energiefluss, Schriftgrößen am Haus (optional, `home_label_size` und `home_percentage_size`, Wunsch von Cle2301, [#102](https://github.com/msucimaker3112/energy-cockpit/issues/102)):** Die Beschriftung „Hausverbrauch“ unter der Zahl und die Prozente darüber (Solar, Batterie, Netz) lassen sich jetzt getrennt vergrößern, unabhängig von `home_size`. Zum Beispiel `home_label_size: 1.5`. Auch in der 3D-Ansicht und im Editor.
 - **Energiefluss, Netz mit zwei Sensoren (optional, `grid.power_import` und `grid.power_export`, Wunsch von sholter42, [#111](https://github.com/msucimaker3112/energy-cockpit/issues/111)):** Für Anlagen, die Bezug und Einspeisung als zwei positive Sensoren liefern statt einem mit Vorzeichen (zum Beispiel Growatt über Solax Modbus). Die Karte rechnet Bezug minus Einspeisung. Auch im Assistenten und im Editor.

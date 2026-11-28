@@ -84,6 +84,7 @@ WD.addTranslations('fi', {
   'st.vsprev': "vrt. edellinen vuosi",
   'st.import': "Osto",
   'st.export': "Myynti",
+  'pv.wkwp': "Per kWp", 'grid.fossil': "Fossiilinen", 'st.cc.rest': "Kohdistamaton", 'st.co2.grid': "Verkosta", 'st.co2.avoid': "Auringolla vältetty", 'st.co2.fossil': "Fossiilinen osuus verkkosähköstä", 'st.co2.since': "CO₂-arvot alkaen {d}",
   'st.week': "Viikko",
   'st.g2name': "Toinen mittari",
   'st.bud.title': "Ostosähkön vuosibudjetti",

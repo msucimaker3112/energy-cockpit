@@ -1,0 +1,85 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>energy-cockpit Update 0.49.0 Test</title>
+<style>html,body{margin:0;background:#05070d;color:#e8eefc;font-family:system-ui}#host{max-width:900px;margin:0 auto;padding:8px}#res{white-space:pre-wrap;font:12px monospace;padding:8px}</style></head>
+<body><div id="host"></div><div id="res"></div>
+<script src="_icons.js"></script><script src="../dist/energy-cockpit.js"></script><script src="_theme.js"></script>
+<script>
+/* Prüft 0.49.0: Fußzeile der Statistik (Solar gesamt zuerst), Batterietemperatur ausblenden, "Anteil Grundpreis", "Nicht erfasst" bei den Kosten pro Verbraucher (#95),
+   Monat antippen (#117), CO2 in Statistik und Energiefluss (#115), W je kWp (#114), Uhrzeit so groß wie die Überschrift. Aufruf: ?test=1&still=1 */
+const S=(v,u,a)=>({state:String(v),attributes:Object.assign(u?{unit_of_measurement:u}:{},a||{}),last_updated:'x'});
+const now=new Date(),Y=now.getFullYear(),M=now.getMonth(),d0=new Date(Y,M,now.getDate()).getTime(),H=36e5,t02=d0+2*H,t12=d0+12*H;
+const prevM=M>0?M-1:0,tP=new Date(Y,prevM,10,12).getTime();
+const hours={'sensor.imp':[[t02,10],[t12,1],...(M>0?[[tP,20]]:[])],'sensor.pv':[[t12,5],...(M>0?[[tP,30]]:[])],'sensor.exp':[[t12,2],...(M>0?[[tP,10]]:[])],'sensor.e':[[t12,1]]};
+const means={'sensor.price':[[t02,0.30],[t12,0.30]],'sensor.co2':[[t02,500],[t12,300],[tP,100]],'sensor.fossil':[[t02,60],[t12,40],[tP,10]]};
+const mStart=(t)=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),1).getTime();};
+const hassStats={states:{'sensor.pv':S(24000,'kWh'),'sensor.imp':S(7800,'kWh'),'sensor.exp':S(13600,'kWh'),'sensor.e':S(100,'kWh'),'sensor.pvd':S(5,'kWh'),'sensor.impd':S(11,'kWh'),'sensor.expd':S(2,'kWh'),'sensor.price':S(0.30,'EUR/kWh'),'sensor.co2':S(300,'gCO2eq/kWh'),'sensor.fossil':S(40,'%'),'sensor.bt':S(22,'°C')},language:'de',locale:{language:'de'},config:{currency:'EUR'},callApi:async()=>[],
+ callWS:async(m)=>{const from=Date.parse(m.start_time),to=m.end_time?Date.parse(m.end_time):1e15,r={},ids=m.statistic_ids||[],T=m.types||[];
+  if(m.period==='month'){ids.forEach(id=>{const o={};(hours[id]||[]).forEach(([t,v])=>{const k=mStart(t);o[k]=(o[k]||0)+v;});
+    ['sensor.pv','sensor.imp','sensor.exp'].forEach(x=>(hours[x]||[]).forEach(([t])=>{if(!(mStart(t) in o))o[mStart(t)]=0;}));
+    const rows=Object.keys(o).map(Number).filter(k=>k>=from&&k<to).sort((a,b)=>a-b).map(k=>({start:k,change:o[k]}));if(rows.length&&hours[id])r[id]=rows;});return r;}
+  if(m.period!=='hour'||T.includes('state'))return {};
+  if(T.includes('mean')){ids.forEach(id=>{const x=(means[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>({start:t,mean:v}));if(x.length)r[id]=x;});return r;}
+  ids.forEach(id=>{const x=(hours[id]||[]).filter(([t])=>t>=from&&t<to).map(([t,v])=>({start:t,change:v}));if(x.length)r[id]=x;});return r;}};
+const sbase={title:'Statistik',pv_total:'sensor.pv',grid_import_total:'sensor.imp',grid_export_total:'sensor.exp',pv_today:'sensor.pvd',import_today:'sensor.impd',export_today:'sensor.expd',grid_price:'sensor.price',feed_in_ct:15,battery_temp:'sensor.bt'};
+const flowStates={'sensor.fpv':S(4900,'W'),'sensor.grid':S(1000,'W'),'sensor.gridx':S(-1000,'W'),'sensor.co2':S(300,'gCO2eq/kWh'),'sensor.fossil':S(45,'%')};
+const hassFlow={states:flowStates,language:'de',locale:{language:'de'},config:{currency:'EUR'},callWS:async()=>({})};
+function mount(tag,c,h){const host=document.getElementById('host');host.style.width='900px';host.innerHTML='';const e=document.createElement(tag);e.setConfig(JSON.parse(JSON.stringify(c)));host.appendChild(e);e.hass=h;return e;}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const q=(e,s)=>e.shadowRoot.querySelector(s);
+const tx=(e,s)=>{const x=q(e,s);return x?x.textContent.replace(/\s+/g,' ').trim():null;};
+const lines=[];let fail=0;const ok=(n,v,x)=>{if(!v)fail++;lines.push((v?'OK   ':'FAIL ')+n+(v?'':(x!==undefined?' -> '+x:'')));};
+const sc='energy-cockpit-stats-card',fc='energy-cockpit-flow-card';
+async function run(){
+  let e=mount(sc,{...sbase,grid_base_fee:12},hassStats);await wait(2500);
+  const labs=Array.from(e.shadowRoot.querySelectorAll('footer .stat .lbl')).map(x=>x.textContent.trim());
+  ok('Fußzeile: Solar gesamt zuerst, danach Rekordtag',/^Solar/.test(labs[0])&&/^Rekordtag/.test(labs[1]),labs.join(' | '));
+  ok('Batterietemperatur ist ohne Angabe sichtbar',getComputedStyle(q(e,'.stat-temp')).display!=='none');
+  ok('"Anteil Grundpreis" statt "davon Grundpreis"',/Anteil Grundpreis/.test(tx(e,'[data-f="costSub"]'))&&!/davon Grundpreis/.test(tx(e,'[data-f="costSub"]')),tx(e,'[data-f="costSub"]'));
+  ok('Ohne Optionen kein CO2-Bereich',!q(e,'.co2'));
+  e=mount(sc,{...sbase,hide:['battery_temp']},hassStats);await wait(2500);
+  ok('hide: [battery_temp] blendet nur die Temperatur aus',getComputedStyle(q(e,'.stat-temp')).display==='none'&&getComputedStyle(q(e,'footer')).display!=='none');
+  const cc={...sbase,hourly_pricing:true,cost_consumers:[{name:'WP',energy:'sensor.e'}]};
+  e=mount(sc,cc,hassStats);await wait(2500);
+  ok('Ohne cost_rest: ein Verbraucher',e.shadowRoot.querySelectorAll('.ccard').length===1);
+  e=mount(sc,{...cc,cost_rest:true},hassStats);await wait(2500);
+  const names=Array.from(e.shadowRoot.querySelectorAll('.ccard .cc-name b')).map(x=>x.textContent);
+  ok('Mit cost_rest: zweite Kachel "Nicht erfasst"',names.length===2&&names[1]==='Nicht erfasst',names.join());
+  ok('Summe Netzkosten = Netzbezug × Preis (3,30 €)',/3,30/.test(tx(e,'[data-f="ccSum"]')),tx(e,'[data-f="ccSum"]'));
+  ok('Nicht erfasst: Netzkosten 3,23 € (3,00 nachts + 0,23 mittags)',/3,2[23]/.test(tx(e,'[data-t="ccC1"]')),tx(e,'[data-t="ccC1"]'));
+  ok('Nicht erfasst ohne Warnung',!q(e,'.ccard[data-c="1"]').classList.contains('bad'));
+  e=mount(sc,{...sbase,month_select:true},hassStats);await wait(2500);
+  if(M>0){
+    ok('Laufender Monat: Stromkosten 3,30',tx(e,'[data-t="cost"]')==='3,30',tx(e,'[data-t="cost"]'));
+    q(e,`.col[data-m="${prevM}"]`).click();await wait(1500);
+    ok('Vormonat angetippt: Stromkosten 20 × 0,30 = 6,00',tx(e,'[data-t="cost"]')==='6,00',tx(e,'[data-t="cost"]'));
+    const mt=q(e,'.tab[data-p="month"]');
+    ok('Reiter zeigt den Vormonat und ist aktiv',mt.classList.contains('on')&&mt.textContent.trim().slice(0,3)===new Date(Y,prevM,1).toLocaleDateString('de-DE',{month:'short'}).slice(0,3),mt.textContent);
+    mt.click();await wait(1500);
+    ok('Reiter angetippt: zurück zum laufenden Monat 3,30',tx(e,'[data-t="cost"]')==='3,30',tx(e,'[data-t="cost"]'));
+  }
+  e=mount(sc,sbase,hassStats);await wait(2500);
+  if(M>0){q(e,`.col[data-m="${prevM}"]`).click();await wait(1500);ok('Ohne month_select bleiben die Kacheln beim laufenden Monat',tx(e,'[data-t="cost"]')==='3,30',tx(e,'[data-t="cost"]'));}
+  e=mount(sc,{...sbase,co2_intensity:'sensor.co2',co2_fossil:'sensor.fossil',month_select:true},hassStats);await wait(2500);
+  q(e,'.tab[data-p="day"]').click();await wait(1500);
+  ok('CO2 heute aus dem Netz: 10×500 + 1×300 g = 5,3 kg',/^5,3 ?kg/.test(tx(e,'[data-f="co2G"]')),tx(e,'[data-f="co2G"]'));
+  ok('CO2 durch Solar vermieden: 3 kWh × 300 g = 0,9 kg',/^0,9 ?kg/.test(tx(e,'[data-f="co2A"]')),tx(e,'[data-f="co2A"]'));
+  ok('Fossiler Anteil gewichtet (10×60 + 1×40)/11 = 58 %',/^58 ?%/.test(tx(e,'[data-f="co2F"]')),tx(e,'[data-f="co2F"]'));
+  if(M>0){q(e,`.col[data-m="${prevM}"]`).click();await wait(1500);ok('CO2 Vormonat: 20 kWh × 100 g = 2,0 kg',/^2,0 ?kg/.test(tx(e,'[data-f="co2G"]')),tx(e,'[data-f="co2G"]'));}
+  e=mount(sc,{...sbase,co2_intensity:'sensor.co2'},hassStats);await wait(2500);
+  ok('Ohne co2_fossil kein Feld für den fossilen Anteil',!q(e,'[data-f="co2F"]'));
+  const fb={pv:{entity:'sensor.fpv',kwp:9.8},grid:{entity:'sensor.grid',co2_intensity:'sensor.co2',co2_fossil:'sensor.fossil'},show_clock:true};
+  e=mount(fc,fb,hassFlow);await wait(900);
+  ok('Ohne show_wkwp keine Zeile "Je kWp"',!/Je kWp/.test(tx(e,'.pv .sub')),tx(e,'.pv .sub'));
+  ok('CO2 beim Bezug: 1 kW × 300 g = 300 g/h und Fossil 45 %',/300 g\/h/.test(tx(e,'.grid .sub'))&&/45 %/.test(tx(e,'.grid .sub')),tx(e,'.grid .sub'));
+  ok('Uhrzeit so groß wie die Überschrift',getComputedStyle(q(e,'.clock')).fontSize===getComputedStyle(q(e,'header .title')).fontSize,getComputedStyle(q(e,'.clock')).fontSize+' / '+getComputedStyle(q(e,'header .title')).fontSize);
+  e=mount(fc,{pv:{entity:'sensor.fpv',kwp:9.8,show_wkwp:true},grid:{entity:'sensor.gridx',co2_intensity:'sensor.co2'}},hassFlow);await wait(900);
+  ok('show_wkwp: 4900 W bei 9,8 kWp = 500 W je kWp',/Je kWp 500 W/.test(tx(e,'.pv .sub')),tx(e,'.pv .sub'));
+  ok('Bei Einspeisung keine CO2-Zeile',!/g\/h/.test(tx(e,'.grid .sub')),tx(e,'.grid .sub'));
+  e=mount(fc,{pv:{entity:'sensor.fpv'},grid:{entity:'sensor.grid'}},hassFlow);await wait(900);
+  ok('Ohne CO2-Sensor bleibt die Netz-Kachel wie bisher',tx(e,'.grid .sub')==='',tx(e,'.grid .sub'));
+  document.getElementById('res').textContent=(fail?'FEHLER '+fail:'ALLE OK')+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+}
+const P=new URLSearchParams(location.search);
+if(P.get('test')){document.getElementById('host').style.height='0';run().catch(x=>{document.getElementById('res').textContent='FEHLER '+x+' '+(x&&x.stack);});}
+else{mount(sc,{...sbase,co2_intensity:'sensor.co2',co2_fossil:'sensor.fossil',month_select:true},hassStats);}
+</script></body></html>

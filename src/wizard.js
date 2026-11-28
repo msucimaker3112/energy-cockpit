@@ -17,6 +17,8 @@
       // Prognose: Leistung in W/kW oder Tagesprognose in kWh (zum Beispiel Forecast.Solar "Energie Produktion heute")
       else if (kind === 'forecast') ok = dom === 'sensor' && (POWER_UNITS.indexOf(u) >= 0 || ENERGY_UNITS.indexOf(u) >= 0 || dc === 'power' || dc === 'energy');
       else if (kind === 'percent') ok = (dom === 'sensor' || dom === 'number') && (u === '%' || dc === 'battery');
+      // CO2-Intensitaet (#115), zum Beispiel Electricity Maps: g CO2eq/kWh
+      else if (kind === 'co2') ok = dom === 'sensor' && /co2|co₂/i.test(u);
       else if (kind === 'temp') ok = dom === 'sensor' && (u === '°C' || dc === 'temperature');
       else if (kind === 'price') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/\/\s*kWh|ct|€|eur/i.test(u) || /preis|price|tarif|verg/i.test(id + ' ' + (a.friendly_name || '')));
       else if (kind === 'money') ok = (dom === 'input_number' || dom === 'sensor' || dom === 'number') && (/€|eur/i.test(u) || /anschaff|invest|kosten|cost/i.test(id + ' ' + (a.friendly_name || '')));

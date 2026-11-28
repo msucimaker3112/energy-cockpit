@@ -97,7 +97,7 @@ Die Energiefluss-Karte hört nicht beim Hausverbrauch auf. Fasse Geräte zu Räu
 <table>
 <tr>
 <td width="50%" valign="top"><b>Energiefluss</b><br>Solar, Netz, Speicher, Haus und Verbraucher als animierter Fluss, mit Batterie-Prognose, Überschuss-Hinweis, Wetterband, Zusatzwerten mit Alarm und eigenen Farben.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/flow.png" alt="Energiefluss mit Kacheln und Ring"></td>
-<td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten pro Verbraucher und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
+<td width="50%" valign="top"><b>Statistik</b><br>Ersparnis, Autarkie, Amortisation, Grundlast und Monatsvergleich. Optional Kosten pro Verbraucher, CO₂-Bilanz, Monat antippen und alle Jahre im Überblick.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/stats.png" alt="Statistik"></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><b>Geräte &amp; Verbrauch</b><br>Raum-Kacheln mit Live-Leistung, Schalten, Kosten pro Gerät und Standby-Detektiv.<br><br><img src="https://raw.githubusercontent.com/msucimaker3112/energy-cockpit/main/docs/img/devices.png" alt="Geräte und Verbrauch"></td>

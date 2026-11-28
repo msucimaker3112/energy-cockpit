@@ -27,10 +27,12 @@ Mindestens `pv` **oder** `grid` ist nötig.
 | `pv2.forecast`, `pv2.forecast_tomorrow`, `pv2.forecast_day_after` | Sensor | Prognose für die zweite Anlage, wie bei der ersten (Sensor in kWh oder Leistung in W/kW für heute, kWh für morgen und übermorgen). Die Kachel der zweiten Anlage zeigt ihre eigene Prognose heute. Die Kacheln unten („Solar morgen“, „Solar übermorgen“, mit `forecast_swap` auch „Prognose heute“) zeigen die **Summe beider Anlagen**, soweit beide einen Sensor haben. Ohne diese Felder ändert sich nichts |
 | `pv.strings`, `pv2.strings` | Liste (bis zu 8) | Einzelne Strings `{entity, name}`: Die Solar-Kachel zeigt pro String eine Zeile mit Name und Leistung. Im Assistenten und im Formular als „String 1 … 8“ eintragbar. Die Gesamtleistung bleibt der Sensor `pv.entity` |
 | `pv.kwp`, `pv2.kwp` | Zahl (kWp, zum Beispiel `9.8`) | Anlagenleistung. Die Solar-Kachel zeigt dann rechts neben der Leistung in Prozent, wie viel davon gerade erzeugt wird (4,9 kW bei 9,8 kWp = 50 %), in derselben Farbe und Größe wie der Ladestand der Batterie. Ohne Angabe ändert sich nichts |
+| `pv.show_wkwp`, `pv2.show_wkwp` | `true` / `false` (Standard) | Zeigt in der Solar-Kachel zusätzlich die erzeugten Watt je installiertem kWp (braucht `kwp`). Wunsch aus [#114](https://github.com/msucimaker3112/energy-cockpit/issues/114) |
 | `grid.entity` | Sensor | Netzleistung (Bezug positiv) |
 | `grid.invert` | Ja/Nein | Vorzeichen umkehren |
 | `grid.power_import`, `grid.power_export` | Sensoren | Statt `grid.entity`: zwei getrennte Sensoren für Bezug und Einspeisung (beide positiv, in W oder kW), zum Beispiel Growatt über Solax Modbus. Die Karte rechnet Bezug minus Einspeisung. Ist `grid.entity` gesetzt, gilt `grid.entity`. Tippen auf die Netz-Kachel öffnet den Bezugssensor |
 | `grid.daily_import`, `grid.daily_export` | Sensor | Bezug / Einspeisung heute (kWh) |
+| `grid.co2_intensity`, `grid.co2_fossil` | Sensor | CO₂-Intensität (g/kWh) und fossiler Anteil (%), zum Beispiel aus der Integration „Electricity Maps“. Beim Netzbezug zeigt die Netz-Kachel, wie viel CO₂ pro Stunde entsteht, dazu den fossilen Anteil. Wunsch aus [#115](https://github.com/msucimaker3112/energy-cockpit/issues/115) |
 | `daily_from_total` | `true` / `false` (Standard) | Alle Tageswerte (`pv.daily`, `pv2.daily`, `grid.daily_import`, `grid.daily_export`, `daily_charge`, `daily_discharge`, `home.daily`) kommen aus **Gesamtzählern**, auch in Wh. Die Karte berechnet den Wert von heute aus der Langzeitstatistik, wie das Energie-Dashboard. Die Sensoren brauchen `state_class: total_increasing` (oder `total`). Ohne Statistik zeigt die Kachel "—". Fällt die Abfrage ganz aus, gilt der Sensorwert wie bisher |
 | `batteries` | Liste von Speichern | Weitere Speicher: `battery` ist der erste Speicher, `batteries` enthält die weiteren (zweiter, dritter …). Wer alle Speicher in `batteries` führen will, lässt `battery` weg. Jeder Eintrag hat dieselben Felder wie `battery` (`name`, `power` oder `power_charge`/`power_discharge`, `soc`, `capacity_kwh`, `reserve_pct`/`max_pct`, `daily_charge`, `daily_discharge`, `invert`, `tap`, `soc_display`). Es erscheint **eine Kachel je Speicher** mit eigenem Status, Ladebalken und eigener Prognose. Ring, Autarkie, Banner und Tageswerte rechnen mit der Summe (Ladestand als nach Kapazität gewichteter Mittelwert). Ohne `batteries` gilt der einzelne Eintrag `battery` wie bisher. Im Assistenten (Schritt "Weitere Speicher") und im Formular (Alle Felder) einstellbar. Auf dem Handy: `compact: auto` zeigt die Speicher in der Kurzansicht übersichtlich |
 | `battery.tap` | `power` (Standard) / `soc` | Was ein Klick auf die Kachel öffnet: Verlauf der Leistung oder des Ladestands. Ein Klick auf Balken und Prozentzahl öffnet immer den Ladestand |
@@ -756,6 +758,10 @@ investment_eur: 18000                      # Anschaffungskosten in Euro für die
 # start_period: day                        # Reiter beim Öffnen: day, week, month (Standard) oder year
 # hourly_pricing: true                     # Geldwerte Stunde für Stunde mit dem Preis-Sensor rechnen (Standard: aus), siehe unten
 # baseload_avg_price: true                 # Grundlast zum 7-Tage-Durchschnittspreis (Standard: aus, nur mit hourly_pricing), siehe unten
+# month_select: true                       # Monatsbalken antippen: Kacheln zeigen diesen Monat (Standard: aus)
+# cost_rest: true                          # Kosten pro Verbraucher: auch "Nicht erfasst" (Standard: aus)
+# co2_intensity: sensor.co2_intensitaet    # CO2-Bereich (g/kWh, z. B. Electricity Maps)
+# co2_fossil: sensor.anteil_fossil         # optional dazu: fossiler Anteil in %
 # text_size: sehr_gross                     # normal | gross | sehr_gross | eine Zahl, z. B. 2 (vergrößert auch die großen Werte)
 # colors: { pv: "#b7791f" }                # eigene Farben, siehe "Eigene Farben: colors"
 # grid2_total: sensor.waermepumpe_energie_summe  # zweiter Zähler (kWh), z. B. Wärmepumpe mit eigenem Tarif
@@ -793,6 +799,12 @@ Pflicht sind `pv_total` und `grid_import_total`. `grid_export_total` ist optiona
 - **Zu wenig Preisdaten:** Gibt es in den letzten 7 Tagen weniger als 24 Stunden mit Preisstatistik (zum Beispiel kurz nach dem Einrichten des Sensors), rechnet die Kachel wie bisher mit dem aktuellen Preis und ohne den Zusatz. Bei mehr als 24 Stunden, aber weniger als 7 Tagen, mittelt sie über die Stunden, die es gibt.
 - **Ladezeit:** Meist sind die Stundenpreise schon geladen. Reichen sie nicht 7 Tage zurück (Anfang einer Woche oder eines Monats), lädt die Karte die fehlenden Stunden mit einer zusätzlichen Abfrage nach.
 
+**Monat antippen: `month_select`.** Mit `month_select: true` zeigt ein Tipp auf einen früheren Monat im Diagramm „Solarertrag pro Monat“ seine Werte oben in den Kacheln (Ersparnis, Einspeiseerlös, Stromkosten Netz, Autarkie). Der Reiter trägt dann den Monatsnamen, ein Tipp auf den Reiter führt zurück zum laufenden Monat. „Kosten pro Verbraucher“ gibt es nur für den laufenden Monat. Wunsch aus [#117](https://github.com/msucimaker3112/energy-cockpit/issues/117).
+
+**CO₂: `co2_intensity` und `co2_fossil`.** Mit einem Sensor für die CO₂-Intensität (g/kWh, zum Beispiel „Electricity Maps“) zeigt die Karte einen eigenen Bereich: CO₂ aus dem Netzbezug und die durch selbst genutzten Solarstrom vermiedene Menge, mit `co2_fossil` auch den fossilen Anteil im Bezug. Gerechnet wird Stunde für Stunde mit dem Stundenmittel des Sensors, deshalb braucht er eine Langzeitstatistik. Stunden ohne CO₂-Wert zählen nicht mit. Wunsch aus [#115](https://github.com/msucimaker3112/energy-cockpit/issues/115).
+
+**Nicht erfasst: `cost_rest`.** Mit `cost_rest: true` bekommt „Kosten pro Verbraucher“ eine weitere Kachel „Nicht erfasst“: Hausverbrauch minus alle eingetragenen Verbraucher, je Stunde gerechnet. So ergeben die Netzkosten der Kacheln zusammen die Netzkosten des Hauses. Wunsch aus [#95](https://github.com/msucimaker3112/energy-cockpit/issues/95).
+
 **`hide`:** Blendet einzelne Bereiche der Statistik aus, die du nicht brauchst. Eine Liste mit diesen Namen, auch im Editor unter „Alle Felder“ auswählbar:
 
 | Name | Bereich |
@@ -800,7 +812,8 @@ Pflicht sind `pv_total` und `grid_import_total`. `grid_export_total` ist optiona
 | `monthly` | Diagramm „Solarertrag pro Monat“ mit der Jahresübersicht |
 | `amortisation` | Kachel „Amortisation“ (ohne Anschaffungskosten ist sie ohnehin ausgeblendet) |
 | `baseload` | Kachel „Grundlast (nachts)“ |
-| `footer` | Fußzeile mit Rekordtag, Batterie (Wirkungsgrad), Batteriezyklen, Batterie (Temperatur) und Solar gesamt |
+| `footer` | Fußzeile mit Solar gesamt, Rekordtag, Batterie (Wirkungsgrad), Batteriezyklen und Batterie (Temperatur) |
+| `battery_temp` | nur die Kachel mit der Batterietemperatur |
 | `money` | Die vier Kacheln oben (Solar-Ersparnis, Einspeiseerlös, Stromkosten, Autarkie) |
 
 ```yaml
@@ -912,7 +925,7 @@ cost_consumers:
   ```
 
   Der Preisverlauf gilt auch für die Geldwerte oben (**Stromkosten Netz** und **Solar-Ersparnis**) in den Reitern Monat, Jahr und Gesamt: Jeder Monat zählt mit dem Preis, der damals galt. Wechselt der Preis mitten im Monat, mittelt die Karte über die Tage. „Heute“ und „Woche“ rechnen mit dem heutigen Preis, ebenso die Amortisation. Die Einspeisevergütung hat keinen Verlauf. Mit `hourly_pricing: true` und einem Preis-Sensor mit Langzeitstatistik rechnen die Geldwerte oben dagegen Stunde für Stunde, siehe `hourly_pricing`.
-- **Grundpreis (optional): `grid_base_fee`.** Trägst du den Grundpreis aus deiner Rechnung ein (Euro pro Monat, zum Beispiel `12.5`, ein Jahresbetrag geteilt durch 12), zählt er in **Stromkosten Netz** mit: anteilig je Tag für Heute, Woche (ab Montag), Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „davon Grundpreis …“. Hat sich der Grundpreis geändert, trägst du den früheren in `grid_base_fee_history` ein, wie beim Preisverlauf:
+- **Grundpreis (optional): `grid_base_fee`.** Trägst du den Grundpreis aus deiner Rechnung ein (Euro pro Monat, zum Beispiel `12.5`, ein Jahresbetrag geteilt durch 12), zählt er in **Stromkosten Netz** mit: anteilig je Tag für Heute, Woche (ab Montag), Monat, Jahr und Gesamt, im laufenden Monat bis heute. Unter dem Wert steht „Anteil Grundpreis …“. Hat sich der Grundpreis geändert, trägst du den früheren in `grid_base_fee_history` ein, wie beim Preisverlauf:
 
   ```yaml
   grid_base_fee: 14.9          # Euro pro Monat, heute

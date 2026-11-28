@@ -84,6 +84,7 @@ WD.addTranslations('fr', {
   'st.vsprev': "vs année précédente",
   'st.import': "Soutirage",
   'st.export': "Injection",
+  'pv.wkwp': "Par kWc", 'grid.fossil': "Fossile", 'st.cc.rest': "Non attribué", 'st.co2.grid': "Du réseau", 'st.co2.avoid': "Évité grâce au solaire", 'st.co2.fossil': "Part fossile du soutirage", 'st.co2.since': "Valeurs CO₂ depuis le {d}",
   'st.week': "Semaine",
   'st.g2name': "Deuxième compteur",
   'st.bud.title': "Budget annuel soutirage réseau",
